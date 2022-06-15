@@ -96,7 +96,7 @@ static int cfm_flash_is_empty (struct manifest *cfm)
  * Find component device element for the specified component type.
  *
  * @param cfm The CFM to query.
- * @param component_type The component type to find.
+ * @param component_type SHA256 digest of component type to find.
  * @param component Output for the component device data.
  * @param entry Optional input for starting entry to use, then output for the entry index
  * 	following the matching component device element if found.  This can be null if not needed.
@@ -104,9 +104,10 @@ static int cfm_flash_is_empty (struct manifest *cfm)
  * @return 0 if the component device element was found or an error code.
  */
 static int cfm_flash_get_component_device_with_starting_entry (struct cfm *cfm,
-	const char *component_type, struct cfm_component_device_element *component, uint8_t *entry)
+	const uint8_t *component_type, struct cfm_component_device_element *component, uint8_t *entry)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+	uint8_t component_type_digest[SHA256_HASH_LENGTH];
 	uint8_t element_entry = 0;
 	int status;
 
@@ -129,7 +130,14 @@ static int cfm_flash_get_component_device_with_starting_entry (struct cfm *cfm,
 
 		element_entry++;
 		component->type[component->type_len] = '\0';
-	} while (strcmp (component_type, (char*) component->type) != 0);
+
+		status = cfm_flash->base_flash.hash->calculate_sha256 (cfm_flash->base_flash.hash,
+			component->type, component->type_len, component_type_digest,
+			sizeof (component_type_digest));
+		if (status != 0) {
+			return status;
+		}
+	} while (memcmp (component_type, component_type_digest, sizeof (component_type_digest)) != 0);
 
 	if (entry != NULL) {
 		*entry = element_entry;
@@ -195,7 +203,7 @@ fail:
 	return status;
 }
 
-static int cfm_flash_get_component_device (struct cfm *cfm, const char *component_type,
+static int cfm_flash_get_component_device (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_component_device *component)
 {
 	struct cfm_component_device_element component_element;
@@ -209,7 +217,8 @@ static int cfm_flash_get_component_device (struct cfm *cfm, const char *componen
 	status = cfm_flash_get_component_device_with_starting_entry (cfm, component_type,
 		&component_element, &entry);
 	if (status == 0) {
-		component->attestation_protocol = component_element.attestation_protocol;
+		component->attestation_protocol =
+			(enum cfm_attestation_type) component_element.attestation_protocol;
 		component->cert_slot = component_element.cert_slot;
 
 		component->type = strdup ((char*) component_element.type);
@@ -280,7 +289,7 @@ done:
  * Common function used to get next element data for the specified component and element type.
  *
  * @param cfm The CFM to query.
- * @param component_type The component type to find element for.
+ * @param component_type SHA256 digest of the component type to find element for.
  * @param buffer A container to be updated with the pointer to requested element data.  If the
  *  buffer is null, a buffer will by dynamically allocated to fit the entire element.  This buffer
  *  must be freed by the caller.
@@ -293,7 +302,7 @@ done:
  *
  * @return 0 if the element was found or an error code.
  */
-static int cfm_flash_get_next_element (struct cfm *cfm, const char *component_type,
+static int cfm_flash_get_next_element (struct cfm *cfm, const uint8_t *component_type,
 	uint8_t **buffer, size_t *buffer_len, uint8_t *entry, int element_type)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
@@ -361,8 +370,8 @@ not_found:
 	return CFM_ELEMENT_NOT_FOUND;
 }
 
-static int cfm_flash_get_component_pmr (struct cfm *cfm, const char *component_type, uint8_t pmr_id,
-	struct cfm_pmr *pmr)
+static int cfm_flash_get_component_pmr (struct cfm *cfm, const uint8_t *component_type,
+	uint8_t pmr_id, struct cfm_pmr *pmr)
 {
 	struct cfm_pmr_element pmr_element;
 	struct cfm_pmr_element *pmr_element_ptr = &pmr_element;
@@ -389,7 +398,8 @@ static int cfm_flash_get_component_pmr (struct cfm *cfm, const char *component_t
 		}
 
 		if (pmr_element.pmr_id == pmr_id) {
-			hash_len = hash_get_hash_len (pmr_element.hash_type + 1);
+			hash_len = hash_get_hash_len (
+				manifest_convert_manifest_hash_type (pmr_element.hash_type));
 			if (ROT_IS_ERROR (hash_len)) {
 				return hash_len;
 			}
@@ -437,7 +447,7 @@ static int cfm_flash_populate_digests (struct cfm *cfm, struct cfm_digests *dige
 	int hash_len;
 	int status;
 
-	hash_len = hash_get_hash_len (hash_type + 1);
+	hash_len = hash_get_hash_len (manifest_convert_manifest_hash_type (hash_type));
 	if (ROT_IS_ERROR (hash_len)) {
 		return hash_len;
 	}
@@ -450,7 +460,7 @@ static int cfm_flash_populate_digests (struct cfm *cfm, struct cfm_digests *dige
 	}
 
 	digests->digest_count = digest_count;
-	digests->hash_len = hash_len;
+	digests->hash_type = manifest_convert_manifest_hash_type (hash_type);
 
 	status = manifest_flash_read_element_data (&cfm_flash->base_flash, cfm_flash->base_flash.hash,
 		element_type, entry, CFM_COMPONENT_DEVICE, offset, NULL, NULL, NULL,
@@ -475,7 +485,7 @@ static void cfm_flash_free_component_pmr_digest (struct cfm *cfm, struct cfm_pmr
 	}
 }
 
-static int cfm_flash_get_component_pmr_digest (struct cfm *cfm, const char *component_type,
+static int cfm_flash_get_component_pmr_digest (struct cfm *cfm, const uint8_t *component_type,
 	uint8_t pmr_id, struct cfm_pmr_digest *pmr_digest)
 {
 	struct cfm_pmr_digest_element pmr_digest_element;
@@ -518,7 +528,7 @@ static void cfm_flash_free_measurement (struct cfm *cfm, struct cfm_measurement 
 	}
 }
 
-static int cfm_flash_get_next_measurement (struct cfm *cfm, const char *component_type,
+static int cfm_flash_get_next_measurement (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_measurement *pmr_measurement, bool first)
 {
 	struct cfm_measurement_element measurement_element;
@@ -570,7 +580,7 @@ static void cfm_flash_free_measurement_data (struct cfm *cfm,
 	}
 }
 
-static int cfm_flash_get_next_measurement_data (struct cfm *cfm, const char *component_type,
+static int cfm_flash_get_next_measurement_data (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_measurement_data *measurement_data, bool first)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
@@ -701,7 +711,7 @@ static void cfm_flash_free_root_ca_digest (struct cfm *cfm,
 	}
 }
 
-static int cfm_flash_get_root_ca_digest (struct cfm *cfm, const char *component_type,
+static int cfm_flash_get_root_ca_digest (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_root_ca_digests *root_ca_digest)
 {
 	struct cfm_root_ca_digests_element root_ca_digests_element;
@@ -747,7 +757,7 @@ static void cfm_flash_free_manifest (struct cfm *cfm, struct cfm_manifest *manif
  * Common function used to find next allowable manifest element for the specified component type.
  *
  * @param cfm The CFM to query.
- * @param component_type The component type to find allowable manifest for.
+ * @param component_type SHA256 digest of the component type to find allowable manifest for.
  * @param manifest_type The manifest type to find.
  * @param allowable_manifest A container to be updated with the component allowable manifest
  * 	information.  Contents of the container are dynamically allocated and need to be freed using
@@ -756,7 +766,7 @@ static void cfm_flash_free_manifest (struct cfm *cfm, struct cfm_manifest *manif
  *
  * @return 0 if the allowable manifest element was found or an error code.
  */
-int cfm_flash_get_next_manifest (struct cfm *cfm, const char *component_type, int manifest_type,
+int cfm_flash_get_next_manifest (struct cfm *cfm, const uint8_t *component_type, int manifest_type,
 	struct cfm_manifest *allowable_manifest, bool first)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
@@ -865,21 +875,21 @@ free_manifest:
 	return status;
 }
 
-int cfm_flash_get_next_pfm (struct cfm *cfm, const char *component_type,
+int cfm_flash_get_next_pfm (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_manifest *allowable_pfm, bool first)
 {
 	return cfm_flash_get_next_manifest (cfm, component_type, CFM_ALLOWABLE_PFM, allowable_pfm,
 		first);
 }
 
-int cfm_flash_get_next_cfm (struct cfm *cfm, const char *component_type,
+int cfm_flash_get_next_cfm (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_manifest *allowable_cfm, bool first)
 {
 	return cfm_flash_get_next_manifest (cfm, component_type, CFM_ALLOWABLE_CFM, allowable_cfm,
 		first);
 }
 
-int cfm_flash_get_pcd (struct cfm *cfm, const char *component_type,
+int cfm_flash_get_pcd (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_manifest *allowable_pcd)
 {
 	return cfm_flash_get_next_manifest (cfm, component_type, CFM_ALLOWABLE_PCD, allowable_pcd,

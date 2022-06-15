@@ -9,52 +9,67 @@
 
 
 static void cerberus_protocol_observer_mock_on_get_digest_response (
-	struct cerberus_protocol_observer *observer, struct cmd_interface_msg *response)
+	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	struct cerberus_protocol_observer_mock *mock = 
+	struct cerberus_protocol_observer_mock *mock =
 		(struct cerberus_protocol_observer_mock*) observer;
 
 	if (mock == NULL) {
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, cerberus_protocol_observer_mock_on_get_digest_response, observer, 
+	MOCK_VOID_RETURN (&mock->mock, cerberus_protocol_observer_mock_on_get_digest_response, observer,
 		MOCK_ARG_CALL (response));
 }
 
 static void cerberus_protocol_observer_mock_on_get_certificate_response (
-	struct cerberus_protocol_observer *observer, struct cmd_interface_msg *response)
+	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	struct cerberus_protocol_observer_mock *mock = 
+	struct cerberus_protocol_observer_mock *mock =
 		(struct cerberus_protocol_observer_mock*) observer;
 
 	if (mock == NULL) {
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, cerberus_protocol_observer_mock_on_get_certificate_response, 
+	MOCK_VOID_RETURN (&mock->mock, cerberus_protocol_observer_mock_on_get_certificate_response,
 		observer, MOCK_ARG_CALL (response));
 }
 
 static void cerberus_protocol_observer_mock_on_challenge_response (
-	struct cerberus_protocol_observer *observer, struct cmd_interface_msg *response)
+	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	struct cerberus_protocol_observer_mock *mock = 
+	struct cerberus_protocol_observer_mock *mock =
 		(struct cerberus_protocol_observer_mock*) observer;
 
 	if (mock == NULL) {
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, cerberus_protocol_observer_mock_on_challenge_response, 
+	MOCK_VOID_RETURN (&mock->mock, cerberus_protocol_observer_mock_on_challenge_response,
+		observer, MOCK_ARG_CALL (response));
+}
+
+static void cerberus_protocol_observer_mock_on_device_capabilities (
+	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_observer_mock *mock =
+		(struct cerberus_protocol_observer_mock*) observer;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, cerberus_protocol_observer_mock_on_device_capabilities,
 		observer, MOCK_ARG_CALL (response));
 }
 
 static int cerberus_protocol_observer_mock_func_arg_count (void *func)
 {
-	if ((func == cerberus_protocol_observer_mock_on_challenge_response) || 
-		(func == cerberus_protocol_observer_mock_on_get_digest_response) || 
-		(func == cerberus_protocol_observer_mock_on_get_certificate_response)) {
+	if ((func == cerberus_protocol_observer_mock_on_challenge_response) ||
+		(func == cerberus_protocol_observer_mock_on_get_digest_response) ||
+		(func == cerberus_protocol_observer_mock_on_get_certificate_response) ||
+		(func == cerberus_protocol_observer_mock_on_device_capabilities)) {
 		return 1;
 	}
 	return 0;
@@ -70,6 +85,9 @@ static const char* cerberus_protocol_observer_mock_func_name_map (void *func)
 	}
 	else if (func == cerberus_protocol_observer_mock_on_challenge_response) {
 		return "on_challenge_response";
+	}
+	else if (func == cerberus_protocol_observer_mock_on_device_capabilities) {
+		return "on_device_capabilities";
 	}
 	else {
 		return "unknown";
@@ -91,6 +109,12 @@ static const char* cerberus_protocol_observer_mock_arg_name_map (void *func, int
 		}
 	}
 	else if (func == cerberus_protocol_observer_mock_on_challenge_response) {
+		switch (arg) {
+			case 0:
+				return "response";
+		}
+	}
+	else if (func == cerberus_protocol_observer_mock_on_device_capabilities) {
 		switch (arg) {
 			case 0:
 				return "response";
@@ -125,9 +149,10 @@ int cerberus_protocol_observer_mock_init (struct cerberus_protocol_observer_mock
 	mock_set_name (&mock->mock, "cerberus_protocol_observer");
 
 	mock->base.on_get_digest_response = cerberus_protocol_observer_mock_on_get_digest_response;
-	mock->base.on_get_certificate_response = 
+	mock->base.on_get_certificate_response =
 		cerberus_protocol_observer_mock_on_get_certificate_response;
 	mock->base.on_challenge_response = cerberus_protocol_observer_mock_on_challenge_response;
+	mock->base.on_device_capabilities = cerberus_protocol_observer_mock_on_device_capabilities;
 
 	mock->mock.func_arg_count = cerberus_protocol_observer_mock_func_arg_count;
 	mock->mock.func_name_map = cerberus_protocol_observer_mock_func_name_map;

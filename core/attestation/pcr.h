@@ -25,6 +25,7 @@
 #define PCR_TCG_UINT_SIZE_32								0x01
 #define PCR_TCG_LOG_SIGNATURE				 				"Spec ID Event03"
 
+
 /**
  * Container for a PCR measurement
  */

@@ -21,17 +21,17 @@ static void add_all_attestation_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
-#if (defined TESTING_RUN_ATTESTATION_MASTER_SUITE || \
+#if (defined TESTING_RUN_ATTESTATION_REQUESTER_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_ATTESTATION_MASTER_SUITE
-	TESTING_RUN_SUITE (attestation_master);
+	!defined TESTING_SKIP_ATTESTATION_REQUESTER_SUITE
+	TESTING_RUN_SUITE (attestation_requester);
 #endif
-#if (defined TESTING_RUN_ATTESTATION_SLAVE_SUITE || \
+#if (defined TESTING_RUN_ATTESTATION_RESPONDER_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_ATTESTATION_SLAVE_SUITE
-	TESTING_RUN_SUITE (attestation_slave);
+	!defined TESTING_SKIP_ATTESTATION_RESPONDER_SUITE
+	TESTING_RUN_SUITE (attestation_responder);
 #endif
 #if (defined TESTING_RUN_AUX_ATTESTATION_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \

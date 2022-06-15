@@ -10,7 +10,7 @@
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/device_manager.h"
-#include "attestation/attestation_master.h"
+#include "crypto/rng.h"
 #include "firmware/firmware_update_control.h"
 #include "host_fw/host_processor.h"
 #include "manifest/manifest_cmd_interface.h"
@@ -295,8 +295,8 @@ int cerberus_protocol_generate_get_certificate_digest_request (uint8_t slot_num,
 	uint8_t *buf, size_t buf_len);
 int cerberus_protocol_generate_get_certificate_request (uint8_t slot_num, uint8_t cert_num,
 	uint8_t *buf, size_t buf_len, uint16_t offset, uint16_t length);
-int cerberus_protocol_generate_challenge_request (struct attestation_master *attestation,
-	uint8_t eid, uint8_t slot_num, uint8_t *buf, size_t buf_len);
+int cerberus_protocol_generate_challenge_request (struct rng_engine *rng, uint8_t eid,
+	uint8_t slot_num, uint8_t *buf, size_t buf_len);
 
 int cerberus_protocol_generate_get_device_capabilities_request (struct device_manager *device_mgr,
 	uint8_t *buf, size_t buf_len);
@@ -360,12 +360,14 @@ int cerberus_protocol_process_certificate_digest_response (struct cmd_interface_
 int cerberus_protocol_process_certificate_response (struct cmd_interface_msg *response);
 int cerberus_protocol_process_challenge_response (struct cmd_interface_msg *response);
 
+int cerberus_protocol_process_device_capabilities_response (struct device_manager *device_mgr,
+	struct cmd_interface_msg *response);
+
 /* Private functions for internal use */
 int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
 	struct cmd_interface_msg *request);
 int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
 	struct cmd_interface_msg *request);
-
 
 
 #endif // CERBERUS_PROTOCOL_MASTER_COMMANDS_H_

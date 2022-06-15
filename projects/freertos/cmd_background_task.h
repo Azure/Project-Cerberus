@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include "FreeRTOS.h"
 #include "semphr.h"
-#include "attestation/attestation_slave.h"
+#include "attestation/attestation_responder.h"
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/config_reset.h"
 #include "crypto/hash.h"
@@ -19,7 +19,7 @@
  * The task context for executing attestation requests.
  */
 struct cmd_background_attestation {
-	struct attestation_slave *attestation;			/**< Attestation manager to utilize for attestation operations. */
+	struct attestation_responder *attestation;		/**< Attestation responder to utilize for attestation operations. */
 	struct hash_engine *hash;						/**< Hash engine to be used in attestation operations. */
 	int attestation_status;							/**< The attestation operation status. */
 	uint8_t *unseal_request;						/**< The current unseal request. */
@@ -75,7 +75,7 @@ struct cmd_background_task {
 
 
 int cmd_background_task_init (struct cmd_background_task *task, struct system *system,
-	struct attestation_slave *attestation, struct hash_engine *hash, struct config_reset *reset,
+	struct attestation_responder *attestation, struct hash_engine *hash, struct config_reset *reset,
 	struct riot_key_manager *riot);
 int cmd_background_task_start (struct cmd_background_task *task, uint16_t stack_words);
 

@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include <string.h>
 #include "platform.h"
-#include "attestation_slave.h"
+#include "attestation_responder.h"
 
 
-static int attestation_slave_get_digests (struct attestation_slave *attestation, uint8_t slot_num,
-	uint8_t *buf, size_t buf_len, uint8_t *num_cert)
+static int attestation_responder_get_digests (struct attestation_responder *attestation,
+	uint8_t slot_num, uint8_t *buf, size_t buf_len, uint8_t *num_cert)
 {
 	const struct riot_keys *keys;
 	const struct der_cert *root_ca;
@@ -126,7 +126,7 @@ exit:
  * @param aux_cert Certificate for auxiliary attestation.  This must not be null.
  * @param cert Output for the certificate information.
  */
-static void attestation_slave_get_last_certificate (struct attestation_slave *attestation,
+static void attestation_responder_get_last_certificate (struct attestation_responder *attestation,
 	uint8_t slot_num, const struct riot_keys *riot, const struct der_cert *aux_cert,
 	struct der_cert *cert)
 {
@@ -143,7 +143,7 @@ static void attestation_slave_get_last_certificate (struct attestation_slave *at
 	}
 }
 
-static int attestation_slave_get_certificate (struct attestation_slave *attestation,
+static int attestation_responder_get_certificate (struct attestation_responder *attestation,
 	uint8_t slot_num, uint8_t cert_num, struct der_cert *cert)
 {
 	const struct riot_keys *keys;
@@ -224,7 +224,7 @@ static int attestation_slave_get_certificate (struct attestation_slave *attestat
 				cert->length = keys->devid_cert_length;
 			}
 			else {
-				attestation_slave_get_last_certificate (attestation, slot_num, keys, aux_cert,
+				attestation_responder_get_last_certificate (attestation, slot_num, keys, aux_cert,
 					cert);
 			}
 			break;
@@ -235,13 +235,13 @@ static int attestation_slave_get_certificate (struct attestation_slave *attestat
 				cert->length = keys->devid_cert_length;
 			}
 			else {
-				attestation_slave_get_last_certificate (attestation, slot_num, keys, aux_cert,
+				attestation_responder_get_last_certificate (attestation, slot_num, keys, aux_cert,
 					cert);
 			}
 			break;
 
 		case 3:
-			attestation_slave_get_last_certificate (attestation, slot_num, keys, aux_cert,
+			attestation_responder_get_last_certificate (attestation, slot_num, keys, aux_cert,
 				cert);
 			break;
 	}
@@ -251,11 +251,11 @@ exit:
 	return status;
 }
 
-static int attestation_slave_challenge_response (struct attestation_slave *attestation,
+static int attestation_responder_challenge_response (struct attestation_responder *attestation,
 	uint8_t *buf, size_t buf_len)
 {
-	struct attestation_challenge *challenge = (struct attestation_challenge*)buf;
-	struct attestation_response *response = (struct attestation_response*)buf;
+	struct attestation_challenge *challenge = (struct attestation_challenge*) buf;
+	struct attestation_response *response = (struct attestation_response*) buf;
 	uint8_t measurement[PCR_DIGEST_LENGTH];
 	uint8_t buf_hash[SHA256_HASH_LENGTH];
 	uint16_t response_len;
@@ -347,7 +347,7 @@ unlock:
 	return status;
 }
 
-static int attestation_slave_aux_attestation_unseal (struct attestation_slave *attestation,
+static int attestation_responder_aux_attestation_unseal (struct attestation_responder *attestation,
 	struct hash_engine *hash, enum aux_attestation_key_length key_type, const uint8_t *seed,
 	size_t seed_length, enum aux_attestation_seed_type seed_type,
 	enum aux_attestation_seed_param seed_param, const uint8_t *hmac, enum hmac_hash hmac_type,
@@ -363,8 +363,8 @@ static int attestation_slave_aux_attestation_unseal (struct attestation_slave *a
 		pcr_count, key, key_length);
 }
 
-static int attestation_slave_aux_attestation_unseal_unsupported (
-	struct attestation_slave *attestation, struct hash_engine *hash,
+static int attestation_responder_aux_attestation_unseal_unsupported (
+	struct attestation_responder *attestation, struct hash_engine *hash,
 	enum aux_attestation_key_length key_type, const uint8_t *seed, size_t seed_length,
 	enum aux_attestation_seed_type seed_type, enum aux_attestation_seed_param seed_param,
 	const uint8_t *hmac, enum hmac_hash hmac_type, const uint8_t *ciphertext, size_t cipher_length,
@@ -373,7 +373,7 @@ static int attestation_slave_aux_attestation_unseal_unsupported (
 	return ATTESTATION_UNSUPPORTED_OPERATION;
 }
 
-static int attestation_slave_aux_decrypt (struct attestation_slave *attestation,
+static int attestation_responder_aux_decrypt (struct attestation_responder *attestation,
 	const uint8_t *encrypted, size_t len_encrypted, const uint8_t *label, size_t len_label,
 	enum hash_type pad_hash, uint8_t *decrypted, size_t len_decrypted)
 {
@@ -385,14 +385,14 @@ static int attestation_slave_aux_decrypt (struct attestation_slave *attestation,
 		len_label, pad_hash, decrypted, len_decrypted);
 }
 
-static int attestation_slave_aux_decrypt_unsupported (struct attestation_slave *attestation,
+static int attestation_responder_aux_decrypt_unsupported (struct attestation_responder *attestation,
 	const uint8_t *encrypted, size_t len_encrypted, const uint8_t *label, size_t len_label,
 	enum hash_type pad_hash, uint8_t *decrypted, size_t len_decrypted)
 {
 	return ATTESTATION_UNSUPPORTED_OPERATION;
 }
 
-static int attestation_slave_generate_ecdh_seed (struct attestation_slave *attestation,
+static int attestation_responder_generate_ecdh_seed (struct attestation_responder *attestation,
 	const uint8_t *pub_key, size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length)
 {
 	if (attestation == NULL) {
@@ -403,14 +403,15 @@ static int attestation_slave_generate_ecdh_seed (struct attestation_slave *attes
 		(hash_seed) ? attestation->hash : NULL, seed, seed_length);
 }
 
-static int attestation_slave_generate_ecdh_seed_unsupported (struct attestation_slave *attestation,
-	const uint8_t *pub_key, size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length)
+static int attestation_responder_generate_ecdh_seed_unsupported (
+	struct attestation_responder *attestation, const uint8_t *pub_key, size_t key_length,
+	bool hash_seed, uint8_t *seed, size_t seed_length)
 {
 	return ATTESTATION_UNSUPPORTED_OPERATION;
 }
 
 /**
- * Initialize the common components for slave attestation management.
+ * Initialize the common components for the attestation responder.
  *
  * @param attestation Slave attestation manager instance to initialize.
  * @param riot RIoT key manager.
@@ -423,7 +424,7 @@ static int attestation_slave_generate_ecdh_seed_unsupported (struct attestation_
  *
  * @return Initialization status, 0 if success or an error code.
  */
-static int attestation_slave_init_common (struct attestation_slave *attestation,
+static int attestation_responder_init_common (struct attestation_responder *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
 	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
 	uint8_t max_protocol_version)
@@ -436,7 +437,7 @@ static int attestation_slave_init_common (struct attestation_slave *attestation,
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-	memset (attestation, 0, sizeof (struct attestation_slave));
+	memset (attestation, 0, sizeof (struct attestation_responder));
 
 	keys = riot_key_manager_get_riot_keys (riot);
 	status = ecc->init_key_pair (ecc, keys->alias_key, keys->alias_key_length,
@@ -460,17 +461,17 @@ static int attestation_slave_init_common (struct attestation_slave *attestation,
 	attestation->min_protocol_version = min_protocol_version;
 	attestation->max_protocol_version = max_protocol_version;
 
-	attestation->get_digests = attestation_slave_get_digests;
-	attestation->get_certificate = attestation_slave_get_certificate;
-	attestation->challenge_response = attestation_slave_challenge_response;
+	attestation->get_digests = attestation_responder_get_digests;
+	attestation->get_certificate = attestation_responder_get_certificate;
+	attestation->challenge_response = attestation_responder_challenge_response;
 
 	return 0;
 }
 
 /**
- * Initialize a slave attestation manager.
+ * Initialize an attestation responder instance.
  *
- * @param attestation Slave attestation manager instance to initialize.
+ * @param attestation Attestation responder instance to initialize.
  * @param riot RIoT key manager.
  * @param hash The hash engine to utilize.
  * @param ecc The ECC engine to utilize.
@@ -482,7 +483,7 @@ static int attestation_slave_init_common (struct attestation_slave *attestation,
  *
  * @return Initialization status, 0 if success or an error code.
  */
-int attestation_slave_init (struct attestation_slave *attestation,
+int attestation_responder_init (struct attestation_responder *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
 	struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux,
 	uint8_t min_protocol_version, uint8_t max_protocol_version)
@@ -493,7 +494,7 @@ int attestation_slave_init (struct attestation_slave *attestation,
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store,
+	status = attestation_responder_init_common (attestation, riot, hash, ecc, rng, store,
 		min_protocol_version, max_protocol_version);
 	if (status != 0) {
 		return status;
@@ -501,17 +502,18 @@ int attestation_slave_init (struct attestation_slave *attestation,
 
 	attestation->aux = aux;
 
-	attestation->aux_attestation_unseal = attestation_slave_aux_attestation_unseal;
-	attestation->aux_decrypt = attestation_slave_aux_decrypt;
-	attestation->generate_ecdh_seed = attestation_slave_generate_ecdh_seed;
+	attestation->aux_attestation_unseal = attestation_responder_aux_attestation_unseal;
+	attestation->aux_decrypt = attestation_responder_aux_decrypt;
+	attestation->generate_ecdh_seed = attestation_responder_generate_ecdh_seed;
 
 	return 0;
 }
 
 /**
- * Initialize a slave attestation manager that does not support auxiliary attestation requests.
+ * Initialize an attestation responder instance that does not support auxiliary attestation
+ * requests.
  *
- * @param attestation Slave attestation manager instance to initialize.
+ * @param attestation Attestation responder instance to initialize.
  * @param riot RIoT key manager.
  * @param hash The hash engine to utilize.
  * @param ecc The ECC engine to utilize.
@@ -522,32 +524,32 @@ int attestation_slave_init (struct attestation_slave *attestation,
  *
  * @return Initialization status, 0 if success or an error code.
  */
-int attestation_slave_init_no_aux (struct attestation_slave *attestation,
+int attestation_responder_init_no_aux (struct attestation_responder *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
 	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
 	uint8_t max_protocol_version)
 {
 	int status;
 
-	status = attestation_slave_init_common (attestation, riot, hash, ecc, rng, store,
+	status = attestation_responder_init_common (attestation, riot, hash, ecc, rng, store,
 		min_protocol_version, max_protocol_version);
 	if (status != 0) {
 		return status;
 	}
 
-	attestation->aux_attestation_unseal = attestation_slave_aux_attestation_unseal_unsupported;
-	attestation->aux_decrypt = attestation_slave_aux_decrypt_unsupported;
-	attestation->generate_ecdh_seed = attestation_slave_generate_ecdh_seed_unsupported;
+	attestation->aux_attestation_unseal = attestation_responder_aux_attestation_unseal_unsupported;
+	attestation->aux_decrypt = attestation_responder_aux_decrypt_unsupported;
+	attestation->generate_ecdh_seed = attestation_responder_generate_ecdh_seed_unsupported;
 
 	return 0;
 }
 
 /**
- * Release slave attestation manager
+ * Release attestation responder instance
  *
- * @param attestation Slave attestation manager instance to release
+ * @param attestation Attestation responder instance to release
  */
-void attestation_slave_release (struct attestation_slave *attestation)
+void attestation_responder_release (struct attestation_responder *attestation)
 {
 	if (attestation) {
 		attestation->ecc->release_key_pair (attestation->ecc, &attestation->ecc_priv_key, NULL);

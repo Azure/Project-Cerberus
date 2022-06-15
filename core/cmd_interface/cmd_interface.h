@@ -133,7 +133,7 @@ enum {
 	CMD_HANDLER_ENCRYPTION_UNSUPPORTED = CMD_HANDLER_ERROR (0x11),	/**< Channel encryption not supported on this interface. */
 	CMD_HANDLER_CMD_SHOULD_BE_ENCRYPTED = CMD_HANDLER_ERROR (0x12),	/**< Secure command received unencrypted after establishing an encrypted channel. */
 	CMD_HANDLER_RSVD_NOT_ZERO = CMD_HANDLER_ERROR (0x13),			/**< Reserved field is non-zero. */
-	// CMD_HANDLER_ERROR_MESSAGE = CMD_HANDLER_ERROR (0x14),			/**< The handler received an error message for processing. */
+	CMD_HANDLER_ERROR_MESSAGE = CMD_HANDLER_ERROR (0x14),			/**< The handler received an error message for processing. */
 	CMD_HANDLER_ISSUE_FAILED = CMD_HANDLER_ERROR (0x15),			/**< Failed to generate the request message. */
 	CMD_HANDLER_ERROR_MSG_FAILED = CMD_HANDLER_ERROR (0x16),		/**< Failed to generate an error message. */
 	CMD_HANDLER_UNKNOWN_RESPONSE = CMD_HANDLER_ERROR (0x17),		/**< A command does not represent a known response. */

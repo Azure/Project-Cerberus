@@ -42,6 +42,17 @@ static void cfm_observer_mock_on_clear_active (struct cfm_observer *observer)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, cfm_observer_mock_on_clear_active, observer);
 }
 
+static void cfm_observer_mock_on_cfm_activation_request (struct cfm_observer *observer)
+{
+	struct cfm_observer_mock *mock = (struct cfm_observer_mock*) observer;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, cfm_observer_mock_on_cfm_activation_request, observer);
+}
+
 static int cfm_observer_mock_func_arg_count (void *func)
 {
 	if ((func == cfm_observer_mock_on_cfm_verified) ||
@@ -63,6 +74,9 @@ static const char* cfm_observer_mock_func_name_map (void *func)
 	}
 	else if (func == cfm_observer_mock_on_clear_active) {
 		return "on_clear_active";
+	}
+	else if (func == cfm_observer_mock_on_cfm_activation_request) {
+		return "on_cfm_activation_request";
 	}
 	else {
 		return "unknown";
@@ -114,6 +128,7 @@ int cfm_observer_mock_init (struct cfm_observer_mock *mock)
 	mock->base.on_cfm_verified = cfm_observer_mock_on_cfm_verified;
 	mock->base.on_cfm_activated = cfm_observer_mock_on_cfm_activated;
 	mock->base.on_clear_active = cfm_observer_mock_on_clear_active;
+	mock->base.on_cfm_activation_request = cfm_observer_mock_on_cfm_activation_request;
 
 	mock->mock.func_arg_count = cfm_observer_mock_func_arg_count;
 	mock->mock.func_name_map = cfm_observer_mock_func_name_map;

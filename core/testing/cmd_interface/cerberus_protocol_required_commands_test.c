@@ -21,7 +21,7 @@ TEST_SUITE_LABEL ("cerberus_protocol_required_commands");
 
 void cerberus_protocol_required_commands_testing_supports_all_required_commands (CuTest *test,
 	struct cmd_interface *cmd, const char *version,
-	struct attestation_slave_mock *slave_attestation, struct device_manager *device_manager,
+	struct attestation_responder_mock *attestation, struct device_manager *device_manager,
 	struct cmd_background_mock *background, struct keystore_mock *keystore,
 	struct cmd_device_mock *cmd_device, const uint8_t* csr, size_t csr_length, uint16_t vendor_id,
 	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
@@ -29,9 +29,9 @@ void cerberus_protocol_required_commands_testing_supports_all_required_commands 
 {
 	cerberus_protocol_required_commands_testing_process_get_fw_version (test, cmd, version);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest (test, cmd,
-		slave_attestation, session);
+		attestation, session);
 	cerberus_protocol_required_commands_testing_process_get_certificate (test, cmd,
-		slave_attestation);
+		attestation);
 	cerberus_protocol_required_commands_testing_process_get_capabilities (test, cmd,
 		device_manager);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr (test, cmd, csr, csr_length);
@@ -48,7 +48,7 @@ void cerberus_protocol_required_commands_testing_supports_all_required_commands 
 
 	if (session) {
 		cerberus_protocol_required_commands_testing_process_get_challenge_response (test, cmd,
-			slave_attestation, session);
+			attestation, session);
 		cerberus_protocol_required_commands_testing_generate_error_packet_encrypted (test, cmd,
 			session);
 		cerberus_protocol_required_commands_testing_generate_error_packet_encrypted_fail (test,
@@ -56,7 +56,7 @@ void cerberus_protocol_required_commands_testing_supports_all_required_commands 
 	}
 	else {
 		cerberus_protocol_required_commands_testing_process_get_challenge_response_no_session_mgr (
-			test, cmd, slave_attestation);
+			test, cmd, attestation);
 	}
 }
 
@@ -271,7 +271,7 @@ void cerberus_protocol_required_commands_testing_process_get_fw_version_bad_coun
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation,
+	struct cmd_interface *cmd, struct attestation_responder_mock *attestation,
 	struct session_manager_mock *session)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -304,11 +304,11 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest 
 	cert_buf[62] = 0xCC;
 	cert_buf[63] = 0xDD;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
 		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
-	status |= mock_expect_output (&slave_attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
+	status |= mock_expect_output (&attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
+	status |= mock_expect_output (&attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -341,7 +341,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest 
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_no_key_exchange (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -373,11 +373,11 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	cert_buf[62] = 0xCC;
 	cert_buf[63] = 0xDD;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
 		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
-	status |= mock_expect_output (&slave_attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
+	status |= mock_expect_output (&attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
+	status |= mock_expect_output (&attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -405,7 +405,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_in_session (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -438,11 +438,11 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	cert_buf[62] = 0xCC;
 	cert_buf[63] = 0xDD;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
 		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
-	status |= mock_expect_output (&slave_attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
+	status |= mock_expect_output (&attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
+	status |= mock_expect_output (&attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -470,7 +470,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -502,11 +502,11 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	cert_buf[62] = 0xCC;
 	cert_buf[63] = 0xDD;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, 64, MOCK_ARG (1), MOCK_ARG (&request.data[sizeof (*resp)]),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, 64, MOCK_ARG (1), MOCK_ARG (&request.data[sizeof (*resp)]),
 		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
-	status |= mock_expect_output (&slave_attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
+	status |= mock_expect_output (&attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
+	status |= mock_expect_output (&attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -534,7 +534,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_limited_response (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -566,11 +566,11 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	cert_buf[62] = 0xCC;
 	cert_buf[63] = 0xDD;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
 		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
-	status |= mock_expect_output (&slave_attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
+	status |= mock_expect_output (&attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
+	status |= mock_expect_output (&attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -598,7 +598,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -623,8 +623,8 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, ATTESTATION_INVALID_SLOT_NUM, MOCK_ARG (2),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, ATTESTATION_INVALID_SLOT_NUM, MOCK_ARG (2),
 		MOCK_ARG (&request.data[sizeof (*resp)]), MOCK_ARG (max), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
@@ -648,7 +648,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_unavailable_cert (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -673,8 +673,8 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, ATTESTATION_CERT_NOT_AVAILABLE, MOCK_ARG (1),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, ATTESTATION_CERT_NOT_AVAILABLE, MOCK_ARG (1),
 		MOCK_ARG (&request.data[sizeof (*resp)]), MOCK_ARG (max), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
@@ -820,7 +820,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_digest_fail (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -843,8 +843,8 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, ATTESTATION_INVALID_ARGUMENT, MOCK_ARG (0), MOCK_ARG_NOT_NULL,
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, ATTESTATION_INVALID_ARGUMENT, MOCK_ARG (0), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
@@ -856,7 +856,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -886,9 +886,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate (CuTest
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -919,9 +919,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate (CuTest
 	req->length = 10;
 	request.length = sizeof (struct cerberus_protocol_get_certificate);
 
-	status |= mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
+	status |= mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -948,7 +948,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate (CuTest
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_length_0 (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -978,9 +978,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_length_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1009,7 +1009,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_length_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_aux_slot (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1039,9 +1039,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_aux_slo
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, 0, MOCK_ARG (1), MOCK_ARG (1), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, 0, MOCK_ARG (1), MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1070,7 +1070,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_aux_slo
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_limited_response (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1102,9 +1102,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_limited
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1131,7 +1131,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_limited
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_invalid_offset (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1161,9 +1161,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_invalid
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1186,7 +1186,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_invalid
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_valid_offset_and_length_beyond_cert_len (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1216,9 +1216,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_valid_o
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1246,7 +1246,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_valid_o
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_length_too_big (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1276,9 +1276,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_length_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, 0, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1307,7 +1307,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_length_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_slot (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1333,8 +1333,8 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_unsuppo
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, ATTESTATION_INVALID_SLOT_NUM, MOCK_ARG (2), MOCK_ARG (1),
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, ATTESTATION_INVALID_SLOT_NUM, MOCK_ARG (2), MOCK_ARG (1),
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1357,7 +1357,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_unsuppo
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_cert (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1383,8 +1383,8 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_unsuppo
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, ATTESTATION_INVALID_CERT_NUM, MOCK_ARG (0), MOCK_ARG (4),
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, ATTESTATION_INVALID_CERT_NUM, MOCK_ARG (0), MOCK_ARG (4),
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1407,7 +1407,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_unsuppo
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_unavailable_cert (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1433,8 +1433,8 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_unavail
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, ATTESTATION_CERT_NOT_AVAILABLE, MOCK_ARG (1), MOCK_ARG (1),
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, ATTESTATION_CERT_NOT_AVAILABLE, MOCK_ARG (1), MOCK_ARG (1),
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1525,7 +1525,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_invalid
 }
 
 void cerberus_protocol_required_commands_testing_process_get_certificate_fail (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1553,9 +1553,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_fail (
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_certificate,
-		slave_attestation, ATTESTATION_NO_MEMORY, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&slave_attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
+	status = mock_expect (&attestation->mock, attestation->base.get_certificate,
+		attestation, ATTESTATION_NO_MEMORY, MOCK_ARG (0), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&attestation->mock, 2, &cert, sizeof (struct der_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1566,7 +1566,7 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_fail (
 }
 
 void cerberus_protocol_required_commands_testing_process_get_challenge_response (CuTest *test,
-	struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation,
+	struct cmd_interface *cmd, struct attestation_responder_mock *attestation,
 	struct session_manager_mock *session)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -1633,8 +1633,8 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response 
 		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG (NULL), MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, 64, MOCK_ARG (0),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, 64, MOCK_ARG (0),
 		MOCK_ARG (
 			&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
 		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
@@ -1643,9 +1643,9 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response 
 	status = cmd->process_request (cmd, &digest_request);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
-		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
+	status = mock_expect (&attestation->mock, attestation->base.challenge_response,
+		attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output (&attestation->mock, 0, response_buf, sizeof (response_buf),
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1674,7 +1674,7 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response 
 }
 
 void cerberus_protocol_required_commands_testing_process_get_challenge_response_no_session_mgr (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1714,9 +1714,9 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
-		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
+	status = mock_expect (&attestation->mock, attestation->base.challenge_response,
+		attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output (&attestation->mock, 0, response_buf, sizeof (response_buf),
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1740,7 +1740,7 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_challenge_response_key_exchange_not_requested (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1802,8 +1802,8 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, 64, MOCK_ARG (0),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, 64, MOCK_ARG (0),
 		MOCK_ARG (
 			&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
 		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
@@ -1812,9 +1812,9 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	status = cmd->process_request (cmd, &digest_request);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
-		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
+	status = mock_expect (&attestation->mock, attestation->base.challenge_response,
+		attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output (&attestation->mock, 0, response_buf, sizeof (response_buf),
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1838,7 +1838,7 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation,
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation,
 	struct session_manager_mock *session)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -1905,8 +1905,8 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG (NULL), MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, 64, MOCK_ARG (0),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, 64, MOCK_ARG (0),
 		MOCK_ARG (
 			&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
 		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
@@ -1915,9 +1915,9 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	status = cmd->process_request (cmd, &digest_request);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
-		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
+	status = mock_expect (&attestation->mock, attestation->base.challenge_response,
+		attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output (&attestation->mock, 0, response_buf, sizeof (response_buf),
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1946,7 +1946,7 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_no_session_mgr (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -1987,10 +1987,9 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
-		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
-		-1);
+	status = mock_expect (&attestation->mock, attestation->base.challenge_response,
+		attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output (&attestation->mock, 0, response_buf, sizeof (response_buf), -1);
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = false;
@@ -2013,7 +2012,7 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_key_exchange_not_requested (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -2075,8 +2074,8 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.get_digests,
-		slave_attestation, 64, MOCK_ARG (0),
+	status = mock_expect (&attestation->mock, attestation->base.get_digests,
+		attestation, 64, MOCK_ARG (0),
 		MOCK_ARG (
 			&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
 		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
@@ -2085,9 +2084,9 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	status = cmd->process_request (cmd, &digest_request);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
-		slave_attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
-	status |= mock_expect_output (&slave_attestation->mock, 0, response_buf, sizeof (response_buf),
+	status = mock_expect (&attestation->mock, attestation->base.challenge_response,
+		attestation, sizeof (response_buf), MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status |= mock_expect_output (&attestation->mock, 0, response_buf, sizeof (response_buf),
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2111,7 +2110,7 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 }
 
 void cerberus_protocol_required_commands_testing_process_get_challenge_response_fail (
-	CuTest *test, struct cmd_interface *cmd, struct attestation_slave_mock *slave_attestation)
+	CuTest *test, struct cmd_interface *cmd, struct attestation_responder_mock *attestation)
 {
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -2133,8 +2132,8 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&slave_attestation->mock, slave_attestation->base.challenge_response,
-		slave_attestation, ATTESTATION_NO_MEMORY, MOCK_ARG_NOT_NULL, MOCK_ARG (max));
+	status = mock_expect (&attestation->mock, attestation->base.challenge_response,
+		attestation, ATTESTATION_NO_MEMORY, MOCK_ARG_NOT_NULL, MOCK_ARG (max));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3479,7 +3478,7 @@ void cerberus_protocol_master_commands_testing_process_error_response (CuTest *t
 	response->target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = cmd->process_response (cmd, response);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CMD_HANDLER_ERROR_MESSAGE, status);
 }
 
 void cerberus_protocol_master_commands_testing_process_error_response_invalid_len (CuTest *test,
@@ -4274,7 +4273,7 @@ static void cerberus_protocol_required_commands_test_challenge_format (CuTest *t
 	CuAssertPtrEquals (test, &raw_buffer_resp[11], &resp->challenge.nonce);
 	CuAssertIntEquals (test, 0x07, resp->challenge.num_digests);
 	CuAssertIntEquals (test, 0x20, resp->challenge.digests_size);
-	CuAssertPtrEquals (test, &raw_buffer_resp[45], &resp->digest);
+	CuAssertPtrEquals (test, &raw_buffer_resp[45], cerberus_protocol_challenge_get_pmr (resp));
 	CuAssertPtrEquals (test, &raw_buffer_resp[77], cerberus_protocol_challenge_get_signature (resp));
 }
 

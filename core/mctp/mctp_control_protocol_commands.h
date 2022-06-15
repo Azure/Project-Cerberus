@@ -55,8 +55,7 @@ struct mctp_control_set_eid {
  * MCTP control set EID response format
  */
 struct mctp_control_set_eid_response {
-	struct mctp_control_protocol_header header;					/**< Message header */
-	uint8_t completion_code;									/**< Operation completion code */
+	struct mctp_control_protocol_resp_header header;			/**< Message header */
 	uint8_t eid_allocation_status:2;							/**< Status of EID allocation */
 	uint8_t reserved1:2;										/**< Reserved */
 	uint8_t eid_assignment_status:2;							/**< Status of EID assignment */
@@ -76,8 +75,7 @@ struct mctp_control_get_eid {
  * MCTP control get EID response format
  */
 struct mctp_control_get_eid_response {
-	struct mctp_control_protocol_header header;					/**< Message header */
-	uint8_t completion_code;									/**< Operation completion code */
+	struct mctp_control_protocol_resp_header header;			/**< Message header */
 	uint8_t eid;												/**< Endpoint ID */
 	uint8_t eid_type:2;											/**< Endpoint ID type */
 	uint8_t reserved:2;											/**< Reserved */
@@ -108,8 +106,7 @@ struct mctp_control_mctp_version_number_entry {
  * MCTP control get MCTP version response format
  */
 struct mctp_control_get_mctp_version_response {
-	struct mctp_control_protocol_header header;					/**< Message header */
-	uint8_t completion_code;									/**< Operation completion code */
+	struct mctp_control_protocol_resp_header header;			/**< Message header */
 	uint8_t version_num_entry_count;							/**< Version number entry count */
 };
 
@@ -141,8 +138,7 @@ struct mctp_control_get_message_type {
  * MCTP control get message type support response format
  */
 struct mctp_control_get_message_type_response {
-	struct mctp_control_protocol_header header;					/**< Message header */
-	uint8_t completion_code;									/**< Operation completion code */
+	struct mctp_control_protocol_resp_header header;			/**< Message header */
 	uint8_t message_type_count;									/**< Number of supported message type in list */
 };
 
@@ -174,8 +170,7 @@ struct mctp_control_get_vendor_def_msg_support {
  * MCTP control get vendor defined message support response packet format for PCI VID
  */
 struct mctp_control_get_vendor_def_msg_support_pci_response {
-	struct mctp_control_protocol_header header;					/**< Message header */
-	uint8_t completion_code;									/**< Completion code */
+	struct mctp_control_protocol_resp_header header;			/**< Message header */
 	uint8_t vid_set_selector;									/**< Vendor ID set selector */
 	uint8_t vid_format;											/**< Vendor ID format */
 	uint16_t vid;												/**< Vendor ID */
@@ -186,8 +181,7 @@ struct mctp_control_get_vendor_def_msg_support_pci_response {
  * MCTP control get vendor defined message support response packet format for IANA enterpise number
  */
 struct mctp_control_get_vendor_def_msg_support_iana_response {
-	struct mctp_control_protocol_header header;					/**< Message header */
-	uint8_t completion_code;									/**< Completion code */
+	struct mctp_control_protocol_resp_header header;			/**< Message header */
 	uint8_t vid_set_selector;									/**< Vendor ID set selector */
 	uint8_t vid_format;											/**< Vendor ID format */
 	uint32_t vid;												/**< IANA enterprise number */
@@ -221,8 +215,7 @@ struct mctp_control_routing_table_entry {
  * MCTP control get routing table entries message response format
  */
 struct mctp_control_get_routing_table_entries_response {
-	struct mctp_control_protocol_header header;					/**< Message header */
-	uint8_t completion_code;									/**< Completion code */
+	struct mctp_control_protocol_resp_header header;			/**< Message header */
 	uint8_t next_entry_handle;									/**< Next entry handle */
 	uint8_t num_entries;										/**< Number of entries in response */
 };

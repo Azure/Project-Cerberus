@@ -176,6 +176,7 @@ struct session_manager {
 	struct keystore *store;								/**< Keystore used to persist pairing keys */
 };
 
+
 /* Internal functions for use by derived types. */
 int session_manager_init (struct session_manager *session, struct aes_engine *aes,
 	struct hash_engine *hash, struct rng_engine *rng, struct riot_key_manager *riot,
@@ -203,6 +204,7 @@ int session_manager_session_sync (struct session_manager *session, uint8_t eid, 
 
 struct session_manager_entry* session_manager_get_session (struct session_manager *session,
 	uint8_t eid);
+
 
 #define	SESSION_MANAGER_ERROR(code)				ROT_ERROR (ROT_MODULE_SESSION_MANAGER, code)
 

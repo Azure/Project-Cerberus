@@ -201,10 +201,10 @@ int pcr_store_update_versioned_buffer (struct pcr_store *store, struct hash_engi
 }
 
 /**
- * Update event type in PCR bank's list of measurements
+ * Update event type in PCR bank measurement
  *
  * @param store PCR store containing PCR to be updated
- * @param measurement_type The type of measurement being added
+ * @param measurement_type The type of measurement being updated
  * @param event_type TCG event type to associate measurement with
  *
  * @return 0 if successful or an error code
@@ -232,13 +232,16 @@ int pcr_store_update_event_type (struct pcr_store *store, uint16_t measurement_t
  * @param store PCR store containing PCR to be utilized
  * @param hash Hashing engine to utilize in PCR bank operations
  * @param pcr_num The PCR bank to compute aggregate measurement of
- * @param measurement The output PCR measurement
+ * @param measurement The output PCR measurement. Can be set to NULL if not needed
  *
  * @return The number of digests included in the calculated measurement.
  */
 int pcr_store_compute (struct pcr_store *store, struct hash_engine *hash, uint8_t pcr_num,
 	uint8_t *measurement)
 {
+	/* TODO: Instead of passing a NULL measurement buffer here to get number of digests in
+	 * measurement, create a new function that just returns number of digests. */
+
 	if (store == NULL) {
 		return PCR_INVALID_ARGUMENT;
 	}

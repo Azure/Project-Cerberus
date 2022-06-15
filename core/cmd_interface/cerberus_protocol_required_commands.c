@@ -6,7 +6,7 @@
 #include <string.h>
 #include "common/certificate.h"
 #include "common/common_math.h"
-#include "attestation/attestation_slave.h"
+#include "attestation/attestation_responder.h"
 #include "mctp/mctp_logging.h"
 #include "cerberus_protocol.h"
 #include "cmd_interface.h"
@@ -56,13 +56,13 @@ int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_versio
 /**
  * Process get certificate digest request
  *
- * @param attestation Attestation manager instance to utilize
+ * @param attestation Attestation responder instance to utilize
  * @param session Session manager instance to utilize
  * @param request Get certificate digest request to process
  *
  * @return 0 if input processed successfully or an error code.
  */
-int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestation,
+int cerberus_protocol_get_certificate_digest (struct attestation_responder *attestation,
 	struct session_manager *session, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_certificate_digest *rq =
@@ -104,14 +104,14 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 	if (!ROT_IS_ERROR (status)) {
 		rsp->capabilities = 1;
 		rsp->num_digests = num_cert;
-		request->length = cerberus_protocol_get_certificate_digest_response_length (status);
+		request->length = cerberus_protocol_get_certificate_digest_response_length (rsp);
 		status = 0;
 	}
 	else if ((status == ATTESTATION_INVALID_SLOT_NUM) ||
 		(status == ATTESTATION_CERT_NOT_AVAILABLE)) {
 		rsp->capabilities = 1;
 		rsp->num_digests = 0;
-		request->length = cerberus_protocol_get_certificate_digest_response_length (0);
+		request->length = cerberus_protocol_get_certificate_digest_response_length (rsp);
 		status = 0;
 	}
 
@@ -121,12 +121,12 @@ int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestat
 /**
  * Process get certificate request
  *
- * @param attestation Attestation manager instance to utilize
+ * @param attestation Attestation responder instance to utilize
  * @param request Get certificate request to process
  *
  * @return 0 if request processed successfully or an error code.
  */
-int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
+int cerberus_protocol_get_certificate (struct attestation_responder *attestation,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_certificate *rq =
@@ -195,7 +195,7 @@ int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
  *
  * @return 0 if request completed successfully or an error code.
  */
-int cerberus_protocol_get_challenge_response (struct attestation_slave *attestation,
+int cerberus_protocol_get_challenge_response (struct attestation_responder *attestation,
 	struct session_manager *session, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_challenge *rq = (struct cerberus_protocol_challenge*) request->data;
@@ -514,5 +514,5 @@ int cerberus_protocol_process_error_response (struct cmd_interface_msg *response
 		return CMD_HANDLER_INVALID_ERROR_MSG;
 	}
 
-	return 0;
+	return CMD_HANDLER_ERROR_MESSAGE;
 }

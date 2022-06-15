@@ -6,8 +6,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "attestation/attestation_master.h"
-#include "attestation/attestation_slave.h"
+#include "attestation/attestation_responder.h"
 #include "cmd_interface.h"
 #include "device_manager.h"
 #include "session_manager.h"
@@ -49,8 +48,7 @@ struct cmd_interface_system {
 	struct pcr_store *pcr_store;							/**< PCR storage */
 	struct riot_key_manager *riot;							/**< RIoT key manager */
 	struct cmd_authorization *auth;							/**< Authorization handler */
-	struct attestation_master *master_attestation;			/**< Master attestation manager instance */
-	struct attestation_slave *slave_attestation;			/**< Slave attestation manager instance */
+	struct attestation_responder *attestation;				/**< Attestation responder instance */
 	struct hash_engine *hash;								/**< The hashing engine for PCR operations. */
 	struct cmd_interface_fw_version *fw_version;			/**< FW version numbers */
 	struct host_control *host_0_ctrl;						/**< Host hardware control for port 0. */
@@ -71,10 +69,9 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct manifest_cmd_interface *pfm_1, struct manifest_cmd_interface *cfm,
 	struct manifest_cmd_interface *pcd, struct pfm_manager *pfm_manager_0,
 	struct pfm_manager *pfm_manager_1, struct cfm_manager *cfm_manager,
-	struct pcd_manager *pcd_manager,  struct attestation_master *master_attestation,
-	struct attestation_slave *slave_attestation, struct device_manager *device_manager,
-	struct pcr_store *store, struct hash_engine *hash, struct cmd_background *background,
-	struct host_processor *host_0, struct host_processor *host_1,
+	struct pcd_manager *pcd_manager,  struct attestation_responder *attestation,
+	struct device_manager *device_manager, struct pcr_store *store, struct hash_engine *hash,
+	struct cmd_background *background, struct host_processor *host_0, struct host_processor *host_1,
 	struct cmd_interface_fw_version *fw_version, struct riot_key_manager *riot,
 	struct cmd_authorization *auth, struct host_control *host_0_ctrl,
 	struct host_control *host_1_ctrl, struct recovery_image_cmd_interface *recovery_cmd_0,

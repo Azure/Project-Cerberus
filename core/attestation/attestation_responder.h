@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#ifndef ATTESTATION_SLAVE_H_
-#define ATTESTATION_SLAVE_H_
+#ifndef ATTESTATION_RESPONDER_H_
+#define ATTESTATION_RESPONDER_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -13,17 +13,20 @@
 #include "crypto/rng.h"
 #include "common/certificate.h"
 #include "riot/riot_key_manager.h"
-#include "attestation/pcr_store.h"
-#include "attestation/aux_attestation.h"
-#include "attestation/attestation.h"
+#include "pcr_store.h"
+#include "aux_attestation.h"
+#include "attestation.h"
 
 
-struct attestation_slave {
+/**
+ * Interface for operations needed to respond to attestation requests against device.
+ */
+struct attestation_responder {
 	/**
 	 * Get the digests for all certificates in the certificate chain utilized by the attestation
 	 * manager.
 	 *
-	 * @param attestation The slave attestation manager interface to utilize.
+	 * @param attestation The attestation responder instance to utilize.
 	 * @param slot_num The slot number for the certificate chain to query.
 	 * @param buf Output buffer to be filled with the certificate digests.
 	 * @param buf_len Maximum length of buffer as input.
@@ -31,20 +34,20 @@ struct attestation_slave {
 	 *
 	 * @return Output length if the digests was successfully computed or an error code.
 	 */
-	int (*get_digests) (struct attestation_slave *attestation, uint8_t slot_num, uint8_t *buf,
+	int (*get_digests) (struct attestation_responder *attestation, uint8_t slot_num, uint8_t *buf,
 		size_t buf_len, uint8_t *num_cert);
 
 	/**
-	 * Get certificate from the attestation manager certificate chain.
+	 * Get certificate from the requested certificate chain slot number.
 	 *
-	 * @param attestation The slave attestation manager interface to utilize.
+	 * @param attestation The attestation responder instance to utilize.
 	 * @param slot_num The slot number for the certificate chain to retrieve.
 	 * @param cert_num The certificate number in the chain to retrieve.
 	 * @param cert Certificate buffer to fill. Caller must not free certificate buffers.
 	 *
 	 * @return 0 if the certificate was successfully retrieved or an error code.
 	 */
-	int (*get_certificate) (struct attestation_slave *attestation, uint8_t slot_num,
+	int (*get_certificate) (struct attestation_responder *attestation, uint8_t slot_num,
 		uint8_t cert_num, struct der_cert *cert);
 
 	/**
@@ -56,12 +59,13 @@ struct attestation_slave {
 	 *
 	 * @return Output length if the challenge was successfully created or an error code.
 	 */
-	int (*challenge_response) (struct attestation_slave *attestation, uint8_t *buf, size_t buf_len);
+	int (*challenge_response) (struct attestation_responder *attestation, uint8_t *buf,
+		size_t buf_len);
 
 	/**
 	 * Unseal an encryption key for auxiliary attestation flows.
 	 *
-	 * @param attestation The slave attestation manager interface to utilize.
+	 * @param attestation The attestation responder instance to utilize.
 	 * @param hash The hash engine to use for unsealing.
 	 * @param key_type The length of the encryption and signing keys that will be generated.
 	 * @param seed The obfuscated seed to use for key derivation.
@@ -80,17 +84,17 @@ struct attestation_slave {
 	 *
 	 * @return 0 if the unsealing was successful or an error code.
 	 */
-	int (*aux_attestation_unseal) (struct attestation_slave *attestation, struct hash_engine *hash,
-		enum aux_attestation_key_length key_type, const uint8_t *seed, size_t seed_length,
-		enum aux_attestation_seed_type seed_type, enum aux_attestation_seed_param seed_param,
-		const uint8_t *hmac, enum hmac_hash hmac_type, const uint8_t *ciphertext,
-		size_t cipher_length, const uint8_t sealing[][64], size_t pcr_count, uint8_t *key,
-		size_t key_length);
+	int (*aux_attestation_unseal) (struct attestation_responder *attestation,
+		struct hash_engine *hash, enum aux_attestation_key_length key_type, const uint8_t *seed,
+		size_t seed_length, enum aux_attestation_seed_type seed_type,
+		enum aux_attestation_seed_param seed_param, const uint8_t *hmac, enum hmac_hash hmac_type,
+		const uint8_t *ciphertext, size_t cipher_length, const uint8_t sealing[][64],
+		size_t pcr_count, uint8_t *key, size_t key_length);
 
 	/**
 	 * Decrypt a payload using the the auxiliary attestation key.
 	 *
-	 * @param attestation The slave attestation manager interface to utilize.
+	 * @param attestation The attestation responder instance to utilize.
 	 * @param encrypted Payload to decrypt.
 	 * @param len_encrypted Length of payload to decrypt.
 	 * @param label Optional label to use during decryption.
@@ -102,14 +106,14 @@ struct attestation_slave {
 	 * @return Decrypted payload length if the decryption was successful or an error code.  Use
 	 * ROT_IS_ERROR to check the return value.
 	 */
-	int (*aux_decrypt) (struct attestation_slave *attestation, const uint8_t *encrypted,
+	int (*aux_decrypt) (struct attestation_responder *attestation, const uint8_t *encrypted,
 		size_t len_encrypted, const uint8_t *label, size_t len_label, enum hash_type pad_hash,
 		uint8_t *decrypted, size_t len_decrypted);
 
 	/**
 	 * Generate an attestation seed using ECDH.
 	 *
-	 * @param attestation The slave attestation manager interface to utilize.
+	 * @param attestation The attestation responder instance to utilize.
 	 * @param pub_key The DER encoded ECC public key to use for seed generation.
 	 * @param key_length Length of the ECC public key.
 	 * @param hash_seed true to calculate the SHA256 hash of the seed.
@@ -119,7 +123,7 @@ struct attestation_slave {
 	 * @return Length of the generated seed or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*generate_ecdh_seed) (struct attestation_slave *attestation, const uint8_t *pub_key,
+	int (*generate_ecdh_seed) (struct attestation_responder *attestation, const uint8_t *pub_key,
 		size_t key_length, bool hash_seed, uint8_t *seed, size_t seed_length);
 
 	struct ecc_private_key ecc_priv_key;	/**< RIoT ECC private key. */
@@ -136,16 +140,16 @@ struct attestation_slave {
 };
 
 
-int attestation_slave_init (struct attestation_slave *attestation, struct riot_key_manager *riot,
-	struct hash_engine *hash, struct ecc_engine *ecc, struct rng_engine *rng,
-	struct pcr_store *store, struct aux_attestation *aux, uint8_t min_protocol_version,
-	uint8_t max_protocol_version);
-int attestation_slave_init_no_aux (struct attestation_slave *attestation,
+int attestation_responder_init (struct attestation_responder *attestation,
+	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
+	struct rng_engine *rng, struct pcr_store *store, struct aux_attestation *aux,
+	uint8_t min_protocol_version, uint8_t max_protocol_version);
+int attestation_responder_init_no_aux (struct attestation_responder *attestation,
 	struct riot_key_manager *riot, struct hash_engine *hash, struct ecc_engine *ecc,
 	struct rng_engine *rng, struct pcr_store *store, uint8_t min_protocol_version,
 	uint8_t max_protocol_version);
 
-void attestation_slave_release (struct attestation_slave *attestation);
+void attestation_responder_release (struct attestation_responder *attestation);
 
 
-#endif /* ATTESTATION_SLAVE_H_ */
+#endif /* ATTESTATION_RESPONDER_H_ */

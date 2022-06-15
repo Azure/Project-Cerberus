@@ -151,6 +151,23 @@ void cfm_manager_on_clear_active (struct cfm_manager *manager)
 }
 
 /**
+ * Notify observers that a CFM activation request has been received.
+ *
+ * @param manager The manager generating the event.
+ */
+void cfm_manager_on_cfm_activation_request (struct cfm_manager *manager)
+{
+	if (manager == NULL) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+			MANIFEST_LOGGING_ACTIVATION_FAIL, 0, MANIFEST_MANAGER_INVALID_ARGUMENT);
+		return;
+	}
+
+	observable_notify_observers (&manager->observable,
+		offsetof (struct cfm_observer, on_cfm_activation_request));
+}
+
+/**
  * Get the data used for CFM ID measurement.  The CFM instance must be released with the
  * manager.
  *

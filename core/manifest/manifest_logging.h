@@ -39,6 +39,8 @@ enum {
 	MANIFEST_LOGGING_CFM_CLEAR_ACTIVE_EVENT_FAIL,	/**< Failed clear active CFM notification. */
 	MANIFEST_LOGGING_PCD_CLEAR_ACTIVE_EVENT_FAIL,	/**< Failed clear active PCD notification. */
 	MANIFEST_LOGGING_PCD_UPDATE,					/**< Received a PCD update. */
+	MANIFEST_LOGGING_ACTIVATION_REQ_FAIL,			/**< Failed manifest activation request notification. */
+	MANIFEST_LOGGING_CFM_ACTIVATION,				/**< Received a CFM activate request. */
 };
 
 

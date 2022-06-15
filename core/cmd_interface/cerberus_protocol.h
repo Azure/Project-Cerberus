@@ -25,6 +25,12 @@
  */
 #define	CERBERUS_PROTOCOL_FW_VERSION_LEN					32
 
+/**
+ * The maximum sized certificate chain permitted by Cerberus protocol.
+ */
+#define CERBERUS_PROTOCOL_MAX_CERT_CHAIN_LEN				4096
+
+
 
 /**
  * Cerberus protocol commands

@@ -5,13 +5,15 @@
 #define CERBERUS_PROTOCOL_REQUIRED_COMMANDS_H_
 
 #include <stdint.h>
+#include "crypto/ecc.h"
+#include "crypto/hash.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/device_manager.h"
 #include "cmd_interface/cmd_device.h"
 #include "cmd_interface/session_manager.h"
-#include "attestation/attestation_slave.h"
+#include "attestation/attestation_responder.h"
 #include "riot/riot_key_manager.h"
 
 
@@ -60,16 +62,19 @@ struct cerberus_protocol_get_certificate_digest_response {
 
 /**
  * Get the buffer containing the certificate digests
+ *
+ * @param resp The command request structure containing the message.
  */
 #define	cerberus_protocol_certificate_digests(resp)	(((uint8_t*) resp) + sizeof (*resp))
 
 /**
  * Get the total message length for a get certificate digests response message.
  *
- * @param len Length of the digest data.
+ * @param resp The command request structure containing the message.
  */
-#define	cerberus_protocol_get_certificate_digest_response_length(len)	\
-	(len + sizeof (struct cerberus_protocol_get_certificate_digest_response))
+#define	cerberus_protocol_get_certificate_digest_response_length(resp)	\
+	(SHA256_HASH_LENGTH * resp->num_digests + \
+	sizeof (struct cerberus_protocol_get_certificate_digest_response))
 
 /**
  * Maximum amount of digest data that can be returned in a single request
@@ -101,6 +106,8 @@ struct cerberus_protocol_get_certificate_response {
 
 /**
  * Get the buffer containing the certificate
+ *
+ * @param resp The command request structure containing the message.
  */
 #define	cerberus_protocol_certificate(resp)	(((uint8_t*) resp) + sizeof (*resp))
 
@@ -113,12 +120,20 @@ struct cerberus_protocol_get_certificate_response {
 	(len + sizeof (struct cerberus_protocol_get_certificate_response))
 
 /**
- * Maximum amount of certificate data that can be returned in a single request
+ * Get the certificate length returned as part of a certificate response message.
  *
- * @param req The command request structure containing the message.
+ * @param len The total message length.
  */
-#define	CERBERUS_PROTOCOL_MAX_CERT_DATA(req)	\
-	(req->max_response - sizeof (struct cerberus_protocol_get_certificate_response))
+#define	cerberus_protocol_get_certificate_response_cert_length(len)	\
+	(len - sizeof (struct cerberus_protocol_get_certificate_response))
+
+/**
+ * Maximum amount of certificate data that can be returned in a single response
+ *
+ * @param resp The command request structure containing the message.
+ */
+#define	CERBERUS_PROTOCOL_MAX_CERT_DATA(resp)	\
+	(resp->max_response - sizeof (struct cerberus_protocol_get_certificate_response))
 
 /**
  * Cerberus protocol challenge request format
@@ -134,8 +149,14 @@ struct cerberus_protocol_challenge {
 struct cerberus_protocol_challenge_response {
 	struct cerberus_protocol_header header;					/**< Message header */
 	struct attestation_response challenge;					/**< Attestation information */
-	uint8_t digest;											/**< First byte of the variable length digest. */
 };
+
+/**
+ * Get the buffer containing the challenge response PMR.
+ *
+ * @param resp Pointer to a challenge response message.
+ */
+#define	cerberus_protocol_challenge_get_pmr(resp)			(((uint8_t*) resp) + sizeof (*resp))
 
 /**
  * Get the buffer containing the challenge response signature.
@@ -143,7 +164,7 @@ struct cerberus_protocol_challenge_response {
  * @param resp Pointer to a challenge response message.
  */
 #define	cerberus_protocol_challenge_get_signature(resp)	\
-	((&((resp)->digest)) + (resp)->challenge.digests_size)
+	(cerberus_protocol_challenge_get_pmr (resp) + (resp)->challenge.digests_size)
 
 /**
  * Get the total message length for a challenge response message.
@@ -151,7 +172,16 @@ struct cerberus_protocol_challenge_response {
  * @param resp Pointer to a challenge response message.
  */
 #define	cerberus_protocol_challenge_response_length(resp)	\
-	(sizeof (struct cerberus_protocol_challenge_response) - 1 + (resp)->challenge.digests_size)
+	(sizeof (struct cerberus_protocol_challenge_response) + (resp)->challenge.digests_size)
+
+/**
+ * Get the buffer containing the challenge response signature.
+ *
+ * @param resp Pointer to a challenge response message.
+ * @param length Total response length.
+ */
+#define	cerberus_protocol_challenge_get_signature_len(resp, length)	\
+	(length - cerberus_protocol_challenge_response_length(resp))
 
 /**
  * Cerberus protocol import signed certificate request format
@@ -305,11 +335,11 @@ struct cerberus_protocol_reset_counter_response {
 int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_version,
 	struct cmd_interface_msg *request);
 
-int cerberus_protocol_get_certificate_digest (struct attestation_slave *attestation,
+int cerberus_protocol_get_certificate_digest (struct attestation_responder *attestation,
 	struct session_manager *session, struct cmd_interface_msg *request);
-int cerberus_protocol_get_certificate (struct attestation_slave *attestation,
+int cerberus_protocol_get_certificate (struct attestation_responder *attestation,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_get_challenge_response (struct attestation_slave *attestation,
+int cerberus_protocol_get_challenge_response (struct attestation_responder *attestation,
 	struct session_manager *session, struct cmd_interface_msg *request);
 
 int cerberus_protocol_export_csr (struct riot_key_manager *riot,

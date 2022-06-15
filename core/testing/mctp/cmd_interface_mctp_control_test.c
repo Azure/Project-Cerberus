@@ -40,16 +40,18 @@ static void setup_cmd_interface_mctp_control_test (CuTest *test,
 {
 	int status;
 
-	status = device_manager_init (&cmd->device_manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
+	status = device_manager_init (&cmd->device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_entry (&cmd->device_manager,
-		DEVICE_MANAGER_SELF_DEVICE_NUM, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41);
+		DEVICE_MANAGER_SELF_DEVICE_NUM, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
+		DEVICE_MANAGER_SELF_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_entry (&cmd->device_manager,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, MCTP_BASE_PROTOCOL_BMC_EID, 0x10);
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, MCTP_BASE_PROTOCOL_BMC_EID, 0x10,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_control_protocol_observer_mock_init (&cmd->observer);
@@ -100,8 +102,8 @@ static void cmd_interface_mctp_control_test_init (CuTest *test)
 	status = mctp_control_protocol_observer_mock_init (&cmd.observer);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&cmd.device_manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
+	status = device_manager_init (&cmd.device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_mctp_control_init (&cmd.handler, &cmd.device_manager, 0x1414, 0x04);
@@ -120,8 +122,8 @@ static void cmd_interface_mctp_control_test_init_null (CuTest *test)
 
 	TEST_START;
 
-	status = device_manager_init (&cmd.device_manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE);
+	status = device_manager_init (&cmd.device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_mctp_control_init (NULL, &cmd.device_manager, 0x1414, 0x04);
@@ -324,14 +326,14 @@ static void cmd_interface_mctp_control_test_process_request_set_eid (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 	CuAssertTrue (test, !request.crypto_timeout);
 	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
-	CuAssertIntEquals (test, 0, rsp->header.msg_type);
-	CuAssertIntEquals (test, 0, rsp->header.rq);
-	CuAssertIntEquals (test, 0, rsp->header.d_bit);
-	CuAssertIntEquals (test, 0, rsp->header.integrity_check);
-	CuAssertIntEquals (test, 0, rsp->header.instance_id);
-	CuAssertIntEquals (test, 0, rsp->header.rsvd);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SET_EID, rsp->header.command_code);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->completion_code);
+	CuAssertIntEquals (test, 0, rsp->header.header.msg_type);
+	CuAssertIntEquals (test, 0, rsp->header.header.rq);
+	CuAssertIntEquals (test, 0, rsp->header.header.d_bit);
+	CuAssertIntEquals (test, 0, rsp->header.header.integrity_check);
+	CuAssertIntEquals (test, 0, rsp->header.header.instance_id);
+	CuAssertIntEquals (test, 0, rsp->header.header.rsvd);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SET_EID, rsp->header.header.command_code);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->header.completion_code);
 	CuAssertIntEquals (test, 0x11, rsp->eid_setting);
 	CuAssertIntEquals (test, MCTP_CONTROL_SET_EID_ASSIGNMENT_STATUS_ACCEPTED,
 		rsp->eid_assignment_status);
@@ -380,14 +382,14 @@ static void cmd_interface_mctp_control_test_process_request_set_eid_no_observer 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertTrue (test, !request.crypto_timeout);
 	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
-	CuAssertIntEquals (test, 0, rsp->header.msg_type);
-	CuAssertIntEquals (test, 0, rsp->header.rq);
-	CuAssertIntEquals (test, 0, rsp->header.d_bit);
-	CuAssertIntEquals (test, 0, rsp->header.integrity_check);
-	CuAssertIntEquals (test, 0, rsp->header.instance_id);
-	CuAssertIntEquals (test, 0, rsp->header.rsvd);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SET_EID, rsp->header.command_code);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->completion_code);
+	CuAssertIntEquals (test, 0, rsp->header.header.msg_type);
+	CuAssertIntEquals (test, 0, rsp->header.header.rq);
+	CuAssertIntEquals (test, 0, rsp->header.header.d_bit);
+	CuAssertIntEquals (test, 0, rsp->header.header.integrity_check);
+	CuAssertIntEquals (test, 0, rsp->header.header.instance_id);
+	CuAssertIntEquals (test, 0, rsp->header.header.rsvd);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SET_EID, rsp->header.header.command_code);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->header.completion_code);
 	CuAssertIntEquals (test, 0x11, rsp->eid_setting);
 	CuAssertIntEquals (test, MCTP_CONTROL_SET_EID_ASSIGNMENT_STATUS_ACCEPTED,
 		rsp->eid_assignment_status);
@@ -433,14 +435,14 @@ static void cmd_interface_mctp_control_test_process_request_get_eid (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 	CuAssertTrue (test, !request.crypto_timeout);
 	CuAssertIntEquals (test, sizeof (struct mctp_control_get_eid_response), request.length);
-	CuAssertIntEquals (test, 0, rsp->header.msg_type);
-	CuAssertIntEquals (test, 0, rsp->header.rq);
-	CuAssertIntEquals (test, 0, rsp->header.d_bit);
-	CuAssertIntEquals (test, 0, rsp->header.integrity_check);
-	CuAssertIntEquals (test, 0, rsp->header.instance_id);
-	CuAssertIntEquals (test, 0, rsp->header.rsvd);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_EID, rsp->header.command_code);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->completion_code);
+	CuAssertIntEquals (test, 0, rsp->header.header.msg_type);
+	CuAssertIntEquals (test, 0, rsp->header.header.rq);
+	CuAssertIntEquals (test, 0, rsp->header.header.d_bit);
+	CuAssertIntEquals (test, 0, rsp->header.header.integrity_check);
+	CuAssertIntEquals (test, 0, rsp->header.header.instance_id);
+	CuAssertIntEquals (test, 0, rsp->header.header.rsvd);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_EID, rsp->header.header.command_code);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->header.completion_code);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, rsp->eid);
 	CuAssertIntEquals (test, MCTP_CONTROL_GET_EID_EID_TYPE_STATIC_EID_SUPPORTED, rsp->eid_type);
 	CuAssertIntEquals (test, 0, rsp->reserved);
@@ -489,14 +491,15 @@ static void cmd_interface_mctp_control_test_process_request_get_mctp_version (Cu
 	CuAssertIntEquals (test, 0, status);
 	CuAssertTrue (test, !request.crypto_timeout);
 	CuAssertIntEquals (test, mctp_control_get_mctp_version_response_length (1), request.length);
-	CuAssertIntEquals (test, 0, rsp->header.msg_type);
-	CuAssertIntEquals (test, 0, rsp->header.rq);
-	CuAssertIntEquals (test, 0, rsp->header.d_bit);
-	CuAssertIntEquals (test, 0, rsp->header.integrity_check);
-	CuAssertIntEquals (test, 0, rsp->header.instance_id);
-	CuAssertIntEquals (test, 0, rsp->header.rsvd);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION, rsp->header.command_code);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->completion_code);
+	CuAssertIntEquals (test, 0, rsp->header.header.msg_type);
+	CuAssertIntEquals (test, 0, rsp->header.header.rq);
+	CuAssertIntEquals (test, 0, rsp->header.header.d_bit);
+	CuAssertIntEquals (test, 0, rsp->header.header.integrity_check);
+	CuAssertIntEquals (test, 0, rsp->header.header.instance_id);
+	CuAssertIntEquals (test, 0, rsp->header.header.rsvd);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION,
+		rsp->header.header.command_code);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->header.completion_code);
 	CuAssertIntEquals (test, 1, rsp->version_num_entry_count);
 
 	entry = mctp_control_get_mctp_version_response_get_entries (rsp);
@@ -549,14 +552,15 @@ static void cmd_interface_mctp_control_test_process_request_get_message_type_sup
 	CuAssertIntEquals (test, 0, status);
 	CuAssertTrue (test, !request.crypto_timeout);
 	CuAssertIntEquals (test, mctp_control_get_message_type_response_length (2), request.length);
-	CuAssertIntEquals (test, 0, rsp->header.msg_type);
-	CuAssertIntEquals (test, 0, rsp->header.rq);
-	CuAssertIntEquals (test, 0, rsp->header.d_bit);
-	CuAssertIntEquals (test, 0, rsp->header.integrity_check);
-	CuAssertIntEquals (test, 0, rsp->header.instance_id);
-	CuAssertIntEquals (test, 0, rsp->header.rsvd);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE, rsp->header.command_code);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->completion_code);
+	CuAssertIntEquals (test, 0, rsp->header.header.msg_type);
+	CuAssertIntEquals (test, 0, rsp->header.header.rq);
+	CuAssertIntEquals (test, 0, rsp->header.header.d_bit);
+	CuAssertIntEquals (test, 0, rsp->header.header.integrity_check);
+	CuAssertIntEquals (test, 0, rsp->header.header.instance_id);
+	CuAssertIntEquals (test, 0, rsp->header.header.rsvd);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE,
+		rsp->header.header.command_code);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->header.completion_code);
 	CuAssertIntEquals (test, 2, rsp->message_type_count);
 
 	entry = mctp_control_get_message_type_response_get_entries (rsp);
@@ -605,15 +609,15 @@ static void cmd_interface_mctp_control_test_process_request_get_vendor_def_msg_s
 	CuAssertTrue (test, !request.crypto_timeout);
 	CuAssertIntEquals (test, sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response),
 		request.length);
-	CuAssertIntEquals (test, 0, rsp->header.msg_type);
-	CuAssertIntEquals (test, 0, rsp->header.rq);
-	CuAssertIntEquals (test, 0, rsp->header.d_bit);
-	CuAssertIntEquals (test, 0, rsp->header.integrity_check);
-	CuAssertIntEquals (test, 0, rsp->header.instance_id);
-	CuAssertIntEquals (test, 0, rsp->header.rsvd);
+	CuAssertIntEquals (test, 0, rsp->header.header.msg_type);
+	CuAssertIntEquals (test, 0, rsp->header.header.rq);
+	CuAssertIntEquals (test, 0, rsp->header.header.d_bit);
+	CuAssertIntEquals (test, 0, rsp->header.header.integrity_check);
+	CuAssertIntEquals (test, 0, rsp->header.header.instance_id);
+	CuAssertIntEquals (test, 0, rsp->header.header.rsvd);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT,
-		rsp->header.command_code);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->completion_code);
+		rsp->header.header.command_code);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->header.completion_code);
 	CuAssertIntEquals (test, CERBERUS_VID_SET_RESPONSE, rsp->vid_set_selector);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_VID_FORMAT_PCI, rsp->vid_format);
 	CuAssertIntEquals (test, platform_htons (0x1414), rsp->vid);
@@ -784,14 +788,14 @@ static void cmd_interface_mctp_control_test_process_response_get_message_type (C
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	rsp->header.msg_type = 0;
-	rsp->header.rq = 0;
-	rsp->header.d_bit = 0;
-	rsp->header.integrity_check = 0;
-	rsp->header.rsvd = 0;
-	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 
-	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 	rsp->message_type_count = 2;
 
 	setup_cmd_interface_mctp_control_test (test, &cmd, true);
@@ -825,20 +829,56 @@ static void cmd_interface_mctp_control_test_process_response_get_message_type_fa
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	rsp->header.msg_type = 0;
-	rsp->header.rq = 0;
-	rsp->header.d_bit = 0;
-	rsp->header.integrity_check = 0;
-	rsp->header.rsvd = 0;
-	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 
-	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 	rsp->message_type_count = 2;
 
 	setup_cmd_interface_mctp_control_test (test, &cmd, true);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
+
+	complete_cmd_interface_mctp_control_test (test, &cmd);
+}
+
+static void cmd_interface_mctp_control_test_process_response_get_message_type_cc_fail (CuTest *test)
+{
+	struct cmd_interface_mctp_control_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct mctp_control_get_message_type_response *rsp =
+		(struct mctp_control_get_message_type_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = mctp_control_get_message_type_response_length (2);
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
+
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_ERROR;
+	rsp->message_type_count = 2;
+
+	setup_cmd_interface_mctp_control_test (test, &cmd, true);
+
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_ERROR_MESSAGE, status);
 
 	complete_cmd_interface_mctp_control_test (test, &cmd);
 }
@@ -862,14 +902,14 @@ static void cmd_interface_mctp_control_test_process_response_get_message_type_no
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	rsp->header.msg_type = 0;
-	rsp->header.rq = 0;
-	rsp->header.d_bit = 0;
-	rsp->header.integrity_check = 0;
-	rsp->header.rsvd = 0;
-	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 
-	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 	rsp->message_type_count = 2;
 
 	setup_cmd_interface_mctp_control_test (test, &cmd, false);
@@ -899,14 +939,14 @@ static void cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	rsp->header.msg_type = 0;
-	rsp->header.rq = 0;
-	rsp->header.d_bit = 0;
-	rsp->header.integrity_check = 0;
-	rsp->header.rsvd = 0;
-	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 
-	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 	rsp->vid_format = MCTP_CONTROL_PCI_VID_FORMAT;
 
 	setup_cmd_interface_mctp_control_test (test, &cmd, true);
@@ -941,20 +981,57 @@ static void cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	rsp->header.msg_type = 0;
-	rsp->header.rq = 0;
-	rsp->header.d_bit = 0;
-	rsp->header.integrity_check = 0;
-	rsp->header.rsvd = 0;
-	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 
-	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 	rsp->vid_format = MCTP_CONTROL_PCI_VID_FORMAT;
 
 	setup_cmd_interface_mctp_control_test (test, &cmd, false);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
+
+	complete_cmd_interface_mctp_control_test (test, &cmd);
+}
+
+static void cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_support_cc_fail (
+	CuTest *test)
+{
+	struct cmd_interface_mctp_control_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct mctp_control_get_vendor_def_msg_support_pci_response *rsp =
+		(struct mctp_control_get_vendor_def_msg_support_pci_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response);
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
+
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_ERROR;
+	rsp->vid_format = MCTP_CONTROL_PCI_VID_FORMAT;
+
+	setup_cmd_interface_mctp_control_test (test, &cmd, true);
+
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_ERROR_MESSAGE, status);
 
 	complete_cmd_interface_mctp_control_test (test, &cmd);
 }
@@ -978,14 +1055,14 @@ static void cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	rsp->header.msg_type = 0;
-	rsp->header.rq = 0;
-	rsp->header.d_bit = 0;
-	rsp->header.integrity_check = 0;
-	rsp->header.rsvd = 0;
-	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 
-	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 	rsp->vid_format = MCTP_CONTROL_PCI_VID_FORMAT;
 
 	setup_cmd_interface_mctp_control_test (test, &cmd, false);
@@ -1015,14 +1092,14 @@ static void cmd_interface_mctp_control_test_process_response_get_routing_table_e
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	rsp->header.msg_type = 0;
-	rsp->header.rq = 0;
-	rsp->header.d_bit = 0;
-	rsp->header.integrity_check = 0;
-	rsp->header.rsvd = 0;
-	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
 
-	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 	rsp->num_entries = 10;
 
 	setup_cmd_interface_mctp_control_test (test, &cmd, true);
@@ -1057,20 +1134,57 @@ static void cmd_interface_mctp_control_test_process_response_get_routing_table_e
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	rsp->header.msg_type = 0;
-	rsp->header.rq = 0;
-	rsp->header.d_bit = 0;
-	rsp->header.integrity_check = 0;
-	rsp->header.rsvd = 0;
-	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
 
-	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 	rsp->num_entries = 10;
 
 	setup_cmd_interface_mctp_control_test (test, &cmd, true);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
+
+	complete_cmd_interface_mctp_control_test (test, &cmd);
+}
+
+static void cmd_interface_mctp_control_test_process_response_get_routing_table_entries_cc_fail (
+	CuTest *test)
+{
+	struct cmd_interface_mctp_control_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct mctp_control_get_routing_table_entries_response *rsp =
+		(struct mctp_control_get_routing_table_entries_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = mctp_control_get_routing_table_entries_response_length (10);
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
+
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_ERROR;
+	rsp->num_entries = 10;
+
+	setup_cmd_interface_mctp_control_test (test, &cmd, true);
+
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_ERROR_MESSAGE, status);
 
 	complete_cmd_interface_mctp_control_test (test, &cmd);
 }
@@ -1094,14 +1208,14 @@ static void cmd_interface_mctp_control_test_process_response_get_routing_table_e
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	rsp->header.msg_type = 0;
-	rsp->header.rq = 0;
-	rsp->header.d_bit = 0;
-	rsp->header.integrity_check = 0;
-	rsp->header.rsvd = 0;
-	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
+	rsp->header.header.msg_type = 0;
+	rsp->header.header.rq = 0;
+	rsp->header.header.d_bit = 0;
+	rsp->header.header.integrity_check = 0;
+	rsp->header.header.rsvd = 0;
+	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
 
-	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+	rsp->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 	rsp->num_entries = 10;
 
 	setup_cmd_interface_mctp_control_test (test, &cmd, false);
@@ -1189,14 +1303,14 @@ static void cmd_interface_mctp_control_test_remove_mctp_control_protocol_observe
 	CuAssertIntEquals (test, 0, status);
 	CuAssertTrue (test, !request.crypto_timeout);
 	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
-	CuAssertIntEquals (test, 0, rsp->header.msg_type);
-	CuAssertIntEquals (test, 0, rsp->header.rq);
-	CuAssertIntEquals (test, 0, rsp->header.d_bit);
-	CuAssertIntEquals (test, 0, rsp->header.integrity_check);
-	CuAssertIntEquals (test, 0, rsp->header.instance_id);
-	CuAssertIntEquals (test, 0, rsp->header.rsvd);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SET_EID, rsp->header.command_code);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->completion_code);
+	CuAssertIntEquals (test, 0, rsp->header.header.msg_type);
+	CuAssertIntEquals (test, 0, rsp->header.header.rq);
+	CuAssertIntEquals (test, 0, rsp->header.header.d_bit);
+	CuAssertIntEquals (test, 0, rsp->header.header.integrity_check);
+	CuAssertIntEquals (test, 0, rsp->header.header.instance_id);
+	CuAssertIntEquals (test, 0, rsp->header.header.rsvd);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SET_EID, rsp->header.header.command_code);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SUCCESS, rsp->header.completion_code);
 	CuAssertIntEquals (test, 0x11, rsp->eid_setting);
 	CuAssertIntEquals (test, MCTP_CONTROL_SET_EID_ASSIGNMENT_STATUS_ACCEPTED,
 		rsp->eid_assignment_status);
@@ -1253,12 +1367,15 @@ TEST (cmd_interface_mctp_control_test_process_response_rsvd_not_zero);
 TEST (cmd_interface_mctp_control_test_process_response_unknown_command);
 TEST (cmd_interface_mctp_control_test_process_response_get_message_type);
 TEST (cmd_interface_mctp_control_test_process_response_get_message_type_fail);
+TEST (cmd_interface_mctp_control_test_process_response_get_message_type_cc_fail);
 TEST (cmd_interface_mctp_control_test_process_response_get_message_type_no_observer);
 TEST (cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_support);
 TEST (cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_support_fail);
+TEST (cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_support_cc_fail);
 TEST (cmd_interface_mctp_control_test_process_response_get_vendor_def_msg_support_no_observer);
 TEST (cmd_interface_mctp_control_test_process_response_get_routing_table_entries);
 TEST (cmd_interface_mctp_control_test_process_response_get_routing_table_entries_fail);
+TEST (cmd_interface_mctp_control_test_process_response_get_routing_table_entries_cc_fail);
 TEST (cmd_interface_mctp_control_test_process_response_get_routing_table_entries_no_observer);
 TEST (cmd_interface_mctp_control_test_generate_error_packet);
 TEST (cmd_interface_mctp_control_test_add_mctp_control_protocol_observer_invalid_arg);

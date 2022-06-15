@@ -39,6 +39,15 @@ struct pfm_observer {
 	 * @param observer The observer being notified.
 	 */
 	void (*on_clear_active) (struct pfm_observer *observer);
+
+	/**
+	 * Notification that a PFM activation request was received.
+	 *
+	 * Arguments sent with this notification will not be null.
+	 *
+	 * @param observer The observer being notified.
+	 */
+	void (*on_pfm_activation_request) (struct pfm_observer *observer);
 };
 
 

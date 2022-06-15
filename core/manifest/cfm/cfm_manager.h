@@ -60,6 +60,7 @@ void cfm_manager_release (struct cfm_manager *manager);
 void cfm_manager_on_cfm_verified (struct cfm_manager *manager);
 void cfm_manager_on_cfm_activated (struct cfm_manager *manager);
 void cfm_manager_on_clear_active (struct cfm_manager *manager);
+void cfm_manager_on_cfm_activation_request (struct cfm_manager *manager);
 
 int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset, uint8_t *buffer,
 	size_t length, uint32_t *total_len);

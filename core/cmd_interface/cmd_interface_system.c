@@ -36,16 +36,16 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DIGEST:
-			status = cerberus_protocol_get_certificate_digest (interface->slave_attestation,
+			status = cerberus_protocol_get_certificate_digest (interface->attestation,
 				interface->base.session, request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
-			status = cerberus_protocol_get_certificate (interface->slave_attestation, request);
+			status = cerberus_protocol_get_certificate (interface->attestation, request);
 			break;
 
 		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
-			status = cerberus_protocol_get_challenge_response (interface->slave_attestation,
+			status = cerberus_protocol_get_challenge_response (interface->attestation,
 				interface->base.session, request);
 			break;
 
@@ -274,6 +274,7 @@ int cmd_interface_system_process_response (struct cmd_interface *intf,
 	}
 
 	switch (command_id) {
+#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
 		case CERBERUS_PROTOCOL_GET_DIGEST:
 			status = cerberus_protocol_process_certificate_digest_response (response);
 			if (status != 0) {
@@ -307,6 +308,19 @@ int cmd_interface_system_process_response (struct cmd_interface *intf,
 					response);
 			}
 
+		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
+			status = cerberus_protocol_process_device_capabilities_response (
+				interface->device_manager, response);
+			if (status != 0) {
+				return status;
+			}
+			else {
+				return observable_notify_observers_with_ptr (&interface->observable,
+					offsetof (struct cerberus_protocol_observer, on_device_capabilities),
+					response);
+			}
+#endif
+
 		case CERBERUS_PROTOCOL_ERROR:
 			return cerberus_protocol_process_error_response (response);
 
@@ -328,8 +342,7 @@ int cmd_interface_system_process_response (struct cmd_interface *intf,
  * @param pfm_manager_1 PFM manager for port 1
  * @param cfm_manager CFM manager
  * @param pcd_manager PCD manager
- * @param master_attestation Master attestation manager
- * @param slave_attestation Slave attestation manager
+ * @param attestation Attestation responder instance to utilize
  * @param device_manager Device manager
  * @param store PCR storage
  * @param hash Hash engine to to use for PCR operations
@@ -359,10 +372,9 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct manifest_cmd_interface *pfm_1, struct manifest_cmd_interface *cfm,
 	struct manifest_cmd_interface *pcd, struct pfm_manager *pfm_manager_0,
 	struct pfm_manager *pfm_manager_1, struct cfm_manager *cfm_manager,
-	struct pcd_manager *pcd_manager, struct attestation_master *master_attestation,
-	struct attestation_slave *slave_attestation, struct device_manager *device_manager,
-	struct pcr_store *store, struct hash_engine *hash, struct cmd_background *background,
-	struct host_processor *host_0, struct host_processor *host_1,
+	struct pcd_manager *pcd_manager, struct attestation_responder *attestation,
+	struct device_manager *device_manager, struct pcr_store *store, struct hash_engine *hash,
+	struct cmd_background *background, struct host_processor *host_0, struct host_processor *host_1,
 	struct cmd_interface_fw_version *fw_version, struct riot_key_manager *riot,
 	struct cmd_authorization *auth, struct host_control *host_ctrl_0,
 	struct host_control *host_ctrl_1, struct recovery_image_cmd_interface *recovery_cmd_0,
@@ -375,9 +387,8 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	int status;
 
 	if ((intf == NULL) || (control == NULL) || (store == NULL) || (background == NULL) ||
-		(riot == NULL) || (auth == NULL) || (master_attestation == NULL) ||
-		(slave_attestation == NULL) || (hash == NULL) || (device_manager == NULL) ||
-		(fw_version == NULL) || (cmd_device == NULL)) {
+		(riot == NULL) || (auth == NULL) || (attestation == NULL) || (hash == NULL) ||
+		(device_manager == NULL) ||	(fw_version == NULL) || (cmd_device == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
@@ -403,8 +414,7 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->riot = riot;
 	intf->background = background;
 	intf->auth = auth;
-	intf->master_attestation = master_attestation;
-	intf->slave_attestation = slave_attestation;
+	intf->attestation = attestation;
 	intf->hash = hash;
 	intf->host_0_ctrl = host_ctrl_0;
 	intf->host_1_ctrl = host_ctrl_1;
@@ -424,7 +434,7 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->base.process_request = cmd_interface_system_process_request;
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_system_process_response;
-#endif 
+#endif
 	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
 #if CMD_SUPPORT_ENCRYPTED_SESSIONS
@@ -443,7 +453,6 @@ void cmd_interface_system_deinit (struct cmd_interface_system *intf)
 {
 	if (intf != NULL) {
 		observable_release (&intf->observable);
-		memset (intf, 0, sizeof (struct cmd_interface_system));
 	}
 }
 

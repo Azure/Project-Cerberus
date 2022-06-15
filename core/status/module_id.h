@@ -102,12 +102,15 @@ enum {
 	ROT_MODULE_INTRUSION_STATE_OBSERVER = 0x005a,		/**< Observers for intrusion state changes. */
 	ROT_MODULE_INTRUSION_MANAGER = 0x005b,				/**< Manager for intrusion detection. */
 	ROT_MODULE_CMD_HANDLER_MCTP_CTRL = 0x005c,			/**< Handler for received MCTP control protocol messages. */
-	ROT_MODULE_CERBERUS_PROTOCOL_OBSERVER = 0x005d,		/**< System command interface observer. */
+	ROT_MODULE_CERBERUS_PROTOCOL_OBSERVER = 0x005d,		/**< Cerberus protocol observer. */
 	ROT_MODULE_ECC_DER_UTIL = 0x005e,					/**< Utilities for handling DER encoded ECC information. */
 	ROT_MODULE_BUFFER_UTIL = 0x005f,					/**< General buffer handling utilities. */
 	ROT_MODULE_OCP_RECOVERY_DEVICE = 0x0060,			/**< Device handler for the OCP Recovery protocol. */
 	ROT_MODULE_OCP_RECOVERY_SMBUS = 0x0061,				/**< SMBus layer for the OCP Recovery protocol. */
 	ROT_MODULE_MCTP_CONTROL_PROTOCOL_OBSERVER = 0x0062,	/**< MCTP control command interface observer. */
+	ROT_MODULE_CMD_HANDLER_SPDM = 0x0063,				/**< Handler for received SPDM protocol commands. */
+	ROT_MODULE_SPDM_PROTOCOL_OBSERVER = 0x0064,			/**< SPDM protocol observer. */
+	ROT_MODULE_ASN1 = 0x0065,							/**< ASN1 operations. */
 };
 
 

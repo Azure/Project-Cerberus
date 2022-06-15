@@ -38,6 +38,15 @@ struct pcd_observer {
 	 * @param observer The observer being notified.
 	 */
 	void (*on_clear_active) (struct pcd_observer *observer);
+
+	/**
+	 * Notification that a PCD activation request was received.
+	 *
+	 * Arguments sent with this notification will not be null.
+	 *
+	 * @param observer The observer being notified.
+	 */
+	void (*on_pcd_activation_request) (struct pcd_observer *observer);
 };
 
 

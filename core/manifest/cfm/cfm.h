@@ -27,7 +27,7 @@ enum cfm_check {
 	CFM_CHECK_EQUAL = 0x00,										/**< Measurement equal to CFM value. */
 	CFM_CHECK_NOT_EQUAL = 0x01,									/**< Measurement not equal to CFM value. */
 	CFM_CHECK_LESS_THAN = 0x02,									/**< Measurement less than CFM value. */
-	CFM_CHECK_LESS_OR_EQUAL = 0x03,								/**< Measurement less than or equal to CFM value. */
+	CFM_CHECK_LESS_THAN_OR_EQUAL = 0x03,						/**< Measurement less than or equal to CFM value. */
 	CFM_CHECK_GREATER_THAN = 0x04,								/**< Measurement greater than CFM value. */
 	CFM_CHECK_GREATER_THAN_OR_EQUAL = 0x05,						/**< Measurement greater than or equal to CFM value. */
 };
@@ -47,7 +47,7 @@ struct cfm_component_device {
  * Common container for digests lists.
  */
 struct cfm_digests {
-	size_t hash_len;											/**< Digest length. */
+	enum hash_type hash_type;									/**< Hash algorithm type. */
 	size_t digest_count;										/**< Number of digests in digests list. */
 	const uint8_t *digests;										/**< Buffer holding list of digests. */
 };
@@ -139,12 +139,12 @@ struct cfm {
 	 * Find component device for the specified component type.
 	 *
 	 * @param cfm The CFM to query.
-	 * @param component_type The component type to find.
+	 * @param component_type SHA256 digest of the component type to find.
 	 * @param component Output for the component device data.
 	 *
 	 * @return 0 if the component device was found or an error code.
 	 */
-	int (*get_component_device) (struct cfm *cfm, const char *component_type,
+	int (*get_component_device) (struct cfm *cfm, const uint8_t *component_type,
 		struct cfm_component_device *component);
 
 	/**
@@ -174,26 +174,26 @@ struct cfm {
 	 * Get PMR container for provided component type and PMR ID
 	 *
 	 * @param cfm The CFM to query.
-	 * @param component_type The component type to query.
+	 * @param component_type SHA256 digest of the component type to query.
 	 * @param pmr_id The PMR ID to query.
 	 * @param pmr A container to be updated with the component PMR information.
 	 *
 	 * @return 0 if the component PMR was retrieved successfully or an error code.
 	 */
-	int (*get_component_pmr) (struct cfm *cfm, const char *component_type, uint8_t pmr_id,
+	int (*get_component_pmr) (struct cfm *cfm, const uint8_t *component_type, uint8_t pmr_id,
 		struct cfm_pmr *pmr);
 
 	/**
 	 * Get component PMR digest container for provided component type and PMR ID
 	 *
 	 * @param cfm The CFM to query.
-	 * @param component_type The component type to query.
+	 * @param component_type SHA256 digest of the component type to query.
 	 * @param pmr_id The PMR ID to query.
 	 * @param pmr_digest A container to be updated with the component PMR digest information.
 	 *
 	 * @return 0 if the component PMR digest was retrieved successfully or an error code.
 	 */
-	int (*get_component_pmr_digest) (struct cfm *cfm, const char *component_type, uint8_t pmr_id,
+	int (*get_component_pmr_digest) (struct cfm *cfm, const uint8_t *component_type, uint8_t pmr_id,
 		struct cfm_pmr_digest *pmr_digest);
 
 	/**
@@ -208,13 +208,16 @@ struct cfm {
 	 * Find next measurement for the specified component type.
 	 *
 	 * @param cfm The CFM to query.
-	 * @param component_type The component type to find a measurement for.
+	 * @param component_type SHA256 digest of the component type to find a measurement for.
 	 * @param pmr_measurement A container to be updated with the component measurement information.
+	 * 	If first is not true, then same container that was passed previously needs to be passed in.
+	 *  Instances never passed to this function need to have first set to true.
 	 * @param first Fetch first PMR measurement from CFM, or next PMR measurement since last call.
 	 *
-	 * @return 0 if the measurement was found or an error code.
+	 * @return 0 if the measurement was found or an error code. CFM_MEASUREMENT_NOT_FOUND is
+	 * 	returned when there are no more measurements for the specified component.
 	 */
-	int (*get_next_measurement) (struct cfm *cfm, const char *component_type,
+	int (*get_next_measurement) (struct cfm *cfm, const uint8_t *component_type,
 		struct cfm_measurement *pmr_measurement, bool first);
 
 	/**
@@ -229,14 +232,16 @@ struct cfm {
 	 * Find next measurement data for the specified component type.
 	 *
 	 * @param cfm The CFM to query.
-	 * @param component_type The component type to find a measurement data for.
+	 * @param component_type SHA256 digest of the component type to find a measurement data for.
 	 * @param measurement_data A container to be updated with the component measurement data
-	 * 	information.
+	 * 	information.  If first is not true, then same container that was passed previously needs to
+	 * 	be passed in.  Instances never passed to this function need to have first set to true.
 	 * @param first Fetch first measurement data from CFM, or next measurement data since last call.
 	 *
-	 * @return 0 if the measurement data was found or an error code.
+	 * @return 0 if the measurement data was found or an error code. CFM_MEASUREMENT_DATA_NOT_FOUND
+	 * 	is returned when there are no more measurement data for the specified component.
 	 */
-	int (*get_next_measurement_data) (struct cfm *cfm, const char *component_type,
+	int (*get_next_measurement_data) (struct cfm *cfm, const uint8_t *component_type,
 		struct cfm_measurement_data *measurement_data, bool first);
 
 	/**
@@ -251,13 +256,13 @@ struct cfm {
 	 * Find root CA digest for the specified component type.
 	 *
 	 * @param cfm The CFM to query.
-	 * @param component_type The component type to find root CA digest for.
+	 * @param component_type SHA256 digest of the component type to find root CA digest for.
 	 * @param root_ca_digest A container to be updated with the component root CA digest
 	 * 	information.
 	 *
 	 * @return 0 if the root CA digest was found or an error code.
 	 */
-	int (*get_root_ca_digest) (struct cfm *cfm, const char *component_type,
+	int (*get_root_ca_digest) (struct cfm *cfm, const uint8_t *component_type,
 		struct cfm_root_ca_digests *root_ca_digest);
 
 	/**
@@ -272,38 +277,42 @@ struct cfm {
 	 * Find next allowable PFM for the specified component type.
 	 *
 	 * @param cfm The CFM to query.
-	 * @param component_type The component type to find allowable PFM for.
+	 * @param component_type SHA256 digest of the component type to find allowable PFM for.
 	 * @param allowable_pfm A container to be updated with the component allowable PFM information.
+	 * 	If first is not	true, then same container that was passed previously needs to be passed in.
+	 * 	Instances never	passed to this function need to have first set to true.
 	 * @param first Fetch first allowable PFM from CFM, or next allowable PFM since last call.
 	 *
 	 * @return 0 if the allowable PFM was found or an error code.
 	 */
-	int (*get_next_pfm) (struct cfm *cfm, const char *component_type,
+	int (*get_next_pfm) (struct cfm *cfm, const uint8_t *component_type,
 		struct cfm_manifest *allowable_pfm, bool first);
 
 	/**
 	 * Find next allowable CFM for the specified component type.
 	 *
 	 * @param cfm The CFM to query.
-	 * @param component_type The component type to find allowable CFM for.
+	 * @param component_type SHA256 digest of the component type to find allowable CFM for.
 	 * @param allowable_cfm A container to be updated with the component allowable CFM information.
+	 * 	If first is not	true, then same container that was passed previously needs to be passed in.
+	 * 	Instances never	passed to this function need to have first set to true.
 	 * @param first Fetch first allowable CFM from CFM, or next allowable CFM since last call.
 	 *
 	 * @return 0 if the allowable CFM was found or an error code.
 	 */
-	int (*get_next_cfm) (struct cfm *cfm, const char *component_type,
+	int (*get_next_cfm) (struct cfm *cfm, const uint8_t *component_type,
 		struct cfm_manifest *allowable_cfm, bool first);
 
 	/**
 	 * Find allowable PCD for the specified component type.
 	 *
 	 * @param cfm The CFM to query.
-	 * @param component_type The component type to find allowable PCD for.
+	 * @param component_type SHA256 digest of the component type to find allowable PCD for.
 	 * @param allowable_pcd A container to be updated with the component allowable PCD information.
 	 *
 	 * @return 0 if the allowable PCD was found or an error code.
 	 */
-	int (*get_pcd) (struct cfm *cfm, const char *component_type,
+	int (*get_pcd) (struct cfm *cfm, const uint8_t *component_type,
 		struct cfm_manifest *allowable_pcd);
 
 	/**

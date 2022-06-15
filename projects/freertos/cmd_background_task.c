@@ -665,7 +665,7 @@ int cmd_background_task_get_riot_cert_chain_state (struct cmd_background *cmd)
  *
  * @param task The background task to initialize.
  * @param system The manager for system operations.
- * @param attestation The slave attestation manager for the command interface.
+ * @param attestation The attestation responder instance for the command interface.
  * @param hash The hashing engine to utilize.
  * @param reset Manager for configuration reset operations.
  * @param riot Manager for RIoT keys and certificates.
@@ -673,7 +673,7 @@ int cmd_background_task_get_riot_cert_chain_state (struct cmd_background *cmd)
  * @return 0 if the task was successfully initialized or an error code.
  */
 int cmd_background_task_init (struct cmd_background_task *task, struct system *system,
-	struct attestation_slave *attestation, struct hash_engine *hash, struct config_reset *reset,
+	struct attestation_responder *attestation, struct hash_engine *hash, struct config_reset *reset,
 	struct riot_key_manager *riot)
 {
 	if (task == NULL) {

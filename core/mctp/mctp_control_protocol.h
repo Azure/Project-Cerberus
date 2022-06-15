@@ -18,7 +18,7 @@
 /**
  * The minimum size of an MCTP control response message.
  */
-#define MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN				(sizeof (struct mctp_control_protocol_header) + MCTP_BASE_PROTOCOL_PEC_SIZE)
+#define MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN				(sizeof (struct mctp_control_protocol_resp_header) + MCTP_BASE_PROTOCOL_PEC_SIZE)
 
 /**
  * The size of a MCTP control response message with a failed completion code.
@@ -75,6 +75,15 @@ struct mctp_control_protocol_header
 	uint8_t d_bit:1;										/**< D-bit */
 	uint8_t rq:1;											/**< Request bit */
 	uint8_t command_code;									/**< Command code */
+};
+
+/**
+ * Control message portion of response packet header
+ */
+struct mctp_control_protocol_resp_header
+{
+	struct mctp_control_protocol_header header;				/**< MCTP control packet header */
+	uint8_t completion_code;								/**< Completion code */
 };
 #pragma pack(pop)
 

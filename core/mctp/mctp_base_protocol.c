@@ -31,12 +31,12 @@
  *
  * @return Completion status, 0 if success or an error code.
  */
-int mctp_base_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_addr, 
-	uint8_t *source_addr, bool *som, bool *eom, uint8_t *src_eid, uint8_t *dest_eid, 
-	uint8_t **payload, size_t *payload_len, uint8_t *msg_tag, uint8_t *packet_seq, uint8_t *crc, 
+int mctp_base_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_addr,
+	uint8_t *source_addr, bool *som, bool *eom, uint8_t *src_eid, uint8_t *dest_eid,
+	uint8_t **payload, size_t *payload_len, uint8_t *msg_tag, uint8_t *packet_seq, uint8_t *crc,
 	uint8_t *msg_type, uint8_t *tag_owner)
 {
-	struct mctp_base_protocol_transport_header *header = 
+	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) buf;
 	size_t packet_len;
 	bool add_crc = true;
@@ -53,7 +53,7 @@ int mctp_base_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_add
 	}
 
 	/* At this point, we do not know if the current packet is a control or vendor defined message.
-	 * Control message might not contain a PEC byte. So, here we check if the message length is at 
+	 * Control message might not contain a PEC byte. So, here we check if the message length is at
 	 * least the transport header size. */
 	if ((header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD_NO_PEC) <=
 			(uint8_t) sizeof (struct mctp_base_protocol_transport_header)) {
@@ -84,11 +84,13 @@ int mctp_base_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_add
 		*payload_len = packet_len - sizeof (struct mctp_base_protocol_transport_header);
 		add_crc = false;
 	}
-	else if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (*msg_type)) {
+	else if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (*msg_type) ||
+		MCTP_BASE_PROTOCOL_IS_SPDM_MSG (*msg_type)) {
 		if ((header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD) <=
 				(uint8_t) MCTP_BASE_PROTOCOL_PACKET_OVERHEAD) {
 			return MCTP_BASE_PROTOCOL_MSG_TOO_SHORT;
 		}
+
 		packet_len = header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD;
 		*payload_len = mctp_protocol_payload_len (packet_len);
 	}
@@ -135,8 +137,8 @@ int mctp_base_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_add
  *
  * @return Packet length if completed successfully or an error code.
  */
-int mctp_base_protocol_construct (uint8_t *buf, size_t buf_len, uint8_t *out_buf, 
-	size_t out_buf_len, uint8_t source_addr, uint8_t dest_eid, uint8_t source_eid, bool som, 
+int mctp_base_protocol_construct (uint8_t *buf, size_t buf_len, uint8_t *out_buf,
+	size_t out_buf_len, uint8_t source_addr, uint8_t dest_eid, uint8_t source_eid, bool som,
 	bool eom, uint8_t packet_seq, uint8_t msg_tag, uint8_t tag_owner, uint8_t dest_addr)
 {
 	struct mctp_base_protocol_transport_header *header =

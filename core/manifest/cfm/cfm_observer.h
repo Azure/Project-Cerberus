@@ -39,6 +39,15 @@ struct cfm_observer {
 	 * @param observer The observer being notified.
 	 */
 	void (*on_clear_active) (struct cfm_observer *observer);
+
+	/**
+	 * Notification that a CFM activation request was received.
+	 *
+	 * Arguments sent with this notification will not be null.
+	 *
+	 * @param observer The observer being notified.
+	 */
+	void (*on_cfm_activation_request) (struct cfm_observer *observer);
 };
 
 

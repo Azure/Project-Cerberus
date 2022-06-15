@@ -5,6 +5,7 @@
 #define MANIFEST_FORMAT_H_
 
 #include <stdint.h>
+#include "crypto/hash.h"
 
 
 /**
@@ -50,6 +51,14 @@ enum manifest_key_type {
  * @param sig_type The encoded signature type.
  */
 #define	manifest_get_hash_type(sig_type)	((enum manifest_hash_type) ((sig_type) & 0x07))
+
+/**
+ * Convert from the manifest HashType enum to the hashing engine hash_type enum
+ *
+ * @param hash_type Manifest hash type
+ */
+#define manifest_convert_manifest_hash_type(manifest_hash_type)	\
+	((enum hash_type) ((manifest_hash_type) + 1))
 
 /**
  * Get the key type for a signature.

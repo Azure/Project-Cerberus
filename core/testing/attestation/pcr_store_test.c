@@ -914,6 +914,75 @@ static void pcr_store_test_compute_explicit (CuTest *test)
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
 
+static void pcr_store_test_compute_no_measurement (CuTest *test)
+{
+	struct pcr_store store;
+	struct hash_engine_mock hash;
+	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
+	uint8_t buffer1[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	uint8_t invalid_measurement[SHA256_HASH_LENGTH] = {0};
+	uint8_t digest1[] = {
+		0x91,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
+	};
+	uint8_t digest2[] = {
+		0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e,
+		0x91,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e
+	};
+	uint8_t digest3[] = {
+		0x7f,0xe6,0x9c,0x6f,0x7f,0x38,0x9d,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e,
+		0x91,0xe6,0xe9,0x4f,0x48,0x1a,0x4f,0x8d,0x1d,0x3d,0xf6,0x5b,0x12,0xc7,0xe7,0x6e
+	};
+	int status;
+
+	TEST_START;
+
+	setup_pcr_store_mock_test (test, &store, &hash, 3, 0);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (buffer0, sizeof (buffer0)), MOCK_ARG (sizeof (buffer0)));
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (buffer1, sizeof (buffer1)), MOCK_ARG (sizeof (buffer1)));
+	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (PCR_DIGEST_LENGTH));
+	status |= mock_expect_output (&hash.mock, 0, digest1, sizeof (digest1), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (digest1, sizeof (digest1)), MOCK_ARG (sizeof (digest1)));
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (invalid_measurement, sizeof (invalid_measurement)),
+		MOCK_ARG (sizeof (invalid_measurement)));
+	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (PCR_DIGEST_LENGTH));
+	status |= mock_expect_output (&hash.mock, 0, digest2, sizeof (digest2), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (digest2, sizeof (digest2)), MOCK_ARG (sizeof (digest2)));
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (invalid_measurement, sizeof (invalid_measurement)),
+		MOCK_ARG (sizeof (invalid_measurement)));
+	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (PCR_DIGEST_LENGTH));
+	status |= mock_expect_output (&hash.mock, 0, digest3, sizeof (digest3), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_update_digest (&store, 0, buffer1, sizeof (buffer1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_compute (&store, &hash.base, 0, NULL);
+	CuAssertIntEquals (test, 3, status);
+
+	complete_pcr_store_mock_test (test, &store, &hash);
+}
+
 static void pcr_store_test_compute_invalid_arg (CuTest *test)
 {
 	struct pcr_store store;
@@ -1061,25 +1130,14 @@ static void pcr_store_test_get_num_banks (CuTest *test)
 {
 	struct pcr_store store;
 	struct hash_engine_mock hash;
-	struct pcr_measurement measurement;
-	uint8_t digest[] = {
-		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
-		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
-	};
 	int status;
 
 	TEST_START;
 
 	setup_pcr_store_mock_test (test, &store, &hash, 6, 6);
 
-	status = pcr_store_update_digest (&store, PCR_MEASUREMENT (1, 1), digest, sizeof (digest));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (1, 1), &measurement);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array (digest, measurement.digest, sizeof (digest));
-	CuAssertIntEquals (test, 0, status);
+	status = pcr_store_get_num_banks (&store);
+	CuAssertIntEquals (test, 2, status);
 
 	complete_pcr_store_mock_test (test, &store, &hash);
 }
@@ -3801,6 +3859,7 @@ TEST (pcr_store_test_update_event_type_invalid_pcr);
 TEST (pcr_store_test_update_event_type_update_fail);
 TEST (pcr_store_test_compute);
 TEST (pcr_store_test_compute_explicit);
+TEST (pcr_store_test_compute_no_measurement);
 TEST (pcr_store_test_compute_invalid_arg);
 TEST (pcr_store_test_compute_invalid_pcr);
 TEST (pcr_store_test_compute_compute_fail);

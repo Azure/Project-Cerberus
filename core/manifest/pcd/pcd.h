@@ -104,23 +104,41 @@ struct pcd_mux_info {
 };
 
 /**
+ * Container for MCTP bridge components info.
+ */
+struct pcd_mctp_bridge_components_info {
+	void *context;												/**< Implementation context. */
+	uint8_t component_type[SHA256_HASH_LENGTH];					/**< Digest of component type key in PCD and CFM */
+	uint16_t pci_vid;											/**< PCI Vendor ID */
+	uint16_t pci_device_id;										/**< PCI Device ID */
+	uint16_t pci_subsystem_vid;									/**< PCI Subsystem Vendor ID */
+	uint16_t pci_subsystem_id;									/**< PCI Subsystem ID */
+	uint8_t components_count;									/**< Number of identical components this element describes. */
+};
+
+/**
  * The API for interfacing with a PCD file.
  */
 struct pcd {
 	struct manifest base;											/**< Manifest interface */
 
 	/**
-	 * Get a list of device info structs for all Cerberus components.
+	 * Get next MCTP bridge component from PCD.
 	 *
 	 * @param pcd The PCD to query.
-	 * @param devices Device info list for all components on platform.  This will be
-	 * dynamically allocated and must be freed by the caller.  This will be null on error.
-	 * @param num_devices Number of components on platform.
+	 * @param component A container to be updated with the component information.  If first is not
+	 * 	true, then same container that was passed previously needs to be passed in.  Instances never
+	 * 	passed to this function need to have first set to true.
+	 * @param first Fetch first MCTP bridge component from PCD, or next MCTP component since last
+	 * 	call.
 	 *
-	 * @return 0 if the devices info list was retrieved successfully or an error code.
+	 * @return 0 if a component was found or an error code.
 	 */
-	int (*get_devices_info) (struct pcd *pcd, struct device_manager_info **devices,
-		size_t *num_devices);
+	int (*get_next_mctp_bridge_component) (struct pcd *pcd,
+		struct pcd_mctp_bridge_components_info *component, bool first);
+
+	/* TODO Implement a similar function to get_next_mctp_bridge_component for direct connection
+		components */
 
 	/**
 	 * Get RoT info.

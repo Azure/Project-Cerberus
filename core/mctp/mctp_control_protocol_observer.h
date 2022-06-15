@@ -31,7 +31,7 @@ struct mctp_control_protocol_observer {
 	 * @param reponse The response container received.
 	 */
 	void (*on_get_message_type_response) (struct mctp_control_protocol_observer *observer,
-		struct cmd_interface_msg *response);
+		const struct cmd_interface_msg *response);
 
 	/**
 	 * Notification that a get vendor defined message support response message has been received.
@@ -42,7 +42,7 @@ struct mctp_control_protocol_observer {
 	 * @param reponse The response container received.
 	 */
 	void (*on_get_vendor_def_msg_response) (struct mctp_control_protocol_observer *observer,
-		struct cmd_interface_msg *response);
+		const struct cmd_interface_msg *response);
 
 	/**
 	 * Notification that a get routing table entries response message has been received.
@@ -53,7 +53,7 @@ struct mctp_control_protocol_observer {
 	 * @param reponse The response container received.
 	 */
 	void (*on_get_routing_table_entries_response) (struct mctp_control_protocol_observer *observer,
-		struct cmd_interface_msg *response);
+		const struct cmd_interface_msg *response);
 };
 
 

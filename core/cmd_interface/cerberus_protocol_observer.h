@@ -9,42 +9,53 @@
 
 
 /**
- * Interface for notifying observers of Cerberus protocol responses.  Unwanted event notifications will be set to
- * null.
+ * Interface for notifying observers of Cerberus protocol responses.  Unwanted event notifications
+ * will be set to null.
  */
 struct cerberus_protocol_observer {
 	/**
-	 * Notification that a get digest response message has been received. 
+	 * Notification that a get digest response message has been received.
 	 *
 	 * Arguments passed with the notification will never be null.
 	 *
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_get_digest_response) (struct cerberus_protocol_observer *observer, 
-		struct cmd_interface_msg *response);
+	void (*on_get_digest_response) (struct cerberus_protocol_observer *observer,
+		const struct cmd_interface_msg *response);
 
 	/**
-	 * Notification that a get certificate response message has been received.  
+	 * Notification that a get certificate response message has been received.
 	 *
 	 * Arguments passed with the notification will never be null.
 	 *
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_get_certificate_response) (struct cerberus_protocol_observer *observer, 
-		struct cmd_interface_msg *response);
+	void (*on_get_certificate_response) (struct cerberus_protocol_observer *observer,
+		const struct cmd_interface_msg *response);
 
 	/**
-	 * Notification a challenge response message has been received. 
+	 * Notification a challenge response message has been received.
 	 *
 	 * Arguments passed with the notification will never be null.
 	 *
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_challenge_response) (struct cerberus_protocol_observer *observer, 
-		struct cmd_interface_msg *response);
+	void (*on_challenge_response) (struct cerberus_protocol_observer *observer,
+		const struct cmd_interface_msg *response);
+
+	/**
+	 * Notification a device capabilities message has been received.
+	 *
+	 * Arguments passed with the notification will never be null.
+	 *
+	 * @param observer The observer instance being notified.
+	 * @param reponse The response container received.
+	 */
+	void (*on_device_capabilities) (struct cerberus_protocol_observer *observer,
+		const struct cmd_interface_msg *response);
 };
 
 

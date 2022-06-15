@@ -243,26 +243,17 @@ static int pcd_flash_get_power_controller_info (struct pcd *pcd,
 	return 0;
 }
 
-static int pcd_flash_get_devices_info (struct pcd *pcd, struct device_manager_info **devices,
-	size_t *num_devices)
+static int pcd_flash_get_next_mctp_bridge_component (struct pcd *pcd,
+	struct pcd_mctp_bridge_components_info *component, bool first)
 {
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
-	struct device_manager_info *device_ptr;
-	struct pcd_i2c_interface *interface;
+	struct pcd_mctp_bridge_component_element bridge_component;
 	struct pcd_mctp_bridge_component_connection *connection;
-	union {
-		struct pcd_rot_info rot_info;
-		struct pcd_direct_i2c_component_element direct_component;
-		struct pcd_mctp_bridge_component_element bridge_component;
-	} buffer;
-	uint8_t *element_ptr;
-	uint8_t i_component;
-	uint8_t found;
-	size_t type_len;
-	int start = 0;
+	uint8_t *element_ptr = (uint8_t*) &bridge_component;
+	uint8_t *start_ptr;
 	int status;
 
-	if ((pcd_flash == NULL) || (devices == NULL) || (num_devices == NULL)) {
+	if ((pcd_flash == NULL) || (component == NULL)) {
 		return PCD_INVALID_ARGUMENT;
 	}
 
@@ -270,83 +261,36 @@ static int pcd_flash_get_devices_info (struct pcd *pcd, struct device_manager_in
 		return MANIFEST_NO_MANIFEST;
 	}
 
-	status = pcd_flash_get_rot_info (pcd, &buffer.rot_info);
-	if (status != 0) {
+	start_ptr = (uint8_t*) &component->context;
+
+	if (first) {
+		*start_ptr = 0;
+	}
+
+	status = manifest_flash_read_element_data (&pcd_flash->base_flash,
+		pcd_flash->base_flash.hash, PCD_COMPONENT_MCTP_BRIDGE, *start_ptr, MANIFEST_NO_PARENT, 0,
+		start_ptr, NULL, NULL, &element_ptr, sizeof (struct pcd_mctp_bridge_component_element));
+	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
-
-	if (buffer.rot_info.components_count == 0) {
-		*num_devices = 0;
-		return 0;
+	if ((size_t) status <
+		(sizeof (struct pcd_mctp_bridge_component_element) - MANIFEST_MAX_STRING)) {
+		return PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT;
 	}
 
-	*num_devices = buffer.rot_info.components_count;
+	*start_ptr = *start_ptr + 1;
 
-	*devices = platform_calloc (*num_devices, sizeof (struct device_manager_info));
-	if (*devices == NULL) {
-		return PCD_NO_MEMORY;
-	}
+	connection = pcd_get_mctp_bridge_component_connection (element_ptr, status);
 
-	device_ptr = *devices;
-	element_ptr = (uint8_t*) &buffer.direct_component;
+	component->components_count = connection->components_count;
+	component->pci_device_id = connection->device_id;
+	component->pci_vid = connection->vendor_id;
+	component->pci_subsystem_id = connection->subsystem_device_id;
+	component->pci_subsystem_vid = connection->subsystem_vendor_id;
 
-	for (i_component = 0; i_component < *num_devices; ++i_component) {
-		status = manifest_flash_read_element_data (&pcd_flash->base_flash,
-			pcd_flash->base_flash.hash, PCD_COMPONENT_DIRECT, start, MANIFEST_NO_PARENT, 0, &found,
-			NULL, NULL, &element_ptr, sizeof (struct pcd_direct_i2c_component_element));
-		if (status == MANIFEST_ELEMENT_NOT_FOUND) {
-			break;
-		}
-		if (ROT_IS_ERROR (status)) {
-			goto fail;
-		}
-		if (((size_t) status) <
-			(sizeof (struct pcd_direct_i2c_component_element) - MANIFEST_MAX_STRING)) {
-			status = PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT;
-			goto fail;
-		}
-
-		type_len = ((buffer.direct_component.component.type_len + 3) & ~((size_t) 3));
-		interface = (struct pcd_i2c_interface*) (element_ptr +
-			(sizeof (struct pcd_component_common) - MANIFEST_MAX_STRING + type_len));
-
-		device_ptr->eid = interface->eid;
-		device_ptr->smbus_addr = interface->address;
-
-		start = found + 1;
-		++device_ptr;
-	}
-
-	start = 0;
-	element_ptr = (uint8_t*) &buffer.bridge_component;
-
-	for (; i_component < *num_devices; ++i_component) {
-		status = manifest_flash_read_element_data (&pcd_flash->base_flash,
-			pcd_flash->base_flash.hash, PCD_COMPONENT_MCTP_BRIDGE, start, MANIFEST_NO_PARENT, 0,
-			&found, NULL, NULL, &element_ptr, sizeof (struct pcd_mctp_bridge_component_element));
-		if (ROT_IS_ERROR (status)) {
-			goto fail;
-		}
-		if ((size_t) status <
-			(sizeof (struct pcd_mctp_bridge_component_element) - MANIFEST_MAX_STRING)) {
-			status = PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT;
-			goto fail;
-		}
-
-		connection = pcd_get_mctp_bridge_component_connection (element_ptr, status);
-
-		device_ptr->eid = connection->eid;
-
-		start = found + 1;
-		++device_ptr;
-	}
-
-	return 0;
-
-fail:
-	platform_free (*devices);
-
-	return status;
+	return pcd_flash->base_flash.hash->calculate_sha256 (pcd_flash->base_flash.hash,
+		bridge_component.component.type, bridge_component.component.type_len,
+		component->component_type, sizeof (component->component_type));
 }
 
 /**
@@ -391,9 +335,9 @@ int pcd_flash_init (struct pcd_flash *pcd, struct flash *flash, struct hash_engi
 	pcd->base.base.get_signature = pcd_flash_get_signature;
 	pcd->base.base.is_empty = pcd_flash_is_empty;
 
+	pcd->base.get_next_mctp_bridge_component = pcd_flash_get_next_mctp_bridge_component;
 	pcd->base.get_port_info = pcd_flash_get_port_info;
 	pcd->base.get_rot_info = pcd_flash_get_rot_info;
-	pcd->base.get_devices_info = pcd_flash_get_devices_info;
 	pcd->base.get_power_controller_info = pcd_flash_get_power_controller_info;
 
 	return 0;

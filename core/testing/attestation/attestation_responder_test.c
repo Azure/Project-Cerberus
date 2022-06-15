@@ -8,7 +8,7 @@
 #include "platform_io.h"
 #include "platform.h"
 #include "testing.h"
-#include "attestation/attestation_slave.h"
+#include "attestation/attestation_responder.h"
 #include "attestation/pcr_store.h"
 #include "attestation/aux_attestation.h"
 #include "testing/mock/crypto/ecc_mock.h"
@@ -24,7 +24,7 @@
 #include "testing/riot/riot_core_testing.h"
 
 
-TEST_SUITE_LABEL ("attestation_slave");
+TEST_SUITE_LABEL ("attestation_responder");
 
 /**
  * RIoT keys for testing.
@@ -41,19 +41,19 @@ static struct riot_keys keys = {
 };
 
 /**
- * Dependencies for testing slave attestation processing.
+ * Dependencies for testing responder attestation processing.
  */
-struct attestation_slave_testing {
-	struct hash_engine_mock hash;		/**< Mock for hash operations. */
-	struct ecc_engine_mock ecc;			/**< Mock for ECC operations. */
-	struct rsa_engine_mock rsa;			/**< Mock for RSA operations. */
-	struct x509_engine_mock x509;		/**< Mock for X.509 operations. */
-	struct rng_engine_mock rng;			/**< Mock for random number generation. */
-	struct keystore_mock keystore;		/**< Mock for the attestation keystore. */
-	struct riot_key_manager riot;		/**< Key manager for RIoT keys. */
-	struct pcr_store store;				/**< Slave PCRs. */
-	struct aux_attestation aux;			/**< Manager for auxiliary attesattion flows. */
-	struct attestation_slave slave;		/**< Attestation slave being tested. */
+struct attestation_responder_testing {
+	struct hash_engine_mock hash;				/**< Mock for hash operations. */
+	struct ecc_engine_mock ecc;					/**< Mock for ECC operations. */
+	struct rsa_engine_mock rsa;					/**< Mock for RSA operations. */
+	struct x509_engine_mock x509;				/**< Mock for X.509 operations. */
+	struct rng_engine_mock rng;					/**< Mock for random number generation. */
+	struct keystore_mock keystore;				/**< Mock for the attestation keystore. */
+	struct riot_key_manager riot;				/**< Key manager for RIoT keys. */
+	struct pcr_store store;						/**< Slave PCRs. */
+	struct aux_attestation aux;					/**< Manager for auxiliary attesattion flows. */
+	struct attestation_responder responder;		/**< Attestation responder being tested. */
 };
 
 /**
@@ -63,8 +63,8 @@ struct attestation_slave_testing {
  * @param attestation Testing dependencies to initialize
  *
  */
-static void attestation_slave_testing_init_dependencies (CuTest *test,
-	struct attestation_slave_testing *attestation)
+static void attestation_responder_testing_init_dependencies (CuTest *test,
+	struct attestation_responder_testing *attestation)
 {
 	uint8_t num_pcr_measurements[1] = {0};
 	uint8_t *dev_id_der = NULL;
@@ -119,8 +119,8 @@ static void attestation_slave_testing_init_dependencies (CuTest *test,
  * @param attestation Testing dependencies to release
  *
  */
-static void attestation_slave_testing_release_dependencies (CuTest *test,
-	struct attestation_slave_testing *attestation)
+static void attestation_responder_testing_release_dependencies (CuTest *test,
+	struct attestation_responder_testing *attestation)
 {
 	int status;
 
@@ -153,12 +153,12 @@ static void attestation_slave_testing_release_dependencies (CuTest *test,
  * @param test The test framework
  * @param attestation Testing dependencies to initialize
  */
-static void setup_attestation_slave_mock_test (CuTest *test,
-	struct attestation_slave_testing *attestation)
+static void setup_attestation_responder_mock_test (CuTest *test,
+	struct attestation_responder_testing *attestation)
 {
 	int status;
 
-	attestation_slave_testing_init_dependencies (test, attestation);
+	attestation_responder_testing_init_dependencies (test, attestation);
 
 	status = mock_expect (&attestation->ecc.mock, attestation->ecc.base.init_key_pair,
 		&attestation->ecc, 0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
@@ -166,7 +166,7 @@ static void setup_attestation_slave_mock_test (CuTest *test,
 	status |= mock_expect_save_arg (&attestation->ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation->slave, &attestation->riot,
+	status = attestation_responder_init (&attestation->responder, &attestation->riot,
 		&attestation->hash.base, &attestation->ecc.base, &attestation->rng.base,
 		&attestation->store, &attestation->aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
@@ -179,12 +179,12 @@ static void setup_attestation_slave_mock_test (CuTest *test,
  * @param test The test framework
  * @param attestation Testing dependencies to initialize
  */
-static void setup_attestation_slave_no_aux_mock_test (CuTest *test,
-	struct attestation_slave_testing *attestation)
+static void setup_attestation_responder_no_aux_mock_test (CuTest *test,
+	struct attestation_responder_testing *attestation)
 {
 	int status;
 
-	attestation_slave_testing_init_dependencies (test, attestation);
+	attestation_responder_testing_init_dependencies (test, attestation);
 
 	status = mock_expect (&attestation->ecc.mock, attestation->ecc.base.init_key_pair,
 		&attestation->ecc, 0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
@@ -192,7 +192,7 @@ static void setup_attestation_slave_no_aux_mock_test (CuTest *test,
 	status |= mock_expect_save_arg (&attestation->ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init_no_aux (&attestation->slave, &attestation->riot,
+	status = attestation_responder_init_no_aux (&attestation->responder, &attestation->riot,
 		&attestation->hash.base, &attestation->ecc.base, &attestation->rng.base,
 		&attestation->store, 1, 2);
 	CuAssertIntEquals (test, 0, status);
@@ -204,8 +204,8 @@ static void setup_attestation_slave_no_aux_mock_test (CuTest *test,
  * @param test The test framework
  * @param attestation Testing dependencies to release
  */
-static void complete_attestation_slave_mock_test (CuTest *test,
-	struct attestation_slave_testing *attestation)
+static void complete_attestation_responder_mock_test (CuTest *test,
+	struct attestation_responder_testing *attestation)
 {
 	int status;
 
@@ -213,9 +213,9 @@ static void complete_attestation_slave_mock_test (CuTest *test,
 		&attestation->ecc, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_slave_release (&attestation->slave);
+	attestation_responder_release (&attestation->responder);
 
-	attestation_slave_testing_release_dependencies (test, attestation);
+	attestation_responder_testing_release_dependencies (test, attestation);
 }
 
 /**
@@ -398,14 +398,14 @@ void attestation_testing_add_aux_certificate (CuTest *test, struct aux_attestati
  * Test cases
  *******************/
 
-static void attestation_slave_test_init (CuTest *test)
+static void attestation_responder_test_init (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 
 	TEST_START;
 
-	attestation_slave_testing_init_dependencies (test, &attestation);
+	attestation_responder_testing_init_dependencies (test, &attestation);
 
 	status = mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_key_pair,
 		&attestation.ecc, 0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
@@ -413,28 +413,28 @@ static void attestation_slave_test_init (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, attestation.slave.get_digests);
-	CuAssertPtrNotNull (test, attestation.slave.get_certificate);
-	CuAssertPtrNotNull (test, attestation.slave.challenge_response);
-	CuAssertPtrNotNull (test, attestation.slave.aux_attestation_unseal);
-	CuAssertPtrNotNull (test, attestation.slave.aux_decrypt);
-	CuAssertPtrNotNull (test, attestation.slave.generate_ecdh_seed);
+	CuAssertPtrNotNull (test, attestation.responder.get_digests);
+	CuAssertPtrNotNull (test, attestation.responder.get_certificate);
+	CuAssertPtrNotNull (test, attestation.responder.challenge_response);
+	CuAssertPtrNotNull (test, attestation.responder.aux_attestation_unseal);
+	CuAssertPtrNotNull (test, attestation.responder.aux_decrypt);
+	CuAssertPtrNotNull (test, attestation.responder.generate_ecdh_seed);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_init_init_keypair_fail (CuTest *test)
+static void attestation_responder_test_init_init_keypair_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 
 	TEST_START;
 
-	attestation_slave_testing_init_dependencies (test, &attestation);
+	attestation_responder_testing_init_dependencies (test, &attestation);
 
 	status = mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_key_pair,
 		&attestation.ecc, ECC_ENGINE_KEY_PAIR_FAILED,
@@ -443,61 +443,61 @@ static void attestation_slave_test_init_init_keypair_fail (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ECC_ENGINE_KEY_PAIR_FAILED, status);
 
-	attestation_slave_testing_release_dependencies (test, &attestation);
+	attestation_responder_testing_release_dependencies (test, &attestation);
 }
 
-static void attestation_slave_test_init_null (CuTest *test)
+static void attestation_responder_test_init_null (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 
 	TEST_START;
 
-	attestation_slave_testing_init_dependencies (test, &attestation);
+	attestation_responder_testing_init_dependencies (test, &attestation);
 
-	status = attestation_slave_init (NULL, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (NULL, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init (&attestation.slave, NULL, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, NULL, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, NULL,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, NULL,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		NULL, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, NULL, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, NULL, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, NULL, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	attestation_slave_testing_release_dependencies (test, &attestation);
+	attestation_responder_testing_release_dependencies (test, &attestation);
 }
 
-static void attestation_slave_test_init_no_aux (CuTest *test)
+static void attestation_responder_test_init_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 
 	TEST_START;
 
-	attestation_slave_testing_init_dependencies (test, &attestation);
+	attestation_responder_testing_init_dependencies (test, &attestation);
 
 	status = mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_key_pair,
 		&attestation.ecc, 0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
@@ -505,29 +505,29 @@ static void attestation_slave_test_init_no_aux (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init_no_aux (&attestation.slave, &attestation.riot,
+	status = attestation_responder_init_no_aux (&attestation.responder, &attestation.riot,
 		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1,
 		2);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, attestation.slave.get_digests);
-	CuAssertPtrNotNull (test, attestation.slave.get_certificate);
-	CuAssertPtrNotNull (test, attestation.slave.challenge_response);
-	CuAssertPtrNotNull (test, attestation.slave.aux_attestation_unseal);
-	CuAssertPtrNotNull (test, attestation.slave.aux_decrypt);
-	CuAssertPtrNotNull (test, attestation.slave.generate_ecdh_seed);
+	CuAssertPtrNotNull (test, attestation.responder.get_digests);
+	CuAssertPtrNotNull (test, attestation.responder.get_certificate);
+	CuAssertPtrNotNull (test, attestation.responder.challenge_response);
+	CuAssertPtrNotNull (test, attestation.responder.aux_attestation_unseal);
+	CuAssertPtrNotNull (test, attestation.responder.aux_decrypt);
+	CuAssertPtrNotNull (test, attestation.responder.generate_ecdh_seed);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_init_no_aux_init_keypair_fail (CuTest *test)
+static void attestation_responder_test_init_no_aux_init_keypair_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 
 	TEST_START;
 
-	attestation_slave_testing_init_dependencies (test, &attestation);
+	attestation_responder_testing_init_dependencies (test, &attestation);
 
 	status = mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_key_pair,
 		&attestation.ecc, ECC_ENGINE_KEY_PAIR_FAILED,
@@ -536,63 +536,63 @@ static void attestation_slave_test_init_no_aux_init_keypair_fail (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init_no_aux (&attestation.slave, &attestation.riot,
+	status = attestation_responder_init_no_aux (&attestation.responder, &attestation.riot,
 		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1,
 		2);
 	CuAssertIntEquals (test, ECC_ENGINE_KEY_PAIR_FAILED, status);
 
-	attestation_slave_testing_release_dependencies (test, &attestation);
+	attestation_responder_testing_release_dependencies (test, &attestation);
 }
 
-static void attestation_slave_test_init_no_aux_null (CuTest *test)
+static void attestation_responder_test_init_no_aux_null (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 
 	TEST_START;
 
-	attestation_slave_testing_init_dependencies (test, &attestation);
+	attestation_responder_testing_init_dependencies (test, &attestation);
 
-	status = attestation_slave_init_no_aux (NULL, &attestation.riot,
+	status = attestation_responder_init_no_aux (NULL, &attestation.riot,
 		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1,
 		2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init_no_aux (&attestation.slave, NULL,
+	status = attestation_responder_init_no_aux (&attestation.responder, NULL,
 		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1,
 		2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init_no_aux (&attestation.slave, &attestation.riot,
+	status = attestation_responder_init_no_aux (&attestation.responder, &attestation.riot,
 		NULL, &attestation.ecc.base, &attestation.rng.base, &attestation.store, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init_no_aux (&attestation.slave, &attestation.riot,
+	status = attestation_responder_init_no_aux (&attestation.responder, &attestation.riot,
 		&attestation.hash.base, NULL, &attestation.rng.base, &attestation.store, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init_no_aux (&attestation.slave, &attestation.riot,
+	status = attestation_responder_init_no_aux (&attestation.responder, &attestation.riot,
 		&attestation.hash.base, &attestation.ecc.base, NULL, &attestation.store, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_slave_init_no_aux (&attestation.slave, &attestation.riot,
+	status = attestation_responder_init_no_aux (&attestation.responder, &attestation.riot,
 		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, NULL, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	attestation_slave_testing_release_dependencies (test, &attestation);
+	attestation_responder_testing_release_dependencies (test, &attestation);
 }
 
-static void attestation_slave_test_release_null (CuTest *test)
+static void attestation_responder_test_release_null (CuTest *test)
 {
 	TEST_START;
 
-	attestation_slave_release (NULL);
+	attestation_responder_release (NULL);
 }
 
-static void attestation_slave_test_get_digests (CuTest *test)
+static void attestation_responder_test_get_digests (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t cert_hash[] = {
 		0x00,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -608,7 +608,7 @@ static void attestation_slave_test_get_digests (CuTest *test)
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
@@ -640,20 +640,20 @@ static void attestation_slave_test_get_digests (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, sizeof (cert_hash), status);
 	CuAssertIntEquals (test, 4, num_cert);
 
 	status = testing_validate_array (cert_hash, buf, sizeof (cert_hash));
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_no_aux (CuTest *test)
+static void attestation_responder_test_get_digests_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t cert_hash[] = {
 		0x00,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -669,7 +669,7 @@ static void attestation_slave_test_get_digests_no_aux (CuTest *test)
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
@@ -701,20 +701,20 @@ static void attestation_slave_test_get_digests_no_aux (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, sizeof (cert_hash), status);
 	CuAssertIntEquals (test, 4, num_cert);
 
 	status = testing_validate_array (cert_hash, buf, sizeof (cert_hash));
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_aux_slot (CuTest *test)
+static void attestation_responder_test_get_digests_aux_slot (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t cert_hash[] = {
 		0x00,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -730,7 +730,7 @@ static void attestation_slave_test_get_digests_aux_slot (CuTest *test)
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
@@ -763,61 +763,61 @@ static void attestation_slave_test_get_digests_aux_slot (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 1, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, sizeof (cert_hash), status);
 	CuAssertIntEquals (test, 4, num_cert);
 
 	status = testing_validate_array (cert_hash, buf, sizeof (cert_hash));
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_aux_slot_no_aux (CuTest *test)
+static void attestation_responder_test_get_digests_aux_slot_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t num_cert;
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_digests (&attestation.slave, 1, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_buf_too_small (CuTest *test)
+static void attestation_responder_test_get_digests_buf_too_small (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4];
 	uint8_t num_cert = 0;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf) - 1,
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf) - 1,
 		&num_cert);
 	CuAssertIntEquals (test, ATTESTATION_BUF_TOO_SMALL, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_no_int_ca (CuTest *test)
+static void attestation_responder_test_get_digests_no_int_ca (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 3] = {0};
 	uint8_t cert_hash[] = {
 		0x00,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -831,7 +831,7 @@ static void attestation_slave_test_get_digests_no_int_ca (CuTest *test)
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_root_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
@@ -856,41 +856,41 @@ static void attestation_slave_test_get_digests_no_int_ca (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, sizeof (cert_hash), status);
 	CuAssertIntEquals (test, 3, num_cert);
 
 	status = testing_validate_array (cert_hash, buf, sizeof (cert_hash));
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_no_int_ca_buf_too_small (CuTest *test)
+static void attestation_responder_test_get_digests_no_int_ca_buf_too_small (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 3];
 	uint8_t num_cert = 0;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_root_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf) - 1,
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf) - 1,
 		&num_cert);
 	CuAssertIntEquals (test, ATTESTATION_BUF_TOO_SMALL, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_no_root_ca (CuTest *test)
+static void attestation_responder_test_get_digests_no_root_ca (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 2] = {0};
 	uint8_t cert_hash[] = {
 		0x00,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -902,7 +902,7 @@ static void attestation_slave_test_get_digests_no_root_ca (CuTest *test)
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.hash.mock, attestation.hash.base.calculate_sha256,
 		&attestation.hash, 0,
@@ -918,38 +918,38 @@ static void attestation_slave_test_get_digests_no_root_ca (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, sizeof (cert_hash), status);
 	CuAssertIntEquals (test, 2, num_cert);
 
 	status = testing_validate_array (cert_hash, buf, sizeof (cert_hash));
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_no_root_ca_buf_too_small (CuTest *test)
+static void attestation_responder_test_get_digests_no_root_ca_buf_too_small (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 2];
 	uint8_t num_cert = 0;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf) - 1,
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf) - 1,
 		&num_cert);
 	CuAssertIntEquals (test, ATTESTATION_BUF_TOO_SMALL, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_no_dev_id (CuTest *test)
+static void attestation_responder_test_get_digests_no_dev_id (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct riot_keys bad_keys;
 	uint8_t num_pcr_measurements[1] = {6};
 	uint8_t *dev_id_der = NULL;
@@ -1004,20 +1004,20 @@ static void attestation_slave_test_get_digests_no_dev_id (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_no_alias (CuTest *test)
+static void attestation_responder_test_get_digests_no_alias (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct riot_keys bad_keys;
 	uint8_t num_pcr_measurements[1] = {6};
 	uint8_t *dev_id_der = NULL;
@@ -1071,20 +1071,20 @@ static void attestation_slave_test_get_digests_no_alias (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_aux_slot_no_dev_id (CuTest *test)
+static void attestation_responder_test_get_digests_aux_slot_no_dev_id (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct riot_keys bad_keys;
 	uint8_t num_pcr_measurements[1] = {6};
 	uint8_t *dev_id_der = NULL;
@@ -1139,46 +1139,46 @@ static void attestation_slave_test_get_digests_aux_slot_no_dev_id (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 1, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_aux_slot_no_aux_cert (CuTest *test)
+static void attestation_responder_test_get_digests_aux_slot_no_aux_cert (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t num_cert = 1;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_digests (&attestation.slave, 1, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_devid_fail (CuTest *test)
+static void attestation_responder_test_get_digests_devid_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t num_cert = 0;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.hash.mock, attestation.hash.base.calculate_sha256,
 		&attestation.hash, HASH_ENGINE_SHA256_FAILED,
@@ -1186,22 +1186,22 @@ static void attestation_slave_test_get_digests_devid_fail (CuTest *test)
 		MOCK_ARG (RIOT_CORE_DEVID_CERT_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (32));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_alias_fail (CuTest *test)
+static void attestation_responder_test_get_digests_alias_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t num_cert = 0;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.hash.mock, attestation.hash.base.calculate_sha256,
 		&attestation.hash, 0,
@@ -1215,22 +1215,22 @@ static void attestation_slave_test_get_digests_alias_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_aux_fail (CuTest *test)
+static void attestation_responder_test_get_digests_aux_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t num_cert = 0;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_aux_certificate (test, &attestation.aux);
 
@@ -1246,22 +1246,22 @@ static void attestation_slave_test_get_digests_aux_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 1, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_int_ca_fail (CuTest *test)
+static void attestation_responder_test_get_digests_int_ca_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t num_cert = 0;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
@@ -1278,22 +1278,22 @@ static void attestation_slave_test_get_digests_int_ca_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_root_ca_fail (CuTest *test)
+static void attestation_responder_test_get_digests_root_ca_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t num_cert = 0;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
@@ -1305,66 +1305,66 @@ static void attestation_slave_test_get_digests_root_ca_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_null (CuTest *test)
+static void attestation_responder_test_get_digests_null (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t num_cert = 0;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.get_digests (NULL, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (NULL, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, NULL, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, NULL, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.get_digests (&attestation.slave, 0, buf, sizeof (buf), NULL);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), NULL);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_digests_invalid_slot_num (CuTest *test)
+static void attestation_responder_test_get_digests_invalid_slot_num (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[32 * 4] = {0};
 	uint8_t num_cert = 0;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.get_digests (&attestation.slave, 2, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 2, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_dev_id_certificate (CuTest *test)
+static void attestation_responder_test_get_dev_id_certificate (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 2, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 2, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1373,23 +1373,23 @@ static void attestation_slave_test_get_dev_id_certificate (CuTest *test)
 		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_dev_id_certificate_no_aux (CuTest *test)
+static void attestation_responder_test_get_dev_id_certificate_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 2, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 2, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1398,24 +1398,24 @@ static void attestation_slave_test_get_dev_id_certificate_no_aux (CuTest *test)
 		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_dev_id_certificate_aux_slot (CuTest *test)
+static void attestation_responder_test_get_dev_id_certificate_aux_slot (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 	attestation_testing_add_aux_certificate (test, &attestation.aux);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 2, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 2, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1424,61 +1424,61 @@ static void attestation_slave_test_get_dev_id_certificate_aux_slot (CuTest *test
 		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_dev_id_certificate_aux_slot_no_aux (CuTest *test)
+static void attestation_responder_test_get_dev_id_certificate_aux_slot_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 2, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 2, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_dev_id_certificate_aux_slot_no_aux_cert (CuTest *test)
+static void attestation_responder_test_get_dev_id_certificate_aux_slot_no_aux_cert (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 2, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 2, &cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_dev_id_certificate_no_int_ca (CuTest *test)
+static void attestation_responder_test_get_dev_id_certificate_no_int_ca (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_root_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 1, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_SIGNED_CERT_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1487,20 +1487,20 @@ static void attestation_slave_test_get_dev_id_certificate_no_int_ca (CuTest *tes
 		RIOT_CORE_DEVID_SIGNED_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_dev_id_certificate_no_root_ca (CuTest *test)
+static void attestation_responder_test_get_dev_id_certificate_no_root_ca (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 0, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 0, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_CERT_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1508,13 +1508,13 @@ static void attestation_slave_test_get_dev_id_certificate_no_root_ca (CuTest *te
 	status = testing_validate_array (cert.cert, RIOT_CORE_DEVID_CERT, RIOT_CORE_DEVID_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_dev_id_certificate_no_dev_id (CuTest *test)
+static void attestation_responder_test_get_dev_id_certificate_no_dev_id (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct riot_keys bad_keys;
 	uint8_t num_pcr_measurements[1] = {6};
 	struct der_cert cert;
@@ -1568,20 +1568,20 @@ static void attestation_slave_test_get_dev_id_certificate_no_dev_id (CuTest *tes
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 0, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 0, &cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_dev_id_certificate_no_alias (CuTest *test)
+static void attestation_responder_test_get_dev_id_certificate_no_alias (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct riot_keys bad_keys;
 	uint8_t num_pcr_measurements[1] = {6};
 	struct der_cert cert;
@@ -1634,30 +1634,30 @@ static void attestation_slave_test_get_dev_id_certificate_no_alias (CuTest *test
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 0, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 0, &cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_alias_certificate (CuTest *test)
+static void attestation_responder_test_get_alias_certificate (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 3, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 3, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_ALIAS_CERT_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1665,23 +1665,23 @@ static void attestation_slave_test_get_alias_certificate (CuTest *test)
 	status = testing_validate_array (cert.cert, RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_alias_certificate_no_aux (CuTest *test)
+static void attestation_responder_test_get_alias_certificate_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 3, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 3, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_ALIAS_CERT_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1689,23 +1689,23 @@ static void attestation_slave_test_get_alias_certificate_no_aux (CuTest *test)
 	status = testing_validate_array (cert.cert, RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_alias_certificate_no_int_ca (CuTest *test)
+static void attestation_responder_test_get_alias_certificate_no_int_ca (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_root_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 2, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 2, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_ALIAS_CERT_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1713,20 +1713,20 @@ static void attestation_slave_test_get_alias_certificate_no_int_ca (CuTest *test
 	status = testing_validate_array (cert.cert, RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_alias_certificate_no_root_ca (CuTest *test)
+static void attestation_responder_test_get_alias_certificate_no_root_ca (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 1, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_ALIAS_CERT_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1734,13 +1734,13 @@ static void attestation_slave_test_get_alias_certificate_no_root_ca (CuTest *tes
 	status = testing_validate_array (cert.cert, RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_alias_certificate_no_dev_id (CuTest *test)
+static void attestation_responder_test_get_alias_certificate_no_dev_id (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct riot_keys bad_keys;
 	uint8_t num_pcr_measurements[1] = {6};
 	struct der_cert cert;
@@ -1794,20 +1794,20 @@ static void attestation_slave_test_get_alias_certificate_no_dev_id (CuTest *test
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 1, &cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_alias_certificate_no_alias (CuTest *test)
+static void attestation_responder_test_get_alias_certificate_no_alias (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct riot_keys bad_keys;
 	uint8_t num_pcr_measurements[1] = {6};
 	struct der_cert cert;
@@ -1860,30 +1860,30 @@ static void attestation_slave_test_get_alias_certificate_no_alias (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 1, &cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_int_ca_certificate (CuTest *test)
+static void attestation_responder_test_get_int_ca_certificate (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 1, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, X509_CERTCA_ECC_CA_NOPL_DER_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1892,23 +1892,23 @@ static void attestation_slave_test_get_int_ca_certificate (CuTest *test)
 		X509_CERTCA_ECC_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_int_ca_certificate_no_aux (CuTest *test)
+static void attestation_responder_test_get_int_ca_certificate_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 1, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, X509_CERTCA_ECC_CA_NOPL_DER_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1917,24 +1917,24 @@ static void attestation_slave_test_get_int_ca_certificate_no_aux (CuTest *test)
 		X509_CERTCA_ECC_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_int_ca_certificate_aux_slot (CuTest *test)
+static void attestation_responder_test_get_int_ca_certificate_aux_slot (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 	attestation_testing_add_aux_certificate (test, &attestation.aux);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 1, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, X509_CERTCA_ECC_CA_NOPL_DER_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -1943,61 +1943,61 @@ static void attestation_slave_test_get_int_ca_certificate_aux_slot (CuTest *test
 		X509_CERTCA_ECC_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_int_ca_certificate_aux_slot_no_aux (CuTest *test)
+static void attestation_responder_test_get_int_ca_certificate_aux_slot_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 1, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_int_ca_certificate_aux_slot_no_aux_cert (CuTest *test)
+static void attestation_responder_test_get_int_ca_certificate_aux_slot_no_aux_cert (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 1, &cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_root_ca_certificate (CuTest *test)
+static void attestation_responder_test_get_root_ca_certificate (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 0, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 0, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, X509_CERTSS_RSA_CA_NOPL_DER_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -2006,23 +2006,23 @@ static void attestation_slave_test_get_root_ca_certificate (CuTest *test)
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_root_ca_certificate_no_aux (CuTest *test)
+static void attestation_responder_test_get_root_ca_certificate_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 0, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 0, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, X509_CERTSS_RSA_CA_NOPL_DER_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -2031,24 +2031,24 @@ static void attestation_slave_test_get_root_ca_certificate_no_aux (CuTest *test)
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_root_ca_certificate_aux_slot (CuTest *test)
+static void attestation_responder_test_get_root_ca_certificate_aux_slot (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 	attestation_testing_add_aux_certificate (test, &attestation.aux);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 0, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 0, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, X509_CERTSS_RSA_CA_NOPL_DER_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -2057,62 +2057,62 @@ static void attestation_slave_test_get_root_ca_certificate_aux_slot (CuTest *tes
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_root_ca_certificate_aux_slot_no_aux (CuTest *test)
+static void attestation_responder_test_get_root_ca_certificate_aux_slot_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 0, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 0, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_root_ca_certificate_aux_slot_no_aux_cert (CuTest *test)
+static void attestation_responder_test_get_root_ca_certificate_aux_slot_no_aux_cert (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 0, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 0, &cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_aux_certificate (CuTest *test)
+static void attestation_responder_test_get_aux_certificate (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 	attestation_testing_add_aux_certificate (test, &attestation.aux);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 3, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 3, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, X509_CERTCA_RSA_EE_DER_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -2120,62 +2120,62 @@ static void attestation_slave_test_get_aux_certificate (CuTest *test)
 	status = testing_validate_array (X509_CERTCA_RSA_EE_DER, cert.cert, X509_CERTCA_RSA_EE_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_aux_certificate_no_aux (CuTest *test)
+static void attestation_responder_test_get_aux_certificate_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 3, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 3, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_aux_certificate_no_aux_cert (CuTest *test)
+static void attestation_responder_test_get_aux_certificate_no_aux_cert (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 3, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 3, &cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_aux_certificate_no_int_ca (CuTest *test)
+static void attestation_responder_test_get_aux_certificate_no_int_ca (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_root_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 	attestation_testing_add_aux_certificate (test, &attestation.aux);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 2, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 2, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, X509_CERTCA_RSA_EE_DER_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -2183,22 +2183,22 @@ static void attestation_slave_test_get_aux_certificate_no_int_ca (CuTest *test)
 	status = testing_validate_array (X509_CERTCA_RSA_EE_DER, cert.cert, X509_CERTCA_RSA_EE_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_aux_certificate_no_root_ca (CuTest *test)
+static void attestation_responder_test_get_aux_certificate_no_root_ca (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_aux_certificate (test, &attestation.aux);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 1, &cert);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, X509_CERTCA_RSA_EE_DER_LEN, cert.length);
 	CuAssertPtrNotNull (test, cert.cert);
@@ -2206,13 +2206,13 @@ static void attestation_slave_test_get_aux_certificate_no_root_ca (CuTest *test)
 	status = testing_validate_array (X509_CERTCA_RSA_EE_DER, cert.cert, X509_CERTCA_RSA_EE_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_aux_certificate_no_dev_id (CuTest *test)
+static void attestation_responder_test_get_aux_certificate_no_dev_id (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct riot_keys bad_keys;
 	uint8_t num_pcr_measurements[1] = {6};
 	struct der_cert cert;
@@ -2268,169 +2268,169 @@ static void attestation_slave_test_get_aux_certificate_no_dev_id (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_init (&attestation.slave, &attestation.riot, &attestation.hash.base,
+	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
 		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 1, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 1, &cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_certificate_invalid_slot_num (CuTest *test)
+static void attestation_responder_test_get_certificate_invalid_slot_num (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 2, 0, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 2, 0, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_certificate_invalid_cert_num (CuTest *test)
+static void attestation_responder_test_get_certificate_invalid_cert_num (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 4, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 4, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_CERT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_certificate_invalid_cert_num_aux_slot (CuTest *test)
+static void attestation_responder_test_get_certificate_invalid_cert_num_aux_slot (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 	attestation_testing_add_aux_certificate (test, &attestation.aux);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 1, 4, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 1, 4, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_CERT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_certificate_invalid_cert_num_no_int_ca (CuTest *test)
+static void attestation_responder_test_get_certificate_invalid_cert_num_no_int_ca (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_root_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 3, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 3, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_CERT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_certificate_invalid_cert_num_no_int_ca_aux_slot (
+static void attestation_responder_test_get_certificate_invalid_cert_num_no_int_ca_aux_slot (
 	CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_root_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 	attestation_testing_add_aux_certificate (test, &attestation.aux);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 3, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 3, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_CERT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_certificate_invalid_cert_num_no_root_ca (CuTest *test)
+static void attestation_responder_test_get_certificate_invalid_cert_num_no_root_ca (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 2, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 2, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_CERT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_certificate_invalid_cert_num_no_root_ca_aux_slot (
+static void attestation_responder_test_get_certificate_invalid_cert_num_no_root_ca_aux_slot (
 	CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	attestation_testing_add_aux_certificate (test, &attestation.aux);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 2, &cert);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 2, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_CERT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_get_certificate_null (CuTest *test)
+static void attestation_responder_test_get_certificate_null (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct der_cert cert;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.get_certificate (NULL, 0, 0, &cert);
+	status = attestation.responder.get_certificate (NULL, 0, 0, &cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.get_certificate (&attestation.slave, 0, 0, NULL);
+	status = attestation.responder.get_certificate (&attestation.responder, 0, 0, NULL);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response (CuTest *test)
+static void attestation_responder_test_pa_rot_challenge_response (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct attestation_challenge challenge = {0};
 	struct attestation_response *response;
 	uint8_t buf[136] = {0};
@@ -2455,7 +2455,7 @@ static void attestation_slave_test_pa_rot_challenge_response (CuTest *test)
 
 	memcpy (buf, (uint8_t*) &challenge, sizeof (struct attestation_challenge));
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.rng.mock, attestation.rng.base.generate_random_buffer,
 		&attestation.rng, 0, MOCK_ARG (32), MOCK_ARG_NOT_NULL);
@@ -2480,7 +2480,7 @@ static void attestation_slave_test_pa_rot_challenge_response (CuTest *test)
 	status = pcr_store_update_digest (&attestation.store, 0, measurement, sizeof (measurement));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, 136, status);
 	CuAssertIntEquals (test, 0, response->slot_num);
 	CuAssertIntEquals (test, 1, response->slot_mask);
@@ -2496,13 +2496,13 @@ static void attestation_slave_test_pa_rot_challenge_response (CuTest *test)
 		sizeof (signature));
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_no_aux (CuTest *test)
+static void attestation_responder_test_pa_rot_challenge_response_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct attestation_challenge challenge = {0};
 	struct attestation_response *response;
 	uint8_t buf[136] = {0};
@@ -2527,7 +2527,7 @@ static void attestation_slave_test_pa_rot_challenge_response_no_aux (CuTest *tes
 
 	memcpy (buf, (uint8_t*) &challenge, sizeof (struct attestation_challenge));
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.rng.mock, attestation.rng.base.generate_random_buffer,
 		&attestation.rng, 0, MOCK_ARG (32), MOCK_ARG_NOT_NULL);
@@ -2552,7 +2552,7 @@ static void attestation_slave_test_pa_rot_challenge_response_no_aux (CuTest *tes
 	status = pcr_store_update_digest (&attestation.store, 0, measurement, sizeof (measurement));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, 136, status);
 	CuAssertIntEquals (test, 0, response->slot_num);
 	CuAssertIntEquals (test, 1, response->slot_mask);
@@ -2568,52 +2568,52 @@ static void attestation_slave_test_pa_rot_challenge_response_no_aux (CuTest *tes
 		sizeof (signature));
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_invalid_slot_num (CuTest *test)
+static void attestation_responder_test_pa_rot_challenge_response_invalid_slot_num (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[137];
 	uint16_t buf_len = sizeof (buf);
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	buf[0] = 1;
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_compute_fail (CuTest *test)
+static void attestation_responder_test_pa_rot_challenge_response_compute_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[137] = {0};
 	uint16_t buf_len = sizeof (buf);
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	attestation.slave.pcr_store = NULL;
+	attestation.responder.pcr_store = NULL;
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_buf_smaller_than_response (
+static void attestation_responder_test_pa_rot_challenge_response_buf_smaller_than_response (
 	CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[72] = {0};
 	uint8_t measurement[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -2623,21 +2623,21 @@ static void attestation_slave_test_pa_rot_challenge_response_buf_smaller_than_re
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = pcr_store_update_digest (&attestation.store, 0, measurement, sizeof (measurement));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, ATTESTATION_BUF_TOO_SMALL, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_start_hash_fail (CuTest *test)
+static void attestation_responder_test_pa_rot_challenge_response_start_hash_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[137] = {0};
 	uint8_t measurement[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -2647,7 +2647,7 @@ static void attestation_slave_test_pa_rot_challenge_response_start_hash_fail (Cu
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.hash.mock, attestation.hash.base.start_sha256,
 		&attestation.hash, HASH_ENGINE_START_SHA256_FAILED);
@@ -2656,17 +2656,17 @@ static void attestation_slave_test_pa_rot_challenge_response_start_hash_fail (Cu
 	status = pcr_store_update_digest (&attestation.store, 0, measurement, sizeof (measurement));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_update_challenge_hash_fail (
+static void attestation_responder_test_pa_rot_challenge_response_update_challenge_hash_fail (
 	CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct attestation_challenge challenge = {0};
 	uint8_t buf[137] = {0};
 	uint8_t measurement[] = {
@@ -2682,7 +2682,7 @@ static void attestation_slave_test_pa_rot_challenge_response_update_challenge_ha
 
 	memcpy (buf, (uint8_t*) &challenge, sizeof (struct attestation_challenge));
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.hash.mock, attestation.hash.base.start_sha256,
 		&attestation.hash, 0);
@@ -2697,16 +2697,16 @@ static void attestation_slave_test_pa_rot_challenge_response_update_challenge_ha
 	status = pcr_store_update_digest (&attestation.store, 0, measurement, sizeof (measurement));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_rng_fail (CuTest *test)
+static void attestation_responder_test_pa_rot_challenge_response_rng_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct attestation_challenge challenge = {0};
 	uint8_t buf[137] = {0};
 	uint8_t measurement[] = {
@@ -2722,7 +2722,7 @@ static void attestation_slave_test_pa_rot_challenge_response_rng_fail (CuTest *t
 
 	memcpy (buf, (uint8_t*) &challenge, sizeof (struct attestation_challenge));
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.rng.mock, attestation.rng.base.generate_random_buffer,
 		&attestation.rng, RNG_ENGINE_NO_MEMORY, MOCK_ARG (32), MOCK_ARG_NOT_NULL);
@@ -2740,17 +2740,17 @@ static void attestation_slave_test_pa_rot_challenge_response_rng_fail (CuTest *t
 	status = pcr_store_update_digest (&attestation.store, 0, measurement, sizeof (measurement));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_update_response_hash_fail (
+static void attestation_responder_test_pa_rot_challenge_response_update_response_hash_fail (
 	CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct attestation_challenge challenge = {0};
 	uint8_t buf[137] = {0};
 	uint8_t measurement[] = {
@@ -2766,7 +2766,7 @@ static void attestation_slave_test_pa_rot_challenge_response_update_response_has
 
 	memcpy (buf, (uint8_t*) &challenge, sizeof (struct attestation_challenge));
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.rng.mock, attestation.rng.base.generate_random_buffer,
 		&attestation.rng, 0, MOCK_ARG (32), MOCK_ARG_NOT_NULL);
@@ -2787,16 +2787,16 @@ static void attestation_slave_test_pa_rot_challenge_response_update_response_has
 	status = pcr_store_update_digest (&attestation.store, 0, measurement, sizeof (measurement));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_finish_hash_fail (CuTest *test)
+static void attestation_responder_test_pa_rot_challenge_response_finish_hash_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct attestation_challenge challenge = {0};
 	uint8_t buf[137] = {0};
 	uint8_t measurement[] = {
@@ -2812,7 +2812,7 @@ static void attestation_slave_test_pa_rot_challenge_response_finish_hash_fail (C
 
 	memcpy (buf, (uint8_t*) &challenge, sizeof (struct attestation_challenge));
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.rng.mock, attestation.rng.base.generate_random_buffer,
 		&attestation.rng, 0, MOCK_ARG (32), MOCK_ARG_NOT_NULL);
@@ -2834,16 +2834,16 @@ static void attestation_slave_test_pa_rot_challenge_response_finish_hash_fail (C
 	status = pcr_store_update_digest (&attestation.store, 0, measurement, sizeof (measurement));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_sign_fail (CuTest *test)
+static void attestation_responder_test_pa_rot_challenge_response_sign_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	struct attestation_challenge challenge = {0};
 	uint8_t buf[136] = {0};
 	uint8_t measurement[] = {
@@ -2859,7 +2859,7 @@ static void attestation_slave_test_pa_rot_challenge_response_sign_fail (CuTest *
 
 	memcpy (buf, (uint8_t*) &challenge, sizeof (struct attestation_challenge));
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.rng.mock, attestation.rng.base.generate_random_buffer,
 		&attestation.rng, 0, MOCK_ARG (32), MOCK_ARG_NOT_NULL);
@@ -2884,53 +2884,53 @@ static void attestation_slave_test_pa_rot_challenge_response_sign_fail (CuTest *
 	status = pcr_store_update_digest (&attestation.store, 0, measurement, sizeof (measurement));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, ECC_ENGINE_NO_MEMORY, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_buf_too_small (CuTest *test)
+static void attestation_responder_test_pa_rot_challenge_response_buf_too_small (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[1];
 	uint16_t buf_len = sizeof (buf);
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.challenge_response (&attestation.slave, buf, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, buf, buf_len);
 	CuAssertIntEquals (test, ATTESTATION_BAD_LENGTH, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_pa_rot_challenge_response_null (CuTest *test)
+static void attestation_responder_test_pa_rot_challenge_response_null (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t buf[137];
 	uint16_t buf_len = sizeof (buf);
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.challenge_response (NULL, buf, buf_len);
+	status = attestation.responder.challenge_response (NULL, buf, buf_len);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.challenge_response (&attestation.slave, NULL, buf_len);
+	status = attestation.responder.challenge_response (&attestation.responder, NULL, buf_len);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_attestation_unseal (CuTest *test)
+static void attestation_responder_test_aux_attestation_unseal (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t key[SHA256_HASH_LENGTH];
 	uint8_t *key_der;
 	uint8_t separator = 0;
@@ -2942,7 +2942,7 @@ static void attestation_slave_test_aux_attestation_unseal (CuTest *test)
 
 	memcpy (key_der, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN);
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.keystore.mock, attestation.keystore.base.load_key,
 		&attestation.keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
@@ -3007,7 +3007,7 @@ static void attestation_slave_test_aux_attestation_unseal (CuTest *test)
 	status = pcr_store_update_digest (&attestation.store, 0, PCR0_VALUE, PCR0_VALUE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
@@ -3016,13 +3016,13 @@ static void attestation_slave_test_aux_attestation_unseal (CuTest *test)
 	status = testing_validate_array (ENCRYPTION_KEY, key, status);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_attestation_unseal_sha256 (CuTest *test)
+static void attestation_responder_test_aux_attestation_unseal_sha256 (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t key[SHA256_HASH_LENGTH];
 	uint8_t *key_der;
 	uint8_t separator = 0;
@@ -3034,7 +3034,7 @@ static void attestation_slave_test_aux_attestation_unseal_sha256 (CuTest *test)
 
 	memcpy (key_der, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN);
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.keystore.mock, attestation.keystore.base.load_key,
 		&attestation.keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
@@ -3099,7 +3099,7 @@ static void attestation_slave_test_aux_attestation_unseal_sha256 (CuTest *test)
 	status = pcr_store_update_digest (&attestation.store, 0, PCR0_VALUE, PCR0_VALUE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP_SHA256, KEY_SEED_ENCRYPT_OAEP_SHA256_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA256, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
@@ -3108,37 +3108,37 @@ static void attestation_slave_test_aux_attestation_unseal_sha256 (CuTest *test)
 	status = testing_validate_array (ENCRYPTION_KEY, key, status);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_attestation_unseal_no_aux (CuTest *test)
+static void attestation_responder_test_aux_attestation_unseal_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t key[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_OPERATION, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_attestation_unseal_fail (CuTest *test)
+static void attestation_responder_test_aux_attestation_unseal_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t key[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.keystore.mock, attestation.keystore.base.load_key,
 		&attestation.keystore, KEYSTORE_LOAD_FAILED, MOCK_ARG (0), MOCK_ARG_NOT_NULL,
@@ -3148,92 +3148,92 @@ static void attestation_slave_test_aux_attestation_unseal_fail (CuTest *test)
 	status = pcr_store_update_digest (&attestation.store, 0, PCR0_VALUE, PCR0_VALUE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, KEYSTORE_LOAD_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_attestation_unseal_null (CuTest *test)
+static void attestation_responder_test_aux_attestation_unseal_null (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t key[32];
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.aux_attestation_unseal (NULL, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (NULL, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, NULL,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, NULL,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, NULL, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, 0,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, NULL, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		NULL, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, 0, SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, NULL, 1, key, sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 0, key, sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.aux_attestation_unseal (&attestation.slave, &attestation.hash.base,
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
 		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, NULL, sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_decrypt (CuTest *test)
+static void attestation_responder_test_aux_decrypt (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t decrypted[4224];
 	uint8_t *key_der;
 
@@ -3244,7 +3244,7 @@ static void attestation_slave_test_aux_decrypt (CuTest *test)
 
 	memcpy (key_der, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN);
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.keystore.mock, attestation.keystore.base.load_key,
 		&attestation.keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
@@ -3267,20 +3267,20 @@ static void attestation_slave_test_aux_decrypt (CuTest *test)
 		&attestation.rsa, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.aux_decrypt (&attestation.slave, KEY_SEED_ENCRYPT_OAEP,
+	status = attestation.responder.aux_decrypt (&attestation.responder, KEY_SEED_ENCRYPT_OAEP,
 		KEY_SEED_ENCRYPT_OAEP_LEN, NULL, 0, HASH_TYPE_SHA1, decrypted, sizeof (decrypted));
 	CuAssertIntEquals (test, KEY_SEED_LEN, status);
 
 	status = testing_validate_array (KEY_SEED, decrypted, KEY_SEED_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_decrypt_with_label (CuTest *test)
+static void attestation_responder_test_aux_decrypt_with_label (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t decrypted[4224];
 	uint8_t *key_der;
 
@@ -3291,7 +3291,7 @@ static void attestation_slave_test_aux_decrypt_with_label (CuTest *test)
 
 	memcpy (key_der, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN);
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.keystore.mock, attestation.keystore.base.load_key,
 		&attestation.keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
@@ -3317,7 +3317,7 @@ static void attestation_slave_test_aux_decrypt_with_label (CuTest *test)
 		&attestation.rsa, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.aux_decrypt (&attestation.slave, KEY_SEED_ENCRYPT_OAEP,
+	status = attestation.responder.aux_decrypt (&attestation.responder, KEY_SEED_ENCRYPT_OAEP,
 		KEY_SEED_ENCRYPT_OAEP_LEN, (uint8_t*) RSA_ENCRYPT_LABEL, RSA_ENCRYPT_LABEL_LEN,
 		HASH_TYPE_SHA1, decrypted, sizeof (decrypted));
 	CuAssertIntEquals (test, KEY_SEED_LEN, status);
@@ -3325,13 +3325,13 @@ static void attestation_slave_test_aux_decrypt_with_label (CuTest *test)
 	status = testing_validate_array (KEY_SEED, decrypted, KEY_SEED_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_decrypt_sha256 (CuTest *test)
+static void attestation_responder_test_aux_decrypt_sha256 (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t decrypted[4224];
 	uint8_t *key_der;
 
@@ -3342,7 +3342,7 @@ static void attestation_slave_test_aux_decrypt_sha256 (CuTest *test)
 
 	memcpy (key_der, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN);
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.keystore.mock, attestation.keystore.base.load_key,
 		&attestation.keystore, 0, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
@@ -3366,82 +3366,82 @@ static void attestation_slave_test_aux_decrypt_sha256 (CuTest *test)
 		&attestation.rsa, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.aux_decrypt (&attestation.slave, KEY_SEED_ENCRYPT_OAEP,
+	status = attestation.responder.aux_decrypt (&attestation.responder, KEY_SEED_ENCRYPT_OAEP,
 		KEY_SEED_ENCRYPT_OAEP_LEN, NULL, 0, HASH_TYPE_SHA256, decrypted, sizeof (decrypted));
 	CuAssertIntEquals (test, KEY_SEED_LEN, status);
 
 	status = testing_validate_array (KEY_SEED, decrypted, KEY_SEED_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_decrypt_no_aux (CuTest *test)
+static void attestation_responder_test_aux_decrypt_no_aux (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t decrypted[4224];
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
-	status = attestation.slave.aux_decrypt (&attestation.slave, KEY_SEED_ENCRYPT_OAEP,
+	status = attestation.responder.aux_decrypt (&attestation.responder, KEY_SEED_ENCRYPT_OAEP,
 		KEY_SEED_ENCRYPT_OAEP_LEN, NULL, 0, HASH_TYPE_SHA1, decrypted, sizeof (decrypted));
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_OPERATION, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_decrypt_fail (CuTest *test)
+static void attestation_responder_test_aux_decrypt_fail (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t decrypted[4224];
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.keystore.mock, attestation.keystore.base.load_key,
 		&attestation.keystore, KEYSTORE_LOAD_FAILED, MOCK_ARG (0), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.aux_decrypt (&attestation.slave, KEY_SEED_ENCRYPT_OAEP,
+	status = attestation.responder.aux_decrypt (&attestation.responder, KEY_SEED_ENCRYPT_OAEP,
 		KEY_SEED_ENCRYPT_OAEP_LEN, NULL, 0, HASH_TYPE_SHA1, decrypted, sizeof (decrypted));
 	CuAssertIntEquals (test, KEYSTORE_LOAD_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_aux_decrypt_null (CuTest *test)
+static void attestation_responder_test_aux_decrypt_null (CuTest *test)
 {
 	int status;
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t decrypted[4224];
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.aux_decrypt (NULL, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
+	status = attestation.responder.aux_decrypt (NULL, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
 		NULL, 0, HASH_TYPE_SHA1, decrypted, sizeof (decrypted));
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_generate_ecdh_seed (CuTest *test)
+static void attestation_responder_test_generate_ecdh_seed (CuTest *test)
 {
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t seed[32];
 	int status;
 	int arg_base;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	arg_base = mock_expect_next_save_id (&attestation.ecc.mock);
 
@@ -3470,26 +3470,26 @@ static void attestation_slave_test_generate_ecdh_seed (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+	status = attestation.responder.generate_ecdh_seed (&attestation.responder, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, false, seed, sizeof (seed));
 	CuAssertIntEquals (test, KEY_SEED_LEN, status);
 
 	status = testing_validate_array (KEY_SEED, seed, KEY_SEED_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_generate_ecdh_seed_sha256 (CuTest *test)
+static void attestation_responder_test_generate_ecdh_seed_sha256 (CuTest *test)
 {
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t seed[32];
 	int status;
 	int arg_base;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	arg_base = mock_expect_next_save_id (&attestation.ecc.mock);
 
@@ -3523,42 +3523,42 @@ static void attestation_slave_test_generate_ecdh_seed_sha256 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+	status = attestation.responder.generate_ecdh_seed (&attestation.responder, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, true, seed, sizeof (seed));
 	CuAssertIntEquals (test, KEY_SEED_HASH_LEN, status);
 
 	status = testing_validate_array (KEY_SEED_HASH, seed, KEY_SEED_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_generate_ecdh_seed_no_aux (CuTest *test)
+static void attestation_responder_test_generate_ecdh_seed_no_aux (CuTest *test)
 {
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t seed[32];
 	int status;
 
 	TEST_START;
 
-	setup_attestation_slave_no_aux_mock_test (test, &attestation);
+	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
-	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+	status = attestation.responder.generate_ecdh_seed (&attestation.responder, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, false, seed, sizeof (seed));
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_OPERATION, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_generate_ecdh_seed_fail (CuTest *test)
+static void attestation_responder_test_generate_ecdh_seed_fail (CuTest *test)
 {
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t seed[32];
 	int status;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
 	status = mock_expect (&attestation.ecc.mock, attestation.ecc.base.init_public_key,
 		&attestation.ecc, ECC_ENGINE_PUBLIC_KEY_FAILED,
@@ -3567,139 +3567,139 @@ static void attestation_slave_test_generate_ecdh_seed_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+	status = attestation.responder.generate_ecdh_seed (&attestation.responder, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, false, seed, sizeof (seed));
 	CuAssertIntEquals (test, ECC_ENGINE_PUBLIC_KEY_FAILED, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
-static void attestation_slave_test_generate_ecdh_seed_null (CuTest *test)
+static void attestation_responder_test_generate_ecdh_seed_null (CuTest *test)
 {
-	struct attestation_slave_testing attestation;
+	struct attestation_responder_testing attestation;
 	uint8_t seed[32];
 	int status;
 
 	TEST_START;
 
-	setup_attestation_slave_mock_test (test, &attestation);
+	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.slave.generate_ecdh_seed (NULL, ECC_PUBKEY_DER,
+	status = attestation.responder.generate_ecdh_seed (NULL, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, false, seed, sizeof (seed));
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.generate_ecdh_seed (&attestation.slave, NULL,
+	status = attestation.responder.generate_ecdh_seed (&attestation.responder, NULL,
 		ECC_PUBKEY_DER_LEN, false, seed, sizeof (seed));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+	status = attestation.responder.generate_ecdh_seed (&attestation.responder, ECC_PUBKEY_DER,
 		0, false, seed, sizeof (seed));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.slave.generate_ecdh_seed (&attestation.slave, ECC_PUBKEY_DER,
+	status = attestation.responder.generate_ecdh_seed (&attestation.responder, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, false, NULL, sizeof (seed));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	complete_attestation_slave_mock_test (test, &attestation);
+	complete_attestation_responder_mock_test (test, &attestation);
 }
 
 
-TEST_SUITE_START (attestation_slave);
+TEST_SUITE_START (attestation_responder);
 
-TEST (attestation_slave_test_init);
-TEST (attestation_slave_test_init_init_keypair_fail);
-TEST (attestation_slave_test_init_null);
-TEST (attestation_slave_test_init_no_aux);
-TEST (attestation_slave_test_init_no_aux_init_keypair_fail);
-TEST (attestation_slave_test_init_no_aux_null);
-TEST (attestation_slave_test_release_null);
-TEST (attestation_slave_test_get_digests);
-TEST (attestation_slave_test_get_digests_no_aux);
-TEST (attestation_slave_test_get_digests_aux_slot);
-TEST (attestation_slave_test_get_digests_aux_slot_no_aux);
-TEST (attestation_slave_test_get_digests_buf_too_small);
-TEST (attestation_slave_test_get_digests_no_int_ca);
-TEST (attestation_slave_test_get_digests_no_int_ca_buf_too_small);
-TEST (attestation_slave_test_get_digests_no_root_ca);
-TEST (attestation_slave_test_get_digests_no_root_ca_buf_too_small);
-TEST (attestation_slave_test_get_digests_no_dev_id);
-TEST (attestation_slave_test_get_digests_no_alias);
-TEST (attestation_slave_test_get_digests_aux_slot_no_dev_id);
-TEST (attestation_slave_test_get_digests_aux_slot_no_aux_cert);
-TEST (attestation_slave_test_get_digests_devid_fail);
-TEST (attestation_slave_test_get_digests_alias_fail);
-TEST (attestation_slave_test_get_digests_aux_fail);
-TEST (attestation_slave_test_get_digests_int_ca_fail);
-TEST (attestation_slave_test_get_digests_root_ca_fail);
-TEST (attestation_slave_test_get_digests_null);
-TEST (attestation_slave_test_get_digests_invalid_slot_num);
-TEST (attestation_slave_test_get_dev_id_certificate);
-TEST (attestation_slave_test_get_dev_id_certificate_no_aux);
-TEST (attestation_slave_test_get_dev_id_certificate_aux_slot);
-TEST (attestation_slave_test_get_dev_id_certificate_aux_slot_no_aux);
-TEST (attestation_slave_test_get_dev_id_certificate_aux_slot_no_aux_cert);
-TEST (attestation_slave_test_get_dev_id_certificate_no_int_ca);
-TEST (attestation_slave_test_get_dev_id_certificate_no_root_ca);
-TEST (attestation_slave_test_get_dev_id_certificate_no_dev_id);
-TEST (attestation_slave_test_get_dev_id_certificate_no_alias);
-TEST (attestation_slave_test_get_alias_certificate);
-TEST (attestation_slave_test_get_alias_certificate_no_aux);
-TEST (attestation_slave_test_get_alias_certificate_no_int_ca);
-TEST (attestation_slave_test_get_alias_certificate_no_root_ca);
-TEST (attestation_slave_test_get_alias_certificate_no_dev_id);
-TEST (attestation_slave_test_get_alias_certificate_no_alias);
-TEST (attestation_slave_test_get_int_ca_certificate);
-TEST (attestation_slave_test_get_int_ca_certificate_no_aux);
-TEST (attestation_slave_test_get_int_ca_certificate_aux_slot);
-TEST (attestation_slave_test_get_int_ca_certificate_aux_slot_no_aux);
-TEST (attestation_slave_test_get_int_ca_certificate_aux_slot_no_aux_cert);
-TEST (attestation_slave_test_get_root_ca_certificate);
-TEST (attestation_slave_test_get_root_ca_certificate_no_aux);
-TEST (attestation_slave_test_get_root_ca_certificate_aux_slot);
-TEST (attestation_slave_test_get_root_ca_certificate_aux_slot_no_aux);
-TEST (attestation_slave_test_get_root_ca_certificate_aux_slot_no_aux_cert);
-TEST (attestation_slave_test_get_aux_certificate);
-TEST (attestation_slave_test_get_aux_certificate_no_aux);
-TEST (attestation_slave_test_get_aux_certificate_no_aux_cert);
-TEST (attestation_slave_test_get_aux_certificate_no_int_ca);
-TEST (attestation_slave_test_get_aux_certificate_no_root_ca);
-TEST (attestation_slave_test_get_aux_certificate_no_dev_id);
-TEST (attestation_slave_test_get_certificate_invalid_slot_num);
-TEST (attestation_slave_test_get_certificate_invalid_cert_num);
-TEST (attestation_slave_test_get_certificate_invalid_cert_num_aux_slot);
-TEST (attestation_slave_test_get_certificate_invalid_cert_num_no_int_ca);
-TEST (attestation_slave_test_get_certificate_invalid_cert_num_no_int_ca_aux_slot);
-TEST (attestation_slave_test_get_certificate_invalid_cert_num_no_root_ca);
-TEST (attestation_slave_test_get_certificate_invalid_cert_num_no_root_ca_aux_slot);
-TEST (attestation_slave_test_get_certificate_null);
-TEST (attestation_slave_test_pa_rot_challenge_response);
-TEST (attestation_slave_test_pa_rot_challenge_response_no_aux);
-TEST (attestation_slave_test_pa_rot_challenge_response_invalid_slot_num);
-TEST (attestation_slave_test_pa_rot_challenge_response_compute_fail);
-TEST (attestation_slave_test_pa_rot_challenge_response_buf_smaller_than_response);
-TEST (attestation_slave_test_pa_rot_challenge_response_start_hash_fail);
-TEST (attestation_slave_test_pa_rot_challenge_response_update_challenge_hash_fail);
-TEST (attestation_slave_test_pa_rot_challenge_response_rng_fail);
-TEST (attestation_slave_test_pa_rot_challenge_response_update_response_hash_fail);
-TEST (attestation_slave_test_pa_rot_challenge_response_finish_hash_fail);
-TEST (attestation_slave_test_pa_rot_challenge_response_sign_fail);
-TEST (attestation_slave_test_pa_rot_challenge_response_buf_too_small);
-TEST (attestation_slave_test_pa_rot_challenge_response_null);
-TEST (attestation_slave_test_aux_attestation_unseal);
-TEST (attestation_slave_test_aux_attestation_unseal_sha256);
-TEST (attestation_slave_test_aux_attestation_unseal_no_aux);
-TEST (attestation_slave_test_aux_attestation_unseal_fail);
-TEST (attestation_slave_test_aux_attestation_unseal_null);
-TEST (attestation_slave_test_aux_decrypt);
-TEST (attestation_slave_test_aux_decrypt_with_label);
-TEST (attestation_slave_test_aux_decrypt_sha256);
-TEST (attestation_slave_test_aux_decrypt_no_aux);
-TEST (attestation_slave_test_aux_decrypt_fail);
-TEST (attestation_slave_test_aux_decrypt_null);
-TEST (attestation_slave_test_generate_ecdh_seed);
-TEST (attestation_slave_test_generate_ecdh_seed_sha256);
-TEST (attestation_slave_test_generate_ecdh_seed_no_aux);
-TEST (attestation_slave_test_generate_ecdh_seed_fail);
-TEST (attestation_slave_test_generate_ecdh_seed_null);
+TEST (attestation_responder_test_init);
+TEST (attestation_responder_test_init_init_keypair_fail);
+TEST (attestation_responder_test_init_null);
+TEST (attestation_responder_test_init_no_aux);
+TEST (attestation_responder_test_init_no_aux_init_keypair_fail);
+TEST (attestation_responder_test_init_no_aux_null);
+TEST (attestation_responder_test_release_null);
+TEST (attestation_responder_test_get_digests);
+TEST (attestation_responder_test_get_digests_no_aux);
+TEST (attestation_responder_test_get_digests_aux_slot);
+TEST (attestation_responder_test_get_digests_aux_slot_no_aux);
+TEST (attestation_responder_test_get_digests_buf_too_small);
+TEST (attestation_responder_test_get_digests_no_int_ca);
+TEST (attestation_responder_test_get_digests_no_int_ca_buf_too_small);
+TEST (attestation_responder_test_get_digests_no_root_ca);
+TEST (attestation_responder_test_get_digests_no_root_ca_buf_too_small);
+TEST (attestation_responder_test_get_digests_no_dev_id);
+TEST (attestation_responder_test_get_digests_no_alias);
+TEST (attestation_responder_test_get_digests_aux_slot_no_dev_id);
+TEST (attestation_responder_test_get_digests_aux_slot_no_aux_cert);
+TEST (attestation_responder_test_get_digests_devid_fail);
+TEST (attestation_responder_test_get_digests_alias_fail);
+TEST (attestation_responder_test_get_digests_aux_fail);
+TEST (attestation_responder_test_get_digests_int_ca_fail);
+TEST (attestation_responder_test_get_digests_root_ca_fail);
+TEST (attestation_responder_test_get_digests_null);
+TEST (attestation_responder_test_get_digests_invalid_slot_num);
+TEST (attestation_responder_test_get_dev_id_certificate);
+TEST (attestation_responder_test_get_dev_id_certificate_no_aux);
+TEST (attestation_responder_test_get_dev_id_certificate_aux_slot);
+TEST (attestation_responder_test_get_dev_id_certificate_aux_slot_no_aux);
+TEST (attestation_responder_test_get_dev_id_certificate_aux_slot_no_aux_cert);
+TEST (attestation_responder_test_get_dev_id_certificate_no_int_ca);
+TEST (attestation_responder_test_get_dev_id_certificate_no_root_ca);
+TEST (attestation_responder_test_get_dev_id_certificate_no_dev_id);
+TEST (attestation_responder_test_get_dev_id_certificate_no_alias);
+TEST (attestation_responder_test_get_alias_certificate);
+TEST (attestation_responder_test_get_alias_certificate_no_aux);
+TEST (attestation_responder_test_get_alias_certificate_no_int_ca);
+TEST (attestation_responder_test_get_alias_certificate_no_root_ca);
+TEST (attestation_responder_test_get_alias_certificate_no_dev_id);
+TEST (attestation_responder_test_get_alias_certificate_no_alias);
+TEST (attestation_responder_test_get_int_ca_certificate);
+TEST (attestation_responder_test_get_int_ca_certificate_no_aux);
+TEST (attestation_responder_test_get_int_ca_certificate_aux_slot);
+TEST (attestation_responder_test_get_int_ca_certificate_aux_slot_no_aux);
+TEST (attestation_responder_test_get_int_ca_certificate_aux_slot_no_aux_cert);
+TEST (attestation_responder_test_get_root_ca_certificate);
+TEST (attestation_responder_test_get_root_ca_certificate_no_aux);
+TEST (attestation_responder_test_get_root_ca_certificate_aux_slot);
+TEST (attestation_responder_test_get_root_ca_certificate_aux_slot_no_aux);
+TEST (attestation_responder_test_get_root_ca_certificate_aux_slot_no_aux_cert);
+TEST (attestation_responder_test_get_aux_certificate);
+TEST (attestation_responder_test_get_aux_certificate_no_aux);
+TEST (attestation_responder_test_get_aux_certificate_no_aux_cert);
+TEST (attestation_responder_test_get_aux_certificate_no_int_ca);
+TEST (attestation_responder_test_get_aux_certificate_no_root_ca);
+TEST (attestation_responder_test_get_aux_certificate_no_dev_id);
+TEST (attestation_responder_test_get_certificate_invalid_slot_num);
+TEST (attestation_responder_test_get_certificate_invalid_cert_num);
+TEST (attestation_responder_test_get_certificate_invalid_cert_num_aux_slot);
+TEST (attestation_responder_test_get_certificate_invalid_cert_num_no_int_ca);
+TEST (attestation_responder_test_get_certificate_invalid_cert_num_no_int_ca_aux_slot);
+TEST (attestation_responder_test_get_certificate_invalid_cert_num_no_root_ca);
+TEST (attestation_responder_test_get_certificate_invalid_cert_num_no_root_ca_aux_slot);
+TEST (attestation_responder_test_get_certificate_null);
+TEST (attestation_responder_test_pa_rot_challenge_response);
+TEST (attestation_responder_test_pa_rot_challenge_response_no_aux);
+TEST (attestation_responder_test_pa_rot_challenge_response_invalid_slot_num);
+TEST (attestation_responder_test_pa_rot_challenge_response_compute_fail);
+TEST (attestation_responder_test_pa_rot_challenge_response_buf_smaller_than_response);
+TEST (attestation_responder_test_pa_rot_challenge_response_start_hash_fail);
+TEST (attestation_responder_test_pa_rot_challenge_response_update_challenge_hash_fail);
+TEST (attestation_responder_test_pa_rot_challenge_response_rng_fail);
+TEST (attestation_responder_test_pa_rot_challenge_response_update_response_hash_fail);
+TEST (attestation_responder_test_pa_rot_challenge_response_finish_hash_fail);
+TEST (attestation_responder_test_pa_rot_challenge_response_sign_fail);
+TEST (attestation_responder_test_pa_rot_challenge_response_buf_too_small);
+TEST (attestation_responder_test_pa_rot_challenge_response_null);
+TEST (attestation_responder_test_aux_attestation_unseal);
+TEST (attestation_responder_test_aux_attestation_unseal_sha256);
+TEST (attestation_responder_test_aux_attestation_unseal_no_aux);
+TEST (attestation_responder_test_aux_attestation_unseal_fail);
+TEST (attestation_responder_test_aux_attestation_unseal_null);
+TEST (attestation_responder_test_aux_decrypt);
+TEST (attestation_responder_test_aux_decrypt_with_label);
+TEST (attestation_responder_test_aux_decrypt_sha256);
+TEST (attestation_responder_test_aux_decrypt_no_aux);
+TEST (attestation_responder_test_aux_decrypt_fail);
+TEST (attestation_responder_test_aux_decrypt_null);
+TEST (attestation_responder_test_generate_ecdh_seed);
+TEST (attestation_responder_test_generate_ecdh_seed_sha256);
+TEST (attestation_responder_test_generate_ecdh_seed_no_aux);
+TEST (attestation_responder_test_generate_ecdh_seed_fail);
+TEST (attestation_responder_test_generate_ecdh_seed_null);
 
 TEST_SUITE_END;

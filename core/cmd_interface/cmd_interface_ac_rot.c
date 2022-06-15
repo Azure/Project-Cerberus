@@ -9,13 +9,13 @@
 #include "cmd_interface.h"
 #include "cerberus_protocol.h"
 #include "cerberus_protocol_required_commands.h"
-#include "cmd_interface_slave.h"
+#include "cmd_interface_ac_rot.h"
 
 
-static int cmd_interface_slave_process_request (struct cmd_interface *intf,
+static int cmd_interface_ac_rot_process_request (struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	struct cmd_interface_slave *slave = (struct cmd_interface_slave*) intf;
+	struct cmd_interface_ac_rot *slave = (struct cmd_interface_ac_rot*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
@@ -25,23 +25,23 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 	if (status != 0) {
 		return status;
 	}
-  
+
 	switch (command_id) {
 		case CERBERUS_PROTOCOL_GET_FW_VERSION:
 			status = cerberus_protocol_get_fw_version (slave->fw_version, request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DIGEST:
-			status = cerberus_protocol_get_certificate_digest (slave->slave_attestation,
+			status = cerberus_protocol_get_certificate_digest (slave->attestation,
 				slave->base.session, request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
-			status = cerberus_protocol_get_certificate (slave->slave_attestation, request);
+			status = cerberus_protocol_get_certificate (slave->attestation, request);
 			break;
 
 		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
-			status = cerberus_protocol_get_challenge_response (slave->slave_attestation,
+			status = cerberus_protocol_get_challenge_response (slave->attestation,
 				slave->base.session, request);
 			break;
 
@@ -99,7 +99,7 @@ static int cmd_interface_slave_process_request (struct cmd_interface *intf,
 }
 
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-static int cmd_interface_slave_process_response (struct cmd_interface *intf,
+static int cmd_interface_ac_rot_process_response (struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
 	return CMD_HANDLER_UNSUPPORTED_OPERATION;
@@ -110,7 +110,7 @@ static int cmd_interface_slave_process_response (struct cmd_interface *intf,
  * Initialize System command interface instance
  *
  * @param intf The System command interface instance to initialize
- * @param slave_attestation Slave attestation manager
+ * @param attestation Attestation responder instance to utilize
  * @param device_manager Device manager
  * @param background Context for executing long-running operations in the background.
  * @param fw_version The FW version strings
@@ -124,23 +124,23 @@ static int cmd_interface_slave_process_response (struct cmd_interface *intf,
  *
  * @return Initialization status, 0 if success or an error code.
  */
-int cmd_interface_slave_init (struct cmd_interface_slave *intf,
-	struct attestation_slave *slave_attestation, struct device_manager *device_manager,
+int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
+	struct attestation_responder *attestation, struct device_manager *device_manager,
 	struct cmd_background *background, struct cmd_interface_fw_version *fw_version,
 	struct riot_key_manager *riot, struct cmd_device *cmd_device, uint16_t vendor_id,
 	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session)
 {
-	if ((intf == NULL) || (background == NULL) || (riot == NULL) || (slave_attestation == NULL) ||
+	if ((intf == NULL) || (background == NULL) || (riot == NULL) || (attestation == NULL) ||
 		(device_manager == NULL) || (fw_version == NULL) || (cmd_device == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
-	memset (intf, 0, sizeof (struct cmd_interface_slave));
+	memset (intf, 0, sizeof (struct cmd_interface_ac_rot));
 
 	intf->riot = riot;
 	intf->background = background;
-	intf->slave_attestation = slave_attestation;
+	intf->attestation = attestation;
 	intf->device_manager = device_manager;
 	intf->fw_version = fw_version;
 	intf->cmd_device = cmd_device;
@@ -150,9 +150,9 @@ int cmd_interface_slave_init (struct cmd_interface_slave *intf,
 	intf->device_id.subsystem_vid = subsystem_vid;
 	intf->device_id.subsystem_id = subsystem_id;
 
-	intf->base.process_request = cmd_interface_slave_process_request;
+	intf->base.process_request = cmd_interface_ac_rot_process_request;
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_slave_process_response;
+	intf->base.process_response = cmd_interface_ac_rot_process_response;
 #endif
 	intf->base.generate_error_packet = cmd_interface_generate_error_packet;
 
@@ -168,9 +168,9 @@ int cmd_interface_slave_init (struct cmd_interface_slave *intf,
  *
  * @param intf The slave system command interface instance to deinitialize
  */
-void cmd_interface_slave_deinit (struct cmd_interface_slave *intf)
+void cmd_interface_ac_rot_deinit (struct cmd_interface_ac_rot *intf)
 {
 	if (intf != NULL) {
-		memset (intf, 0, sizeof (struct cmd_interface_slave));
+		memset (intf, 0, sizeof (struct cmd_interface_ac_rot));
 	}
 }

@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include "testing.h"
 #include "cmd_interface/cmd_interface.h"
-#include "testing/mock/attestation/attestation_master_mock.h"
 #include "testing/mock/cmd_interface/cmd_background_mock.h"
 #include "testing/mock/firmware/firmware_update_control_mock.h"
 #include "testing/mock/flash/flash_mock.h"
@@ -39,6 +38,13 @@ void cerberus_protocol_master_commands_testing_process_response_challenge_invali
 void cerberus_protocol_master_commands_testing_process_response_challenge_unsupported_slot (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_response_challenge_rsvd_not_zero (
+	CuTest *test, struct cmd_interface *cmd);
+
+void cerberus_protocol_master_commands_testing_process_response_device_capabilities (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_interface_msg *response);
+void cerberus_protocol_master_commands_testing_process_response_device_capabilities_invalid_buf_len (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_response_device_capabilities_rsvd_not_zero (
 	CuTest *test, struct cmd_interface *cmd);
 
 void cerberus_protocol_master_commands_testing_process_cfm_update_init (CuTest *test,

@@ -206,7 +206,7 @@ int cerberus_protocol_generate_get_certificate_request (uint8_t slot_num, uint8_
 /**
  * Construct challenge request.
  *
- * @param attestation Attestation manager instance to utilize.
+ * @param rng RNG engine to utilize.
  * @param eid EID of target device in attestation challenge request.
  * @param slot_num Requested slot number for target device to utilize.
  * @param buf Output buffer for the generated request data.
@@ -215,13 +215,13 @@ int cerberus_protocol_generate_get_certificate_request (uint8_t slot_num, uint8_
  * @return Length of the generated request data if the request was successfully constructed or
  * an error code.
  */
-int cerberus_protocol_generate_challenge_request (struct attestation_master *attestation,
-	uint8_t eid, uint8_t slot_num, uint8_t *buf, size_t buf_len)
+int cerberus_protocol_generate_challenge_request (struct rng_engine *rng, uint8_t eid,
+	uint8_t slot_num, uint8_t *buf, size_t buf_len)
 {
 	struct cerberus_protocol_challenge *rq = (struct cerberus_protocol_challenge*) buf;
 	int status;
 
-	if ((attestation == NULL) || (rq == NULL)) {
+	if ((rng == NULL) || (rq == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
@@ -233,11 +233,15 @@ int cerberus_protocol_generate_challenge_request (struct attestation_master *att
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
+	memset (rq, 0, sizeof (struct cerberus_protocol_challenge));
+
 	cerberus_protocol_populate_cerberus_protocol_header (&rq->header,
 		CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE);
 
-	status = attestation->generate_challenge_request (attestation, eid, slot_num, &rq->challenge);
-	if (!ROT_IS_ERROR (status)) {
+	rq->challenge.slot_num = slot_num;
+
+	status = rng->generate_random_buffer (rng, sizeof (rq->challenge.nonce), rq->challenge.nonce);
+	if (status == 0) {
 		return sizeof (struct cerberus_protocol_challenge);
 	}
 	else {
@@ -1093,16 +1097,12 @@ int cerberus_protocol_process_certificate_digest_response (struct cmd_interface_
 {
 	struct cerberus_protocol_get_certificate_digest_response *rsp =
 		(struct cerberus_protocol_get_certificate_digest_response*) response->data;
-	size_t digests_len;
 
 	if (response->length <= sizeof (struct cerberus_protocol_get_certificate_digest_response)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	digests_len = rsp->num_digests * SHA256_HASH_LENGTH;
-
-	if (response->length !=
-		cerberus_protocol_get_certificate_digest_response_length (digests_len)) {
+	if (response->length != cerberus_protocol_get_certificate_digest_response_length (rsp)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
@@ -1160,4 +1160,36 @@ int cerberus_protocol_process_challenge_response (struct cmd_interface_msg *resp
 	}
 
 	return 0;
+}
+
+/**
+ * Process get device capabilities response.
+ *
+ * @param device_mgr Device manager instance to utilize
+ * @param response Capabilities response to process
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int cerberus_protocol_process_device_capabilities_response (struct device_manager *device_mgr,
+	struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_device_capabilities_response *rsp =
+		(struct cerberus_protocol_device_capabilities_response*) response->data;
+	int device_num;
+
+	if (response->length != sizeof (struct cerberus_protocol_device_capabilities_response)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if ((rsp->capabilities.request.reserved1 != 0) || (rsp->capabilities.request.reserved2 != 0) ||
+		(rsp->capabilities.request.reserved3 != 0)) {
+		return CMD_HANDLER_RSVD_NOT_ZERO;
+	}
+
+	device_num = device_manager_get_device_num (device_mgr, response->source_eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_update_device_capabilities (device_mgr, device_num, &rsp->capabilities);
 }

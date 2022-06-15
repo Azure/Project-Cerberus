@@ -344,13 +344,17 @@ int pcr_get_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_
  *
  * @param pcr The PCR bank to compute aggregate measurement of
  * @param hash Hashing engine to utilize
- * @param measurement Optional output buffer to return back PCR measurement
+ * @param measurement Optional output buffer to return back PCR measurement. Can be set to NULL if
+ * 	not needed
  * @param lock Boolean indicating whether mutex should be acquired during computation or not
  *
  * @return Number of measurements aggregated or an error code
  */
 int pcr_compute (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t *measurement, bool lock)
 {
+	/* TODO: Instead of passing a NULL measurement buffer here to get number of digests in
+	 * measurement, create a new function that just returns number of digests. */
+
 	uint8_t prev_measurement[PCR_DIGEST_LENGTH] = {0};
 	int i_measurement;
 	int status = 0;

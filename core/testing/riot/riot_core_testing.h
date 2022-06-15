@@ -52,6 +52,9 @@ extern const size_t RIOT_CORE_FWID_KDF_LEN;
 extern const uint8_t RIOT_CORE_ALIAS_KEY[];
 extern const size_t RIOT_CORE_ALIAS_KEY_LEN;
 
+extern const uint8_t RIOT_CORE_ALIAS_PUBLIC_KEY[];
+extern const size_t RIOT_CORE_ALIAS_PUBLIC_KEY_LEN;
+
 extern const uint8_t RIOT_CORE_ALIAS_SERIAL[];
 extern const size_t RIOT_CORE_ALIAS_SERIAL_LEN;
 

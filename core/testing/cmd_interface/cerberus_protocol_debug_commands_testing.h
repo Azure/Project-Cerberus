@@ -10,7 +10,6 @@
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/device_manager.h"
 #include "riot/riot_key_manager.h"
-#include "testing/mock/attestation/attestation_master_mock.h"
 #include "testing/mock/cmd_interface/cmd_background_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 

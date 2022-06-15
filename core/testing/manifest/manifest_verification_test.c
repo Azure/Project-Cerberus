@@ -937,14 +937,27 @@ static void manifest_verification_test_get_observers (CuTest *test)
 	pcd = manifest_verification_get_pcd_observer (&verification);
 	CuAssertPtrNotNull (test, pcd);
 
-	CuAssertIntEquals (test, sizeof (struct pfm_observer), sizeof (struct cfm_observer));
 	CuAssertIntEquals (test, offsetof (struct pfm_observer, on_pfm_activated),
 		offsetof (struct cfm_observer, on_cfm_activated));
 	CuAssertIntEquals (test, offsetof (struct pfm_observer, on_pfm_verified),
 		offsetof (struct cfm_observer, on_cfm_verified));
+	CuAssertIntEquals (test, offsetof (struct pfm_observer, on_clear_active),
+		offsetof (struct cfm_observer, on_clear_active));
 
 	CuAssertPtrEquals (test, pfm->on_pfm_activated, cfm->on_cfm_activated);
 	CuAssertPtrEquals (test, pfm->on_pfm_verified, cfm->on_cfm_verified);
+	CuAssertPtrEquals (test, pfm->on_clear_active, cfm->on_clear_active);
+
+	CuAssertIntEquals (test, offsetof (struct pfm_observer, on_pfm_activated),
+		offsetof (struct pcd_observer, on_pcd_activated));
+	CuAssertIntEquals (test, offsetof (struct pfm_observer, on_pfm_verified),
+		offsetof (struct pcd_observer, on_pcd_verified));
+	CuAssertIntEquals (test, offsetof (struct pfm_observer, on_clear_active),
+		offsetof (struct pcd_observer, on_clear_active));
+
+	CuAssertPtrEquals (test, pfm->on_pfm_activated, pcd->on_pcd_activated);
+	CuAssertPtrEquals (test, pfm->on_pfm_verified, pcd->on_pcd_verified);
+	CuAssertPtrEquals (test, pfm->on_clear_active, pcd->on_clear_active);
 
 	status = keystore_mock_validate_and_release (&keystore);
 	CuAssertIntEquals (test, 0, status);

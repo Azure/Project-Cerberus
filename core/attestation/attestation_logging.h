@@ -1,0 +1,42 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
+#ifndef ATTESTATION_LOGGING_H_
+#define ATTESTATION_LOGGING_H_
+
+#include "logging/debug_log.h"
+
+
+/**
+ * Logging messages for attestation operations.
+ */
+enum {
+	ATTESTATION_LOGGING_DEVICE_NOT_INTEROPERABLE,					/**< Target device does not support interoperable protocol specification version. */
+	ATTESTATION_LOGGING_GET_CERT_NOT_SUPPORTED,						/**< Target device does not support get certificate command. */
+	ATTESTATION_LOGGING_MEASUREMENT_CAP_NOT_SUPPORTED,				/**< Target device does not support measurement response capabilities. */
+	ATTESTATION_LOGGING_SLOT_NUMBER_EMPTY,							/**< Requested slot number not occupied by certificate chain on target device. */
+	ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP,					/**< Requested slot number not utilized by target device in response. */
+	ATTESTATION_LOGGING_CERT_CHAIN_DIGEST_MISMATCH,					/**< Certificate chain digest provided by target device in response different than cached. */
+	ATTESTATION_LOGGING_TARGET_REQ_UNSUPPORTED_MUTUAL_AUTH,			/**< Target device requested unsupported mutual authentication. */
+	ATTESTATION_LOGGING_UNEXPECTED_HASH_LEN_IN_RSP,					/**< Expected hash length not utilized by target device in attestation response. */
+	ATTESTATION_LOGGING_UNEXPECTED_HASH_ALGO_IN_RSP,				/**< Expected hash algorithm not utilized by target device in attestation response. */
+	ATTESTATION_LOGGING_UNEXPECTED_MEAS_HASH_ALGO_IN_RSP,			/**< Expected measurement hash algorithm not utilized by target device in attestation response. */
+	ATTESTATION_LOGGING_CERBERUS_PROTOCOL_VER_UNSUPPORTED,			/**< Attestation target device protocol version not interoperable with device. */
+	ATTESTATION_LOGGING_ALIAS_KEY_TYPE_UNSUPPORTED,					/**< Attestation target device sent an alias certificate with an unsupported key type. */
+	ATTESTATION_LOGGING_CERT_CHAIN_COMPUTED_DIGEST_MISMATCH,		/**< Target sent a certificate chain which has a different digest than that sent by target. */
+	ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED,				/**< Received response unexpected. */
+	ATTESTATION_LOGGING_MEASUREMENT_SPEC_UNSUPPORTED,				/**< Target device uses unsupported measurement spec. */
+	ATTESTATION_LOGGING_BASE_ASYM_KEY_SIG_ALG_UNSUPPORTED,			/**< Target device uses unsupported asymmetric key signature algorithm. */
+	ATTESTATION_LOGGING_HASHING_ALGORITHM_UNSUPPORTED,				/**< Target device uses unsupported hashing algorithm. */
+	ATTESTATION_LOGGING_HASHING_MEAS_ALGORITHM_UNSUPPORTED,			/**< Target device uses unsupported measurement hashing algorithm. */
+	ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN,							/**< Received response has unexpected length. */
+	ATTESTATION_LOGGING_UNEXPECTED_NUM_MEASUREMENT_BLOCKS,			/**< Received measurements response has unexpected number of measurement blocks. */
+	ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,					/**< Device failed during attestation flow. */
+	ATTESTATION_LOGGING_UNEXPECTED_MEASUREMENT_BLOCK_DIGEST,		/**< Received measurements response has digest of measurement block when raw requested. */
+	ATTESTATION_LOGGING_MEASUREMENT_DATA_TOO_LARGE,					/**< Received measurements response too large. */
+	ATTESTATION_LOGGING_UNEXPECTED_MEASUREMENT_BLOCK_RAW,			/**< Received measurements response has raw measurement block when digest requested. */
+	ATTESTATION_LOGGING_GET_DEVICE_ID_FAILED,						/**< Device failed to send SPDM device ID block. */
+};
+
+
+#endif /* ATTESTATION_LOGGING_H_ */

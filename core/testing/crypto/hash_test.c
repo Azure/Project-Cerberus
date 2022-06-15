@@ -3071,7 +3071,7 @@ static void hash_test_get_hash_len_unsupported (CuTest *test)
 
 	TEST_START;
 
-	status = hash_get_hash_len (4);
+	status = hash_get_hash_len ((enum hash_type) 4);
 	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
 }
 

@@ -1228,18 +1228,27 @@ void cfm_flash_testing_validate_and_release_dependencies (CuTest *test,
  * @param test The testing framework.
  * @param cfm The testing components to initialize.
  * @param address The base address for the CFM data.
+ * @param mocked_hash Use hash mock.
  */
 static void cfm_flash_testing_init (CuTest *test, struct cfm_flash_testing *cfm,
-	uint32_t address)
+	uint32_t address, bool hash_mock)
 {
 	int status;
 
 	cfm_flash_testing_init_dependencies (test, cfm, address);
 	manifest_flash_v2_testing_init_common (test, &cfm->manifest, 0x1000);
 
-	status = cfm_flash_init (&cfm->test, &cfm->manifest.flash.base, &cfm->manifest.hash.base,
-		address, cfm->manifest.signature, sizeof (cfm->manifest.signature),
-		cfm->manifest.platform_id, sizeof (cfm->manifest.platform_id));
+	if (hash_mock) {
+		status = cfm_flash_init (&cfm->test, &cfm->manifest.flash.base,
+			&cfm->manifest.hash_mock.base, address, cfm->manifest.signature,
+			sizeof (cfm->manifest.signature), cfm->manifest.platform_id,
+			sizeof (cfm->manifest.platform_id));
+	}
+	else {
+		status = cfm_flash_init (&cfm->test, &cfm->manifest.flash.base, &cfm->manifest.hash.base,
+			address, cfm->manifest.signature, sizeof (cfm->manifest.signature),
+			cfm->manifest.platform_id, sizeof (cfm->manifest.platform_id));
+	}
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&cfm->manifest.flash.mock);
@@ -1285,18 +1294,22 @@ static void cfm_flash_testing_verify_cfm (CuTest *test, struct cfm_flash_testing
  * @param address The base address for the CFM data.
  * @param testing_data Container with testing data.
  * @param sig_result Result of the signature verification call.
+ * @param hash_mock Use hash mock.
  */
 static void cfm_flash_testing_init_and_verify (CuTest *test, struct cfm_flash_testing *cfm,
-	uint32_t address, const struct cfm_testing_data *testing_data, int sig_result)
+	uint32_t address, const struct cfm_testing_data *testing_data, int sig_result, bool hash_mock)
 {
 	int status;
 
-	cfm_flash_testing_init (test, cfm, address);
+	cfm_flash_testing_init (test, cfm, address, hash_mock);
 	cfm_flash_testing_verify_cfm (test, cfm, testing_data, sig_result);
 
 	status = cfm->test.base.base.verify (&cfm->test.base.base, &cfm->manifest.hash.base,
 		&cfm->manifest.verification.base, NULL, 0);
 	CuAssertIntEquals (test, sig_result, status);
+
+	status = mock_validate (&cfm->manifest.hash_mock.mock);
+	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&cfm->manifest.flash.mock);
 	CuAssertIntEquals (test, 0, status);
@@ -1420,7 +1433,7 @@ static void cfm_flash_test_verify (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	cfm_flash_testing_verify_cfm (test, &cfm, &CFM_TESTING, 0);
 
@@ -1438,7 +1451,7 @@ static void cfm_flash_test_verify_only_pmr_digest (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	cfm_flash_testing_verify_cfm (test, &cfm, &CFM_ONLY_PMR_DIGEST_TESTING, 0);
 
@@ -1456,7 +1469,7 @@ static void cfm_flash_test_verify_only_measurement (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	cfm_flash_testing_verify_cfm (test, &cfm, &CFM_ONLY_MEASUREMENT_TESTING, 0);
 
@@ -1474,7 +1487,7 @@ static void cfm_flash_test_verify_only_measurement_data (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	cfm_flash_testing_verify_cfm (test, &cfm, &CFM_ONLY_MEASUREMENT_DATA_TESTING, 0);
 
@@ -1492,7 +1505,7 @@ static void cfm_flash_test_verify_only_allowable_pfm (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	cfm_flash_testing_verify_cfm (test, &cfm, &CFM_ONLY_PFM_TESTING, 0);
 
@@ -1510,7 +1523,7 @@ static void cfm_flash_test_verify_only_allowable_cfm (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	cfm_flash_testing_verify_cfm (test, &cfm, &CFM_ONLY_CFM_TESTING, 0);
 
@@ -1528,7 +1541,7 @@ static void cfm_flash_test_verify_only_allowable_pcd (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	cfm_flash_testing_verify_cfm (test, &cfm, &CFM_ONLY_PCD_TESTING, 0);
 
@@ -1546,7 +1559,7 @@ static void cfm_flash_test_verify_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	status = cfm.test.base.base.verify (NULL, &cfm.manifest.hash.base,
 		&cfm.manifest.verification.base, NULL, 0);
@@ -1574,7 +1587,7 @@ static void cfm_flash_test_verify_bad_magic_number (CuTest *test)
 	memcpy (cfm_bad_data, CFM_TESTING.manifest.raw, sizeof (cfm_bad_data));
 	cfm_bad_data[2] ^= 0x55;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, 0, MOCK_ARG (cfm.manifest.addr), MOCK_ARG_NOT_NULL,
@@ -1598,7 +1611,7 @@ static void cfm_flash_test_get_id (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = cfm.test.base.base.get_id (&cfm.test.base.base, &id);
 	CuAssertIntEquals (test, 0, status);
@@ -1615,7 +1628,7 @@ static void cfm_flash_test_get_id_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = cfm.test.base.base.get_id (NULL, &id);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
@@ -1634,7 +1647,7 @@ static void cfm_flash_test_get_id_verify_never_run (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	status = cfm.test.base.base.get_id (&cfm.test.base.base, &id);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
@@ -1650,7 +1663,7 @@ static void cfm_flash_test_get_hash (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	/* Read manifest header. */
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
@@ -1683,7 +1696,7 @@ static void cfm_flash_test_get_hash_after_verify (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = cfm.test.base.base.get_hash (&cfm.test.base.base, &cfm.manifest.hash.base,
 		hash_out, sizeof (hash_out));
@@ -1704,7 +1717,7 @@ static void cfm_flash_test_get_hash_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	status = cfm.test.base.base.get_hash (NULL, &cfm.manifest.hash.base, hash_out,
 		sizeof (hash_out));
@@ -1733,7 +1746,7 @@ static void cfm_flash_test_get_hash_bad_magic_num (CuTest *test)
 	memcpy (cfm_bad_data, CFM_TESTING.manifest.raw, sizeof (cfm_bad_data));
 	cfm_bad_data[2] ^= 0x55;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, 0, MOCK_ARG (cfm.manifest.addr), MOCK_ARG_NOT_NULL,
@@ -1757,7 +1770,7 @@ static void cfm_flash_test_get_signature (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, 0, MOCK_ARG (cfm.manifest.addr), MOCK_ARG_NOT_NULL,
@@ -1791,7 +1804,7 @@ static void cfm_flash_test_get_signature_after_verify (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = cfm.test.base.base.get_signature (&cfm.test.base.base, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, CFM_TESTING.manifest.sig_len, status);
@@ -1811,7 +1824,7 @@ static void cfm_flash_test_get_signature_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	status = cfm.test.base.base.get_signature (NULL, sig_out, sizeof (sig_out));
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
@@ -1834,7 +1847,7 @@ static void cfm_flash_test_get_signature_bad_magic_number (CuTest *test)
 	memcpy (cfm_bad_data, CFM_TESTING.manifest.raw, sizeof (cfm_bad_data));
 	cfm_bad_data[2] ^= 0x55;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 
 
@@ -1861,7 +1874,7 @@ static void cfm_flash_test_get_platform_id (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = cfm.test.base.base.get_platform_id (&cfm.test.base.base, &id, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
@@ -1879,7 +1892,7 @@ static void cfm_flash_test_get_platform_id_manifest_allocation (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = cfm.test.base.base.get_platform_id (&cfm.test.base.base, &id, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -1899,7 +1912,7 @@ static void cfm_flash_test_get_platform_id_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = cfm.test.base.base.get_platform_id (NULL, &id, 0);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
@@ -1919,7 +1932,7 @@ static void cfm_flash_test_get_platform_id_verify_never_run (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	status = cfm.test.base.base.get_platform_id (&cfm.test.base.base, &id, sizeof (buffer));
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
@@ -1934,7 +1947,7 @@ static void cfm_flash_test_is_empty (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = cfm.test.base.base.is_empty (&cfm.test.base.base);
 	CuAssertIntEquals (test, 0, status);
@@ -1949,7 +1962,7 @@ static void cfm_flash_test_is_empty_empty (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_EMPTY_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_EMPTY_TESTING, 0, false);
 
 	status = cfm.test.base.base.is_empty (&cfm.test.base.base);
 	CuAssertIntEquals (test, 1, status);
@@ -1964,7 +1977,7 @@ static void cfm_flash_test_is_empty_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_EMPTY_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_EMPTY_TESTING, 0, false);
 
 	status = cfm.test.base.base.is_empty (NULL);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
@@ -1979,7 +1992,7 @@ static void cfm_flash_test_is_empty_verify_never_run (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	status = cfm.test.base.base.is_empty (&cfm.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
@@ -1991,11 +2004,15 @@ static void cfm_flash_test_get_component_pmr (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2008,7 +2025,7 @@ static void cfm_flash_test_get_component_pmr (CuTest *test)
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 3, 2, 3,
 		0x6a4, 0x24, 0x24, 0);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component1", 1, &pmr);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 1, &pmr);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, pmr.pmr_id);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, pmr.initial_value_len);
@@ -2023,11 +2040,15 @@ static void cfm_flash_test_get_component_pmr_second_component (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2043,7 +2064,7 @@ static void cfm_flash_test_get_component_pmr_second_component (CuTest *test)
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 28, 27, 28,
 		0x912, 0x34, 0x34, 0);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component2", 0, &pmr);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 0, &pmr);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, pmr.pmr_id);
 	CuAssertIntEquals (test, SHA384_HASH_LENGTH, pmr.initial_value_len);
@@ -2058,11 +2079,15 @@ static void cfm_flash_test_get_component_pmr_second_pmr (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2081,7 +2106,7 @@ static void cfm_flash_test_get_component_pmr_second_pmr (CuTest *test)
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 4, 4, 4,
 		0x6c8, 0x44, 0x44, 0);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component1", 2, &pmr);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 2, &pmr);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, pmr.pmr_id);
 	CuAssertIntEquals (test, SHA512_HASH_LENGTH, pmr.initial_value_len);
@@ -2096,19 +2121,23 @@ static void cfm_flash_test_get_component_pmr_null (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
-	status = cfm.test.base.get_component_pmr (NULL, "Component1", 0, &pmr);
+	status = cfm.test.base.get_component_pmr (NULL, component_digest, 0, &pmr);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	status = cfm.test.base.get_component_pmr (&cfm.test.base, NULL, 0, &pmr);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component1", 0, NULL);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 0, NULL);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2118,13 +2147,17 @@ static void cfm_flash_test_get_component_pmr_verify_never_run (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component1", 0, &pmr);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 0, &pmr);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2134,19 +2167,55 @@ static void cfm_flash_test_get_component_pmr_component_read_fail (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component1", 0, &pmr);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 0, &pmr);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_get_component_pmr_component_hash_fail (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_pmr pmr;
+	char component_str[] = "Component1";
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, true);
+
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len,
+		CFM_TESTING.component_device1_len, 0);
+
+	status = mock_expect (&cfm.manifest.hash_mock.mock,
+		cfm.manifest.hash_mock.base.calculate_sha256, &cfm.manifest.hash_mock,
+		HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (component_str, strlen (component_str)),
+		MOCK_ARG (strlen (component_str)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 0, &pmr);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
@@ -2155,11 +2224,12 @@ static void cfm_flash_test_get_component_pmr_component_not_found (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2187,7 +2257,7 @@ static void cfm_flash_test_get_component_pmr_component_not_found (CuTest *test)
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component3", 0, &pmr);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 0, &pmr);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2197,11 +2267,16 @@ static void cfm_flash_test_get_component_pmr_component_has_no_pmr (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_DATA_TESTING,	0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_DATA_TESTING,	0,
+		false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_DATA_TESTING.manifest,
@@ -2214,7 +2289,7 @@ static void cfm_flash_test_get_component_pmr_component_has_no_pmr (CuTest *test)
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_DATA_TESTING.manifest, 2, 4);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component1", 0, &pmr);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 0, &pmr);
 	CuAssertIntEquals (test, CFM_PMR_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2224,11 +2299,15 @@ static void cfm_flash_test_get_component_pmr_get_num_pmr_fail (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2247,7 +2326,7 @@ static void cfm_flash_test_get_component_pmr_get_num_pmr_fail (CuTest *test)
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component1", 0, &pmr);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 0, &pmr);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2257,11 +2336,15 @@ static void cfm_flash_test_get_component_pmr_pmr_read_fail (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2276,7 +2359,7 @@ static void cfm_flash_test_get_component_pmr_pmr_read_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component1", 0, &pmr);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 0, &pmr);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2286,11 +2369,15 @@ static void cfm_flash_test_get_component_pmr_pmr_not_found (CuTest *test)
 {
 	struct cfm_pmr pmr;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2312,7 +2399,7 @@ static void cfm_flash_test_get_component_pmr_pmr_not_found (CuTest *test)
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest, &CFM_TESTING.manifest, 5,
 		26);
 
-	status = cfm.test.base.get_component_pmr (&cfm.test.base, "Component1", 3, &pmr);
+	status = cfm.test.base.get_component_pmr (&cfm.test.base, component_digest, 3, &pmr);
 	CuAssertIntEquals (test, CFM_PMR_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2322,11 +2409,15 @@ static void cfm_flash_test_get_component_pmr_digest (CuTest *test)
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2342,10 +2433,11 @@ static void cfm_flash_test_get_component_pmr_digest (CuTest *test)
 		0x70c, 0x44, 0x44 - sizeof (struct cfm_pmr_digest_element),
 		sizeof (struct cfm_pmr_digest_element));
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component1", 0, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 0,
+		&pmr_digest);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, pmr_digest.pmr_id);
-	CuAssertIntEquals (test, SHA256_HASH_LENGTH, pmr_digest.digests.hash_len);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, pmr_digest.digests.hash_type);
 	CuAssertIntEquals (test, 2, pmr_digest.digests.digest_count);
 
 	status = testing_validate_array (PMR_DIGEST_0_DEVICE_1_1, pmr_digest.digests.digests,
@@ -2365,11 +2457,15 @@ static void cfm_flash_test_get_component_pmr_digest_second_component (CuTest *te
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2388,10 +2484,11 @@ static void cfm_flash_test_get_component_pmr_digest_second_component (CuTest *te
 		0x946, 0x44, 0x44 - sizeof (struct cfm_pmr_digest_element),
 		sizeof (struct cfm_pmr_digest_element));
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component2", 2, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 2,
+		&pmr_digest);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, pmr_digest.pmr_id);
-	CuAssertIntEquals (test, SHA512_HASH_LENGTH, pmr_digest.digests.hash_len);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, pmr_digest.digests.hash_type);
 	CuAssertIntEquals (test, 1, pmr_digest.digests.digest_count);
 
 	status = testing_validate_array (PMR_DIGEST_2_DEVICE_2, pmr_digest.digests.digests,
@@ -2407,11 +2504,15 @@ static void cfm_flash_test_get_component_pmr_digest_second_digest (CuTest *test)
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2433,10 +2534,11 @@ static void cfm_flash_test_get_component_pmr_digest_second_digest (CuTest *test)
 		0x750, 0x44, 0x44 - sizeof (struct cfm_pmr_digest_element),
 		sizeof (struct cfm_pmr_digest_element));
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component1", 4, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 4,
+		&pmr_digest);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 4, pmr_digest.pmr_id);
-	CuAssertIntEquals (test, SHA512_HASH_LENGTH, pmr_digest.digests.hash_len);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, pmr_digest.digests.hash_type);
 	CuAssertIntEquals (test, 1, pmr_digest.digests.digest_count);
 
 	status = testing_validate_array (PMR_DIGEST_4_DEVICE_1, pmr_digest.digests.digests,
@@ -2452,19 +2554,23 @@ static void cfm_flash_test_get_component_pmr_digest_null (CuTest *test)
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
-	status = cfm.test.base.get_component_pmr_digest (NULL, "Component1", 0, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (NULL, component_digest, 0, &pmr_digest);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, NULL, 0, &pmr_digest);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component1", 0, NULL);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 0, NULL);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2474,13 +2580,18 @@ static void cfm_flash_test_get_component_pmr_digest_verify_never_run (CuTest *te
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component1", 0, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 0,
+		&pmr_digest);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2490,19 +2601,57 @@ static void cfm_flash_test_get_component_pmr_digest_component_read_fail (CuTest 
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component1", 0, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 0,
+		&pmr_digest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_get_component_pmr_digest_component_hash_fail (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_pmr_digest pmr_digest;
+	char component_str[] = "Component1";
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, true);
+
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len,
+		CFM_TESTING.component_device1_len, 0);
+
+	status = mock_expect (&cfm.manifest.hash_mock.mock,
+		cfm.manifest.hash_mock.base.calculate_sha256, &cfm.manifest.hash_mock,
+		HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (component_str, strlen (component_str)),
+		MOCK_ARG (strlen (component_str)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 0,
+		&pmr_digest);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
@@ -2511,11 +2660,12 @@ static void cfm_flash_test_get_component_pmr_digest_component_not_found (CuTest 
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2543,7 +2693,8 @@ static void cfm_flash_test_get_component_pmr_digest_component_not_found (CuTest 
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component3", 0, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 0,
+		&pmr_digest);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2553,11 +2704,16 @@ static void cfm_flash_test_get_component_pmr_digest_component_has_no_pmr_digest 
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_DATA_TESTING,	0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_DATA_TESTING,	0,
+		false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_DATA_TESTING.manifest,
@@ -2570,7 +2726,8 @@ static void cfm_flash_test_get_component_pmr_digest_component_has_no_pmr_digest 
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_DATA_TESTING.manifest, 2, 4);
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component1", 0, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 0,
+		&pmr_digest);
 	CuAssertIntEquals (test, CFM_PMR_DIGEST_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2580,11 +2737,15 @@ static void cfm_flash_test_get_component_pmr_digest_get_num_pmr_digest_fail (CuT
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2603,7 +2764,8 @@ static void cfm_flash_test_get_component_pmr_digest_get_num_pmr_digest_fail (CuT
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component1", 0, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 0,
+		&pmr_digest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2613,11 +2775,15 @@ static void cfm_flash_test_get_component_pmr_digest_pmr_digest_read_fail (CuTest
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2632,7 +2798,8 @@ static void cfm_flash_test_get_component_pmr_digest_pmr_digest_read_fail (CuTest
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component1", 0, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 0,
+		&pmr_digest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2642,11 +2809,15 @@ static void cfm_flash_test_get_component_pmr_digest_pmr_not_found (CuTest *test)
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2668,7 +2839,8 @@ static void cfm_flash_test_get_component_pmr_digest_pmr_not_found (CuTest *test)
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest, &CFM_TESTING.manifest, 7,
 		26);
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component1", 1, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 1,
+		&pmr_digest);
 	CuAssertIntEquals (test, CFM_PMR_DIGEST_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2678,11 +2850,15 @@ static void cfm_flash_test_get_component_pmr_digest_digests_read_fail (CuTest *t
 {
 	struct cfm_pmr_digest pmr_digest;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2700,7 +2876,8 @@ static void cfm_flash_test_get_component_pmr_digest_digests_read_fail (CuTest *t
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x28));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, "Component1", 0, &pmr_digest);
+	status = cfm.test.base.get_component_pmr_digest (&cfm.test.base, component_digest, 0,
+		&pmr_digest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -2712,7 +2889,7 @@ static void cfm_flash_test_free_component_pmr_digest_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	cfm.test.base.free_component_pmr_digest (&cfm.test.base, NULL);
 
@@ -2732,7 +2909,7 @@ static void cfm_flash_test_buffer_supported_components (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2782,7 +2959,7 @@ static void cfm_flash_test_buffer_supported_components_offset_nonzero (CuTest *t
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2825,7 +3002,7 @@ static void cfm_flash_test_buffer_supported_components_offset_too_large (CuTest 
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2869,7 +3046,7 @@ static void cfm_flash_test_buffer_supported_components_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = cfm.test.base.buffer_supported_components (NULL, 0, components_len, components);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
@@ -2892,7 +3069,7 @@ static void cfm_flash_test_buffer_supported_components_verify_never_run (CuTest 
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
 	status = cfm.test.base.buffer_supported_components (&cfm.test.base, 0, components_len,
 		components);
@@ -2910,7 +3087,7 @@ static void cfm_flash_test_buffer_supported_components_component_read_fail (CuTe
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
@@ -2928,11 +3105,15 @@ static void cfm_flash_test_get_component_device (CuTest *test)
 {
 	struct cfm_component_device component;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2947,7 +3128,7 @@ static void cfm_flash_test_get_component_device (CuTest *test)
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 6, 6, 6,
 		0x750, 0x44, sizeof (struct cfm_pmr_digest_element), 0);
 
-	status = cfm.test.base.get_component_device (&cfm.test.base, "Component1", &component);
+	status = cfm.test.base.get_component_device (&cfm.test.base, component_digest, &component);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, component.cert_slot);
 	CuAssertIntEquals (test, 0, component.attestation_protocol);
@@ -2965,11 +3146,15 @@ static void cfm_flash_test_get_component_device_second_component (CuTest *test)
 {
 	struct cfm_component_device component;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -2985,7 +3170,7 @@ static void cfm_flash_test_get_component_device_second_component (CuTest *test)
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 29, 27, 29,
 		0x946, 0x44, sizeof (struct cfm_pmr_digest_element), 0);
 
-	status = cfm.test.base.get_component_device (&cfm.test.base, "Component2", &component);
+	status = cfm.test.base.get_component_device (&cfm.test.base, component_digest, &component);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, component.cert_slot);
 	CuAssertIntEquals (test, 1, component.attestation_protocol);
@@ -3002,19 +3187,23 @@ static void cfm_flash_test_get_component_device_null (CuTest *test)
 {
 	struct cfm_component_device component;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
-	status = cfm.test.base.get_component_device (NULL, "Component1", &component);
+	status = cfm.test.base.get_component_device (NULL, component_digest, &component);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	status = cfm.test.base.get_component_device (&cfm.test.base, NULL, &component);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.test.base.get_component_device (&cfm.test.base, "Component1", NULL);
+	status = cfm.test.base.get_component_device (&cfm.test.base, component_digest, NULL);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -3024,19 +3213,55 @@ static void cfm_flash_test_get_component_device_component_read_fail (CuTest *tes
 {
 	struct cfm_component_device component;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_device (&cfm.test.base, "Component1", &component);
+	status = cfm.test.base.get_component_device (&cfm.test.base, component_digest, &component);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_get_component_device_component_hash_fail (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_component_device component;
+	char component_str[] = "Component1";
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, true);
+
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len,
+		CFM_TESTING.component_device1_len, 0);
+
+	status = mock_expect (&cfm.manifest.hash_mock.mock,
+		cfm.manifest.hash_mock.base.calculate_sha256, &cfm.manifest.hash_mock,
+		HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (component_str, strlen (component_str)),
+		MOCK_ARG (strlen (component_str)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.test.base.get_component_device (&cfm.test.base, component_digest, &component);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
@@ -3045,11 +3270,15 @@ static void cfm_flash_test_get_component_device_get_num_pmr_digest_fail (CuTest 
 {
 	struct cfm_component_device component;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3061,7 +3290,7 @@ static void cfm_flash_test_get_component_device_get_num_pmr_digest_fail (CuTest 
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_device (&cfm.test.base, "Component1", &component);
+	status = cfm.test.base.get_component_device (&cfm.test.base, component_digest, &component);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -3071,11 +3300,15 @@ static void cfm_flash_test_get_component_device_pmr_digest_read_fail (CuTest *te
 {
 	struct cfm_component_device component;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3090,7 +3323,7 @@ static void cfm_flash_test_get_component_device_pmr_digest_read_fail (CuTest *te
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_device (&cfm.test.base, "Component1", &component);
+	status = cfm.test.base.get_component_device (&cfm.test.base, component_digest, &component);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -3100,11 +3333,12 @@ static void cfm_flash_test_get_component_device_component_not_found (CuTest *tes
 {
 	struct cfm_component_device component;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3132,7 +3366,7 @@ static void cfm_flash_test_get_component_device_component_not_found (CuTest *tes
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_component_device (&cfm.test.base, "Component3", &component);
+	status = cfm.test.base.get_component_device (&cfm.test.base, component_digest, &component);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -3142,13 +3376,17 @@ static void cfm_flash_test_get_component_device_verify_never_run (CuTest *test)
 {
 	struct cfm_component_device component;
 	struct cfm_flash_testing cfm;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_component_device (&cfm.test.base, "Component1", &component);
+	status = cfm.test.base.get_component_device (&cfm.test.base, component_digest, &component);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -3160,7 +3398,7 @@ static void cfm_flash_test_free_component_device_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	cfm.test.base.free_component_device (&cfm.test.base, NULL);
 
@@ -3171,11 +3409,15 @@ static void cfm_flash_test_get_next_measurement (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3191,12 +3433,12 @@ static void cfm_flash_test_get_next_measurement (CuTest *test)
 		0x794, 0x44, 0x44 - sizeof (struct cfm_measurement_element),
 		sizeof (struct cfm_measurement_element));
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, pmr_measurement.pmr_id);
 	CuAssertIntEquals (test, 2, pmr_measurement.measurement_id);
-	CuAssertIntEquals (test, SHA256_HASH_LENGTH, pmr_measurement.digests.hash_len);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, pmr_measurement.digests.hash_type);
 	CuAssertIntEquals (test, 2, pmr_measurement.digests.digest_count);
 
 	status = testing_validate_array (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1,
@@ -3215,11 +3457,15 @@ static void cfm_flash_test_get_next_measurement_second_measurement (CuTest *test
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3244,18 +3490,18 @@ static void cfm_flash_test_get_next_measurement_second_measurement (CuTest *test
 		0x7d8, 0x24, 0x24 - sizeof (struct cfm_measurement_element),
 		sizeof (struct cfm_measurement_element));
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		true);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_measurement (&cfm.test.base, &pmr_measurement);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		false);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, pmr_measurement.pmr_id);
 	CuAssertIntEquals (test, 2, pmr_measurement.measurement_id);
-	CuAssertIntEquals (test, SHA256_HASH_LENGTH, pmr_measurement.digests.hash_len);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, pmr_measurement.digests.hash_type);
 	CuAssertIntEquals (test, 1, pmr_measurement.digests.digest_count);
 
 	status = testing_validate_array (MEASUREMENT_PMR_2_MEASUREMENT_2_DEVICE_1,
@@ -3271,11 +3517,15 @@ static void cfm_flash_test_get_next_measurement_no_more_measurements (CuTest *te
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3303,19 +3553,19 @@ static void cfm_flash_test_get_next_measurement_no_more_measurements (CuTest *te
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest, &CFM_TESTING.manifest, 9,
 		26);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		true);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_measurement (&cfm.test.base, &pmr_measurement);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		false);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_measurement (&cfm.test.base, &pmr_measurement);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		false);
 	CuAssertIntEquals (test, CFM_MEASUREMENT_NOT_FOUND, status);
 
@@ -3326,11 +3576,15 @@ static void cfm_flash_test_get_next_measurement_second_component (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3349,12 +3603,12 @@ static void cfm_flash_test_get_next_measurement_second_component (CuTest *test)
 		0x98a, 0x34, 0x34 - sizeof (struct cfm_measurement_element),
 		sizeof (struct cfm_measurement_element));
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component2", &pmr_measurement,
-		true);
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest,
+		&pmr_measurement, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, pmr_measurement.pmr_id);
 	CuAssertIntEquals (test, 5, pmr_measurement.measurement_id);
-	CuAssertIntEquals (test, SHA384_HASH_LENGTH, pmr_measurement.digests.hash_len);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, pmr_measurement.digests.hash_type);
 	CuAssertIntEquals (test, 1, pmr_measurement.digests.digest_count);
 
 	status = testing_validate_array (MEASUREMENT_PMR_1_MEASUREMENT_5_DEVICE_2,
@@ -3370,19 +3624,23 @@ static void cfm_flash_test_get_next_measurement_null (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_next_measurement (NULL, "Component1", &pmr_measurement, true);
+	status = cfm.test.base.get_next_measurement (NULL, component_digest, &pmr_measurement, true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	status = cfm.test.base.get_next_measurement (&cfm.test.base, NULL, &pmr_measurement, true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", NULL, true);
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, NULL, true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -3392,13 +3650,17 @@ static void cfm_flash_test_get_next_measurement_verify_never_run (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		true);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
@@ -3409,20 +3671,57 @@ static void cfm_flash_test_get_next_measurement_component_read_fail (CuTest *tes
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_get_next_measurement_component_hash_fail (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_measurement pmr_measurement;
+	char component_str[] = "Component1";
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, true);
+
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len,
+		CFM_TESTING.component_device1_len, 0);
+
+	status = mock_expect (&cfm.manifest.hash_mock.mock,
+		cfm.manifest.hash_mock.base.calculate_sha256, &cfm.manifest.hash_mock,
+		HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (component_str, strlen (component_str)),
+		MOCK_ARG (strlen (component_str)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
+		true);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
@@ -3431,11 +3730,12 @@ static void cfm_flash_test_get_next_measurement_component_not_found (CuTest *tes
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3463,8 +3763,8 @@ static void cfm_flash_test_get_next_measurement_component_not_found (CuTest *tes
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component3", &pmr_measurement,
-		true);
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest,
+		&pmr_measurement, true);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -3474,11 +3774,16 @@ static void cfm_flash_test_get_next_measurement_component_has_no_measurements (C
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_DATA_TESTING,	0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_DATA_TESTING,	0,
+		false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_DATA_TESTING.manifest,
@@ -3491,7 +3796,7 @@ static void cfm_flash_test_get_next_measurement_component_has_no_measurements (C
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_DATA_TESTING.manifest, 2, 4);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		true);
 	CuAssertIntEquals (test, CFM_MEASUREMENT_NOT_FOUND, status);
 
@@ -3502,11 +3807,15 @@ static void cfm_flash_test_get_next_measurement_get_num_measurements_fail (CuTes
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3525,7 +3834,7 @@ static void cfm_flash_test_get_next_measurement_get_num_measurements_fail (CuTes
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
@@ -3536,11 +3845,15 @@ static void cfm_flash_test_get_next_measurement_measurement_read_fail (CuTest *t
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3555,7 +3868,7 @@ static void cfm_flash_test_get_next_measurement_measurement_read_fail (CuTest *t
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
@@ -3566,11 +3879,15 @@ static void cfm_flash_test_get_next_measurement_digests_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement pmr_measurement;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3588,7 +3905,7 @@ static void cfm_flash_test_get_next_measurement_digests_read_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x38));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement (&cfm.test.base, "Component1", &pmr_measurement,
+	status = cfm.test.base.get_next_measurement (&cfm.test.base, component_digest, &pmr_measurement,
 		true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
@@ -3601,7 +3918,7 @@ static void cfm_flash_test_free_measurement_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	cfm.test.base.free_measurement (&cfm.test.base, NULL);
 
@@ -3613,11 +3930,15 @@ static void cfm_flash_test_get_next_measurement_data (CuTest *test)
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
 	struct cfm_allowable_data *allowable_data_ptr;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3647,7 +3968,7 @@ static void cfm_flash_test_get_next_measurement_data (CuTest *test)
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 11, 11, 11,
 		0x81c, 0x18, 5, sizeof (struct cfm_allowable_data_element) + 8);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, measurement_data.pmr_id);
@@ -3692,11 +4013,15 @@ static void cfm_flash_test_get_next_measurement_data_second_measurement_data (Cu
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
 	struct cfm_allowable_data *allowable_data_ptr;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3747,13 +4072,13 @@ static void cfm_flash_test_get_next_measurement_data_second_measurement_data (Cu
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 14, 14, 14,
 		0x848, 0xc, 2, sizeof (struct cfm_allowable_data_element));
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_measurement_data (&cfm.test.base, &measurement_data);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, false);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, measurement_data.pmr_id);
@@ -3791,11 +4116,15 @@ static void cfm_flash_test_get_next_measurement_data_no_more_measurement_data (C
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3848,19 +4177,19 @@ static void cfm_flash_test_get_next_measurement_data_no_more_measurement_data (C
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest, &CFM_TESTING.manifest,
 		15, 26);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_measurement_data (&cfm.test.base, &measurement_data);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, false);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_measurement_data (&cfm.test.base, &measurement_data);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, false);
 	CuAssertIntEquals (test, CFM_MEASUREMENT_DATA_NOT_FOUND, status);
 
@@ -3872,11 +4201,15 @@ static void cfm_flash_test_get_next_measurement_data_second_component (CuTest *t
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
 	struct cfm_allowable_data *allowable_data_ptr;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3902,7 +4235,7 @@ static void cfm_flash_test_get_next_measurement_data_second_component (CuTest *t
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 32, 32, 32,
 		0x9c2, 0x10, 3, sizeof (struct cfm_allowable_data_element) + 4);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component2",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, measurement_data.pmr_id);
@@ -3931,11 +4264,15 @@ static void cfm_flash_test_get_next_measurement_data_single_check (CuTest *test)
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
 	struct cfm_allowable_data *allowable_data_ptr;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -3961,7 +4298,7 @@ static void cfm_flash_test_get_next_measurement_data_single_check (CuTest *test)
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 32, 32, 32,
 		0x9c2, 0x10, 3, sizeof (struct cfm_allowable_data_element) + 4);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component2",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, measurement_data.pmr_id);
@@ -3990,11 +4327,15 @@ static void cfm_flash_test_get_next_measurement_data_single_allowable_data (CuTe
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
 	struct cfm_allowable_data *allowable_data_ptr;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4045,13 +4386,13 @@ static void cfm_flash_test_get_next_measurement_data_single_allowable_data (CuTe
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 14, 14, 14,
 		0x848, 0xc, 2, sizeof (struct cfm_allowable_data_element));
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_measurement_data (&cfm.test.base, &measurement_data);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, false);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, measurement_data.pmr_id);
@@ -4090,11 +4431,15 @@ static void cfm_flash_test_get_next_measurement_data_no_bitmask (CuTest *test)
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
 	struct cfm_allowable_data *allowable_data_ptr;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4145,13 +4490,13 @@ static void cfm_flash_test_get_next_measurement_data_no_bitmask (CuTest *test)
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 14, 14, 14,
 		0x848, 0xc, 2, sizeof (struct cfm_allowable_data_element));
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_measurement_data (&cfm.test.base, &measurement_data);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, false);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, measurement_data.pmr_id);
@@ -4189,20 +4534,25 @@ static void cfm_flash_test_get_next_measurement_data_null (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_next_measurement_data (NULL, "Component1", &measurement_data, true);
+	status = cfm.test.base.get_next_measurement_data (NULL, component_digest, &measurement_data,
+		true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, NULL, &measurement_data,
 		true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1", NULL, true);
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest, NULL, true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -4212,13 +4562,17 @@ static void cfm_flash_test_get_next_measurement_data_verify_never_run (CuTest *t
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
@@ -4229,20 +4583,57 @@ static void cfm_flash_test_get_next_measurement_data_component_read_fail (CuTest
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_get_next_measurement_data_component_hash_fail (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_measurement_data measurement_data;
+	char component_str[] = "Component1";
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, true);
+
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len,
+		CFM_TESTING.component_device1_len, 0);
+
+	status = mock_expect (&cfm.manifest.hash_mock.mock,
+		cfm.manifest.hash_mock.base.calculate_sha256, &cfm.manifest.hash_mock,
+		HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (component_str, strlen (component_str)),
+		MOCK_ARG (strlen (component_str)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
+		&measurement_data, true);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
@@ -4251,11 +4642,12 @@ static void cfm_flash_test_get_next_measurement_data_component_not_found (CuTest
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4283,7 +4675,7 @@ static void cfm_flash_test_get_next_measurement_data_component_not_found (CuTest
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component3",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
 
@@ -4295,11 +4687,16 @@ static void cfm_flash_test_get_next_measurement_data_component_has_no_measuremen
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_TESTING, 0,
+		false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_TESTING.manifest,
@@ -4312,7 +4709,7 @@ static void cfm_flash_test_get_next_measurement_data_component_has_no_measuremen
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_TESTING.manifest, 2, 2);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, CFM_MEASUREMENT_DATA_NOT_FOUND, status);
 
@@ -4323,11 +4720,15 @@ static void cfm_flash_test_get_next_measurement_data_get_num_measurement_data_fa
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4346,7 +4747,7 @@ static void cfm_flash_test_get_next_measurement_data_get_num_measurement_data_fa
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
@@ -4357,11 +4758,15 @@ static void cfm_flash_test_get_next_measurement_data_measurement_data_read_fail 
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4376,7 +4781,7 @@ static void cfm_flash_test_get_next_measurement_data_measurement_data_read_fail 
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
@@ -4387,11 +4792,15 @@ static void cfm_flash_test_get_next_measurement_data_get_num_allowable_data_fail
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4416,7 +4825,7 @@ static void cfm_flash_test_get_next_measurement_data_get_num_allowable_data_fail
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
@@ -4427,11 +4836,15 @@ static void cfm_flash_test_get_next_measurement_data_allowable_data_read_fail (C
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4452,7 +4865,7 @@ static void cfm_flash_test_get_next_measurement_data_allowable_data_read_fail (C
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x50));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
@@ -4463,11 +4876,15 @@ static void cfm_flash_test_get_next_measurement_data_bitmask_read_fail (CuTest *
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4490,7 +4907,7 @@ static void cfm_flash_test_get_next_measurement_data_bitmask_read_fail (CuTest *
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x50));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
@@ -4502,11 +4919,15 @@ static void cfm_flash_test_get_next_measurement_data_allowable_data_buffer_read_
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_data measurement_data;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4531,7 +4952,7 @@ static void cfm_flash_test_get_next_measurement_data_allowable_data_buffer_read_
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x50));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, "Component1",
+	status = cfm.test.base.get_next_measurement_data (&cfm.test.base, component_digest,
 		&measurement_data, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
@@ -4544,7 +4965,7 @@ static void cfm_flash_test_free_measurement_data_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	cfm.test.base.free_measurement_data (&cfm.test.base, NULL);
 
@@ -4555,11 +4976,15 @@ static void cfm_flash_test_get_root_ca_digest (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_root_ca_digests root_ca_digest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4575,9 +5000,9 @@ static void cfm_flash_test_get_root_ca_digest (CuTest *test)
 		0x660, 0x44, 0x44 - sizeof (struct cfm_root_ca_digests_element),
 		sizeof (struct cfm_root_ca_digests_element));
 
-	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, "Component1", &root_ca_digest);
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, &root_ca_digest);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SHA256_HASH_LENGTH, root_ca_digest.digests.hash_len);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, root_ca_digest.digests.hash_type);
 	CuAssertIntEquals (test, 2, root_ca_digest.digests.digest_count);
 
 	status = testing_validate_array (ROOT_CA_DIGEST_0_DEVICE_1, root_ca_digest.digests.digests,
@@ -4597,11 +5022,15 @@ static void cfm_flash_test_get_root_ca_digest_second_component (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_root_ca_digests root_ca_digest;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4620,9 +5049,9 @@ static void cfm_flash_test_get_root_ca_digest_second_component (CuTest *test)
 		0x8de, 0x34, 0x34 - sizeof (struct cfm_root_ca_digests_element),
 		sizeof (struct cfm_root_ca_digests_element));
 
-	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, "Component2", &root_ca_digest);
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, &root_ca_digest);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SHA384_HASH_LENGTH, root_ca_digest.digests.hash_len);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, root_ca_digest.digests.hash_type);
 	CuAssertIntEquals (test, 1, root_ca_digest.digests.digest_count);
 
 	status = testing_validate_array (ROOT_CA_DIGEST_DEVICE_2, root_ca_digest.digests.digests,
@@ -4638,19 +5067,23 @@ static void cfm_flash_test_get_root_ca_digest_null (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_root_ca_digests root_ca_digest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_root_ca_digest (NULL, "Component1", &root_ca_digest);
+	status = cfm.test.base.get_root_ca_digest (NULL, component_digest, &root_ca_digest);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, NULL, &root_ca_digest);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, "Component1", NULL);
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, NULL);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -4660,13 +5093,17 @@ static void cfm_flash_test_get_root_ca_digest_verify_never_run (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_root_ca_digests root_ca_digest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, "Component1", &root_ca_digest);
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, &root_ca_digest);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -4676,19 +5113,55 @@ static void cfm_flash_test_get_root_ca_digest_component_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_root_ca_digests root_ca_digest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, "Component1", &root_ca_digest);
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, &root_ca_digest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_get_root_ca_digest_component_hash_fail (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_root_ca_digests root_ca_digest;
+	char component_str[] = "Component1";
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, true);
+
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len,
+		CFM_TESTING.component_device1_len, 0);
+
+	status = mock_expect (&cfm.manifest.hash_mock.mock,
+		cfm.manifest.hash_mock.base.calculate_sha256, &cfm.manifest.hash_mock,
+		HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (component_str, strlen (component_str)),
+		MOCK_ARG (strlen (component_str)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, &root_ca_digest);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
@@ -4697,11 +5170,12 @@ static void cfm_flash_test_get_root_ca_digest_component_not_found (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_root_ca_digests root_ca_digest;
+	uint8_t component_digest[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4729,7 +5203,7 @@ static void cfm_flash_test_get_root_ca_digest_component_not_found (CuTest *test)
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, "Component3", &root_ca_digest);
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, &root_ca_digest);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -4739,11 +5213,16 @@ static void cfm_flash_test_get_root_ca_digest_component_has_no_root_ca_digest (C
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_root_ca_digests root_ca_digest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_DATA_TESTING,	0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_DATA_TESTING,	0,
+		false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_DATA_TESTING.manifest,
@@ -4756,7 +5235,7 @@ static void cfm_flash_test_get_root_ca_digest_component_has_no_root_ca_digest (C
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_DATA_TESTING.manifest, 2, 4);
 
-	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, "Component1", &root_ca_digest);
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, &root_ca_digest);
 	CuAssertIntEquals (test, CFM_ROOT_CA_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -4766,11 +5245,15 @@ static void cfm_flash_test_get_root_ca_digest_component_get_num_root_ca_digest_f
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_root_ca_digests root_ca_digest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4789,7 +5272,7 @@ static void cfm_flash_test_get_root_ca_digest_component_get_num_root_ca_digest_f
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, "Component1", &root_ca_digest);
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, &root_ca_digest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -4799,11 +5282,15 @@ static void cfm_flash_test_get_root_ca_digest_root_ca_digest_read_fail (CuTest *
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_root_ca_digests root_ca_digest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4818,7 +5305,7 @@ static void cfm_flash_test_get_root_ca_digest_root_ca_digest_read_fail (CuTest *
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, "Component1", &root_ca_digest);
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, &root_ca_digest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -4828,11 +5315,15 @@ static void cfm_flash_test_get_root_ca_digest_digests_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_root_ca_digests root_ca_digest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4850,7 +5341,7 @@ static void cfm_flash_test_get_root_ca_digest_digests_read_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, "Component1", &root_ca_digest);
+	status = cfm.test.base.get_root_ca_digest (&cfm.test.base, component_digest, &root_ca_digest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -4862,7 +5353,7 @@ static void cfm_flash_test_free_root_ca_digest_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	cfm.test.base.free_root_ca_digest (&cfm.test.base, NULL);
 
@@ -4874,11 +5365,15 @@ static void cfm_flash_test_get_next_pfm (CuTest *test)
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
 	struct cfm_allowable_id *manifest_check_ptr;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4906,7 +5401,7 @@ static void cfm_flash_test_get_next_pfm (CuTest *test)
 		0x86e, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, manifest.manifest_index);
 	CuAssertIntEquals (test, 2, manifest.check_count);
@@ -4935,11 +5430,15 @@ static void cfm_flash_test_get_next_pfm_second_pfm (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -4982,12 +5481,12 @@ static void cfm_flash_test_get_next_pfm_second_pfm (CuTest *test)
 		0x884, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_manifest (&cfm.test.base, &manifest);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, false);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, false);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -5007,11 +5506,15 @@ static void cfm_flash_test_get_next_pfm_no_more_pfm (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5057,17 +5560,17 @@ static void cfm_flash_test_get_next_pfm_no_more_pfm (CuTest *test)
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest, &CFM_TESTING.manifest,
 		20, 26);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_manifest (&cfm.test.base, &manifest);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, false);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, false);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_manifest (&cfm.test.base, &manifest);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, false);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, false);
 	CuAssertIntEquals (test, CFM_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5077,11 +5580,15 @@ static void cfm_flash_test_get_next_pfm_second_component (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5106,7 +5613,7 @@ static void cfm_flash_test_get_next_pfm_second_component (CuTest *test)
 		0x9e0, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component2", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -5126,11 +5633,15 @@ static void cfm_flash_test_get_next_pfm_single_check (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5155,7 +5666,7 @@ static void cfm_flash_test_get_next_pfm_single_check (CuTest *test)
 		0x9e0, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component2", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -5175,11 +5686,15 @@ static void cfm_flash_test_get_next_pfm_single_id (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5204,7 +5719,7 @@ static void cfm_flash_test_get_next_pfm_single_id (CuTest *test)
 		0x9e0, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component2", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -5224,19 +5739,23 @@ static void cfm_flash_test_get_next_pfm_null (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
-	status = cfm.test.base.get_next_pfm (NULL, "Component2", &manifest, true);
+	status = cfm.test.base.get_next_pfm (NULL, component_digest, &manifest, true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	status = cfm.test.base.get_next_pfm (&cfm.test.base, NULL, &manifest, true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component2", NULL, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, NULL, true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5246,13 +5765,17 @@ static void cfm_flash_test_get_next_pfm_verify_never_run (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5262,19 +5785,55 @@ static void cfm_flash_test_get_next_pfm_component_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_get_next_pfm_component_hash_fail (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_manifest manifest;
+	char component_str[] = "Component1";
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, true);
+
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len,
+		CFM_TESTING.component_device1_len, 0);
+
+	status = mock_expect (&cfm.manifest.hash_mock.mock,
+		cfm.manifest.hash_mock.base.calculate_sha256, &cfm.manifest.hash_mock,
+		HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (component_str, strlen (component_str)),
+		MOCK_ARG (strlen (component_str)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
@@ -5283,11 +5842,12 @@ static void cfm_flash_test_get_next_pfm_component_not_found (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5315,7 +5875,7 @@ static void cfm_flash_test_get_next_pfm_component_not_found (CuTest *test)
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component3", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5325,11 +5885,16 @@ static void cfm_flash_test_get_next_pfm_component_has_no_allowable_pfm (CuTest *
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_TESTING, 0,
+		false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_TESTING.manifest,
@@ -5342,7 +5907,7 @@ static void cfm_flash_test_get_next_pfm_component_has_no_allowable_pfm (CuTest *
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_TESTING.manifest, 2, 2);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, CFM_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5352,11 +5917,15 @@ static void cfm_flash_test_get_next_pfm_get_num_allowable_pfm_fail (CuTest *test
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5375,7 +5944,7 @@ static void cfm_flash_test_get_next_pfm_get_num_allowable_pfm_fail (CuTest *test
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5385,11 +5954,15 @@ static void cfm_flash_test_get_next_pfm_allowable_pfm_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5404,7 +5977,7 @@ static void cfm_flash_test_get_next_pfm_allowable_pfm_read_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5414,11 +5987,15 @@ static void cfm_flash_test_get_next_pfm_get_num_allowable_id_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5443,7 +6020,7 @@ static void cfm_flash_test_get_next_pfm_get_num_allowable_id_fail (CuTest *test)
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5453,11 +6030,15 @@ static void cfm_flash_test_get_next_pfm_allowable_id_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5478,7 +6059,7 @@ static void cfm_flash_test_get_next_pfm_allowable_id_read_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x80));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5488,11 +6069,15 @@ static void cfm_flash_test_get_next_pfm_allowable_id_ids_read_fail (CuTest *test
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5516,7 +6101,7 @@ static void cfm_flash_test_get_next_pfm_allowable_id_ids_read_fail (CuTest *test
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x80));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_pfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_pfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5526,11 +6111,15 @@ static void cfm_flash_test_get_next_cfm (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5552,7 +6141,7 @@ static void cfm_flash_test_get_next_cfm (CuTest *test)
 		0x89a, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -5572,11 +6161,15 @@ static void cfm_flash_test_get_next_cfm_second_cfm (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5613,12 +6206,12 @@ static void cfm_flash_test_get_next_cfm_second_cfm (CuTest *test)
 		0x8b0, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_manifest (&cfm.test.base, &manifest);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, false);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, false);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -5638,11 +6231,15 @@ static void cfm_flash_test_get_next_cfm_no_more_cfm (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5682,17 +6279,17 @@ static void cfm_flash_test_get_next_cfm_no_more_cfm (CuTest *test)
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest, &CFM_TESTING.manifest,
 		24, 26);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_manifest (&cfm.test.base, &manifest);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, false);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, false);
 	CuAssertIntEquals (test, 0, status);
 
 	cfm.test.base.free_manifest (&cfm.test.base, &manifest);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, false);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, false);
 	CuAssertIntEquals (test, CFM_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5702,11 +6299,15 @@ static void cfm_flash_test_get_next_cfm_second_component (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5731,7 +6332,7 @@ static void cfm_flash_test_get_next_cfm_second_component (CuTest *test)
 		0x9f6, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component2", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -5751,11 +6352,15 @@ static void cfm_flash_test_get_next_cfm_single_check (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5780,7 +6385,7 @@ static void cfm_flash_test_get_next_cfm_single_check (CuTest *test)
 		0x9f6, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component2", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -5800,11 +6405,15 @@ static void cfm_flash_test_get_next_cfm_single_id (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5829,7 +6438,7 @@ static void cfm_flash_test_get_next_cfm_single_id (CuTest *test)
 		0x9f6, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component2", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -5849,19 +6458,23 @@ static void cfm_flash_test_get_next_cfm_null (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
-	status = cfm.test.base.get_next_cfm (NULL, "Component2", &manifest, true);
+	status = cfm.test.base.get_next_cfm (NULL, component_digest, &manifest, true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	status = cfm.test.base.get_next_cfm (&cfm.test.base, NULL, &manifest, true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component2", NULL, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, NULL, true);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5871,13 +6484,17 @@ static void cfm_flash_test_get_next_cfm_verify_never_run (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5887,19 +6504,55 @@ static void cfm_flash_test_get_next_cfm_component_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_get_next_cfm_component_hash_fail (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_manifest manifest;
+	char component_str[] = "Component1";
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, true);
+
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len,
+		CFM_TESTING.component_device1_len, 0);
+
+	status = mock_expect (&cfm.manifest.hash_mock.mock,
+		cfm.manifest.hash_mock.base.calculate_sha256, &cfm.manifest.hash_mock,
+		HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (component_str, strlen (component_str)),
+		MOCK_ARG (strlen (component_str)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
@@ -5908,11 +6561,12 @@ static void cfm_flash_test_get_next_cfm_component_not_found (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -5940,7 +6594,7 @@ static void cfm_flash_test_get_next_cfm_component_not_found (CuTest *test)
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component3", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5950,11 +6604,16 @@ static void cfm_flash_test_get_next_cfm_component_has_no_allowable_cfm (CuTest *
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_TESTING, 0,
+		false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_TESTING.manifest,
@@ -5967,7 +6626,7 @@ static void cfm_flash_test_get_next_cfm_component_has_no_allowable_cfm (CuTest *
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_TESTING.manifest, 2, 2);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, CFM_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -5977,11 +6636,15 @@ static void cfm_flash_test_get_next_cfm_get_num_allowable_cfm_fail (CuTest *test
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6000,7 +6663,7 @@ static void cfm_flash_test_get_next_cfm_get_num_allowable_cfm_fail (CuTest *test
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6010,11 +6673,15 @@ static void cfm_flash_test_get_next_cfm_allowable_cfm_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6029,7 +6696,7 @@ static void cfm_flash_test_get_next_cfm_allowable_cfm_read_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6039,11 +6706,15 @@ static void cfm_flash_test_get_next_cfm_get_num_allowable_id_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6068,7 +6739,7 @@ static void cfm_flash_test_get_next_cfm_get_num_allowable_id_fail (CuTest *test)
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6078,11 +6749,15 @@ static void cfm_flash_test_get_next_cfm_allowable_id_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6103,7 +6778,7 @@ static void cfm_flash_test_get_next_cfm_allowable_id_read_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0xa8));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6113,11 +6788,15 @@ static void cfm_flash_test_get_next_cfm_allowable_id_ids_read_fail (CuTest *test
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6141,7 +6820,7 @@ static void cfm_flash_test_get_next_cfm_allowable_id_ids_read_fail (CuTest *test
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0xa8));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_next_cfm (&cfm.test.base, "Component1", &manifest, true);
+	status = cfm.test.base.get_next_cfm (&cfm.test.base, component_digest, &manifest, true);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6151,11 +6830,15 @@ static void cfm_flash_test_get_pcd (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6177,7 +6860,7 @@ static void cfm_flash_test_get_pcd (CuTest *test)
 		0x8c6, 0x8, 0x8 -sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component1", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -6197,11 +6880,15 @@ static void cfm_flash_test_get_pcd_second_component (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6226,7 +6913,7 @@ static void cfm_flash_test_get_pcd_second_component (CuTest *test)
 		0xa0c, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component2", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -6246,11 +6933,15 @@ static void cfm_flash_test_get_pcd_single_check (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6275,7 +6966,7 @@ static void cfm_flash_test_get_pcd_single_check (CuTest *test)
 		0xa0c, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component2", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -6296,11 +6987,15 @@ static void cfm_flash_test_get_pcd_single_id (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0x10,0x1b,0xce,0x94,0xb3,0xba,0x7d,0x5b,0x51,0x70,0x23,0xdc,0x9a,0xd7,0xc5,0xb8,
+		0x75,0x21,0xaf,0xa9,0xd7,0xab,0xa2,0x01,0x24,0xdb,0xbc,0x99,0x2b,0xfb,0x98,0x27
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6325,7 +7020,7 @@ static void cfm_flash_test_get_pcd_single_id (CuTest *test)
 		0xa0c, 0x8, 0x8 - sizeof (struct cfm_allowable_id_element),
 		sizeof (struct cfm_allowable_id_element));
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component2", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, manifest.manifest_index);
 	CuAssertIntEquals (test, 1, manifest.check_count);
@@ -6346,19 +7041,23 @@ static void cfm_flash_test_get_pcd_null (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
-	status = cfm.test.base.get_pcd (NULL, "Component2", &manifest);
+	status = cfm.test.base.get_pcd (NULL, component_digest, &manifest);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	status = cfm.test.base.get_pcd (&cfm.test.base, NULL, &manifest);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component2", NULL);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, NULL);
 	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6368,13 +7067,17 @@ static void cfm_flash_test_get_pcd_verify_never_run (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init (test, &cfm, 0x10000);
+	cfm_flash_testing_init (test, &cfm, 0x10000, false);
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component1", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6384,19 +7087,55 @@ static void cfm_flash_test_get_pcd_component_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	status = mock_expect (&cfm.manifest.flash.mock, cfm.manifest.flash.base.read,
 		&cfm.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component1", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_get_pcd_component_hash_fail (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_manifest manifest;
+	char component_str[] = "Component1";
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, true);
+
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len,
+		CFM_TESTING.component_device1_len, 0);
+
+	status = mock_expect (&cfm.manifest.hash_mock.mock,
+		cfm.manifest.hash_mock.base.calculate_sha256, &cfm.manifest.hash_mock,
+		HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (component_str, strlen (component_str)),
+		MOCK_ARG (strlen (component_str)), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
@@ -6405,11 +7144,12 @@ static void cfm_flash_test_get_pcd_component_not_found (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[SHA256_HASH_LENGTH] = {0};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6437,7 +7177,7 @@ static void cfm_flash_test_get_pcd_component_not_found (CuTest *test)
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component3", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6447,11 +7187,16 @@ static void cfm_flash_test_get_pcd_component_has_no_allowable_pcd (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_ONLY_MEASUREMENT_TESTING, 0,
+		false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_TESTING.manifest,
@@ -6464,7 +7209,7 @@ static void cfm_flash_test_get_pcd_component_has_no_allowable_pcd (CuTest *test)
 	manifest_flash_v2_testing_get_num_child_elements (test, &cfm.manifest,
 		&CFM_ONLY_MEASUREMENT_TESTING.manifest, 2, 2);
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component1", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, CFM_ELEMENT_NOT_FOUND, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6474,11 +7219,15 @@ static void cfm_flash_test_get_pcd_get_num_allowable_pcd_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6497,7 +7246,7 @@ static void cfm_flash_test_get_pcd_get_num_allowable_pcd_fail (CuTest *test)
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component1", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6507,11 +7256,15 @@ static void cfm_flash_test_get_pcd_allowable_pcd_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6526,7 +7279,7 @@ static void cfm_flash_test_get_pcd_allowable_pcd_read_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0x10));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component1", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6536,11 +7289,15 @@ static void cfm_flash_test_get_pcd_get_num_allowable_id_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6565,7 +7322,7 @@ static void cfm_flash_test_get_pcd_get_num_allowable_id_fail (CuTest *test)
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component1", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6575,11 +7332,15 @@ static void cfm_flash_test_get_pcd_allowable_id_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6600,7 +7361,7 @@ static void cfm_flash_test_get_pcd_allowable_id_read_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0xc8));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component1", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6610,11 +7371,15 @@ static void cfm_flash_test_get_pcd_allowable_id_ids_read_fail (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_manifest manifest;
+	uint8_t component_digest[] = {
+		0xce,0x55,0x82,0x4b,0x65,0xd6,0x4d,0x5c,0xd5,0x25,0x3e,0x57,0x63,0xde,0x1b,0x47,
+		0x91,0x0d,0x24,0x00,0x54,0x48,0x32,0xd1,0xf2,0x1b,0xe2,0x20,0xc6,0x1d,0xd9,0x81
+	};
 	int status;
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
 		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
@@ -6638,7 +7403,7 @@ static void cfm_flash_test_get_pcd_allowable_id_ids_read_fail (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (0xc8));
 	CuAssertIntEquals (test, 0, status);
 
-	status = cfm.test.base.get_pcd (&cfm.test.base, "Component1", &manifest);
+	status = cfm.test.base.get_pcd (&cfm.test.base, component_digest, &manifest);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
@@ -6650,7 +7415,7 @@ static void cfm_flash_test_free_manifest_null (CuTest *test)
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false);
 
 	cfm.test.base.free_manifest (&cfm.test.base, NULL);
 
@@ -6698,6 +7463,7 @@ TEST (cfm_flash_test_get_component_pmr_second_pmr);
 TEST (cfm_flash_test_get_component_pmr_null);
 TEST (cfm_flash_test_get_component_pmr_verify_never_run);
 TEST (cfm_flash_test_get_component_pmr_component_read_fail);
+TEST (cfm_flash_test_get_component_pmr_component_hash_fail);
 TEST (cfm_flash_test_get_component_pmr_component_not_found);
 TEST (cfm_flash_test_get_component_pmr_component_has_no_pmr);
 TEST (cfm_flash_test_get_component_pmr_get_num_pmr_fail);
@@ -6709,6 +7475,7 @@ TEST (cfm_flash_test_get_component_pmr_digest_second_digest);
 TEST (cfm_flash_test_get_component_pmr_digest_null);
 TEST (cfm_flash_test_get_component_pmr_digest_verify_never_run);
 TEST (cfm_flash_test_get_component_pmr_digest_component_read_fail);
+TEST (cfm_flash_test_get_component_pmr_digest_component_hash_fail);
 TEST (cfm_flash_test_get_component_pmr_digest_component_not_found);
 TEST (cfm_flash_test_get_component_pmr_digest_component_has_no_pmr_digest);
 TEST (cfm_flash_test_get_component_pmr_digest_get_num_pmr_digest_fail);
@@ -6726,6 +7493,7 @@ TEST (cfm_flash_test_get_component_device);
 TEST (cfm_flash_test_get_component_device_second_component);
 TEST (cfm_flash_test_get_component_device_null);
 TEST (cfm_flash_test_get_component_device_component_read_fail);
+TEST (cfm_flash_test_get_component_device_component_hash_fail);
 TEST (cfm_flash_test_get_component_device_get_num_pmr_digest_fail);
 TEST (cfm_flash_test_get_component_device_pmr_digest_read_fail);
 TEST (cfm_flash_test_get_component_device_component_not_found);
@@ -6738,6 +7506,7 @@ TEST (cfm_flash_test_get_next_measurement_second_component);
 TEST (cfm_flash_test_get_next_measurement_null);
 TEST (cfm_flash_test_get_next_measurement_verify_never_run);
 TEST (cfm_flash_test_get_next_measurement_component_read_fail);
+TEST (cfm_flash_test_get_next_measurement_component_hash_fail);
 TEST (cfm_flash_test_get_next_measurement_component_not_found);
 TEST (cfm_flash_test_get_next_measurement_component_has_no_measurements);
 TEST (cfm_flash_test_get_next_measurement_get_num_measurements_fail);
@@ -6754,6 +7523,7 @@ TEST (cfm_flash_test_get_next_measurement_data_no_bitmask);
 TEST (cfm_flash_test_get_next_measurement_data_null);
 TEST (cfm_flash_test_get_next_measurement_data_verify_never_run);
 TEST (cfm_flash_test_get_next_measurement_data_component_read_fail);
+TEST (cfm_flash_test_get_next_measurement_data_component_hash_fail);
 TEST (cfm_flash_test_get_next_measurement_data_component_not_found);
 TEST (cfm_flash_test_get_next_measurement_data_component_has_no_measurement_data);
 TEST (cfm_flash_test_get_next_measurement_data_get_num_measurement_data_fail);
@@ -6768,6 +7538,7 @@ TEST (cfm_flash_test_get_root_ca_digest_second_component);
 TEST (cfm_flash_test_get_root_ca_digest_null);
 TEST (cfm_flash_test_get_root_ca_digest_verify_never_run);
 TEST (cfm_flash_test_get_root_ca_digest_component_read_fail);
+TEST (cfm_flash_test_get_root_ca_digest_component_hash_fail);
 TEST (cfm_flash_test_get_root_ca_digest_component_not_found);
 TEST (cfm_flash_test_get_root_ca_digest_component_has_no_root_ca_digest);
 TEST (cfm_flash_test_get_root_ca_digest_component_get_num_root_ca_digest_fail);
@@ -6783,6 +7554,7 @@ TEST (cfm_flash_test_get_next_pfm_single_id);
 TEST (cfm_flash_test_get_next_pfm_null);
 TEST (cfm_flash_test_get_next_pfm_verify_never_run);
 TEST (cfm_flash_test_get_next_pfm_component_read_fail);
+TEST (cfm_flash_test_get_next_pfm_component_hash_fail);
 TEST (cfm_flash_test_get_next_pfm_component_not_found);
 TEST (cfm_flash_test_get_next_pfm_component_has_no_allowable_pfm);
 TEST (cfm_flash_test_get_next_pfm_get_num_allowable_pfm_fail);
@@ -6799,6 +7571,7 @@ TEST (cfm_flash_test_get_next_cfm_single_id);
 TEST (cfm_flash_test_get_next_cfm_null);
 TEST (cfm_flash_test_get_next_cfm_verify_never_run);
 TEST (cfm_flash_test_get_next_cfm_component_read_fail);
+TEST (cfm_flash_test_get_next_cfm_component_hash_fail);
 TEST (cfm_flash_test_get_next_cfm_component_not_found);
 TEST (cfm_flash_test_get_next_cfm_component_has_no_allowable_cfm);
 TEST (cfm_flash_test_get_next_cfm_get_num_allowable_cfm_fail);
@@ -6813,6 +7586,7 @@ TEST (cfm_flash_test_get_pcd_single_id);
 TEST (cfm_flash_test_get_pcd_null);
 TEST (cfm_flash_test_get_pcd_verify_never_run);
 TEST (cfm_flash_test_get_pcd_component_read_fail);
+TEST (cfm_flash_test_get_pcd_component_hash_fail);
 TEST (cfm_flash_test_get_pcd_component_not_found);
 TEST (cfm_flash_test_get_pcd_component_has_no_allowable_pcd);
 TEST (cfm_flash_test_get_pcd_get_num_allowable_pcd_fail);

@@ -90,8 +90,8 @@ static int cfm_mock_is_empty (struct manifest *cfm)
 	MOCK_RETURN_NO_ARGS (&mock->mock, cfm_mock_is_empty, cfm);
 }
 
-static int cfm_mock_get_component_pmr (struct cfm *cfm, const char *component_type, uint8_t pmr_id,
-	struct cfm_pmr *pmr)
+static int cfm_mock_get_component_pmr (struct cfm *cfm, const uint8_t *component_type,
+	uint8_t pmr_id, struct cfm_pmr *pmr)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
 
@@ -103,7 +103,7 @@ static int cfm_mock_get_component_pmr (struct cfm *cfm, const char *component_ty
 		MOCK_ARG_CALL (pmr_id), MOCK_ARG_CALL (pmr));
 }
 
-static int cfm_mock_get_component_pmr_digest (struct cfm *cfm, const char *component_type,
+static int cfm_mock_get_component_pmr_digest (struct cfm *cfm, const uint8_t *component_type,
 	uint8_t pmr_id, struct cfm_pmr_digest *pmr_digest)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
@@ -141,7 +141,7 @@ static int cfm_mock_buffer_supported_components (struct cfm *cfm, size_t offset,
 		MOCK_ARG_CALL (length), MOCK_ARG_CALL (components));
 }
 
-static int cfm_mock_get_component_device (struct cfm *cfm, const char *component_type,
+static int cfm_mock_get_component_device (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_component_device *component)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
@@ -165,7 +165,7 @@ static void cfm_mock_free_component_device (struct cfm *cfm, struct cfm_componen
 	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_component_device, cfm, MOCK_ARG_CALL (component));
 }
 
-static int cfm_mock_get_next_measurement (struct cfm *cfm, const char *component_type,
+static int cfm_mock_get_next_measurement (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_measurement *pmr_measurement, bool first)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
@@ -189,7 +189,7 @@ static void cfm_mock_free_measurement (struct cfm *cfm, struct cfm_measurement *
 	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_measurement, cfm, MOCK_ARG_CALL (pmr_measurement));
 }
 
-static int cfm_mock_get_next_measurement_data (struct cfm *cfm, const char *component_type,
+static int cfm_mock_get_next_measurement_data (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_measurement_data *measurement_data,	bool first)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
@@ -215,7 +215,7 @@ static void cfm_mock_free_measurement_data (struct cfm *cfm,
 		MOCK_ARG_CALL (measurement_data));
 }
 
-static int cfm_mock_get_root_ca_digest (struct cfm *cfm, const char *component_type,
+static int cfm_mock_get_root_ca_digest (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_root_ca_digests *root_ca_digest)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
@@ -241,7 +241,7 @@ static void cfm_mock_free_root_ca_digest (struct cfm *cfm,
 		MOCK_ARG_CALL (root_ca_digest));
 }
 
-static int cfm_mock_get_next_pfm (struct cfm *cfm, const char *component_type,
+static int cfm_mock_get_next_pfm (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_manifest *allowable_pfm, bool first)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
@@ -254,7 +254,7 @@ static int cfm_mock_get_next_pfm (struct cfm *cfm, const char *component_type,
 		MOCK_ARG_CALL (allowable_pfm), MOCK_ARG_CALL (first));
 }
 
-static int cfm_mock_get_next_cfm (struct cfm *cfm, const char *component_type,
+static int cfm_mock_get_next_cfm (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_manifest *allowable_cfm, bool first)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
@@ -267,7 +267,7 @@ static int cfm_mock_get_next_cfm (struct cfm *cfm, const char *component_type,
 		MOCK_ARG_CALL (allowable_cfm), MOCK_ARG_CALL (first));
 }
 
-static int cfm_mock_get_pcd (struct cfm *cfm, const char *component_type,
+static int cfm_mock_get_pcd (struct cfm *cfm, const uint8_t *component_type,
 	struct cfm_manifest *allowable_pcd)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;

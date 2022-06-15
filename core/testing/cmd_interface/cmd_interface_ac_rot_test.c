@@ -7,22 +7,18 @@
 #include <string.h>
 #include "testing.h"
 #include "mctp/mctp_base_protocol.h"
-#include "cmd_interface/cmd_interface_slave.h"
+#include "cmd_interface/cmd_interface_ac_rot.h"
 #include "cmd_interface/device_manager.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
 #include "cmd_interface/attestation_cmd_interface.h"
-#include "testing/mock/attestation/attestation_slave_mock.h"
+#include "testing/mock/attestation/attestation_responder_mock.h"
 #include "testing/mock/cmd_interface/cmd_background_mock.h"
 #include "testing/mock/cmd_interface/cmd_device_mock.h"
 #include "testing/mock/cmd_interface/session_manager_mock.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
-#include "testing/mock/crypto/rng_mock.h"
-#include "testing/mock/crypto/ecc_mock.h"
-#include "testing/mock/crypto/rsa_mock.h"
 #include "testing/mock/crypto/signature_verification_mock.h"
 #include "testing/mock/crypto/x509_mock.h"
-#include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/keystore/keystore_mock.h"
 #include "testing/engines/x509_testing_engine.h"
 #include "testing/cmd_interface/cmd_interface_system_testing.h"
@@ -32,15 +28,15 @@
 #include "testing/riot/riot_core_testing.h"
 
 
-TEST_SUITE_LABEL ("cmd_interface_slave");
+TEST_SUITE_LABEL ("cmd_interface_ac_rot");
 
 
 /**
  * Dependencies for testing the slave command interface.
  */
-struct cmd_interface_slave_testing {
-	struct cmd_interface_slave handler;						/**< Command handler instance. */
-	struct attestation_slave_mock slave_attestation;		/**< The slave attestation manager mock. */
+struct cmd_interface_ac_rot_testing {
+	struct cmd_interface_ac_rot handler;						/**< Command handler instance. */
+	struct attestation_responder_mock attestation;			/**< The attestation responder mock. */
 	struct keystore_mock keystore;							/**< RIoT keystore. */
 	struct x509_engine_mock x509_mock;						/**< The X.509 engine mock for the RIoT keys. */
 	X509_TESTING_ENGINE x509;								/**< X.509 engine for the RIoT keys. */
@@ -75,28 +71,28 @@ static struct riot_keys keys = {
  * @param cmd The instance to use for testing.
  * @param direction The device direction to set for the device manager table entry.
  */
-static void setup_cmd_interface_slave_mock_test_init (CuTest *test,
-	struct cmd_interface_slave_testing *cmd)
+static void setup_cmd_interface_ac_rot_mock_test_init (CuTest *test,
+	struct cmd_interface_ac_rot_testing *cmd)
 {
 	uint8_t *dev_id_der = NULL;
 	int status;
 
-	status = device_manager_init (&cmd->device_manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	status = device_manager_init (&cmd->device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&cmd->device_manager, 0, 
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0);
+	status = device_manager_update_device_entry (&cmd->device_manager, 0,
+		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&cmd->device_manager, 1, 
-		MCTP_BASE_PROTOCOL_BMC_EID, 0);
+	status = device_manager_update_device_entry (&cmd->device_manager, 1,
+		MCTP_BASE_PROTOCOL_BMC_EID, 0, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_mock_init (&cmd->background);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_mock_init (&cmd->slave_attestation);
+	status = attestation_responder_mock_init (&cmd->attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = X509_TESTING_ENGINE_INIT (&cmd->x509);
@@ -139,8 +135,8 @@ static void setup_cmd_interface_slave_mock_test_init (CuTest *test,
  * @param riot_core_version The RIoT core version to initialize.
  * @param count The number of firmware versions.
  */
-static void setup_cmd_interface_slave_mock_test_init_fw_version (
-	struct cmd_interface_slave_testing *cmd, const char *fw_version, const char *riot_core_version,
+static void setup_cmd_interface_ac_rot_mock_test_init_fw_version (
+	struct cmd_interface_ac_rot_testing *cmd, const char *fw_version, const char *riot_core_version,
 	size_t count)
 {
 	fw_version_list[0] = fw_version;
@@ -155,17 +151,17 @@ static void setup_cmd_interface_slave_mock_test_init_fw_version (
  * @param test The test framework.
  * @param cmd The instance to use for testing.
  */
-static void setup_cmd_interface_slave_mock_test (CuTest *test,
-	struct cmd_interface_slave_testing *cmd)
+static void setup_cmd_interface_ac_rot_mock_test (CuTest *test,
+	struct cmd_interface_ac_rot_testing *cmd)
 {
 	int status;
 
-	setup_cmd_interface_slave_mock_test_init (test, cmd);
+	setup_cmd_interface_ac_rot_mock_test_init (test, cmd);
 
-	setup_cmd_interface_slave_mock_test_init_fw_version (cmd, CERBERUS_FW_VERSION,
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (cmd, CERBERUS_FW_VERSION,
 		RIOT_CORE_VERSION, FW_VERSION_COUNT);
 
-	status = cmd_interface_slave_init (&cmd->handler, &cmd->slave_attestation.base,
+	status = cmd_interface_ac_rot_init (&cmd->handler, &cmd->attestation.base,
 		&cmd->device_manager, &cmd->background.base, &cmd->fw_version, &cmd->riot,
 		&cmd->cmd_device.base, CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID,
 		4, &cmd->session.base);
@@ -180,22 +176,22 @@ static void setup_cmd_interface_slave_mock_test (CuTest *test,
  * @param cmd The instance to use for testing.
  * @param include_session Flag to include session manager.
  */
-static void setup_cmd_interface_slave_mock_test_with_session_manager (CuTest *test,
-	struct cmd_interface_slave_testing *cmd, bool include_session)
+static void setup_cmd_interface_ac_rot_mock_test_with_session_manager (CuTest *test,
+	struct cmd_interface_ac_rot_testing *cmd, bool include_session)
 {
 	struct session_manager *session_ptr = NULL;
 	int status;
 
-	setup_cmd_interface_slave_mock_test_init (test, cmd);
+	setup_cmd_interface_ac_rot_mock_test_init (test, cmd);
 
-	setup_cmd_interface_slave_mock_test_init_fw_version (cmd, CERBERUS_FW_VERSION,
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (cmd, CERBERUS_FW_VERSION,
 		RIOT_CORE_VERSION, FW_VERSION_COUNT);
 
 	if (include_session) {
 		session_ptr = &cmd->session.base;
 	}
 
-	status = cmd_interface_slave_init (&cmd->handler, &cmd->slave_attestation.base,
+	status = cmd_interface_ac_rot_init (&cmd->handler, &cmd->attestation.base,
 		&cmd->device_manager, &cmd->background.base, &cmd->fw_version, &cmd->riot,
 		&cmd->cmd_device.base, CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID,
 		4, session_ptr);
@@ -208,13 +204,13 @@ static void setup_cmd_interface_slave_mock_test_with_session_manager (CuTest *te
  * @param test The test framework.
  * @param cmd The testing instance to release.
  */
- static void complete_cmd_interface_slave_mock_test (CuTest *test,
-	struct cmd_interface_slave_testing *cmd)
+ static void complete_cmd_interface_ac_rot_mock_test (CuTest *test,
+	struct cmd_interface_ac_rot_testing *cmd)
 {
 	int status = cmd_background_mock_validate_and_release (&cmd->background);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_mock_validate_and_release (&cmd->slave_attestation);
+	status = attestation_responder_mock_validate_and_release (&cmd->attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = keystore_mock_validate_and_release (&cmd->keystore);
@@ -236,17 +232,17 @@ static void setup_cmd_interface_slave_mock_test_with_session_manager (CuTest *te
 	riot_key_manager_release (&cmd->riot);
 	X509_TESTING_ENGINE_RELEASE (&cmd->x509);
 
-	cmd_interface_slave_deinit (&cmd->handler);
+	cmd_interface_ac_rot_deinit (&cmd->handler);
 }
 
 /*******************
  * Test cases
  *******************/
 
-static void cmd_interface_slave_test_init (CuTest *test)
+static void cmd_interface_ac_rot_test_init (CuTest *test)
 {
-	struct cmd_interface_slave interface;
-	struct attestation_slave_mock slave_attestation;
+	struct cmd_interface_ac_rot interface;
+	struct attestation_responder_mock attestation;
 	struct cmd_background_mock background;
 	struct device_manager device_manager;
 	struct riot_key_manager riot;
@@ -283,17 +279,17 @@ static void cmd_interface_slave_test_init (CuTest *test)
 	status = riot_key_manager_init_static (&riot, &keystore.base, &keys, &x509.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_mock_init (&slave_attestation);
+	status = attestation_responder_mock_init (&attestation);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	status = device_manager_init (&device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_device_mock_init (&cmd_device);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_slave_init (&interface, &slave_attestation.base, &device_manager,
+	status = cmd_interface_ac_rot_init (&interface, &attestation.base, &device_manager,
 		&background.base, &fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -304,7 +300,7 @@ static void cmd_interface_slave_test_init (CuTest *test)
 	status = cmd_background_mock_validate_and_release (&background);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_mock_validate_and_release (&slave_attestation);
+	status = attestation_responder_mock_validate_and_release (&attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = keystore_mock_validate_and_release (&keystore);
@@ -318,18 +314,20 @@ static void cmd_interface_slave_test_init (CuTest *test)
 	riot_key_manager_release (&riot);
 	X509_TESTING_ENGINE_RELEASE (&x509);
 
-	cmd_interface_slave_deinit (&interface);
+	cmd_interface_ac_rot_deinit (&interface);
 }
 
-static void cmd_interface_slave_test_init_null (CuTest *test)
+static void cmd_interface_ac_rot_test_init_null (CuTest *test)
 {
-	struct cmd_interface_slave interface;
-	struct attestation_slave_mock slave_attestation;
+	struct cmd_interface_ac_rot interface;
+	struct attestation_responder_mock attestation;
 	struct cmd_background_mock background;
 	struct device_manager device_manager;
 	struct riot_key_manager riot;
 	struct keystore_mock keystore;
 	struct cmd_device_mock cmd_device;
+	struct ecc_engine_mock ecc;
+	struct hash_engine_mock hash;
 	X509_TESTING_ENGINE x509;
 	uint8_t *dev_id_der = NULL;
 	const char *id[FW_VERSION_COUNT] = {CERBERUS_FW_VERSION, RIOT_CORE_VERSION};
@@ -342,6 +340,12 @@ static void cmd_interface_slave_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = X509_TESTING_ENGINE_INIT (&x509);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
 	status = keystore_mock_init (&keystore);
@@ -361,48 +365,48 @@ static void cmd_interface_slave_test_init_null (CuTest *test)
 	status = riot_key_manager_init_static (&riot, &keystore.base, &keys, &x509.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_mock_init (&slave_attestation);
+	status = attestation_responder_mock_init (&attestation);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	status = device_manager_init (&device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_device_mock_init (&cmd_device);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_slave_init (NULL, &slave_attestation.base, &device_manager,
-		&background.base, &fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_slave_init (&interface, NULL, &device_manager, &background.base,
+	status = cmd_interface_ac_rot_init (NULL, &attestation.base, &device_manager, &background.base,
 		&fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_slave_init (&interface, &slave_attestation.base, NULL,
-		&background.base, &fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
+	status = cmd_interface_ac_rot_init (&interface, NULL, &device_manager, &background.base,
+		&fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_slave_init (&interface, &slave_attestation.base, &device_manager,
-		NULL, &fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
+	status = cmd_interface_ac_rot_init (&interface, &attestation.base, NULL, &background.base,
+		&fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_slave_init (&interface, &slave_attestation.base, &device_manager,
+	status = cmd_interface_ac_rot_init (&interface, &attestation.base, &device_manager, NULL,
+		&fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_ac_rot_init (&interface, &attestation.base, &device_manager,
 		&background.base, NULL, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_slave_init (&interface, &slave_attestation.base, &device_manager,
+	status = cmd_interface_ac_rot_init (&interface, &attestation.base, &device_manager,
 		&background.base, &fw_version, NULL, &cmd_device.base, 0, 0, 0, 0, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_slave_init (&interface, &slave_attestation.base, &device_manager,
+	status = cmd_interface_ac_rot_init (&interface, &attestation.base, &device_manager,
 		&background.base, &fw_version, &riot, NULL, 0, 0, 0, 0, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_background_mock_validate_and_release (&background);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_slave_mock_validate_and_release (&slave_attestation);
+	status = attestation_responder_mock_validate_and_release (&attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = keystore_mock_validate_and_release (&keystore);
@@ -416,25 +420,25 @@ static void cmd_interface_slave_test_init_null (CuTest *test)
 	riot_key_manager_release (&riot);
 	X509_TESTING_ENGINE_RELEASE (&x509);
 
-	cmd_interface_slave_deinit (&interface);
+	cmd_interface_ac_rot_deinit (&interface);
 }
 
-static void cmd_interface_slave_test_deinit_null (CuTest *test)
+static void cmd_interface_ac_rot_test_deinit_null (CuTest *test)
 {
 	TEST_START;
 
-	cmd_interface_slave_deinit (NULL);
+	cmd_interface_ac_rot_deinit (NULL);
 }
 
-static void cmd_interface_slave_test_process_null (CuTest *test)
+static void cmd_interface_ac_rot_test_process_null (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	struct cmd_interface_msg request;
 	int status;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (NULL, &request);
@@ -444,12 +448,12 @@ static void cmd_interface_slave_test_process_null (CuTest *test)
 	status = cmd.handler.base.process_request (&cmd.handler.base, NULL);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_payload_too_short (CuTest *test)
+static void cmd_interface_ac_rot_test_process_payload_too_short (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	int status;
@@ -463,19 +467,19 @@ static void cmd_interface_slave_test_process_payload_too_short (CuTest *test)
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_PAYLOAD_TOO_SHORT, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_unsupported_message (CuTest *test)
+static void cmd_interface_ac_rot_test_process_unsupported_message (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
@@ -494,7 +498,7 @@ static void cmd_interface_slave_test_process_unsupported_message (CuTest *test)
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
@@ -509,12 +513,12 @@ static void cmd_interface_slave_test_process_unsupported_message (CuTest *test)
 	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_MSG, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_unknown_command (CuTest *test)
+static void cmd_interface_ac_rot_test_process_unknown_command (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
@@ -533,19 +537,19 @@ static void cmd_interface_slave_test_process_unknown_command (CuTest *test)
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_UNKNOWN_REQUEST, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_reserved_fields_not_zero (CuTest *test)
+static void cmd_interface_ac_rot_test_process_reserved_fields_not_zero (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
@@ -565,7 +569,7 @@ static void cmd_interface_slave_test_process_reserved_fields_not_zero (CuTest *t
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
@@ -580,12 +584,12 @@ static void cmd_interface_slave_test_process_reserved_fields_not_zero (CuTest *t
 	CuAssertIntEquals (test, CMD_HANDLER_RSVD_NOT_ZERO, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_encrypted_message (CuTest *test)
+static void cmd_interface_ac_rot_test_process_encrypted_message (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -676,7 +680,7 @@ static void cmd_interface_slave_test_process_encrypted_message (CuTest *test)
 	encrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	encrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, true);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -715,12 +719,12 @@ static void cmd_interface_slave_test_process_encrypted_message (CuTest *test)
 	CuAssertIntEquals (test, encrypted_counter, resp->counter);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_encrypted_message_decrypt_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_process_encrypted_message_decrypt_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_counter *req = (struct cerberus_protocol_reset_counter*) data;
@@ -746,7 +750,7 @@ static void cmd_interface_slave_test_process_encrypted_message_decrypt_fail (CuT
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, true);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message,
 		&cmd.session, SESSION_MANAGER_NO_MEMORY,
@@ -760,12 +764,12 @@ static void cmd_interface_slave_test_process_encrypted_message_decrypt_fail (CuT
 	CuAssertIntEquals (test, SESSION_MANAGER_NO_MEMORY, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_encrypted_message_encrypt_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_process_encrypted_message_encrypt_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -833,7 +837,7 @@ static void cmd_interface_slave_test_process_encrypted_message_encrypt_fail (CuT
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, true);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -860,12 +864,12 @@ static void cmd_interface_slave_test_process_encrypted_message_encrypt_fail (CuT
 	CuAssertIntEquals (test, SESSION_MANAGER_NO_MEMORY, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_encrypted_message_no_session_manager (CuTest *test)
+static void cmd_interface_ac_rot_test_process_encrypted_message_no_session_manager (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_reset_counter *req = (struct cerberus_protocol_reset_counter*) data;
@@ -890,19 +894,19 @@ static void cmd_interface_slave_test_process_encrypted_message_no_session_manage
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, false);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, false);
 
 	request.crypto_timeout = true;
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_ENCRYPTION_UNSUPPORTED, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_encrypted_message_no_response (CuTest *test)
+static void cmd_interface_ac_rot_test_process_encrypted_message_no_response (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
 	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -953,7 +957,7 @@ static void cmd_interface_slave_test_process_encrypted_message_no_response (CuTe
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -976,34 +980,34 @@ static void cmd_interface_slave_test_process_encrypted_message_no_response (CuTe
 	CuAssertIntEquals (test, 0, request.length);
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_fw_version (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_fw_version (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_fw_version (test, &cmd.handler.base,
 		CERBERUS_FW_VERSION);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_fw_version_unset_version (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_fw_version_unset_version (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	int status;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_init (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test_init (test, &cmd);
 
-	setup_cmd_interface_slave_mock_test_init_fw_version (&cmd, NULL,
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, NULL,
 		RIOT_CORE_VERSION, FW_VERSION_COUNT);
 
-	status = cmd_interface_slave_init (&cmd.handler, &cmd.slave_attestation.base,
+	status = cmd_interface_ac_rot_init (&cmd.handler, &cmd.attestation.base,
 		&cmd.device_manager, &cmd.background.base, &cmd.fw_version, &cmd.riot, &cmd.cmd_device.base,
 		0, 0, 0, 0, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -1011,57 +1015,57 @@ static void cmd_interface_slave_test_process_get_fw_version_unset_version (CuTes
 	cerberus_protocol_required_commands_testing_process_get_fw_version_unset_version (test,
 		&cmd.handler.base);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_fw_version_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_fw_version_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_fw_version_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_fw_version_unsupported_area (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_fw_version_unsupported_area (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_fw_version_unsupported_area (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_fw_version_riot (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_fw_version_riot (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_fw_version_riot (test,
 		&cmd.handler.base, RIOT_CORE_VERSION);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_fw_version_bad_count (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_fw_version_bad_count (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	int status;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_init (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test_init (test, &cmd);
 
-	setup_cmd_interface_slave_mock_test_init_fw_version (&cmd, NULL, RIOT_CORE_VERSION, 0);
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, NULL, RIOT_CORE_VERSION, 0);
 
-	status = cmd_interface_slave_init (&cmd.handler, &cmd.slave_attestation.base,
+	status = cmd_interface_ac_rot_init (&cmd.handler, &cmd.attestation.base,
 		&cmd.device_manager, &cmd.background.base, &cmd.fw_version, &cmd.riot, &cmd.cmd_device.base,
 		0, 0, 0, 0, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -1069,952 +1073,953 @@ static void cmd_interface_slave_test_process_get_fw_version_bad_count (CuTest *t
 	cerberus_protocol_required_commands_testing_process_get_fw_version_bad_count (test,
 		&cmd.handler.base);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_digest (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest (test,
-		&cmd.handler.base, &cmd.slave_attestation, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation, &cmd.session);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest_aux_slot (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_digest_aux_slot (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest_limited_response (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_digest_limited_response (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_limited_response (
-		test, &cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest_unsupported_slot (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_digest_unsupported_slot (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
-		test, &cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest_unavailable_cert (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_digest_unavailable_cert (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unavailable_cert (
-		test, &cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest_encryption_unsupported (
+static void cmd_interface_ac_rot_test_process_get_certificate_digest_encryption_unsupported (
 	CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, false);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, false);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_encryption_unsupported (
 		test, &cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_digest_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest_unsupported_algo (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_digest_unsupported_algo (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_algo (
 		test, &cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest_invalid_slot (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_digest_invalid_slot (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_invalid_slot (
 		test, &cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_digest_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_digest_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_fail (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate (test, &cmd.handler.base,
-		&cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_length_0 (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_length_0 (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_length_0 (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_aux_slot (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_aux_slot (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_aux_slot (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_limited_response (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_limited_response (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_limited_response (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_invalid_offset (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_invalid_offset (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_invalid_offset (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_valid_offset_and_length_beyond_cert_len (
+static void cmd_interface_ac_rot_test_process_get_certificate_valid_offset_and_length_beyond_cert_len (
 	CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_valid_offset_and_length_beyond_cert_len (
-		test, &cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_length_too_big (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_length_too_big (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_length_too_big (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_unsupported_slot (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_unsupported_slot (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_slot (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_unsupported_cert (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_unsupported_cert (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_cert (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_unavailable_cert (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_unavailable_cert (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unavailable_cert (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_invalid_slot_num (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_invalid_slot_num (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_invalid_slot_num (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_certificate_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_certificate_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_certificate_fail (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_challenge_response (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_challenge_response (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, true);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response (test,
-		&cmd.handler.base, &cmd.slave_attestation, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation, &cmd.session);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_challenge_response_no_session_mgr (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_challenge_response_no_session_mgr (
+	CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, false);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, false);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_no_session_mgr (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_challenge_response_key_exchange_not_requested (
+static void cmd_interface_ac_rot_test_process_get_challenge_response_key_exchange_not_requested (
 	CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, true);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_key_exchange_not_requested (
-		test, &cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_challenge_response_limited_response (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_challenge_response_limited_response (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, true);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response (
-		test, &cmd.handler.base, &cmd.slave_attestation, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		test, &cmd.handler.base, &cmd.attestation, &cmd.session);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_challenge_response_limited_response_no_session_mgr (
+static void cmd_interface_ac_rot_test_process_get_challenge_response_limited_response_no_session_mgr (
 	CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, false);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, false);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_no_session_mgr (
-		test, &cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_challenge_response_limited_response_key_exchange_not_requested (
+static void cmd_interface_ac_rot_test_process_get_challenge_response_limited_response_key_exchange_not_requested (
 	CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, true);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_key_exchange_not_requested (
-		test, &cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		test, &cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_challenge_response_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_challenge_response_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_fail (test,
-		&cmd.handler.base, &cmd.slave_attestation);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+		&cmd.handler.base, &cmd.attestation);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_challenge_response_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_challenge_response_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_capabilities (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_capabilities (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_capabilities (test, &cmd.handler.base,
 		&cmd.device_manager);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_capabilities_invalid_device (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_capabilities_invalid_device (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_capabilities_invalid_device (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_capabilities_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_capabilities_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_capabilities_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_devid_csr (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_devid_csr (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr (test, &cmd.handler.base,
 		RIOT_CORE_DEVID_CSR, RIOT_CORE_DEVID_CSR_LEN);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_devid_csr_invalid_buf_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_devid_csr_invalid_buf_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_devid_csr_unsupported_index (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_devid_csr_unsupported_index (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr_unsupported_index (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_devid_csr_too_big (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_devid_csr_too_big (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr_too_big (test,
 		&cmd.handler.base, &cmd.riot);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_devid_csr_too_big_limited_response (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_devid_csr_too_big_limited_response (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_devid_csr_too_big_limited_response (
 		test, &cmd.handler.base, RIOT_CORE_DEVID_CSR, RIOT_CORE_DEVID_CSR_LEN);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_signed_dev_id_cert (CuTest *test)
+static void cmd_interface_ac_rot_test_process_import_signed_dev_id_cert (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_signed_dev_id_cert (test,
 		&cmd.handler.base, &cmd.keystore, &cmd.background);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_root_ca_cert (CuTest *test)
+static void cmd_interface_ac_rot_test_process_import_root_ca_cert (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_root_ca_cert (test,
 		&cmd.handler.base, &cmd.keystore, &cmd.background);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_intermediate_cert (CuTest *test)
+static void cmd_interface_ac_rot_test_process_import_intermediate_cert (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_intermediate_cert (test,
 		&cmd.handler.base, &cmd.keystore, &cmd.background);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_signed_ca_cert_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_import_signed_ca_cert_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_signed_ca_cert_no_cert (CuTest *test)
+static void cmd_interface_ac_rot_test_process_import_signed_ca_cert_no_cert (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_no_cert (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_signed_ca_cert_bad_cert_length (CuTest *test)
+static void cmd_interface_ac_rot_test_process_import_signed_ca_cert_bad_cert_length (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_bad_cert_length (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_signed_ca_cert_unsupported_index (CuTest *test)
+static void cmd_interface_ac_rot_test_process_import_signed_ca_cert_unsupported_index (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_unsupported_index (
 		test, &cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_signed_dev_id_cert_save_error (CuTest *test)
+static void cmd_interface_ac_rot_test_process_import_signed_dev_id_cert_save_error (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_signed_dev_id_cert_save_error (test,
 		&cmd.handler.base, &cmd.keystore);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_root_ca_cert_save_error (CuTest *test)
+static void cmd_interface_ac_rot_test_process_import_root_ca_cert_save_error (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_root_ca_cert_save_error (test,
 		&cmd.handler.base, &cmd.keystore);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_intermediate_cert_save_error (CuTest *test)
+static void cmd_interface_ac_rot_test_process_import_intermediate_cert_save_error (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_intermediate_cert_save_error (test,
 		&cmd.handler.base, &cmd.keystore);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_import_signed_ca_cert_authenticate_error (
+static void cmd_interface_ac_rot_test_process_import_signed_ca_cert_authenticate_error (
 	CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_authenticate_error (
 		test, &cmd.handler.base, &cmd.keystore, &cmd.background);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_signed_cert_state (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_signed_cert_state (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_signed_cert_state (test,
 		&cmd.handler.base, &cmd.background);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_signed_cert_state_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_signed_cert_state_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_signed_cert_state_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_device_info (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_device_info (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_device_info (test, &cmd.handler.base,
 		&cmd.cmd_device);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_device_info_limited_response (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_device_info_limited_response (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_device_info_limited_response (test,
 		&cmd.handler.base, &cmd.cmd_device);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_device_info_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_device_info_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_device_info_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_device_info_bad_info_index (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_device_info_bad_info_index (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_device_info_bad_info_index (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_device_info_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_device_info_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_device_info_fail (test,
 		&cmd.handler.base, &cmd.cmd_device);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_device_id (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_device_id (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_device_id (test, &cmd.handler.base,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID, 4);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_get_device_id_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_get_device_id_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_get_device_id_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_reset_counter (CuTest *test)
+static void cmd_interface_ac_rot_test_process_reset_counter (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_reset_counter (test, &cmd.handler.base,
 		&cmd.cmd_device);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_reset_counter_port0 (CuTest *test)
+static void cmd_interface_ac_rot_test_process_reset_counter_port0 (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_reset_counter_port0 (test,
 		&cmd.handler.base, &cmd.cmd_device);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_reset_counter_port1 (CuTest *test)
+static void cmd_interface_ac_rot_test_process_reset_counter_port1 (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_reset_counter_port1 (test,
 		&cmd.handler.base, &cmd.cmd_device);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_reset_counter_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_reset_counter_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_reset_counter_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_reset_counter_invalid_counter (CuTest *test)
+static void cmd_interface_ac_rot_test_process_reset_counter_invalid_counter (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_process_reset_counter_invalid_counter (test,
 		&cmd.handler.base, &cmd.cmd_device);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_type_0 (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_type_0 (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0 (test,
 		&cmd.handler.base, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_type_0_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_type_0_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0_fail (test,
 		&cmd.handler.base, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_type_1 (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_type_1 (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1 (test,
 		&cmd.handler.base, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_type_1_unencrypted (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_type_1_unencrypted (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_unencrypted (
 		test, &cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_type_1_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_type_1_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1_fail (test,
 		&cmd.handler.base, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_type_2 (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_type_2 (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2 (test,
 		&cmd.handler.base, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_type_2_unencrypted (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_type_2_unencrypted (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_unencrypted (
 		test, &cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_type_2_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_type_2_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2_fail (test,
 		&cmd.handler.base, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_unsupported (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_unsupported (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_with_session_manager (test, &cmd, false);
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, false);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_unsupported_index (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_unsupported_index (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_unsupported_index (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_key_exchange_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_key_exchange_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_get_key_exchange_invalid_len (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_session_sync (CuTest *test)
+static void cmd_interface_ac_rot_test_process_session_sync (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_session_sync (test,	&cmd.handler.base,
 		&cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_session_sync_no_session_mgr (CuTest *test)
+static void cmd_interface_ac_rot_test_process_session_sync_no_session_mgr (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	int status;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test_init (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test_init (test, &cmd);
 
-	setup_cmd_interface_slave_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
 		RIOT_CORE_VERSION, FW_VERSION_COUNT);
 
-	status = cmd_interface_slave_init (&cmd.handler, &cmd.slave_attestation.base,
+	status = cmd_interface_ac_rot_init (&cmd.handler, &cmd.attestation.base,
 		&cmd.device_manager, &cmd.background.base, &cmd.fw_version, &cmd.riot,
 		&cmd.cmd_device.base, CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID,
 		4, NULL);
@@ -2022,241 +2027,241 @@ static void cmd_interface_slave_test_process_session_sync_no_session_mgr (CuTest
 
 	cerberus_protocol_optional_commands_testing_process_session_sync_no_session_mgr (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_session_sync_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_process_session_sync_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_session_sync_fail (test, &cmd.handler.base,
 		&cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_session_sync_unencrypted (CuTest *test)
+static void cmd_interface_ac_rot_test_process_session_sync_unencrypted (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_session_sync_unencrypted (test,
 		&cmd.handler.base);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_session_sync_invalid_len (CuTest *test)
+static void cmd_interface_ac_rot_test_process_session_sync_invalid_len (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_optional_commands_testing_process_session_sync_invalid_len (test,
 		&cmd.handler.base, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_supports_all_required_commands (CuTest *test)
+static void cmd_interface_ac_rot_test_supports_all_required_commands (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 	cerberus_protocol_required_commands_testing_supports_all_required_commands (test,
-		&cmd.handler.base, CERBERUS_FW_VERSION, &cmd.slave_attestation, &cmd.device_manager,
+		&cmd.handler.base, CERBERUS_FW_VERSION, &cmd.attestation, &cmd.device_manager,
 		&cmd.background, &cmd.keystore, &cmd.cmd_device, RIOT_CORE_DEVID_CSR,
 		RIOT_CORE_DEVID_CSR_LEN, CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID,
 		4, &cmd.session);
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_process_response (CuTest *test)
+static void cmd_interface_ac_rot_test_process_response (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 	struct cmd_interface_msg response;
 	int status;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
 	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_generate_error_packet (CuTest *test)
+static void cmd_interface_ac_rot_test_generate_error_packet (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_required_commands_testing_generate_error_packet (test, &cmd.handler.base);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_generate_error_packet_encrypted (CuTest *test)
+static void cmd_interface_ac_rot_test_generate_error_packet_encrypted (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_required_commands_testing_generate_error_packet_encrypted (test,
 		&cmd.handler.base, &cmd.session);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_generate_error_packet_encrypted_fail (CuTest *test)
+static void cmd_interface_ac_rot_test_generate_error_packet_encrypted_fail (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_required_commands_testing_generate_error_packet_encrypted_fail (test,
 		&cmd.handler.base, &cmd.session);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_slave_test_generate_error_packet_invalid_arg (CuTest *test)
+static void cmd_interface_ac_rot_test_generate_error_packet_invalid_arg (CuTest *test)
 {
-	struct cmd_interface_slave_testing cmd;
+	struct cmd_interface_ac_rot_testing cmd;
 
 	TEST_START;
 
-	setup_cmd_interface_slave_mock_test (test, &cmd);
+	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
 
 	cerberus_protocol_required_commands_testing_generate_error_packet_invalid_arg (test,
 		&cmd.handler.base);
 
-	complete_cmd_interface_slave_mock_test (test, &cmd);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
 
-TEST_SUITE_START (cmd_interface_slave);
+TEST_SUITE_START (cmd_interface_ac_rot);
 
-TEST (cmd_interface_slave_test_init);
-TEST (cmd_interface_slave_test_init_null);
-TEST (cmd_interface_slave_test_deinit_null);
-TEST (cmd_interface_slave_test_process_null);
-TEST (cmd_interface_slave_test_process_payload_too_short);
-TEST (cmd_interface_slave_test_process_unsupported_message);
-TEST (cmd_interface_slave_test_process_unknown_command);
-TEST (cmd_interface_slave_test_process_reserved_fields_not_zero);
-TEST (cmd_interface_slave_test_process_encrypted_message);
-TEST (cmd_interface_slave_test_process_encrypted_message_decrypt_fail);
-TEST (cmd_interface_slave_test_process_encrypted_message_encrypt_fail);
-TEST (cmd_interface_slave_test_process_encrypted_message_no_session_manager);
-TEST (cmd_interface_slave_test_process_encrypted_message_no_response);
-TEST (cmd_interface_slave_test_process_get_fw_version);
-TEST (cmd_interface_slave_test_process_get_fw_version_unset_version);
-TEST (cmd_interface_slave_test_process_get_fw_version_unsupported_area);
-TEST (cmd_interface_slave_test_process_get_fw_version_invalid_len);
-TEST (cmd_interface_slave_test_process_get_fw_version_riot);
-TEST (cmd_interface_slave_test_process_get_fw_version_bad_count);
-TEST (cmd_interface_slave_test_process_get_certificate_digest);
-TEST (cmd_interface_slave_test_process_get_certificate_digest_aux_slot);
-TEST (cmd_interface_slave_test_process_get_certificate_digest_unsupported_slot);
-TEST (cmd_interface_slave_test_process_get_certificate_digest_unavailable_cert);
-TEST (cmd_interface_slave_test_process_get_certificate_digest_limited_response);
-TEST (cmd_interface_slave_test_process_get_certificate_digest_invalid_len);
-TEST (cmd_interface_slave_test_process_get_certificate_digest_unsupported_algo);
-TEST (cmd_interface_slave_test_process_get_certificate_digest_encryption_unsupported);
-TEST (cmd_interface_slave_test_process_get_certificate_digest_invalid_slot);
-TEST (cmd_interface_slave_test_process_get_certificate_digest_fail);
-TEST (cmd_interface_slave_test_process_get_certificate);
-TEST (cmd_interface_slave_test_process_get_certificate_length_0);
-TEST (cmd_interface_slave_test_process_get_certificate_aux_slot);
-TEST (cmd_interface_slave_test_process_get_certificate_limited_response);
-TEST (cmd_interface_slave_test_process_get_certificate_invalid_offset);
-TEST (cmd_interface_slave_test_process_get_certificate_valid_offset_and_length_beyond_cert_len);
-TEST (cmd_interface_slave_test_process_get_certificate_length_too_big);
-TEST (cmd_interface_slave_test_process_get_certificate_unsupported_slot);
-TEST (cmd_interface_slave_test_process_get_certificate_unsupported_cert);
-TEST (cmd_interface_slave_test_process_get_certificate_unavailable_cert);
-TEST (cmd_interface_slave_test_process_get_certificate_invalid_len);
-TEST (cmd_interface_slave_test_process_get_certificate_invalid_slot_num);
-TEST (cmd_interface_slave_test_process_get_certificate_fail);
-TEST (cmd_interface_slave_test_process_get_challenge_response);
-TEST (cmd_interface_slave_test_process_get_challenge_response_no_session_mgr);
-TEST (cmd_interface_slave_test_process_get_challenge_response_key_exchange_not_requested);
-TEST (cmd_interface_slave_test_process_get_challenge_response_limited_response);
-TEST (cmd_interface_slave_test_process_get_challenge_response_limited_response_no_session_mgr);
-TEST (cmd_interface_slave_test_process_get_challenge_response_limited_response_key_exchange_not_requested);
-TEST (cmd_interface_slave_test_process_get_challenge_response_fail);
-TEST (cmd_interface_slave_test_process_get_challenge_response_invalid_len);
-TEST (cmd_interface_slave_test_process_get_capabilities);
-TEST (cmd_interface_slave_test_process_get_capabilities_invalid_device);
-TEST (cmd_interface_slave_test_process_get_capabilities_invalid_len);
-TEST (cmd_interface_slave_test_process_get_devid_csr);
-TEST (cmd_interface_slave_test_process_get_devid_csr_invalid_buf_len);
-TEST (cmd_interface_slave_test_process_get_devid_csr_unsupported_index);
-TEST (cmd_interface_slave_test_process_get_devid_csr_too_big);
-TEST (cmd_interface_slave_test_process_get_devid_csr_too_big_limited_response);
-TEST (cmd_interface_slave_test_process_import_signed_dev_id_cert);
-TEST (cmd_interface_slave_test_process_import_root_ca_cert);
-TEST (cmd_interface_slave_test_process_import_intermediate_cert);
-TEST (cmd_interface_slave_test_process_import_signed_ca_cert_invalid_len);
-TEST (cmd_interface_slave_test_process_import_signed_ca_cert_no_cert);
-TEST (cmd_interface_slave_test_process_import_signed_ca_cert_bad_cert_length);
-TEST (cmd_interface_slave_test_process_import_signed_ca_cert_unsupported_index);
-TEST (cmd_interface_slave_test_process_import_signed_dev_id_cert_save_error);
-TEST (cmd_interface_slave_test_process_import_root_ca_cert_save_error);
-TEST (cmd_interface_slave_test_process_import_intermediate_cert_save_error);
-TEST (cmd_interface_slave_test_process_import_signed_ca_cert_authenticate_error);
-TEST (cmd_interface_slave_test_process_get_signed_cert_state);
-TEST (cmd_interface_slave_test_process_get_signed_cert_state_invalid_len);
-TEST (cmd_interface_slave_test_process_get_device_info);
-TEST (cmd_interface_slave_test_process_get_device_info_limited_response);
-TEST (cmd_interface_slave_test_process_get_device_info_invalid_len);
-TEST (cmd_interface_slave_test_process_get_device_info_bad_info_index);
-TEST (cmd_interface_slave_test_process_get_device_info_fail);
-TEST (cmd_interface_slave_test_process_get_device_id);
-TEST (cmd_interface_slave_test_process_get_device_id_invalid_len);
-TEST (cmd_interface_slave_test_process_reset_counter);
-TEST (cmd_interface_slave_test_process_reset_counter_port0);
-TEST (cmd_interface_slave_test_process_reset_counter_port1);
-TEST (cmd_interface_slave_test_process_reset_counter_invalid_len);
-TEST (cmd_interface_slave_test_process_reset_counter_invalid_counter);
-TEST (cmd_interface_slave_test_process_key_exchange_type_0);
-TEST (cmd_interface_slave_test_process_key_exchange_type_0_fail);
-TEST (cmd_interface_slave_test_process_key_exchange_type_1);
-TEST (cmd_interface_slave_test_process_key_exchange_type_1_unencrypted);
-TEST (cmd_interface_slave_test_process_key_exchange_type_1_fail);
-TEST (cmd_interface_slave_test_process_key_exchange_type_2);
-TEST (cmd_interface_slave_test_process_key_exchange_type_2_unencrypted);
-TEST (cmd_interface_slave_test_process_key_exchange_type_2_fail);
-TEST (cmd_interface_slave_test_process_key_exchange_unsupported);
-TEST (cmd_interface_slave_test_process_key_exchange_unsupported_index);
-TEST (cmd_interface_slave_test_process_key_exchange_invalid_len);
-TEST (cmd_interface_slave_test_process_session_sync);
-TEST (cmd_interface_slave_test_process_session_sync_no_session_mgr);
-TEST (cmd_interface_slave_test_process_session_sync_fail);
-TEST (cmd_interface_slave_test_process_session_sync_unencrypted);
-TEST (cmd_interface_slave_test_process_session_sync_invalid_len);
-TEST (cmd_interface_slave_test_supports_all_required_commands);
-TEST (cmd_interface_slave_test_process_response);
-TEST (cmd_interface_slave_test_generate_error_packet);
-TEST (cmd_interface_slave_test_generate_error_packet_encrypted);
-TEST (cmd_interface_slave_test_generate_error_packet_encrypted_fail);
-TEST (cmd_interface_slave_test_generate_error_packet_invalid_arg);
+TEST (cmd_interface_ac_rot_test_init);
+TEST (cmd_interface_ac_rot_test_init_null);
+TEST (cmd_interface_ac_rot_test_deinit_null);
+TEST (cmd_interface_ac_rot_test_process_null);
+TEST (cmd_interface_ac_rot_test_process_payload_too_short);
+TEST (cmd_interface_ac_rot_test_process_unsupported_message);
+TEST (cmd_interface_ac_rot_test_process_unknown_command);
+TEST (cmd_interface_ac_rot_test_process_reserved_fields_not_zero);
+TEST (cmd_interface_ac_rot_test_process_encrypted_message);
+TEST (cmd_interface_ac_rot_test_process_encrypted_message_decrypt_fail);
+TEST (cmd_interface_ac_rot_test_process_encrypted_message_encrypt_fail);
+TEST (cmd_interface_ac_rot_test_process_encrypted_message_no_session_manager);
+TEST (cmd_interface_ac_rot_test_process_encrypted_message_no_response);
+TEST (cmd_interface_ac_rot_test_process_get_fw_version);
+TEST (cmd_interface_ac_rot_test_process_get_fw_version_unset_version);
+TEST (cmd_interface_ac_rot_test_process_get_fw_version_unsupported_area);
+TEST (cmd_interface_ac_rot_test_process_get_fw_version_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_get_fw_version_riot);
+TEST (cmd_interface_ac_rot_test_process_get_fw_version_bad_count);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_aux_slot);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_unsupported_slot);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_unavailable_cert);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_limited_response);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_unsupported_algo);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_encryption_unsupported);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_invalid_slot);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_fail);
+TEST (cmd_interface_ac_rot_test_process_get_certificate);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_length_0);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_aux_slot);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_limited_response);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_invalid_offset);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_valid_offset_and_length_beyond_cert_len);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_length_too_big);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_unsupported_slot);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_unsupported_cert);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_unavailable_cert);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_invalid_slot_num);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_fail);
+TEST (cmd_interface_ac_rot_test_process_get_challenge_response);
+TEST (cmd_interface_ac_rot_test_process_get_challenge_response_no_session_mgr);
+TEST (cmd_interface_ac_rot_test_process_get_challenge_response_key_exchange_not_requested);
+TEST (cmd_interface_ac_rot_test_process_get_challenge_response_limited_response);
+TEST (cmd_interface_ac_rot_test_process_get_challenge_response_limited_response_no_session_mgr);
+TEST (cmd_interface_ac_rot_test_process_get_challenge_response_limited_response_key_exchange_not_requested);
+TEST (cmd_interface_ac_rot_test_process_get_challenge_response_fail);
+TEST (cmd_interface_ac_rot_test_process_get_challenge_response_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_get_capabilities);
+TEST (cmd_interface_ac_rot_test_process_get_capabilities_invalid_device);
+TEST (cmd_interface_ac_rot_test_process_get_capabilities_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_get_devid_csr);
+TEST (cmd_interface_ac_rot_test_process_get_devid_csr_invalid_buf_len);
+TEST (cmd_interface_ac_rot_test_process_get_devid_csr_unsupported_index);
+TEST (cmd_interface_ac_rot_test_process_get_devid_csr_too_big);
+TEST (cmd_interface_ac_rot_test_process_get_devid_csr_too_big_limited_response);
+TEST (cmd_interface_ac_rot_test_process_import_signed_dev_id_cert);
+TEST (cmd_interface_ac_rot_test_process_import_root_ca_cert);
+TEST (cmd_interface_ac_rot_test_process_import_intermediate_cert);
+TEST (cmd_interface_ac_rot_test_process_import_signed_ca_cert_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_import_signed_ca_cert_no_cert);
+TEST (cmd_interface_ac_rot_test_process_import_signed_ca_cert_bad_cert_length);
+TEST (cmd_interface_ac_rot_test_process_import_signed_ca_cert_unsupported_index);
+TEST (cmd_interface_ac_rot_test_process_import_signed_dev_id_cert_save_error);
+TEST (cmd_interface_ac_rot_test_process_import_root_ca_cert_save_error);
+TEST (cmd_interface_ac_rot_test_process_import_intermediate_cert_save_error);
+TEST (cmd_interface_ac_rot_test_process_import_signed_ca_cert_authenticate_error);
+TEST (cmd_interface_ac_rot_test_process_get_signed_cert_state);
+TEST (cmd_interface_ac_rot_test_process_get_signed_cert_state_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_get_device_info);
+TEST (cmd_interface_ac_rot_test_process_get_device_info_limited_response);
+TEST (cmd_interface_ac_rot_test_process_get_device_info_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_get_device_info_bad_info_index);
+TEST (cmd_interface_ac_rot_test_process_get_device_info_fail);
+TEST (cmd_interface_ac_rot_test_process_get_device_id);
+TEST (cmd_interface_ac_rot_test_process_get_device_id_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_reset_counter);
+TEST (cmd_interface_ac_rot_test_process_reset_counter_port0);
+TEST (cmd_interface_ac_rot_test_process_reset_counter_port1);
+TEST (cmd_interface_ac_rot_test_process_reset_counter_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_reset_counter_invalid_counter);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_type_0);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_type_0_fail);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_type_1);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_type_1_unencrypted);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_type_1_fail);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_type_2);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_type_2_unencrypted);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_type_2_fail);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_unsupported);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_unsupported_index);
+TEST (cmd_interface_ac_rot_test_process_key_exchange_invalid_len);
+TEST (cmd_interface_ac_rot_test_process_session_sync);
+TEST (cmd_interface_ac_rot_test_process_session_sync_no_session_mgr);
+TEST (cmd_interface_ac_rot_test_process_session_sync_fail);
+TEST (cmd_interface_ac_rot_test_process_session_sync_unencrypted);
+TEST (cmd_interface_ac_rot_test_process_session_sync_invalid_len);
+TEST (cmd_interface_ac_rot_test_supports_all_required_commands);
+TEST (cmd_interface_ac_rot_test_process_response);
+TEST (cmd_interface_ac_rot_test_generate_error_packet);
+TEST (cmd_interface_ac_rot_test_generate_error_packet_encrypted);
+TEST (cmd_interface_ac_rot_test_generate_error_packet_encrypted_fail);
+TEST (cmd_interface_ac_rot_test_generate_error_packet_invalid_arg);
 
 TEST_SUITE_END;

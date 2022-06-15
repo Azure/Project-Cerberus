@@ -7,7 +7,7 @@
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/device_manager.h"
-#include "attestation/attestation_master.h"
+#include "attestation/attestation_requester.h"
 #include "crypto/hash.h"
 
 

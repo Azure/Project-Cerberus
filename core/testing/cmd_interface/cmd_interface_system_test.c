@@ -19,8 +19,7 @@
 #include "logging/debug_log.h"
 #include "attestation/pcr_store.h"
 #include "recovery/recovery_image_header.h"
-#include "testing/mock/attestation/attestation_master_mock.h"
-#include "testing/mock/attestation/attestation_slave_mock.h"
+#include "testing/mock/attestation/attestation_responder_mock.h"
 #include "testing/mock/cmd_interface/cmd_authorization_mock.h"
 #include "testing/mock/cmd_interface/cmd_background_mock.h"
 #include "testing/mock/cmd_interface/cmd_device_mock.h"
@@ -29,7 +28,6 @@
 #include "testing/mock/cmd_interface/cerberus_protocol_observer_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
-#include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/rsa_mock.h"
 #include "testing/mock/crypto/x509_mock.h"
 #include "testing/mock/firmware/firmware_update_control_mock.h"
@@ -107,8 +105,7 @@ struct cmd_interface_system_testing {
 	struct cfm_manager_mock cfm_manager;						/**< The CFM manager mock. */
 	struct pcd_manager_mock pcd_manager;						/**< The PCD manager mock. */
 	struct logging_mock debug;									/**< The debug logger mock. */
-	struct attestation_master_mock master_attestation;			/**< The master attestation manager mock. */
-	struct attestation_slave_mock slave_attestation;			/**< The slave attestation manager mock. */
+	struct attestation_responder_mock attestation;				/**< The attestation responder mock. */
 	struct recovery_image_cmd_interface_mock recovery_0;		/**< The recovery image update mock for port 0. */
 	struct recovery_image_cmd_interface_mock recovery_1;		/**< The recovery image update mock for port 1. */
 	struct recovery_image_manager_mock recovery_manager_0;		/**< The recovery image manager mock for port 0. */
@@ -201,16 +198,16 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 
 	debug_log = NULL;
 
-	status = device_manager_init (&cmd->device_manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	status = device_manager_init (&cmd->device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&cmd->device_manager, 0, 
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0);
+	status = device_manager_update_device_entry (&cmd->device_manager, 0,
+		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&cmd->device_manager, 1, 
-		MCTP_BASE_PROTOCOL_BMC_EID, 0);
+	status = device_manager_update_device_entry (&cmd->device_manager, 1,
+		MCTP_BASE_PROTOCOL_BMC_EID, 0, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = firmware_update_control_mock_init (&cmd->update);
@@ -252,10 +249,7 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 	status = logging_mock_init (&cmd->debug);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_master_mock_init (&cmd->master_attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_slave_mock_init (&cmd->slave_attestation);
+	status = attestation_responder_mock_init (&cmd->attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&cmd->hash);
@@ -433,12 +427,11 @@ static void setup_cmd_interface_system_mock_test (CuTest *test,
 
 	status = cmd_interface_system_init (&cmd->handler, &cmd->update.base, pfm_0_ptr, pfm_1_ptr,
 		cfm_ptr, pcd_ptr, pfm_manager_0_ptr, pfm_manager_1_ptr, cfm_manager_ptr, pcd_manager_ptr,
-		&cmd->master_attestation.base, &cmd->slave_attestation.base, &cmd->device_manager,
-		&cmd->store, &cmd->hash.base, &cmd->background.base, host_0_ptr, host_1_ptr,
-		&cmd->fw_version, &cmd->riot, &cmd->auth.base, host_ctrl_0_ptr, host_ctrl_1_ptr,
-		recovery_0_ptr, recovery_1_ptr, recovery_manager_0_ptr, recovery_manager_1_ptr,
-		&cmd->cmd_device.base, CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID, 4,
-		session_mgr_ptr);
+		&cmd->attestation.base, &cmd->device_manager,	&cmd->store, &cmd->hash.base,
+		&cmd->background.base, host_0_ptr, host_1_ptr, &cmd->fw_version, &cmd->riot,
+		&cmd->auth.base, host_ctrl_0_ptr, host_ctrl_1_ptr, recovery_0_ptr, recovery_1_ptr,
+		recovery_manager_0_ptr, recovery_manager_1_ptr,	&cmd->cmd_device.base,
+		CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID, 4, session_mgr_ptr);
 	CuAssertIntEquals (test, 0, status);
 
 	if (register_response_observer) {
@@ -500,10 +493,7 @@ static void setup_cmd_interface_system_mock_test (CuTest *test,
 	status = logging_mock_validate_and_release (&cmd->debug);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_master_mock_validate_and_release (&cmd->master_attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_slave_mock_validate_and_release (&cmd->slave_attestation);
+	status = attestation_responder_mock_validate_and_release (&cmd->attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_validate_and_release (&cmd->hash);
@@ -593,8 +583,7 @@ static void cmd_interface_system_test_init (CuTest *test)
 	struct host_processor_mock host_0;
 	struct host_processor_mock host_1;
 	struct logging_mock debug;
-	struct attestation_master_mock master_attestation;
-	struct attestation_slave_mock slave_attestation;
+	struct attestation_responder_mock attestation;
 	struct pcr_store store;
 	struct hash_engine_mock hash;
 	struct cmd_background_mock background;
@@ -677,10 +666,7 @@ static void cmd_interface_system_test_init (CuTest *test)
 	status = riot_key_manager_init_static (&riot, &keystore.base, &keys, &x509.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_master_mock_init (&master_attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_slave_mock_init (&slave_attestation);
+	status = attestation_responder_mock_init (&attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&hash);
@@ -689,8 +675,8 @@ static void cmd_interface_system_test_init (CuTest *test)
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	status = device_manager_init (&device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_authorization_mock_init (&auth);
@@ -712,10 +698,9 @@ static void cmd_interface_system_test_init (CuTest *test)
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
-		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base,	&host_ctrl_0.base,
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
@@ -761,10 +746,7 @@ static void cmd_interface_system_test_init (CuTest *test)
 	status = logging_mock_validate_and_release (&debug);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_master_mock_validate_and_release (&master_attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_slave_mock_validate_and_release (&slave_attestation);
+	status = attestation_responder_mock_validate_and_release (&attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_validate_and_release (&hash);
@@ -812,8 +794,7 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	struct host_processor_mock host_0;
 	struct host_processor_mock host_1;
 	struct logging_mock debug;
-	struct attestation_master_mock master_attestation;
-	struct attestation_slave_mock slave_attestation;
+	struct attestation_responder_mock attestation;
 	struct pcr_store store;
 	struct hash_engine_mock hash;
 	struct cmd_background_mock background;
@@ -896,10 +877,7 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	status = riot_key_manager_init_static (&riot, &keystore.base, &keys, &x509.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_master_mock_init (&master_attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_slave_mock_init (&slave_attestation);
+	status = attestation_responder_mock_init (&attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&hash);
@@ -908,8 +886,8 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&device_manager, 2, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	status = device_manager_init (&device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_authorization_mock_init (&auth);
@@ -931,98 +909,79 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 
 	status = cmd_interface_system_init (NULL, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
-		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base,	&host_ctrl_0.base,
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, NULL, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
-		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
-		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base, NULL,
-		&slave_attestation.base, &device_manager, &store, &hash.base, &background.base,
-		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base,
-		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base,	&host_ctrl_0.base,
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, NULL, &device_manager, &store, &hash.base, &background.base,
-		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base,
-		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		NULL, &device_manager, &store, &hash.base, &background.base, &host_0.base, &host_1.base,
+		&fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL,
+		NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, NULL, &store, &hash.base,
-		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, NULL, &store, &hash.base, &background.base, &host_0.base,
+		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
+		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, &device_manager, NULL, &hash.base,
-		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, &device_manager, NULL, &hash.base,	&background.base, &host_0.base,
+		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
+		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, &device_manager, &store, NULL,
-		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, &device_manager, &store, NULL, &background.base, &host_0.base,
+		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
+		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
-		NULL, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base,
-		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, &device_manager, &store, &hash.base, NULL, &host_0.base,
+		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
+		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
-		&background.base, &host_0.base, &host_1.base, NULL, &riot, &auth.base, &host_ctrl_0.base,
-		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, NULL, &riot, &auth.base, &host_ctrl_0.base,	&host_ctrl_1.base,
+		NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,  &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
-		&background.base, &host_0.base, &host_1.base, &fw_version, NULL, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, NULL, &auth.base, &host_ctrl_0.base,
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
-		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, NULL, &host_ctrl_0.base,
-		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, &riot, NULL, &host_ctrl_0.base, &host_ctrl_1.base,
+		NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&master_attestation.base, &slave_attestation.base, &device_manager, &store, &hash.base,
-		&background.base, &host_0.base, &host_1.base, &fw_version, &riot, &auth.base,
-		&host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0,
-		&session.base);
+		&attestation.base, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base,	&host_ctrl_0.base,
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = firmware_update_control_mock_validate_and_release (&update);
@@ -1064,10 +1023,7 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	status = logging_mock_validate_and_release (&debug);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_master_mock_validate_and_release (&master_attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_slave_mock_validate_and_release (&slave_attestation);
+	status = attestation_responder_mock_validate_and_release (&attestation);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_validate_and_release (&hash);
@@ -2326,11 +2282,11 @@ static void cmd_interface_system_test_process_get_recovery_image_ext_update_stat
 	status = cmd_interface_system_init (&cmd.handler, &cmd.update.base, &cmd.pfm_0.base,
 		&cmd.pfm_1.base, &cmd.cfm.base, &cmd.pcd.base, &cmd.pfm_manager_0.base,
 		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
-		&cmd.master_attestation.base, &cmd.slave_attestation.base, &cmd.device_manager, &cmd.store,
-		&cmd.hash.base, &cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version,
-		&cmd.riot, &cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, NULL,
-		&cmd.recovery_1.base, &cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,
-		&cmd.cmd_device.base, 0, 0, 0, 0, &cmd.session.base);
+		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
+		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
+		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, NULL,	&cmd.recovery_1.base,
+		&cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,	&cmd.cmd_device.base, 0, 0, 0,
+		0, &cmd.session.base);
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port0_cmd_intf_null (
@@ -2369,11 +2325,11 @@ static void cmd_interface_system_test_process_get_recovery_image_ext_update_stat
 	status = cmd_interface_system_init (&cmd.handler, &cmd.update.base, &cmd.pfm_0.base,
 		&cmd.pfm_1.base, &cmd.cfm.base, &cmd.pcd.base, &cmd.pfm_manager_0.base,
 		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
-		&cmd.master_attestation.base, &cmd.slave_attestation.base, &cmd.device_manager, &cmd.store,
-		&cmd.hash.base, &cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version,
-		&cmd.riot, &cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base,
-		&cmd.recovery_0.base, NULL, &cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,
-		&cmd.cmd_device.base, 0, 0, 0, 0, &cmd.session.base);
+		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
+		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
+		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, &cmd.recovery_0.base, NULL,
+		&cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,	&cmd.cmd_device.base, 0, 0, 0,
+		0, &cmd.session.base);
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_master_commands_testing_process_get_recovery_image_ext_update_status_port1_cmd_intf_null (
@@ -2462,11 +2418,11 @@ static void cmd_interface_system_test_process_get_fw_version_unset_version (CuTe
 	status = cmd_interface_system_init (&cmd.handler, &cmd.update.base, &cmd.pfm_0.base,
 		&cmd.pfm_1.base, &cmd.cfm.base, &cmd.pcd.base, &cmd.pfm_manager_0.base,
 		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
-		&cmd.master_attestation.base, &cmd.slave_attestation.base, &cmd.device_manager, &cmd.store,
-		&cmd.hash.base, &cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version,
-		&cmd.riot, &cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base,
-		&cmd.recovery_0.base, &cmd.recovery_1.base, &cmd.recovery_manager_0.base,
-		&cmd.recovery_manager_1.base, &cmd.cmd_device.base, 0, 0, 0, 0, &cmd.session.base);
+		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
+		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
+		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, &cmd.recovery_0.base,
+		&cmd.recovery_1.base, &cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,
+		&cmd.cmd_device.base, 0, 0, 0, 0, &cmd.session.base);
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_required_commands_testing_process_get_fw_version_unset_version (test,
@@ -2527,11 +2483,11 @@ static void cmd_interface_system_test_process_get_fw_version_bad_count (CuTest *
 	status = cmd_interface_system_init (&cmd.handler, &cmd.update.base, &cmd.pfm_0.base,
 		&cmd.pfm_1.base, &cmd.cfm.base, &cmd.pcd.base, &cmd.pfm_manager_0.base,
 		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
-		&cmd.master_attestation.base, &cmd.slave_attestation.base, &cmd.device_manager, &cmd.store,
-		&cmd.hash.base, &cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version,
-		&cmd.riot, &cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base,
-		&cmd.recovery_0.base, &cmd.recovery_1.base, &cmd.recovery_manager_0.base,
-		&cmd.recovery_manager_1.base, &cmd.cmd_device.base, 0, 0, 0, 0, &cmd.session.base);
+		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
+		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
+		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, &cmd.recovery_0.base,
+		&cmd.recovery_1.base, &cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,
+		&cmd.cmd_device.base, 0, 0, 0, 0, &cmd.session.base);
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_required_commands_testing_process_get_fw_version_bad_count (test,
@@ -3068,7 +3024,7 @@ static void cmd_interface_system_test_process_get_pfm_id_fail_port0 (CuTest *tes
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
-	cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port0 (test, 
+	cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port0 (test,
 		&cmd.handler.base, &cmd.pfm_manager_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -3081,7 +3037,7 @@ static void cmd_interface_system_test_process_get_pfm_id_fail_port1 (CuTest *tes
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
-	cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port1 (test, 
+	cerberus_protocol_optional_commands_testing_process_get_pfm_id_fail_port1 (test,
 		&cmd.handler.base, &cmd.pfm_manager_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -4514,7 +4470,7 @@ static void cmd_interface_system_test_process_get_certificate_digest (CuTest *te
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest (test,
-		&cmd.handler.base, &cmd.slave_attestation, &cmd.session);
+		&cmd.handler.base, &cmd.attestation, &cmd.session);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4527,7 +4483,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_aux_slot (C
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4540,7 +4496,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_limited_res
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_limited_response (
-		test, &cmd.handler.base, &cmd.slave_attestation);
+		test, &cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4553,7 +4509,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_unsupported
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unsupported_slot (
-		test, &cmd.handler.base, &cmd.slave_attestation);
+		test, &cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4566,7 +4522,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_unavailable
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_unavailable_cert (
-		test, &cmd.handler.base, &cmd.slave_attestation);
+		test, &cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4632,7 +4588,7 @@ static void cmd_interface_system_test_process_get_certificate_digest_fail (CuTes
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_fail (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4645,7 +4601,7 @@ static void cmd_interface_system_test_process_get_certificate (CuTest *test)
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate (test, &cmd.handler.base,
-		&cmd.slave_attestation);
+		&cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4658,7 +4614,7 @@ static void cmd_interface_system_test_process_get_certificate_length_0 (CuTest *
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_length_0 (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4671,7 +4627,7 @@ static void cmd_interface_system_test_process_get_certificate_aux_slot (CuTest *
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_aux_slot (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4684,7 +4640,7 @@ static void cmd_interface_system_test_process_get_certificate_limited_response (
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_limited_response (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4697,7 +4653,7 @@ static void cmd_interface_system_test_process_get_certificate_invalid_offset (Cu
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_invalid_offset (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4711,7 +4667,7 @@ static void cmd_interface_system_test_process_get_certificate_valid_offset_and_l
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_valid_offset_and_length_beyond_cert_len (
-		test, &cmd.handler.base, &cmd.slave_attestation);
+		test, &cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4724,7 +4680,7 @@ static void cmd_interface_system_test_process_get_certificate_length_too_big (Cu
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_length_too_big (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4737,7 +4693,7 @@ static void cmd_interface_system_test_process_get_certificate_unsupported_slot (
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_slot (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4750,7 +4706,7 @@ static void cmd_interface_system_test_process_get_certificate_unsupported_cert (
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unsupported_cert (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4763,7 +4719,7 @@ static void cmd_interface_system_test_process_get_certificate_unavailable_cert (
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_unavailable_cert (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4802,7 +4758,7 @@ static void cmd_interface_system_test_process_get_certificate_fail (CuTest *test
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_certificate_fail (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4815,7 +4771,7 @@ static void cmd_interface_system_test_process_get_challenge_response (CuTest *te
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response (test,
-		&cmd.handler.base, &cmd.slave_attestation, &cmd.session);
+		&cmd.handler.base, &cmd.attestation, &cmd.session);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4828,7 +4784,7 @@ static void cmd_interface_system_test_process_get_challenge_response_no_session_
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, false, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_no_session_mgr (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4842,7 +4798,7 @@ static void cmd_interface_system_test_process_get_challenge_response_key_exchang
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, false, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_key_exchange_not_requested (
-		test, &cmd.handler.base, &cmd.slave_attestation);
+		test, &cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4855,7 +4811,7 @@ static void cmd_interface_system_test_process_get_challenge_response_limited_res
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response (
-		test, &cmd.handler.base, &cmd.slave_attestation, &cmd.session);
+		test, &cmd.handler.base, &cmd.attestation, &cmd.session);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4869,7 +4825,7 @@ static void cmd_interface_system_test_process_get_challenge_response_limited_res
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, false, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_no_session_mgr (
-		test, &cmd.handler.base, &cmd.slave_attestation);
+		test, &cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4883,7 +4839,7 @@ static void cmd_interface_system_test_process_get_challenge_response_limited_res
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, false, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_limited_response_key_exchange_not_requested (
-		test, &cmd.handler.base, &cmd.slave_attestation);
+		test, &cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -4896,7 +4852,7 @@ static void cmd_interface_system_test_process_get_challenge_response_fail (CuTes
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_process_get_challenge_response_fail (test,
-		&cmd.handler.base, &cmd.slave_attestation);
+		&cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -7272,7 +7228,7 @@ static void cmd_interface_system_test_supports_all_required_commands (CuTest *te
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_required_commands_testing_supports_all_required_commands (test,
-		&cmd.handler.base, CERBERUS_FW_VERSION, &cmd.slave_attestation, &cmd.device_manager,
+		&cmd.handler.base, CERBERUS_FW_VERSION, &cmd.attestation, &cmd.device_manager,
 		&cmd.background, &cmd.keystore, &cmd.cmd_device, RIOT_CORE_DEVID_CSR,
 		RIOT_CORE_DEVID_CSR_LEN, CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID,
 		4, &cmd.session);
@@ -7514,7 +7470,7 @@ static void cmd_interface_system_test_process_response_encrypted_message (CuTest
 	data[offset + SHA256_HASH_LENGTH - 1] = 0xCC;
 
 	response.length =
-		cerberus_protocol_get_certificate_digest_response_length (SHA256_HASH_LENGTH) +
+		cerberus_protocol_get_certificate_digest_response_length (rsp) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7529,7 +7485,7 @@ static void cmd_interface_system_test_process_response_encrypted_message (CuTest
 	decrypted_data[offset + SHA256_HASH_LENGTH - 1] = 0xEE;
 
 	decrypted_response.length =
-		cerberus_protocol_get_certificate_digest_response_length (SHA256_HASH_LENGTH);
+		cerberus_protocol_get_certificate_digest_response_length (plaintext_rsp);
 	decrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	decrypted_response.max_response = SESSION_MANAGER_TRAILER_LEN;
@@ -7584,7 +7540,7 @@ static void cmd_interface_system_test_process_response_encrypted_message_decrypt
 	rsp->num_digests = 0xAA;
 
 	response.length =
-		cerberus_protocol_get_certificate_digest_response_length (SHA256_HASH_LENGTH) +
+		cerberus_protocol_get_certificate_digest_response_length (rsp) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7627,7 +7583,7 @@ static void cmd_interface_system_test_process_response_encrypted_message_no_sess
 	rsp->num_digests = 0xAA;
 
 	response.length =
-		cerberus_protocol_get_certificate_digest_response_length (SHA256_HASH_LENGTH) +
+		cerberus_protocol_get_certificate_digest_response_length (rsp) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -7860,6 +7816,81 @@ static void cmd_interface_system_test_process_response_challenge_response_rsvd_n
 		true, true, true);
 	cerberus_protocol_master_commands_testing_process_response_challenge_rsvd_not_zero (test,
 		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_device_capabilities (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	int status;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_device_capabilities,
+		&cmd.observer, 0, MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,
+		sizeof (response)));
+	CuAssertIntEquals (test, 0, status);
+
+	cerberus_protocol_master_commands_testing_process_response_device_capabilities (test,
+		&cmd.handler.base, &response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_device_capabilities_no_observer (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	response.data = data;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, false);
+
+	cerberus_protocol_master_commands_testing_process_response_device_capabilities (test,
+		&cmd.handler.base, &response);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_device_capabilities_invalid_buf_len (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_response_device_capabilities_invalid_buf_len (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_response_device_capabilities_rsvd_not_fail (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_response_device_capabilities_rsvd_not_zero (
+		test, &cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -8438,6 +8469,10 @@ TEST (cmd_interface_system_test_process_response_challenge_response_no_observer)
 TEST (cmd_interface_system_test_process_response_challenge_response_invalid_buf_len);
 TEST (cmd_interface_system_test_process_response_challenge_response_unsupported_slot);
 TEST (cmd_interface_system_test_process_response_challenge_response_rsvd_not_fail);
+TEST (cmd_interface_system_test_process_response_device_capabilities);
+TEST (cmd_interface_system_test_process_response_device_capabilities_no_observer);
+TEST (cmd_interface_system_test_process_response_device_capabilities_invalid_buf_len);
+TEST (cmd_interface_system_test_process_response_device_capabilities_rsvd_not_fail);
 TEST (cmd_interface_system_test_generate_error_packet);
 TEST (cmd_interface_system_test_generate_error_packet_encrypted);
 TEST (cmd_interface_system_test_generate_error_packet_encrypted_fail);

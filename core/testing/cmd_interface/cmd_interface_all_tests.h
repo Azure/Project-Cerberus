@@ -63,17 +63,23 @@ static void add_all_cmd_interface_tests (CuSuite *suite)
 	!defined TESTING_SKIP_CMD_CHANNEL_SUITE
 	TESTING_RUN_SUITE (cmd_channel);
 #endif
+#if (defined TESTING_RUN_CMD_INTERFACE_AC_ROT_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_INTERFACE_AC_ROT_SUITE
+	TESTING_RUN_SUITE (cmd_interface_ac_rot);
+#endif
 #if (defined TESTING_RUN_CMD_INTERFACE_DUAL_CMD_SET_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_CMD_INTERFACE_DUAL_CMD_SET_SUITE
 	TESTING_RUN_SUITE (cmd_interface_dual_cmd_set);
 #endif
-#if (defined TESTING_RUN_CMD_INTERFACE_SLAVE_SUITE || \
+#if (defined TESTING_RUN_CMD_INTERFACE_SPDM_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_CMD_INTERFACE_SLAVE_SUITE
-	TESTING_RUN_SUITE (cmd_interface_slave);
+	!defined TESTING_SKIP_CMD_INTERFACE_SPDM_SUITE
+	TESTING_RUN_SUITE (cmd_interface_spdm);
 #endif
 #if (defined TESTING_RUN_CMD_INTERFACE_SYSTEM_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
@@ -104,6 +110,12 @@ static void add_all_cmd_interface_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_SESSION_MANAGER_ECC_SUITE
 	TESTING_RUN_SUITE (session_manager_ecc);
+#endif
+#if (defined TESTING_RUN_SPDM_COMMANDS_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SPDM_COMMANDS_SUITE
+	TESTING_RUN_SUITE (spdm_commands);
 #endif
 }
 

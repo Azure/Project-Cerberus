@@ -90,8 +90,8 @@ static int pcd_mock_is_empty (struct manifest *pcd)
 	MOCK_RETURN_NO_ARGS (&mock->mock, pcd_mock_is_empty, pcd);
 }
 
-static int pcd_mock_get_devices_info (struct pcd *pcd, struct device_manager_info **devices,
-	size_t *num_devices)
+static int pcd_mock_get_next_mctp_bridge_component (struct pcd *pcd,
+	struct pcd_mctp_bridge_components_info *component, bool first)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -99,8 +99,8 @@ static int pcd_mock_get_devices_info (struct pcd *pcd, struct device_manager_inf
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_mock_get_devices_info, pcd, MOCK_ARG_CALL (devices),
-		MOCK_ARG_CALL (num_devices));
+	MOCK_RETURN (&mock->mock, pcd_mock_get_next_mctp_bridge_component, pcd,
+		MOCK_ARG_CALL (component), MOCK_ARG_CALL (first));
 }
 
 static int pcd_mock_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
@@ -147,7 +147,7 @@ static int pcd_mock_func_arg_count (void *func)
 		return 3;
 	}
 	else if ((func == pcd_mock_get_platform_id) || (func == pcd_mock_get_signature) ||
-		(func == pcd_mock_get_devices_info) || (func == pcd_mock_get_port_info)) {
+		(func == pcd_mock_get_next_mctp_bridge_component) || (func == pcd_mock_get_port_info)) {
 		return 2;
 	}
 	else if ((func == pcd_mock_get_id) || (func == pcd_mock_free_platform_id) ||
@@ -182,8 +182,8 @@ static const char* pcd_mock_func_name_map (void *func)
 	else if (func == pcd_mock_is_empty) {
 		return "is_empty";
 	}
-	else if (func == pcd_mock_get_devices_info) {
-		return "get_devices_info";
+	else if (func == pcd_mock_get_next_mctp_bridge_component) {
+		return "get_next_mctp_bridge_component";
 	}
 	else if (func == pcd_mock_get_rot_info) {
 		return "get_rot_info";
@@ -258,13 +258,13 @@ static const char* pcd_mock_arg_name_map (void *func, int arg)
 				return "length";
 		}
 	}
-	else if (func == pcd_mock_get_devices_info) {
+	else if (func == pcd_mock_get_next_mctp_bridge_component) {
 		switch (arg) {
 			case 0:
-				return "devices";
+				return "component";
 
 			case 1:
-				return "num_devices";
+				return "first";
 		}
 	}
 	else if (func == pcd_mock_get_rot_info) {
@@ -324,7 +324,7 @@ int pcd_mock_init (struct pcd_mock *mock)
 	mock->base.base.get_signature = pcd_mock_get_signature;
 	mock->base.base.is_empty = pcd_mock_is_empty;
 
-	mock->base.get_devices_info = pcd_mock_get_devices_info;
+	mock->base.get_next_mctp_bridge_component = pcd_mock_get_next_mctp_bridge_component;
 	mock->base.get_rot_info = pcd_mock_get_rot_info;
 	mock->base.get_port_info = pcd_mock_get_port_info;
 	mock->base.get_power_controller_info = pcd_mock_get_power_controller_info;

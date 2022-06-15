@@ -4,6 +4,8 @@
 #ifndef COMMON_MATH_H_
 #define COMMON_MATH_H_
 
+#include <stdint.h>
+
 
 /**
  * Determine the minimum of two numbers.
@@ -19,6 +21,9 @@
  * Reverse the byte order for a 16-bit integer.
  */
 #define	SWAP_BYTES_UINT16(x)	((((x) >> 8) & 0xff) | (((x) & 0xff) << 8))
+
+
+int common_math_get_num_bits_set (uint8_t byte);
 
 
 #endif //COMMON_MATH_H_

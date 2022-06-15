@@ -10,15 +10,24 @@
 
 
 /* Hash lengths */
-#define	SHA1_HASH_LENGTH	(160 / 8)
-#define SHA256_HASH_LENGTH	(256 / 8)
-#define	SHA384_HASH_LENGTH	(384 / 8)
-#define	SHA512_HASH_LENGTH	(512 / 8)
+#define	SHA1_HASH_LENGTH				(160 / 8)
+#define SHA256_HASH_LENGTH				(256 / 8)
+#define	SHA384_HASH_LENGTH				(384 / 8)
+#define	SHA512_HASH_LENGTH				(512 / 8)
 
-#define	SHA1_BLOCK_SIZE		(512 / 8)
-#define	SHA256_BLOCK_SIZE	(512 / 8)
-#define	SHA384_BLOCK_SIZE	(1024 / 8)
-#define	SHA512_BLOCK_SIZE	(1024 / 8)
+/* Maximum hash length */
+#ifdef HASH_ENABLE_SHA512
+#define HASH_MAX_HASH_LEN				SHA512_HASH_LENGTH
+#elif defined HASH_ENABLE_SHA384
+#define HASH_MAX_HASH_LEN				SHA384_HASH_LENGTH
+#else
+#define HASH_MAX_HASH_LEN				SHA256_HASH_LENGTH
+#endif
+
+#define	SHA1_BLOCK_SIZE					(512 / 8)
+#define	SHA256_BLOCK_SIZE				(512 / 8)
+#define	SHA384_BLOCK_SIZE				(1024 / 8)
+#define	SHA512_BLOCK_SIZE				(1024 / 8)
 
 
 /**
@@ -197,6 +206,7 @@ struct hash_engine {
 
 
 int hash_start_new_hash (struct hash_engine *engine, enum hash_type type);
+
 int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length);
 

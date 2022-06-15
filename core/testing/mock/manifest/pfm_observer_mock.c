@@ -44,6 +44,17 @@ static void pfm_observer_mock_on_clear_active (struct pfm_observer *observer)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, pfm_observer_mock_on_clear_active, observer);
 }
 
+static void pfm_observer_mock_on_pfm_activation_request (struct pfm_observer *observer)
+{
+	struct pfm_observer_mock *mock = (struct pfm_observer_mock*) observer;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, pfm_observer_mock_on_pfm_activation_request, observer);
+}
+
 static int pfm_observer_mock_func_arg_count (void *func)
 {
 	if ((func == pfm_observer_mock_on_pfm_verified) ||
@@ -65,6 +76,9 @@ static const char* pfm_observer_mock_func_name_map (void *func)
 	}
 	else if (func == pfm_observer_mock_on_clear_active) {
 		return "on_clear_active";
+	}
+	else if (func == pfm_observer_mock_on_pfm_activation_request) {
+		return "on_pfm_activation_request";
 	}
 	else {
 		return "unknown";
@@ -116,6 +130,7 @@ int pfm_observer_mock_init (struct pfm_observer_mock *mock)
 	mock->base.on_pfm_verified = pfm_observer_mock_on_pfm_verified;
 	mock->base.on_pfm_activated = pfm_observer_mock_on_pfm_activated;
 	mock->base.on_clear_active = pfm_observer_mock_on_clear_active;
+	mock->base.on_pfm_activation_request = pfm_observer_mock_on_pfm_activation_request;
 
 	mock->mock.func_arg_count = pfm_observer_mock_func_arg_count;
 	mock->mock.func_name_map = pfm_observer_mock_func_name_map;
