@@ -19,7 +19,7 @@ struct cerberus_protocol_observer {
 	 * Arguments passed with the notification will never be null.
 	 *
 	 * @param observer The observer instance being notified.
-	 * @param reponse The response container received.
+	 * @param response The response container received.
 	 */
 	void (*on_get_digest_response) (struct cerberus_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
@@ -30,7 +30,7 @@ struct cerberus_protocol_observer {
 	 * Arguments passed with the notification will never be null.
 	 *
 	 * @param observer The observer instance being notified.
-	 * @param reponse The response container received.
+	 * @param response The response container received.
 	 */
 	void (*on_get_certificate_response) (struct cerberus_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
@@ -41,7 +41,7 @@ struct cerberus_protocol_observer {
 	 * Arguments passed with the notification will never be null.
 	 *
 	 * @param observer The observer instance being notified.
-	 * @param reponse The response container received.
+	 * @param response The response container received.
 	 */
 	void (*on_challenge_response) (struct cerberus_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
@@ -52,7 +52,7 @@ struct cerberus_protocol_observer {
 	 * Arguments passed with the notification will never be null.
 	 *
 	 * @param observer The observer instance being notified.
-	 * @param reponse The response container received.
+	 * @param response The response container received.
 	 */
 	void (*on_device_capabilities) (struct cerberus_protocol_observer *observer,
 		const struct cmd_interface_msg *response);

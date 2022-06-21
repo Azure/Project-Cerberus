@@ -127,7 +127,7 @@ const uint8_t HASH_TESTING_FULL_BLOCK_1024[] = {
 const uint32_t HASH_TESTING_FULL_BLOCK_1024_LEN = sizeof (HASH_TESTING_FULL_BLOCK_1024);
 
 /**
- * A 2048-bit block of data.  This is two full blocks for SHA384/SHA512 hashes, or three full blocks
+ * A 2048-bit block of data.  This is two full blocks for SHA384/SHA512 hashes, or four full blocks
  * for SHA1/SHA256 hashes.
  */
 const uint8_t HASH_TESTING_FULL_BLOCK_2048[] = {
@@ -152,7 +152,7 @@ const uint8_t HASH_TESTING_FULL_BLOCK_2048[] = {
 const uint32_t HASH_TESTING_FULL_BLOCK_2048_LEN = sizeof (HASH_TESTING_FULL_BLOCK_2048);
 
 /**
- * A 4096-bit block of data.  This is three full blocks for SHA384/SHA512 hashes, or four full
+ * A 4096-bit block of data.  This is four full blocks for SHA384/SHA512 hashes, or eight full
  * blocks for SHA1/SHA256 hashes.
  */
 const uint8_t HASH_TESTING_FULL_BLOCK_4096[] = {

@@ -1768,7 +1768,7 @@ static int attestation_requester_setup_spdm_device (const struct attestation_req
  * @param eid EID of device being attested.
  * @param device_addr Slave address of device.
  * @param measurement_operation Measurement operation requested.
- * @param raw_bistream_requested Flag indicating whether to request raw form of measurement blocks.
+ * @param raw_bitstream_requested Flag indicating whether to request raw form of measurement blocks.
  *
  * @return Completion status, 0 if success or an error code otherwise
  */
@@ -1894,7 +1894,7 @@ free_pmr_digest:
 }
 
 /**
- * For each measurement block with corresponding measurment entry in CFM, get measurement block
+ * For each measurement block with corresponding measurement entry in CFM, get measurement block
  * digest using SPDM and compare to allowable values.
  *
  * @param attestation Attestation requester instance to utilize.
@@ -2018,7 +2018,7 @@ static int attestation_requester_verify_data_in_allowable_list (
 	size_t i_allowable_data;
 	size_t i_data;
 	size_t offset;
-	int status;
+	int status = ATTESTATION_CFM_INVALID_ATTESTATION;
 
 	for (i_allowable_data = 0; i_allowable_data < num_allowable_data;
 		++i_allowable_data, ++allowable_data) {
@@ -2054,7 +2054,7 @@ static int attestation_requester_verify_data_in_allowable_list (
 }
 
 /**
- * For each measurement block with corresponding measurment data entry in CFM, get raw measurement
+ * For each measurement block with corresponding measurement data entry in CFM, get raw measurement
  * block using SPDM and compare to allowable values.
  *
  * @param attestation Attestation requester instance to utilize.
@@ -2195,7 +2195,7 @@ static int attestation_requester_attest_device_spdm (
 	}
 
 	/* Perform PMR0 check. If device supports Challenge command, then use that. Otherwise, get all
-	 * meausurement blocks which make up PMR0 using the Get Measurement command */
+	 * measurement blocks which make up PMR0 using the Get Measurement command */
 	if (attestation->state->challenge_supported) {
 		status = attestation->rng->generate_random_buffer (attestation->rng, SPDM_NONCE_LEN, nonce);
 		if (status != 0) {
@@ -2398,10 +2398,10 @@ static int attestation_requester_discover_device_spdm_protocol (
 	struct spdm_measurements_device_id_block *block =
 		(struct spdm_measurements_device_id_block *) attestation->state->msg_buffer;
 	struct spdm_measurements_device_id_descriptor *descriptor;
-	uint16_t pci_vid;
-	uint16_t pci_device_id;
-	uint16_t pci_sub_vid;
-	uint16_t pci_sub_id;
+	uint16_t pci_vid = 0;
+	uint16_t pci_device_id = 0;
+	uint16_t pci_sub_vid = 0;
+	uint16_t pci_sub_id = 0;
 	uint16_t *id;
 	size_t offset = sizeof (struct spdm_measurements_device_id_block);
 	uint8_t found = 0;

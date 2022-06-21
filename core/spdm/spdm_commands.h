@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#ifndef SPDM_REQUESTS_H_
-#define SPDM_REQUESTS_H_
+#ifndef SPDM_COMMANDS_H_
+#define SPDM_COMMANDS_H_
 
 #include "common/common_math.h"
 #include "attestation/attestation_responder.h"
@@ -827,4 +827,4 @@ int spdm_generate_get_measurements_request (uint8_t *buf, size_t buf_len, uint8_
 int spdm_process_get_measurements_response (struct cmd_interface_msg *response);
 
 
-#endif /* SPDM_REQUESTS_H_ */
+#endif /* SPDM_COMMANDS_H_ */

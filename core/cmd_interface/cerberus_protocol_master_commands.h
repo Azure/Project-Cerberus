@@ -370,4 +370,4 @@ int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
 	struct cmd_interface_msg *request);
 
 
-#endif // CERBERUS_PROTOCOL_MASTER_COMMANDS_H_
+#endif /* CERBERUS_PROTOCOL_MASTER_COMMANDS_H_ */

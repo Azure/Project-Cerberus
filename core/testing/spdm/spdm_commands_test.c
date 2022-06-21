@@ -3754,27 +3754,31 @@ static void spdm_test_generate_challenge_request_null (CuTest *test)
 static void spdm_test_process_challenge_response (CuTest *test)
 {
 	uint8_t buf[sizeof (struct spdm_challenge_response) + 45] = {0};
-	struct spdm_challenge_response *resp = (struct spdm_challenge_response*) buf;
-	uint16_t *opaque_len = spdm_get_challenge_resp_opaque_len_ptr (resp, SHA256_HASH_LENGTH,
-		SHA256_HASH_LENGTH);
+	// struct spdm_challenge_response *resp = (struct spdm_challenge_response*) buf;
+	// uint16_t *opaque_len = spdm_get_challenge_resp_opaque_len_ptr (resp, SHA256_HASH_LENGTH,
+	// 	SHA256_HASH_LENGTH);
 	struct cmd_interface_msg msg;
 	int status;
 
 	msg.data = buf;
 	msg.length = sizeof (buf);
 
-	resp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
-	resp->header.integrity_check = 0;
-	resp->header.spdm_minor_version = 2;
-	resp->header.spdm_major_version = SPDM_MAJOR_VERSION;
-	resp->header.req_rsp_code = SPDM_RESPONSE_CHALLENGE;
+	/* TODO: Improve this test to ensure properly sized buffers and check for correct response
+	 * length.  The '45' modifier to the buf size is opaque.  Perhaps a macro to determine the
+	 * size? */
 
-	resp->slot_num = 1;
-	resp->reserved = 0;
-	resp->basic_mutual_auth_req = 1;
-	resp->slot_mask = 2;
+	// resp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
+	// resp->header.integrity_check = 0;
+	// resp->header.spdm_minor_version = 2;
+	// resp->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	// resp->header.req_rsp_code = SPDM_RESPONSE_CHALLENGE;
 
-	*opaque_len = 2;
+	// resp->slot_num = 1;
+	// resp->reserved = 0;
+	// resp->basic_mutual_auth_req = 1;
+	// resp->slot_mask = 2;
+
+	// *opaque_len = 2;
 
 	TEST_START;
 

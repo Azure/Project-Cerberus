@@ -181,6 +181,41 @@ static void hash_openssl_test_sha1_incremental_update_to_full_hash_block (CuTest
 	hash_openssl_release (&engine);
 }
 
+static void hash_openssl_test_sha1_incremental_update_to_full_hash_block_after_full_block (
+	CuTest *test)
+{
+	struct hash_engine_openssl engine;
+	int status;
+	uint8_t hash[SHA1_HASH_LENGTH];
+	int i;
+
+	TEST_START;
+
+	status = hash_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha1 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.update (&engine.base, HASH_TESTING_FULL_BLOCK_1024, SHA1_BLOCK_SIZE);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < 4; i++) {
+		status = engine.base.update (&engine.base,
+			&HASH_TESTING_FULL_BLOCK_1024[SHA1_BLOCK_SIZE + (i * (SHA1_BLOCK_SIZE / 4))],
+			SHA1_BLOCK_SIZE / 4);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA1_FULL_BLOCK_1024_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_openssl_release (&engine);
+}
+
 static void hash_openssl_test_sha1_incremental_multiple_hash_blocks_single_update (CuTest *test)
 {
 	struct hash_engine_openssl engine;
@@ -757,6 +792,41 @@ static void hash_openssl_test_sha256_incremental_update_to_full_hash_block (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_openssl_release (&engine);
+}
+
+static void hash_openssl_test_sha256_incremental_update_to_full_hash_block_after_full_block (
+	CuTest *test)
+{
+	struct hash_engine_openssl engine;
+	int status;
+	uint8_t hash[SHA256_HASH_LENGTH];
+	int i;
+
+	TEST_START;
+
+	status = hash_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.update (&engine.base, HASH_TESTING_FULL_BLOCK_1024, SHA256_BLOCK_SIZE);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < 4; i++) {
+		status = engine.base.update (&engine.base,
+			&HASH_TESTING_FULL_BLOCK_1024[SHA256_BLOCK_SIZE + (i * (SHA256_BLOCK_SIZE / 4))],
+			SHA256_BLOCK_SIZE / 4);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_1024_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	hash_openssl_release (&engine);
@@ -1343,6 +1413,41 @@ static void hash_openssl_test_sha384_incremental_update_to_full_hash_block (CuTe
 	hash_openssl_release (&engine);
 }
 
+static void hash_openssl_test_sha384_incremental_update_to_full_hash_block_after_full_block (
+	CuTest *test)
+{
+	struct hash_engine_openssl engine;
+	int status;
+	uint8_t hash[SHA384_HASH_LENGTH];
+	int i;
+
+	TEST_START;
+
+	status = hash_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha384 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.update (&engine.base, HASH_TESTING_FULL_BLOCK_2048, SHA384_BLOCK_SIZE);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < 4; i++) {
+		status = engine.base.update (&engine.base,
+			&HASH_TESTING_FULL_BLOCK_2048[SHA384_BLOCK_SIZE + (i * (SHA384_BLOCK_SIZE / 4))],
+			SHA384_BLOCK_SIZE / 4);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA384_FULL_BLOCK_2048_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_openssl_release (&engine);
+}
+
 static void hash_openssl_test_sha384_incremental_multiple_hash_blocks_single_update (CuTest *test)
 {
 	struct hash_engine_openssl engine;
@@ -1920,6 +2025,41 @@ static void hash_openssl_test_sha512_incremental_update_to_full_hash_block (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (SHA512_FULL_BLOCK_1024_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_openssl_release (&engine);
+}
+
+static void hash_openssl_test_sha512_incremental_update_to_full_hash_block_after_full_block (
+	CuTest *test)
+{
+	struct hash_engine_openssl engine;
+	int status;
+	uint8_t hash[SHA512_HASH_LENGTH];
+	int i;
+
+	TEST_START;
+
+	status = hash_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha512 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.update (&engine.base, HASH_TESTING_FULL_BLOCK_2048, SHA512_BLOCK_SIZE);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < 4; i++) {
+		status = engine.base.update (&engine.base,
+			&HASH_TESTING_FULL_BLOCK_2048[SHA512_BLOCK_SIZE + (i * (SHA512_BLOCK_SIZE / 4))],
+			SHA512_BLOCK_SIZE / 4);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA512_FULL_BLOCK_2048_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	hash_openssl_release (&engine);
@@ -3177,6 +3317,7 @@ TEST (hash_openssl_test_sha1_incremental);
 TEST (hash_openssl_test_sha1_incremental_multi);
 TEST (hash_openssl_test_sha1_incremental_full_hash_block);
 TEST (hash_openssl_test_sha1_incremental_update_to_full_hash_block);
+TEST (hash_openssl_test_sha1_incremental_update_to_full_hash_block_after_full_block);
 TEST (hash_openssl_test_sha1_incremental_multiple_hash_blocks_single_update);
 TEST (hash_openssl_test_sha1_incremental_multiple_hash_blocks_partial_update);
 TEST (hash_openssl_test_sha1_incremental_multiple_hash_blocks_not_aligned);
@@ -3198,6 +3339,7 @@ TEST (hash_openssl_test_sha256_incremental);
 TEST (hash_openssl_test_sha256_incremental_multi);
 TEST (hash_openssl_test_sha256_incremental_full_hash_block);
 TEST (hash_openssl_test_sha256_incremental_update_to_full_hash_block);
+TEST (hash_openssl_test_sha256_incremental_update_to_full_hash_block_after_full_block);
 TEST (hash_openssl_test_sha256_incremental_multiple_hash_blocks_single_update);
 TEST (hash_openssl_test_sha256_incremental_multiple_hash_blocks_partial_update);
 TEST (hash_openssl_test_sha256_incremental_multiple_hash_blocks_not_aligned);
@@ -3219,6 +3361,7 @@ TEST (hash_openssl_test_sha384_incremental);
 TEST (hash_openssl_test_sha384_incremental_multi);
 TEST (hash_openssl_test_sha384_incremental_full_hash_block);
 TEST (hash_openssl_test_sha384_incremental_update_to_full_hash_block);
+TEST (hash_openssl_test_sha384_incremental_update_to_full_hash_block_after_full_block);
 TEST (hash_openssl_test_sha384_incremental_multiple_hash_blocks_single_update);
 TEST (hash_openssl_test_sha384_incremental_multiple_hash_blocks_partial_update);
 TEST (hash_openssl_test_sha384_incremental_multiple_hash_blocks_not_aligned);
@@ -3241,6 +3384,7 @@ TEST (hash_openssl_test_sha512_incremental);
 TEST (hash_openssl_test_sha512_incremental_multi);
 TEST (hash_openssl_test_sha512_incremental_full_hash_block);
 TEST (hash_openssl_test_sha512_incremental_update_to_full_hash_block);
+TEST (hash_openssl_test_sha512_incremental_update_to_full_hash_block_after_full_block);
 TEST (hash_openssl_test_sha512_incremental_multiple_hash_blocks_single_update);
 TEST (hash_openssl_test_sha512_incremental_multiple_hash_blocks_partial_update);
 TEST (hash_openssl_test_sha512_incremental_multiple_hash_blocks_not_aligned);

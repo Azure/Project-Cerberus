@@ -53,12 +53,12 @@ enum {
 };
 
 /**
- * Indentifier for the reset state of the host processor.
+ * Identifier for the reset state of the host processor.
  */
 enum {
 	CERBERUS_PROTOCOL_HOST_RUNNING = 0,						/**< The host is not in reset */
 	CERBERUS_PROTOCOL_HOST_HELD_IN_RESET,					/**< The host is being held in reset */
-	CERBERUS_PROTOCOL_HOST_IN_RESET							/**< The hosh is not being held in reset, but is not running */
+	CERBERUS_PROTOCOL_HOST_IN_RESET							/**< The host is not being held in reset, but is not running */
 };
 
 /**
@@ -334,7 +334,7 @@ struct cerberus_protocol_get_host_state_response {
 };
 
 /**
- * Cerberus protorol get platform measurement register request format
+ * Cerberus protocol get platform measurement register request format
  */
 struct cerberus_protocol_pmr {
 	struct cerberus_protocol_header header;					/**< Message header */
@@ -348,7 +348,7 @@ struct cerberus_protocol_pmr {
 struct cerberus_protocol_pmr_response {
 	struct cerberus_protocol_header header;					/**< Message header */
 	uint8_t nonce[32];										/**< Responder freshness seed */
-	uint8_t pmr_length;										/**< Length of the measureent */
+	uint8_t pmr_length;										/**< Length of the measurement */
 	uint8_t measurement;									/**< First byte of the variable length measurement */
 };
 
@@ -622,7 +622,7 @@ struct cerberus_protocol_get_log_info_response {
  */
 struct cerberus_protocol_get_log {
 	struct cerberus_protocol_header header;					/**< Message header */
-	uint8_t log_type;										/**< Log indentifier to read */
+	uint8_t log_type;										/**< Log identifier to read */
 	uint32_t offset;										/**< Offset to start reding the log */
 };
 
@@ -736,7 +736,7 @@ struct cerberus_protocol_complete_fw_update {
  */
 struct cerberus_protocol_reset_config {
 	struct cerberus_protocol_header header;					/**< Message header */
-	uint8_t type;											/**< The type of reset opeartion to perform */
+	uint8_t type;											/**< The type of reset operation to perform */
 };
 
 /**
