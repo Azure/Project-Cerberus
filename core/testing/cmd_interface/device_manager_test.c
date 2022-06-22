@@ -4054,6 +4054,8 @@ static void device_manager_test_get_time_till_next_action_single_attestation (Cu
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
 	CuAssertTrue (test, (duration_ms < 2000) && (duration_ms != 0));
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_time_till_next_action_multiple_attestation (CuTest *test)
@@ -4094,6 +4096,8 @@ static void device_manager_test_get_time_till_next_action_multiple_attestation (
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
 	CuAssertTrue (test, (duration_ms < 2000) && (duration_ms != 0));
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_time_till_next_action_single_attestation_authenticated (
@@ -4120,6 +4124,8 @@ static void device_manager_test_get_time_till_next_action_single_attestation_aut
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
 	CuAssertTrue (test, (duration_ms < 6000) && (duration_ms != 0));
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_time_till_next_action_multiple_attestation_authenticated (
@@ -4149,6 +4155,8 @@ static void device_manager_test_get_time_till_next_action_multiple_attestation_a
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
 	CuAssertTrue (test, (duration_ms < 6000) && (duration_ms != 0));
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_time_till_next_action_multiple_attestation_authenticated_and_unauthenticated (
@@ -4184,6 +4192,8 @@ static void device_manager_test_get_time_till_next_action_multiple_attestation_a
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
 	CuAssertTrue (test, (duration_ms < 2000) && (duration_ms != 0));
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_time_till_next_action_single_discovery (CuTest *test)
@@ -4366,6 +4376,8 @@ static void device_manager_test_get_time_till_next_action_attestation_and_discov
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
 	CuAssertTrue (test, (duration_ms < 11000) && (duration_ms != 0));
+
+	device_manager_release (&manager);
 }
 
 
@@ -4430,6 +4442,8 @@ static void device_manager_test_get_attestation_status (CuTest *test)
 	}
 
 	CuAssertIntEquals (test, 0x15, bitmap[31]);
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_attestation_status_all_unauthenticated (CuTest *test)
@@ -4462,6 +4476,8 @@ static void device_manager_test_get_attestation_status_all_unauthenticated (CuTe
 	}
 
 	CuAssertIntEquals (test, 0x3F, bitmap[31]);
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_attestation_status_all_unauthenticated_not_max (CuTest *test)
@@ -4495,6 +4511,8 @@ static void device_manager_test_get_attestation_status_all_unauthenticated_not_m
 	for (i_bitmap = 2; i_bitmap < 32; ++i_bitmap) {
 		CuAssertIntEquals (test, 0, bitmap[i_bitmap]);
 	}
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_attestation_status_all_authenticated (CuTest *test)
@@ -4524,6 +4542,8 @@ static void device_manager_test_get_attestation_status_all_authenticated (CuTest
 	for (i_bitmap = 0; i_bitmap < 32; ++i_bitmap) {
 		CuAssertIntEquals (test, 0x00, bitmap[i_bitmap]);
 	}
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_attestation_status_all_authenticated_not_max (CuTest *test)
@@ -4553,6 +4573,8 @@ static void device_manager_test_get_attestation_status_all_authenticated_not_max
 	for (i_bitmap = 0; i_bitmap < 32; ++i_bitmap) {
 		CuAssertIntEquals (test, 0x00, bitmap[i_bitmap]);
 	}
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_attestation_status_multiple_components_same_entry (CuTest *test)
@@ -4600,6 +4622,8 @@ static void device_manager_test_get_attestation_status_multiple_components_same_
 	for (i_bitmap = 16; i_bitmap < 32; ++i_bitmap) {
 		CuAssertIntEquals (test, 0, bitmap[i_bitmap]);
 	}
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_attestation_status_multiple_components_same_entry_not_max (
@@ -4647,6 +4671,8 @@ static void device_manager_test_get_attestation_status_multiple_components_same_
 	for (i_bitmap = 2; i_bitmap < 32; ++i_bitmap) {
 		CuAssertIntEquals (test, 0, bitmap[i_bitmap]);
 	}
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_mark_component_attestation_invalid_invalid_arg (CuTest *test)
@@ -4690,6 +4716,8 @@ static void device_manager_test_mark_component_attestation_invalid (CuTest *test
 	for (i_bitmap = 0; i_bitmap < 32; ++i_bitmap) {
 		CuAssertIntEquals (test, 0xFF, bitmap[i_bitmap]);
 	}
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_mark_component_attestation_invalid_not_max (CuTest *test)
@@ -4723,6 +4751,8 @@ static void device_manager_test_mark_component_attestation_invalid_not_max (CuTe
 	for (i_bitmap = 0; i_bitmap < 32; ++i_bitmap) {
 		CuAssertIntEquals (test, 0xFF, bitmap[i_bitmap]);
 	}
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_attestation_status_invalid_arg (CuTest *test)

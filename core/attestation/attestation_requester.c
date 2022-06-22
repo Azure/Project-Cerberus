@@ -866,6 +866,10 @@ void attestation_requester_on_spdm_get_certificate_response (
 
 		if ((rsp->portion_len + attestation->state->cert_buffer_len) >
 			attestation->state->cert_total_len) {
+			if (attestation->state->cert_buffer != NULL) {
+				platform_free (attestation->state->cert_buffer);
+			}
+
 			goto fail;
 		}
 

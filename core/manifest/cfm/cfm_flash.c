@@ -440,7 +440,7 @@ static void cfm_flash_free_cfm_digests (struct cfm *cfm, struct cfm_digests *dig
  * @return 0 if the container was generated successfully or an error code.
  */
 static int cfm_flash_populate_digests (struct cfm *cfm, struct cfm_digests *digests,
-	size_t digest_count, enum hash_type hash_type, uint8_t element_type, int entry, uint32_t offset)
+	size_t digest_count, uint8_t hash_type, uint8_t element_type, int entry, uint32_t offset)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
 	size_t digests_len;
@@ -652,7 +652,7 @@ static int cfm_flash_get_next_measurement_data (struct cfm *cfm, const uint8_t *
 		}
 
 		allowable_data_ptr = &measurement_data->check[i_allowable_data];
-		allowable_data_ptr->check = allowable_data_element_ptr->check;
+		allowable_data_ptr->check = (enum cfm_check) allowable_data_element_ptr->check;
 		allowable_data_ptr->data_len = allowable_data_element_ptr->data_len;
 		allowable_data_ptr->data_count = allowable_data_element_ptr->num_data;
 
@@ -844,7 +844,7 @@ int cfm_flash_get_next_manifest (struct cfm *cfm, const uint8_t *component_type,
 		}
 
 		allowable_id_ptr = &allowable_manifest->check[i_allowable_id];
-		allowable_id_ptr->check = allowable_id_element_ptr->check;
+		allowable_id_ptr->check = (enum cfm_check) allowable_id_element_ptr->check;
 		allowable_id_ptr->id_count = allowable_id_element_ptr->num_id;
 
 		offset = sizeof (struct cfm_allowable_id_element);
