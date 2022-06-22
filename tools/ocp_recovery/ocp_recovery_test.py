@@ -11,6 +11,8 @@ import argparse
 import subprocess
 import secrets
 import tempfile
+import json
+import time
 
 
 def log_output (text, log_file = None):
@@ -28,6 +30,21 @@ def log_output (text, log_file = None):
     else:
         print (text, end = "")
 
+def fail (msg = None, log_file = None):
+    """
+    Fail a test and abort the test script.
+
+    :param msg:  A message to print to describe the failure.
+    :param log_file:  File output for the log.  If there is no file, the text will be printed to
+        the screen.
+    """
+
+    if (msg):
+        log_output ("\n{0}\n".format (msg), log_file)
+
+    log_output ("FAILURE!!!!!\n", log_file)
+    sys.exit (1)
+
 def check_result (result, log_file = None):
     """
     Check the result for a single application execution.  If the execution failed, this will
@@ -41,8 +58,7 @@ def check_result (result, log_file = None):
     log_output (result.stdout, log_file)
 
     if (result.returncode != 0):
-        log_output ("\nFAILURE!!!!!\n", log_file)
-        sys.exit (1)
+        fail (log_file = log_file)
 
 def get_ocp_options (args):
     """
@@ -57,15 +73,6 @@ def get_ocp_options (args):
 
     if (args.addr):
         ocp_args.extend (["-a", args.addr])
-
-    if (args.cms_read):
-        ocp_args.extend (["-R", str (args.cms_read)])
-
-    if (args.cms_write):
-        ocp_args.extend (["-W", str (args.cms_write)])
-
-    if (args.no_pec):
-        ocp_args.append ("-p")
 
     for i in range (args.verbose):
         ocp_args.append ("-v")
@@ -149,56 +156,161 @@ def get_cms_size (args, cms):
 
     return int (bytes.group (1), 16)
 
-def run_stress_cmd (args):
-    """
-    Run the 'show_all' command to stress reading each supported command.
-
-    :param args:  The user-defined arguments.
-    """
-
-    run_cmd (args, ["show_all"])
-
-def run_stress_cms (args):
+def fill_and_verify_cms (args, cms_info, timeout):
     """
     Write random data to an entire CMS.  Verify that the data was written correctly.
 
     :param args:  The user-defined arguments.
+    :param cms_info:  Dictionary defining the CMS and parameters to use.
+    :param timeout:  Timeout to apply to the commands.
     """
+
+    cms = cms_info["cms"]
+    load_args = ["-c", str (cms)]
+
+    if ("write" in cms_info):
+        load_args.extend (["-W", str (cms_info.get ("write"))])
+
+    verify_args = load_args.copy ()
 
     with tempfile.NamedTemporaryFile (delete = True) as cms_file:
-        cms_data = secrets.token_bytes (get_cms_size (args, args.stress_cms))
+        cms_data = secrets.token_bytes (get_cms_size (args, cms))
         cms_file.write (cms_data)
 
-        run_cmd_sequence (args, [["-c", str (args.stress_cms), "load_img", cms_file.name],
-            ["-c", str (args.stress_cms), "verify_img", cms_file.name]], timeout = 300)
+        load_args.extend (["load_img", cms_file.name])
+        verify_args.extend (["verify_img", cms_file.name])
 
-def run_verify_cms (args, cms, expected):
+        run_cmd_sequence (args, [load_args, verify_args], timeout = timeout)
+
+def extract_byte_array (result, tag, length, check_len = None, check_offset = 0):
     """
-    Verify the contents of a CMS against a file.
+    Extract a byte array from command results for verification against expected values.
+
+    :param result:  The command result to search.
+    :param tag:  Tag on the array to extract.
+    :param length:  Total length of the array.
+    :param check_len:  Length of the array that should be extracted.  The full array will be
+        extracted if this is not set.
+    :param check_offset:  Offset into the array to start extraction.  The array will start at offset
+        0 if this is not set.  The offset is only applied when check_len is specified.
+
+    :return A list containing the bytes for verification.
+    """
+
+    match_str = "{0} \({1}\):".format (tag, length)
+    for i in range (length):
+        match_str += "\s*(0x\S\S)"
+
+    match = re.search (match_str, result)
+    if (match):
+        if (check_len):
+            bytes = range (check_offset, check_offset + check_len)
+        else:
+            bytes = range (length)
+
+        actual = []
+        for i in bytes:
+            actual.append (match.group (i + 1))
+
+    return actual
+
+def verify_expected_values (args, result, checklist):
+    """
+    Verify that the command results match the expected values.  If there is any mismatch, the test
+    will exit.
 
     :param args:  The user-defined arguments.
-    :param cms:  The CMS to verify.
-    :param expected:  The expected data contained in the CMS.
+    :param result:  Output from the executed command.
+    :param checklist:  Dictionary of values to check in the output.
     """
 
-    run_cmd (args, ["-c", cms, "verify_img", expected], timeout = 300)
+    for check, expected in checklist.items ():
+        actual = None
 
-def run_read_log (args, cms, is_cerberus = True):
+        # Handle checking for a integer value
+        if (isinstance (expected, int)):
+            match = re.search ("{0}:\s+(\d+)".format (check), result)
+            if (match):
+                actual = int (match.group (1))
+
+        # Handle checking for a array of hex bytes
+        elif (isinstance (expected, list)):
+            actual = extract_byte_array (result, check, len (expected))
+
+        # Handle checking for a sub-array of hex bytes
+        elif (isinstance (expected, dict)):
+            actual = extract_byte_array (result, check, expected.get ("length"),
+                len (expected.get ("data")), expected.get ("offset", 0))
+
+            expected = expected["data"]
+
+        # Handle checking for the absence of a value
+        elif (expected == None):
+            actual = re.search (check, result)
+
+        # Handle checking arbitrary string values
+        else:
+            match = re.search ("{0}:\s+(\S.*?)\\n".format (check), result)
+            if (match):
+                actual = match.group (1)
+
+                value_decode = re.match ("(\S+) ->", actual)
+                if (value_decode):
+                    actual = value_decode.group (1)
+
+        # Check the result and see if it matches the expectation
+        if (expected == None):
+            if (actual):
+                fail ("Expected no value for {0}".format (check), args.log)
+            else:
+                log_output ("Check: {0} not present\n".format (check), args.log)
+        else:
+            if (actual == None):
+                fail ("Cannot determine value for {0}".format (check), args.log)
+            elif (actual != expected):
+                fail ("Unexpected value for {0}: expected={1}, actual={2}".format (check, expected,
+                    actual), args.log)
+            else:
+                log_output ("Check: {0} = {1}\n".format (check, expected), args.log)
+
+    log_output ("\n", args.log)
+
+def run_test_suite (args, suite_path):
     """
-    Read and parse log data stored in a CMS.
+    Run a suite of user-defined tests.  The tests are sets of commands defined in JSON.
 
     :param args:  The user-defined arguments.
-    :param cms:  The CMS that contains the log.
-    :param is_cerberus:  Indicate if the log data is stored in Cerberus format.
+    :param suite_path:  Path to the JSON file that defines the test suite to execute.
     """
 
-    log_args = []
-    if (is_cerberus):
-        log_args.append ("-l")
+    with open (suite_path, "r") as input_file:
+        suite = json.load (input_file)
 
-    log_args.extend (["-c", cms, "read_log"])
+    for test in suite.get ("suite"):
+        iterations = test.get ("loop", 1)
 
-    run_cmd (args, log_args)
+        for i in range (iterations):
+            log_output ("-------------------------------------\n", args.log)
+            log_output ("--  TEST CASE: {0}\n".format (test.get ("test")), args.log)
+            if (iterations > 1):
+                log_output ("--  ITERATION: {0}\n".format (i + 1), args.log)
+            log_output ("-------------------------------------\n", args.log)
+            log_output ("\n", args.log)
+
+            for step in test.get ("steps"):
+                cmd_timeout = step.get ("timeout", 10)
+
+                if ("commands" in step):
+                    for cmd, validation in step.get ("commands").items ():
+                        result = run_cmd (args, cmd.split (), timeout = cmd_timeout)
+                        verify_expected_values (args, result, validation)
+                elif ("fill_cms" in step):
+                    fill_and_verify_cms (args, step.get ("fill_cms"), cmd_timeout)
+                else:
+                    fail ("Invalid test step", args.log)
+
+                if ("delay" in step):
+                    time.sleep (step.get ("delay"))
 
 
 if __name__ == '__main__':
@@ -210,65 +322,28 @@ if __name__ == '__main__':
         help = "I2C device number connected to the OCP recovery interface (default: 1)")
     parser.add_argument ("--addr", action = "store",
         help = "I2C address of the OCP device (default: 0x69)")
-    parser.add_argument ("--no_pec", action = "store_true",
-        help = "Do not use PEC bytes for any commands")
-    parser.add_argument ("--cms_read", action = "store", type = int,
-        help = "Set the maximum block size for reading from a CMS")
-    parser.add_argument ("--cms_write", action = "store", type = int,
-        help = "Set the maximum block size for writing to a CMS")
     parser.add_argument ("--verbose", action = "store", type = int, default = 0,
         help = "Set verbosity of test application output")
 
     parser.add_argument ("--log", action = "store",
-        help = "Path to a log file that should be written with the test output")
-    parser.add_argument ("--count", action = "store", type = int, default = 1,
-        help = "Specify the number of stress test loops to execute.  0 for no limit. (default: 1)")
-    parser.add_argument ("--stress_cmd", action = "store_true",
-        help = "Stress different command handling by running 'show_all'")
-    parser.add_argument ("--stress_cms", action = "store", type = int,
-        help = "Stress read and write operations by fully writing and verifying a CMS")
-    parser.add_argument ("--verify_cms", action = "append", default = [],
-        help = "Verify the contents of a CMS against a provided file.  Specify <cms>,<file>")
-    parser.add_argument ("--read_log", action = "append", default = [],
-        help = "Read and parse log data from a CMS.  For an OCP log, specify <cms>,ocp")
+        help = "Path to a log file that should be appended with the test output")
+    parser.add_argument ("suite", nargs='+',
+        help = "Execute a suite of tests defined in a JSON file against the device")
 
     args = parser.parse_args ()
 
     # Create an empty log file
     if (args.log):
-        open (args.log, "w").close ()
+        open (args.log, "a").close ()
 
-    for read_log in args.read_log:
-        cms = read_log.split (",")
-
+    for suite in args.suite:
         log_output ("-------------------------------------\n", args.log)
-        log_output ("--  READ LOG: CMS {0}\n".format (cms[0]), args.log)
+        log_output ("--  TEST SUITE: {0}\n".format (suite), args.log)
         log_output ("-------------------------------------\n", args.log)
         log_output ("\n", args.log)
 
-        run_read_log (args, cms[0], ((len (cms) == 1) or (cms[1] != "ocp")))
+        run_test_suite (args, suite)
+
         log_output ("\n", args.log)
-
-    for verify_cms in args.verify_cms:
-        cms = verify_cms.split (",")
-
-        log_output ("-------------------------------------\n", args.log)
-        log_output ("--  VERIFY CMS {0}\n".format (cms[0]), args.log)
-        log_output ("-------------------------------------\n", args.log)
+        log_output ("+++++++++++++++++++++++++++++++++++++\n", args.log)
         log_output ("\n", args.log)
-
-        run_verify_cms (args, cms[0], cms[1])
-
-    i = 0
-    while ((not args.count) or (i < args.count)):
-        i += 1
-        log_output ("-------------------------------------\n", args.log)
-        log_output ("-- STRESS ITERATION: {0}\n".format (i), args.log)
-        log_output ("-------------------------------------\n", args.log)
-        log_output ("\n", args.log)
-
-        if (args.stress_cmd):
-            run_stress_cmd (args)
-
-        if (args.stress_cms is not None):
-            run_stress_cms (args)

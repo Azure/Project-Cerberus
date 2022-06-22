@@ -1,0 +1,214 @@
+{
+	"suite":
+	[
+		{
+			"test": "Initial state after forced recovery",
+			"loop": 3,
+			"steps":
+			[
+				{
+					"timeout": 20,
+					"delay": 1,
+					"commands": {
+						"prot_cap":
+						{
+							"Magic String": "OCP RECV",
+							"Version": "1.0",
+							"Capabilities": "0x00b7",
+							"Total CMS": 5,
+							"Max Response Time": 65536,
+							"Heartbeat": 0
+						},
+						"device_id":
+						{
+							"UUID": ["0x00", "0x8d", "0xf4", "0x42", "0x52", "0x57", "0x5f", "0xc8",
+								"0xc1", "0x93", "0xaf", "0x48", "0xbc", "0xd7", "0xdf", "0x14"],
+							"Pad": ["0x00", "0x00", "0x00", "0x00", "0x00", "0x00"],
+							"Vendor String": null
+						},
+						"device_status":
+						{
+							"Status": "0x03",
+							"Protocol Error": "0x00",
+							"Recovery Reason Code": "0x0011",
+							"Heartbeat": "0x0000",
+							"Failure ID": "0x00",
+							"Error Code": "0x00000000"
+						},
+						"reset":
+						{
+							"Device Reset Control": "0x00",
+							"Forced Recovery": "No",
+							"Interface Control": "Disable Mastering"
+						},
+						"recovery_ctrl":
+						{
+							"Component Memory Space": "0x00",
+							"Recovery Image Selection": "0x00",
+							"Activate Recovery Image": "No"
+						},
+						"recovery_status":
+						{
+							"Status": "0x01",
+							"Vendor": "0x00"
+						},
+						"indirect_ctrl":
+						{
+							"Component Memory Space": "0x00",
+							"Reserved": "0x00",
+							"Indirect Memory Offset": "0x00000000"
+						},
+						"indirect_status":
+						{
+							"Status": "0x00",
+							"Region Type": "0x00",
+							"Region Size": "0x00018000"
+						}
+					}
+				}
+			]
+		},
+		{
+			"test": "Verify CMS types and sizes",
+			"steps":
+			[
+				{
+					"commands":
+					{
+						"-w indirect_ctrl 0x01 0x00 0x00": {}
+					}
+				},
+				{
+					"commands":
+					{
+						"indirect_status":
+						{
+							"Status": "0x00",
+							"Region Type": "0x06"
+						}
+					}
+				},
+				{
+					"timeout": 1,
+					"commands":
+					{
+						"-w indirect_ctrl 0x02 0x00 0x00": {}
+					}
+				},
+				{
+					"commands":
+					{
+						"indirect_status":
+						{
+							"Status": "0x00",
+							"Region Type": "0x06",
+							"Region Size": "0x00000031"
+						}
+					}
+				},
+				{
+					"commands":
+					{
+						"-w indirect_ctrl 0x03 0x00 0x00": {}
+					}
+				},
+				{
+					"commands":
+					{
+						"indirect_status":
+						{
+							"Status": "0x00",
+							"Region Type": "0x06",
+							"Region Size": "0x00000002"
+						}
+					}
+				},
+				{
+					"commands":
+					{
+						"-w indirect_ctrl 0x04 0x00 0x00": {}
+					}
+				},
+				{
+					"commands":
+					{
+						"indirect_status":
+						{
+							"Status": "0x00",
+							"Region Type": "0x06",
+							"Region Size": "0x0000000c"
+						}
+					}
+				}
+			]
+		},
+		{
+			"test": "CMS write",
+			"steps":
+			[
+				{
+					"commands":
+					{
+						"-w indirect_ctrl 0x00 0x00 0x00": {}
+					}
+				},
+				{
+					"commands":
+					{
+						"-w indirect_data 0x01 0x02 0x03 0x04": {}
+					}
+				},
+				{
+					"commands":
+					{
+						"indirect_status":
+						{
+							"Status": "0x00"
+						}
+					}
+				},
+				{
+					"commands":
+					{
+						"-w indirect_ctrl 0x00 0x00 0x00": {}
+					}
+				},
+				{
+					"commands":
+					{
+						"indirect_data":
+						{
+							"INDIRECT_DATA":
+							{
+								"length": 252,
+								"offset": 2,
+								"data": ["0x03", "0x04"]
+							}
+						}
+					}
+				}
+			]
+		},
+		{
+			"test": "Interface stress",
+			"loop": 100,
+			"steps":
+			[
+				{
+					"commands":
+					{
+						"show_all": {}
+					}
+				},
+				{
+					"timeout": 120,
+					"fill_cms":
+					{
+						"cms": 0,
+						"write": 32
+					}
+				}
+			]
+		}
+	]
+}

@@ -58,11 +58,6 @@ uint32_t cms_offset = 0;
 uint32_t cms_block_write = MAX_CMS_BLOCK_SIZE;
 
 /**
- * Maximum block size for CMS read.
- */
-uint32_t cms_block_read = MAX_CMS_BLOCK_SIZE;
-
-/**
  * Flag to ignore validation errors when processing commands.  Protocol and bus errors still
  * trigger a failure.
  */
@@ -545,7 +540,7 @@ void read_prot_cap (bool raw)
 	printf ("PROT_CAP:\n");
 	printf ("\tMagic String: %s\n", magic);
 	printf ("\tVersion: %d.%d\n", data[8], data[9]);
-	printf ("\tCapabilites: 0x%04x\n", *((uint16_t*) &data[10]));
+	printf ("\tCapabilities: 0x%04x\n", *((uint16_t*) &data[10]));
 	printf ("\t\tIdentification: %s\n", (data[10] & (1U << 0)) ? "Yes" : "No");
 	printf ("\t\tForced Recovery: %s\n", (data[10] & (1U << 1)) ? "Yes" : "No");
 	printf ("\t\tManagement Reset: %s\n", (data[10] & (1U << 2)) ? "Yes" : "No");
@@ -1407,7 +1402,7 @@ uint32_t dump_cms_data (uint8_t cms, uint32_t offset, const char *file_out, uint
 
 	pos = 0;
 	while (pos != length) {
-		int bytes = smbus_block_read (INDIRECT_DATA, cmd_data, 0, cms_block_read);
+		int bytes = smbus_block_read (INDIRECT_DATA, cmd_data, 0, sizeof (cmd_data));
 
 		if (bytes == 0) {
 			check_protocol_error ();
@@ -1695,9 +1690,9 @@ void command_verify_image ()
 	}
 
 	do {
-		img_bytes = read (fd, img_data, cms_block_read);
+		img_bytes = read (fd, img_data, MAX_CMS_BLOCK_SIZE);
 		if (img_bytes > 0) {
-			device_bytes = smbus_block_read (INDIRECT_DATA, device_data, 0, cms_block_read);
+			device_bytes = smbus_block_read (INDIRECT_DATA, device_data, 0, MAX_CMS_BLOCK_SIZE);
 
 			if (device_bytes < img_bytes) {
 				printf ("Data length mismatch\n");
@@ -1993,7 +1988,7 @@ bool is_raw_command ()
 int main (int argc, char *argv[])
 {
 	char dev_name[64];
-	const char *opts = "a:bc:d:efhlo:prR:sS:vwW:";
+	const char *opts = "a:bc:d:efhlo:prsS:vwW:";
 	int opt;
 	int device_num = -1;
 
@@ -2039,10 +2034,6 @@ int main (int argc, char *argv[])
 				force_recovery = true;
 				break;
 
-			case 'R':
-				cms_block_read = strtoul (optarg, NULL, 10);
-				break;
-
 			case 's':
 				use_write_delay = true;
 				break;
@@ -2075,8 +2066,8 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 
-	if ((cms_block_read > MAX_CMS_BLOCK_SIZE) || (cms_block_write > MAX_CMS_BLOCK_SIZE)) {
-		printf ("Invalid CMS read or write value.\n\n");
+	if (cms_block_write > MAX_CMS_BLOCK_SIZE) {
+		printf ("Invalid CMS block write value.\n\n");
 		print_usage ();
 		return 1;
 	}
