@@ -22,7 +22,6 @@ set(TARGET_NAME ${PROJECT_NAME})
 include (${CMAKE_CURRENT_LIST_DIR}/../../../Cerberus.cmake)
 include(Mbedtls)
 include(AllFeatures)
-include(Coverage)
 
 set(CORE_DIR ${CERBERUS_ROOT}/core)
 set(TESTING_DIR ${CERBERUS_ROOT}/testing)
@@ -84,6 +83,7 @@ target_link_libraries(
 		m
 	)
 
+include(Coverage)
 SETUP_TARGET_FOR_COVERAGE(
 	NAME coverage
  	EXECUTABLE ${PROJECT_NAME}
