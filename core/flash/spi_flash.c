@@ -31,13 +31,15 @@
  * Check the requested operation to ensure it is valid for the device.
  */
 #define	SPI_FLASH_BOUNDS_CHECK(bytes, addr, len) \
-	if (addr >= bytes) { \
-		return SPI_FLASH_ADDRESS_OUT_OF_RANGE; \
-	} \
-	\
-	if ((addr + len) > bytes) { \
-		return SPI_FLASH_OPERATION_OUT_OF_RANGE; \
-	}
+	do { \
+		if (addr >= bytes) { \
+			return SPI_FLASH_ADDRESS_OUT_OF_RANGE; \
+		} \
+		\
+		if ((addr + len) > bytes) { \
+			return SPI_FLASH_OPERATION_OUT_OF_RANGE; \
+		} \
+	} while (0)
 
 
 /**
@@ -1853,7 +1855,7 @@ int spi_flash_read (const struct spi_flash *flash, uint32_t address, uint8_t *da
 		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
-	SPI_FLASH_BOUNDS_CHECK (flash->state->device_size, address, length)
+	SPI_FLASH_BOUNDS_CHECK (flash->state->device_size, address, length);
 
 	platform_mutex_lock (&flash->state->lock);
 

@@ -160,7 +160,7 @@ int observable_remove_observer (struct observable *observable, void *observer)
  * 'observer' to pass the observer instance.
  */
 #define	FOR_EACH_OBSERVER(observable, type, notify, ...) \
-	{ \
+	do { \
 		struct observable_observer *pos; \
 		\
 		if (observable == NULL) { \
@@ -181,7 +181,7 @@ int observable_remove_observer (struct observable *observable, void *observer)
 		platform_mutex_unlock (&observable->lock); \
 		\
 		return 0; \
-	}
+	} while (0)
 
 /**
  * Notify all observers of an event.

@@ -557,7 +557,7 @@ int x509_riot_init (struct x509_engine_riot *engine, struct ecc_engine *ecc,
 	engine->base.create_self_signed_certificate = x509_riot_create_self_signed_certificate;
 	engine->base.create_ca_signed_certificate = x509_riot_create_ca_signed_certificate;
 #endif
-	engine->base.load_certificate = x509_riot_load_certificate;;
+	engine->base.load_certificate = x509_riot_load_certificate;
 	engine->base.release_certificate = x509_riot_release_certificate;
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
 	engine->base.get_certificate_der = x509_riot_get_certificate_der;

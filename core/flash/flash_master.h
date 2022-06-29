@@ -59,13 +59,15 @@ enum {
  * Initialize a generic flash transaction.
  */
 #define	FLASH_XFER_INIT(xfer, opcode, addr, dummy, mode, buffer, len, flgs) \
-	xfer.cmd = opcode; \
-	xfer.address = addr; \
-	xfer.dummy_bytes = dummy; \
-	xfer.mode_bytes = mode; \
-	xfer.data = buffer; \
-	xfer.length = len; \
-	xfer.flags = flgs;
+	do { \
+		xfer.cmd = opcode; \
+		xfer.address = addr; \
+		xfer.dummy_bytes = dummy; \
+		xfer.mode_bytes = mode; \
+		xfer.data = buffer; \
+		xfer.length = len; \
+		xfer.flags = flgs; \
+	} while (0)
 
 /**
  * Initialize a generic flash transaction to read data.
