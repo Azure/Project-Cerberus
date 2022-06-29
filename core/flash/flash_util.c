@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include <stdbool.h>
+#include "platform.h"
 #include "flash_util.h"
 #include "flash_common.h"
 
@@ -923,10 +924,15 @@ static int flash_check_copy_region (uint32_t dest_addr, uint32_t src_addr, size_
 static int flash_copy_data_to_blank_region (const struct flash *dest_flash, uint32_t dest_addr,
 	const struct flash *src_flash, uint32_t src_addr, size_t length, uint32_t page, uint8_t verify)
 {
-	uint8_t data[page];
+	uint8_t *data;
 	size_t block_len;
 	int status = 0;
 	uint32_t page_offset = FLASH_REGION_OFFSET (dest_addr, page);
+
+	data = platform_malloc (page);
+	if (data == NULL) {
+		return FLASH_UTIL_NO_MEMORY;
+	}
 
 	while ((status == 0) && (length != 0)) {
 		block_len = page - page_offset;
@@ -956,6 +962,8 @@ static int flash_copy_data_to_blank_region (const struct flash *dest_flash, uint
 			}
 		}
 	}
+
+	platform_free (data);
 
 	return status;
 }
