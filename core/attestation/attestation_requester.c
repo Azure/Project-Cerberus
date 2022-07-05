@@ -998,6 +998,7 @@ void attestation_requester_on_spdm_get_measurements_response (
 	struct spdm_measurements_block_header *block;
 	size_t measurement_hash_len = hash_get_hash_len (attestation->state->measurement_hash_type);
 	size_t offset;
+	uint8_t number_of_blocks = 1;
 	uint8_t i_block;
 	int status;
 
@@ -1010,17 +1011,10 @@ void attestation_requester_on_spdm_get_measurements_response (
 		goto fail;
 	}
 
-	if (rsp->slot_id != attestation->state->slot_num) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP, response->source_eid,
-			(attestation->state->slot_num << 8) | rsp->slot_id);
-		goto fail;
-	}
-
 	// If Get Measurement request was not for all blocks, then only one block should be in response
 	if ((attestation->state->measurement_operation_requested !=
 			SPDM_MEASUREMENT_OPERATION_GET_ALL_BLOCKS) &&
-		(rsp->number_of_blocks != 1)) {
+		!attestation->state->device_discovery && (rsp->number_of_blocks != 1)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_NUM_MEASUREMENT_BLOCKS, response->source_eid,
 			(1 << 8) | rsp->number_of_blocks);
@@ -1028,6 +1022,15 @@ void attestation_requester_on_spdm_get_measurements_response (
 	}
 
 	if (!attestation->state->device_discovery) {
+		number_of_blocks = rsp->number_of_blocks;
+
+		if (rsp->slot_id != attestation->state->slot_num) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP, response->source_eid,
+				(attestation->state->slot_num << 8) | rsp->slot_id);
+			goto fail;
+		}
+
 		status = attestation_requester_update_response_hash (attestation,
 			attestation->secondary_hash, spdm_get_spdm_rsp_payload (rsp),
 			spdm_get_measurements_resp_length (rsp) - 1);
@@ -1045,13 +1048,21 @@ void attestation_requester_on_spdm_get_measurements_response (
 	}
 	else {
 		attestation->state->request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
+
+		if (attestation->state->measurement_operation_requested ==
+				SPDM_MEASUREMENT_OPERATION_GET_NUM_BLOCKS) {
+			attestation->state->msg_buffer_len = 1;
+			attestation->state->msg_buffer[0] = rsp->num_measurement_indices;
+
+			return;
+		}
 	}
 
 	attestation->state->msg_buffer_len = 0;
 
 	offset = sizeof (struct spdm_get_measurements_response);
 
-	for (i_block = 0; i_block < rsp->number_of_blocks; ++i_block) {
+	for (i_block = 0; i_block < number_of_blocks; ++i_block) {
 		block = (struct spdm_measurements_block_header*) &response->data[offset];
 		offset += sizeof (struct spdm_measurements_block_header);
 
@@ -1826,6 +1837,35 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 		}
 	}
 	else {
+		/* SPDM 1.1.x requires all measurement blocks to be contiguous.  This means that device
+		 * might not be able to support the dedicated 0xEF block and be compliant, so instead
+		 * device IDs are placed in the last measurement block on the device.  Cerberus will first
+		 * get the number of measurement blocks, then update measurement_operation to the index of
+		 * the last measurement block on the device.  Starting from SPDM 1.2.x, measurement blocks
+		 * no longer have the contiguity requirement so instead use index 0xEF which is dedicated to
+		 * device IDs. */
+		if (attestation->state->protocol == ATTESTATION_PROTOCOL_DMTF_SPDM_1_1) {
+			rq_len = spdm_generate_get_measurements_request (attestation->state->msg_buffer,
+				sizeof (attestation->state->msg_buffer), attestation->state->slot_num,
+				SPDM_MEASUREMENT_OPERATION_GET_NUM_BLOCKS, false, raw_bitstream_requested, NULL,
+				attestation->state->protocol);
+			if (ROT_IS_ERROR (rq_len)) {
+				return rq_len;
+			}
+
+			attestation->state->raw_bitstream_requested = raw_bitstream_requested;
+			attestation->state->measurement_operation_requested =
+				SPDM_MEASUREMENT_OPERATION_GET_NUM_BLOCKS;
+
+			status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
+				device_addr, eid, true, SPDM_REQUEST_GET_MEASUREMENTS);
+			if (status != 0) {
+				return status;
+			}
+
+			measurement_operation = attestation->state->msg_buffer[0];
+		}
+
 		rq_len = spdm_generate_get_measurements_request (attestation->state->msg_buffer,
 			sizeof (attestation->state->msg_buffer), attestation->state->slot_num,
 			measurement_operation, false, raw_bitstream_requested, NULL,

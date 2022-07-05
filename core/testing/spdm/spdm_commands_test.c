@@ -3854,7 +3854,6 @@ static void spdm_test_generate_get_measurements_request_no_sig_required (CuTest 
 {
 	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
-	uint8_t *slot_id;
 	int status;
 
 	memset (buf, 0x55, sizeof (buf));
@@ -3863,9 +3862,7 @@ static void spdm_test_generate_get_measurements_request_no_sig_required (CuTest 
 
 	status = spdm_generate_get_measurements_request (buf, sizeof (buf), 2, 4, 0, 0, NULL, 2);
 
-	slot_id = spdm_get_measurements_rq_slot_id_ptr (rq);
-
-	CuAssertIntEquals (test, sizeof (struct spdm_get_measurements_request) + 1, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_get_measurements_request), status);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM, rq->header.msg_type);
 	CuAssertIntEquals (test, 0, rq->header.integrity_check);
 	CuAssertIntEquals (test, 2, rq->header.spdm_minor_version);
@@ -3875,7 +3872,6 @@ static void spdm_test_generate_get_measurements_request_no_sig_required (CuTest 
 	CuAssertIntEquals (test, 0, rq->raw_bit_stream_requested);
 	CuAssertIntEquals (test, 0, rq->reserved);
 	CuAssertIntEquals (test, 4, rq->measurement_operation);
-	CuAssertIntEquals (test, 2, *slot_id);
 }
 
 static void spdm_test_generate_get_measurements_request_raw_bitstream_requested (CuTest *test)

@@ -137,6 +137,7 @@ struct attestation_requester_testing {
 	bool multiple_devices;										/**< Flag indicating test is for multiple devices */
 	bool second_device;											/**< Flag indicating test is processing second device */
 	bool multiple_cert_calls;									/**< Flag indicating test expects multiple get cert responses */
+	bool get_num_indices;										/**< Flag indicating measurement response includes number of measurement block indices */
 	uint32_t hashing_alg_requested;								/**< Hashing algorithm source device requests */
 	uint32_t hashing_alg_supported;								/**< Hashing algorithm target device supports */
 	uint32_t meas_hashing_alg_requested;						/**< Measurement hashing algorithm source device requests */
@@ -2321,8 +2322,12 @@ static intptr_t attestation_requester_testing_spdm_get_measurements_rsp_callback
 	block_len = testing->spdm_discovery ? spdm_measurements_block_size (device_id_len) :
 		num_blocks_in_rsp * spdm_measurements_block_size (hash_len);
 
+	if (testing->get_num_indices) {
+		block_len = 0;
+	}
+
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 0x35 + block_len + (5 * !testing->spdm_discovery);
+	header->byte_count = 0x30 + block_len + (10 * !testing->spdm_discovery);
 	header->source_addr = (0x20 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
@@ -2344,37 +2349,29 @@ static intptr_t attestation_requester_testing_spdm_get_measurements_rsp_callback
 	measurements_response->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	measurements_response->header.req_rsp_code = SPDM_RESPONSE_GET_MEASUREMENTS;
 
-	measurements_response->slot_id = testing->slot_num[1];
-	measurements_response->num_measurement_indices = 0;
-	measurements_response->number_of_blocks = num_blocks_in_rsp;
-	measurements_response->measurement_record_len[0] = block_len;
+	if (testing->get_num_indices) {
+		measurements_response->slot_id = 0;
+		measurements_response->num_measurement_indices = 5;
+		measurements_response->number_of_blocks = 0;
+		measurements_response->measurement_record_len[0] = 0;
 
-	offset += sizeof (struct spdm_get_measurements_response);
-	block =	(struct spdm_measurements_block_header*) &rx_packet.data[offset];
-	offset += sizeof (struct spdm_measurements_block_header);
+		testing->get_num_indices = false;
 
-	if (!testing->spdm_discovery) {
-		if (!testing->second_response[1]) {
-			block->index = 1 + testing->unexpected_measurement_block;
-			block->measurement_size = sizeof (struct spdm_measurements_block_dmtf) + hash_len;
-			block->measurement_specification = 1;
-			block->dmtf.measurement_block_type = 0;
-			block->dmtf.measurement_size = hash_len;
-			block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw & testing->raw_rsp[0];
+		offset += sizeof (struct spdm_get_measurements_response);
+	}
+	else {
+		measurements_response->slot_id = testing->slot_num[1];
+		measurements_response->num_measurement_indices = 0;
+		measurements_response->number_of_blocks = testing->spdm_discovery ? 0 : num_blocks_in_rsp;
+		measurements_response->measurement_record_len[0] = block_len;
 
-			for (i = 0; i < hash_len; ++i, ++offset) {
-				rx_packet.data[offset] = 50 + i + testing->raw_rsp[0];
+		offset += sizeof (struct spdm_get_measurements_response);
+		block =	(struct spdm_measurements_block_header*) &rx_packet.data[offset];
+		offset += sizeof (struct spdm_measurements_block_header);
 
-				if ((i == 0) && (testing->measurement_modify)) {
-					rx_packet.data[offset] = 0xCC;
-				}
-			}
-
-			if (testing->get_all_blocks | testing->num_blocks_incorrect) {
-				block =	(struct spdm_measurements_block_header*) &rx_packet.data[offset];
-				offset += sizeof (struct spdm_measurements_block_header);
-
-				block->index = 2 + testing->unexpected_measurement_block;
+		if (!testing->spdm_discovery) {
+			if (!testing->second_response[1]) {
+				block->index = 1 + testing->unexpected_measurement_block;
 				block->measurement_size = sizeof (struct spdm_measurements_block_dmtf) + hash_len;
 				block->measurement_specification = 1;
 				block->dmtf.measurement_block_type = 0;
@@ -2382,88 +2379,114 @@ static intptr_t attestation_requester_testing_spdm_get_measurements_rsp_callback
 				block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw & testing->raw_rsp[0];
 
 				for (i = 0; i < hash_len; ++i, ++offset) {
-					rx_packet.data[offset] = 100 - i + testing->raw_rsp[0];
+					rx_packet.data[offset] = 50 + i + testing->raw_rsp[0];
+
+					if ((i == 0) && (testing->measurement_modify)) {
+						rx_packet.data[offset] = 0xCC;
+					}
+				}
+
+				if (testing->get_all_blocks | testing->num_blocks_incorrect) {
+					block =	(struct spdm_measurements_block_header*) &rx_packet.data[offset];
+					offset += sizeof (struct spdm_measurements_block_header);
+
+					block->index = 2 + testing->unexpected_measurement_block;
+					block->measurement_size =
+						sizeof (struct spdm_measurements_block_dmtf) + hash_len;
+					block->measurement_specification = 1;
+					block->dmtf.measurement_block_type = 0;
+					block->dmtf.measurement_size = hash_len;
+					block->dmtf.raw_bit_stream =
+						!testing->digest_instead_of_raw & testing->raw_rsp[0];
+
+					for (i = 0; i < hash_len; ++i, ++offset) {
+						rx_packet.data[offset] = 100 - i + testing->raw_rsp[0];
+					}
+				}
+			}
+			else {
+				block->index = 2 + testing->unexpected_measurement_block;
+				block->measurement_size = sizeof (struct spdm_measurements_block_dmtf) + hash_len;
+				block->measurement_specification = 1;
+				block->dmtf.measurement_block_type = 0;
+				block->dmtf.measurement_size = hash_len;
+				block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw & testing->raw_rsp[1];
+
+				for (i = 0; i < hash_len; ++i, ++offset) {
+					rx_packet.data[offset] = 100 - i + testing->raw_rsp[1];
 				}
 			}
 		}
 		else {
-			block->index = 2 + testing->unexpected_measurement_block;
-			block->measurement_size = sizeof (struct spdm_measurements_block_dmtf) + hash_len;
+			block->index = (testing->spdm_version == 1) ? 5 : 0xEF;
+			block->measurement_size = device_id_len +
+				sizeof (struct spdm_measurements_block_dmtf);
 			block->measurement_specification = 1;
-			block->dmtf.measurement_block_type = 0;
-			block->dmtf.measurement_size = hash_len;
-			block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw & testing->raw_rsp[1];
+			block->dmtf.measurement_block_type = 3;
+			block->dmtf.measurement_size = device_id_len;
+			block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw;
 
-			for (i = 0; i < hash_len; ++i, ++offset) {
-				rx_packet.data[offset] = 100 - i + testing->raw_rsp[1];
-			}
-		}
-	}
-	else {
-		block->index = 0xEF;
-		block->measurement_size = device_id_len +
-			sizeof (struct spdm_measurements_block_dmtf);
-		block->measurement_specification = 1;
-		block->dmtf.measurement_block_type = 0;
-		block->dmtf.measurement_size = device_id_len;
-		block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw;
+			device_id_block =
+				(struct spdm_measurements_device_id_block*) &rx_packet.data[offset];
+			device_id_block->completion_code = testing->device_id_fail;
+			device_id_block->descriptor_count = 4 - testing->device_id_block_short;
+			device_id_block->device_id_len = block->dmtf.measurement_size -
+				sizeof (struct spdm_measurements_device_id_block);
+			offset += sizeof (struct spdm_measurements_device_id_block);
 
-		device_id_block =
-			(struct spdm_measurements_device_id_block*) &rx_packet.data[offset];
-		device_id_block->completion_code = testing->device_id_fail;
-		device_id_block->descriptor_count = 4 - testing->device_id_block_short;
-		device_id_block->device_id_len = block->dmtf.measurement_size -
-			sizeof (struct spdm_measurements_device_id_block);
-		offset += sizeof (struct spdm_measurements_device_id_block);
-
-		device_id_descriptor =
-			(struct spdm_measurements_device_id_descriptor*) &rx_packet.data[offset];
-		offset += sizeof (struct spdm_measurements_device_id_descriptor);
-
-		device_id_descriptor->descriptor_len = sizeof (uint16_t);
-		device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 1) ?
-			SPDM_MEASUREMENTS_DEVICE_ID_PCI_VID : SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
-
-		id = (uint16_t*) &rx_packet.data[offset];
-		*id = (testing->second_response[0] && testing->multiple_devices) ? 0xAB : 0xAA;
-		offset += 2;
-
-		device_id_descriptor =
-			(struct spdm_measurements_device_id_descriptor*) &rx_packet.data[offset];
-		offset += sizeof (struct spdm_measurements_device_id_descriptor);
-
-		device_id_descriptor->descriptor_len = sizeof (uint16_t);
-		device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 2) ?
-			SPDM_MEASUREMENTS_DEVICE_ID_PCI_DEVICE_ID : SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
-
-		id = (uint16_t*) &rx_packet.data[offset];
-		*id = (testing->second_response[0] && testing->multiple_devices) ? 0xBC : 0xBB;
-		offset += 2;
-
-		device_id_descriptor =
-			(struct spdm_measurements_device_id_descriptor*) &rx_packet.data[offset];
-		offset += sizeof (struct spdm_measurements_device_id_descriptor);
-
-		device_id_descriptor->descriptor_len = sizeof (uint16_t);
-		device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 3) ?
-			SPDM_MEASUREMENTS_DEVICE_ID_PCI_SUBSYSTEM_VID : SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
-
-		id = (uint16_t*) &rx_packet.data[offset];
-		*id = (testing->second_response[0] && testing->multiple_devices) ? 0xCD : 0xCC;
-		offset += 2;
-
-		if (!testing->device_id_block_short) {
 			device_id_descriptor =
 				(struct spdm_measurements_device_id_descriptor*) &rx_packet.data[offset];
 			offset += sizeof (struct spdm_measurements_device_id_descriptor);
 
 			device_id_descriptor->descriptor_len = sizeof (uint16_t);
-			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 4) ?
-				SPDM_MEASUREMENTS_DEVICE_ID_PCI_SUBSYSTEM_ID : SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
+			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 1) ?
+				SPDM_MEASUREMENTS_DEVICE_ID_PCI_VID :
+				SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &rx_packet.data[offset];
-			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xDE : 0xDD;
+			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xAB : 0xAA;
 			offset += 2;
+
+			device_id_descriptor =
+				(struct spdm_measurements_device_id_descriptor*) &rx_packet.data[offset];
+			offset += sizeof (struct spdm_measurements_device_id_descriptor);
+
+			device_id_descriptor->descriptor_len = sizeof (uint16_t);
+			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 2) ?
+				SPDM_MEASUREMENTS_DEVICE_ID_PCI_DEVICE_ID :
+				SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
+
+			id = (uint16_t*) &rx_packet.data[offset];
+			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xBC : 0xBB;
+			offset += 2;
+
+			device_id_descriptor =
+				(struct spdm_measurements_device_id_descriptor*) &rx_packet.data[offset];
+			offset += sizeof (struct spdm_measurements_device_id_descriptor);
+
+			device_id_descriptor->descriptor_len = sizeof (uint16_t);
+			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 3) ?
+				SPDM_MEASUREMENTS_DEVICE_ID_PCI_SUBSYSTEM_VID :
+				SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
+
+			id = (uint16_t*) &rx_packet.data[offset];
+			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xCD : 0xCC;
+			offset += 2;
+
+			if (!testing->device_id_block_short) {
+				device_id_descriptor =
+					(struct spdm_measurements_device_id_descriptor*) &rx_packet.data[offset];
+				offset += sizeof (struct spdm_measurements_device_id_descriptor);
+
+				device_id_descriptor->descriptor_len = sizeof (uint16_t);
+				device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 4) ?
+					SPDM_MEASUREMENTS_DEVICE_ID_PCI_SUBSYSTEM_ID :
+					SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
+
+				id = (uint16_t*) &rx_packet.data[offset];
+				*id = (testing->second_response[0] && testing->multiple_devices) ? 0xDE : 0xDD;
+				offset += 2;
+			}
 		}
 	}
 
@@ -2472,14 +2495,14 @@ static intptr_t attestation_requester_testing_spdm_get_measurements_rsp_callback
 	}
 
 	opaque_length = (uint16_t*) &rx_packet.data[offset];
-	*opaque_length = 5;
+	*opaque_length = testing->spdm_discovery ? 0 : 5;
 	offset += 2;
 
-	for (i = 0; i < *opaque_length; ++i, ++offset) {
-		rx_packet.data[offset] = 5 + i;
-	}
-
 	if (!testing->spdm_discovery) {
+		for (i = 0; i < *opaque_length; ++i, ++offset) {
+			rx_packet.data[offset] = 5 + i;
+		}
+
 		for (i = 0; i < 5; ++i, ++offset) {
 			rx_packet.data[offset] = i * 10;
 
@@ -3997,12 +4020,16 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	uint8_t *nonce;
 	int status;
 
+	if (measurement_operation == 0) {
+		testing->get_num_indices = true;
+	}
+
 	memset (&tx_packet, 0, sizeof (tx_packet));
 
 	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = testing->spdm_discovery ? 0x0B : 0x2B;
+	header->byte_count = testing->spdm_discovery ? 0x0A : 0x2B;
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
@@ -4024,12 +4051,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 
 	request->measurement_operation = measurement_operation;
 	request->sig_required = !testing->spdm_discovery;
-	request->raw_bit_stream_requested = raw_request;
+	request->raw_bit_stream_requested = testing->spdm_version == 1 ? 0 : raw_request;
 
-	slot_id = spdm_get_measurements_rq_slot_id_ptr (request);
-	*slot_id = ATTESTATION_RIOT_SLOT_NUM;
-
-	offset += sizeof (struct spdm_get_measurements_request) + 1;
+	offset += sizeof (struct spdm_get_measurements_request);
 
 	if (!testing->spdm_discovery) {
 		nonce = spdm_get_measurements_rq_nonce (request);
@@ -4039,6 +4063,11 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 		}
 
 		offset += SPDM_NONCE_LEN;
+
+		slot_id = spdm_get_measurements_rq_slot_id_ptr (request);
+		*slot_id = ATTESTATION_RIOT_SLOT_NUM;
+
+		++offset;
 	}
 
 	tx_packet.data[offset] = checksum_crc8 (0x20 << 1, tx_packet.data, offset);
@@ -25974,6 +26003,51 @@ static void attestation_requester_test_discover_device_spdm (CuTest *test)
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_discover_device_spdm_1_1 (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	testing.spdm_max_version = 1;
+	testing.spdm_version = 1;
+	testing.spdm_discovery = true;
+	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, 1, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		2, &testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, 3, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
+		4, 0, true, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
+		5, 5, true, &testing);
+
+	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
+
+	status = device_manager_get_device_state (&testing.device_mgr, 1);
+	CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_discover_device_spdm_update_routing_table (CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26138,6 +26212,83 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_fail
 		false, 3, &testing);
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, true, false,
 		4, 0xEF, true, &testing);
+
+	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_discover_device_spdm_1_1_get_measurement_num_indices_fail (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	testing.spdm_max_version = 1;
+	testing.spdm_version = 1;
+	testing.spdm_discovery = true;
+	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, 1, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		2, &testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, 3, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, true, false,
+		4, 0, true, &testing);
+
+	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_discover_device_spdm_1_1_get_measurement_fail (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	testing.spdm_max_version = 1;
+	testing.spdm_version = 1;
+	testing.spdm_discovery = true;
+	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, 1, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		2, &testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, 3, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
+		4, 0, true, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, true, false,
+		5, 5, true, &testing);
 
 	status = attestation_requester_discover_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
@@ -27660,6 +27811,7 @@ TEST (attestation_requester_test_attest_device_component_type_not_set);
 TEST (attestation_requester_test_attest_device_unsupported_attestation_protocol);
 TEST (attestation_requester_test_attest_device_invalid_arg);
 TEST (attestation_requester_test_discover_device_spdm);
+TEST (attestation_requester_test_discover_device_spdm_1_1);
 TEST (attestation_requester_test_discover_device_spdm_update_routing_table);
 TEST (attestation_requester_test_discover_device_invalid_arg);
 TEST (attestation_requester_test_discover_device_no_mctp_bridge);
@@ -27669,6 +27821,8 @@ TEST (attestation_requester_test_discover_device_get_msg_type_rsp_fail);
 TEST (attestation_requester_test_discover_device_get_msg_type_no_attestation_protocols_supported);
 TEST (attestation_requester_test_discover_device_spdm_setup_device_fail);
 TEST (attestation_requester_test_discover_device_spdm_get_measurement_fail);
+TEST (attestation_requester_test_discover_device_spdm_1_1_get_measurement_num_indices_fail);
+TEST (attestation_requester_test_discover_device_spdm_1_1_get_measurement_fail);
 TEST (attestation_requester_test_discover_device_spdm_get_measurement_device_id_fail);
 TEST (attestation_requester_test_discover_device_spdm_get_measurement_rsp_has_no_pci_ids);
 TEST (attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_vid_not_in_device_mgr);

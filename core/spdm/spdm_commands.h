@@ -642,7 +642,6 @@ struct spdm_get_measurements_response {
 	uint8_t number_of_blocks;									/**< Number of measurement blocks in measurement record */
 	uint8_t measurement_record_len[3];							/**< Length of measurement record */
 };
-#pragma pack(pop)
 
 /**
  * Get the minimum length of a SPDM get measurements response message, not including variable length
@@ -786,6 +785,7 @@ struct spdm_error_response {
  * @param resp Buffer with response
  */
 #define	spdm_get_spdm_rsp_payload(resp)							(((uint8_t*) resp) + 1)
+#pragma pack(pop)
 
 
 void spdm_generate_error_response (struct cmd_interface_msg *response, uint8_t spdm_minor_version,

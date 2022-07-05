@@ -51,6 +51,7 @@ enum spdm_measurement_device_id_descriptors {
 	SPDM_MEASUREMENTS_DEVICE_ID_VENDOR_DEFINED = 0xFFFF,			/**< Vendor Defined */
 };
 
+#pragma pack(push, 1)
 /**
  * Header for a measurement portion of measurement block following DMTF format. Defined in the SPDM
  * DSP0274 spec section 10.11.1.1.
@@ -89,6 +90,7 @@ struct spdm_measurements_device_id_descriptor {
 	uint16_t descriptor_type;										/**< Type of descriptor */
 	uint16_t descriptor_len;										/**< Length of descriptor */
 };
+#pragma pack(pop)
 
 
 #endif // SPDM_MEASUREMENTS_H_

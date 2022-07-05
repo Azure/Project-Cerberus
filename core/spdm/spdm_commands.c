@@ -864,8 +864,8 @@ int spdm_generate_get_measurements_request (uint8_t *buf, size_t buf_len, uint8_
 	uint8_t spdm_minor_version)
 {
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
-	size_t rq_length = sizeof (struct spdm_get_measurements_request) + 1 +
-		SPDM_NONCE_LEN * sig_required;
+	size_t rq_length = sizeof (struct spdm_get_measurements_request) +
+		((1 + SPDM_NONCE_LEN) * sig_required);
 	uint8_t *slot_id;
 
 	if ((buf == NULL) || ((nonce == NULL) && sig_required)) {
@@ -887,10 +887,10 @@ int spdm_generate_get_measurements_request (uint8_t *buf, size_t buf_len, uint8_
 		rq->raw_bit_stream_requested = raw_bitstream_requested;
 	}
 
-	slot_id = spdm_get_measurements_rq_slot_id_ptr (rq);
-	*slot_id = slot_num;
-
 	if (sig_required) {
+		slot_id = spdm_get_measurements_rq_slot_id_ptr (rq);
+		*slot_id = slot_num;
+
 		memcpy (spdm_get_measurements_rq_nonce (rq), nonce, SPDM_NONCE_LEN);
 	}
 
