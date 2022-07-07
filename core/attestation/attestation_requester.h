@@ -39,11 +39,13 @@ struct attestation_requester_state {
 	size_t msg_buffer_len;										/**< Length of data in message buffer */
 	enum attestation_requester_request_state request_status;	/**< Response processing status. */
 	enum attestation_protocol protocol;							/**< Attestation protocol utilized with this device. */
+	uint32_t sleep_duration_ms;									/**< Duration in milliseconds to sleep while waiting for response. */
 	uint8_t *cert_buffer;										/**< A temporary dynamically allocated buffer for aggregating and verifying certificate chain. */
 	uint8_t requested_command;	    							/**< Command awaiting response for. */
 	uint8_t measurement_operation_requested;					/**< Measurement operation requested from device. */
 	uint8_t slot_num;											/**< Slot number selected for device currently being attested. */
 	uint8_t num_certs;											/**< Number of certificates in certificate chain. */
+	uint8_t respond_if_ready_token;								/**< Token to pass to responder in RESPOND_IF_READY requests. */
 	size_t cert_buffer_len;										/**< Length of cert_buffer contents. */
 	size_t cert_total_len;										/**< Total certificate chain length to read back from device. */
 	enum hash_type transcript_hash_type;						/**< Cryptographic hashing algorithm utilized in attestation transcript hashing. */

@@ -106,6 +106,20 @@ static void spdm_protocol_observer_mock_on_get_measurements_response (
 		observer, MOCK_ARG_CALL (response));
 }
 
+static void spdm_protocol_observer_mock_on_response_not_ready (
+	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+{
+	struct spdm_protocol_observer_mock *mock =
+		(struct spdm_protocol_observer_mock*) observer;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_response_not_ready,
+		observer, MOCK_ARG_CALL (response));
+}
+
 static int spdm_protocol_observer_mock_func_arg_count (void *func)
 {
 	if ((func == spdm_protocol_observer_mock_on_get_version_response) ||
@@ -114,7 +128,8 @@ static int spdm_protocol_observer_mock_func_arg_count (void *func)
 		(func == spdm_protocol_observer_mock_on_get_digests_response) ||
 		(func == spdm_protocol_observer_mock_on_get_certificate_response) ||
 		(func == spdm_protocol_observer_mock_on_challenge_response) ||
-		(func == spdm_protocol_observer_mock_on_get_measurements_response)) {
+		(func == spdm_protocol_observer_mock_on_get_measurements_response) ||
+		(func == spdm_protocol_observer_mock_on_response_not_ready)) {
 		return 1;
 	}
 	return 0;
@@ -142,6 +157,9 @@ static const char* spdm_protocol_observer_mock_func_name_map (void *func)
 	}
 	else if (func == spdm_protocol_observer_mock_on_get_measurements_response) {
 		return "on_get_measurements_response";
+	}
+	else if (func == spdm_protocol_observer_mock_on_response_not_ready) {
+		return "on_response_not_ready";
 	}
 	else {
 		return "unknown";
@@ -192,6 +210,12 @@ static const char* spdm_protocol_observer_mock_arg_name_map (void *func, int arg
 				return "response";
 		}
 	}
+	else if (func == spdm_protocol_observer_mock_on_response_not_ready) {
+		switch (arg) {
+			case 0:
+				return "response";
+		}
+	}
 
 	return "unknown";
 }
@@ -235,6 +259,7 @@ int spdm_protocol_observer_mock_init (struct spdm_protocol_observer_mock *mock)
 	mock->base.on_spdm_challenge_response = spdm_protocol_observer_mock_on_challenge_response;
 	mock->base.on_spdm_get_measurements_response =
 		spdm_protocol_observer_mock_on_get_measurements_response;
+	mock->base.on_spdm_response_not_ready = spdm_protocol_observer_mock_on_response_not_ready;
 
 	return 0;
 }

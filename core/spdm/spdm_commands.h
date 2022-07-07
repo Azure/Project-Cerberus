@@ -773,11 +773,30 @@ struct spdm_error_response {
 };
 
 /**
+ * SPDM error response not ready optional data format
+ */
+struct spdm_error_response_not_ready {
+	uint8_t rdt_exponent;										/**< Exponent for duration in microseconds after which the responder can provide response */
+	uint8_t request_code;										/**< Request code that triggered this response */
+	uint8_t token;												/**< Opaque handle to pass in with RESPOND_IF_READY request */
+	uint8_t rdtm;												/**< Multiplier used to compute duration in microseconds after which the responder will stop processing initial request */
+};
+
+/**
  * Get the buffer containing the SPDM error response optional data
  *
  * @param resp Buffer with struct spdm_error_response
  */
 #define	spdm_get_spdm_error_rsp_optional_data(resp)				(((uint8_t*) resp) + sizeof (*resp))
+
+/**
+ * SPDM respond if ready request format
+ */
+struct spdm_respond_if_ready_request {
+	struct spdm_protocol_header header;							/**< Message header */
+	uint8_t original_request_code;								/**< Original request code that triggered ResponseNotReady response */
+	uint8_t token;												/**< Token received in ResponseNotReady response */
+};
 
 /**
  * Get the buffer containing the start of the SPDM portion of a response
@@ -825,6 +844,9 @@ int spdm_generate_get_measurements_request (uint8_t *buf, size_t buf_len, uint8_
 	uint8_t measurement_operation, bool sig_required, bool raw_bitstream_requested, uint8_t* nonce,
 	uint8_t spdm_minor_version);
 int spdm_process_get_measurements_response (struct cmd_interface_msg *response);
+
+int spdm_generate_respond_if_ready_request (uint8_t *buf, size_t buf_len,
+	uint8_t original_request_code, uint8_t token, uint8_t spdm_minor_version);
 
 
 #endif /* SPDM_COMMANDS_H_ */

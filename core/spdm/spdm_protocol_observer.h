@@ -89,6 +89,17 @@ struct spdm_protocol_observer {
 	 */
 	void (*on_spdm_get_measurements_response) (struct spdm_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
+
+	/**
+	 * Notification that a SPDM ResponseNotReady error message has been received.
+	 *
+	 * Arguments passed with the notification will never be null.
+	 *
+	 * @param observer The observer instance being notified.
+	 * @param reponse The response container received.
+	 */
+	void (*on_spdm_response_not_ready) (struct spdm_protocol_observer *observer,
+		const struct cmd_interface_msg *response);
 };
 
 

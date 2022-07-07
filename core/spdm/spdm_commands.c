@@ -791,6 +791,7 @@ fail:
  * Construct SPDM challenge request.
  *
  * @param buf Output buffer for the generated request data.
+ * @param buf_len Maximum size of buffer.
  * @param slot_num Slot number requested for challenge.
  * @param req_measurement_summary_hash_type Requested measurement summary hash type.
  * @param nonce Random nonce to send in request.
@@ -848,6 +849,7 @@ int spdm_process_challenge_response (struct cmd_interface_msg *response)
  * Construct SPDM get measurements request.
  *
  * @param buf Output buffer for the generated request data.
+ * @param buf_len Maximum size of buffer.
  * @param slot_num Slot number requested.
  * @param measurement_operation Requested measurement operation.
  * @param sig_required Flag indicating if signature is required in response.
@@ -922,4 +924,40 @@ int spdm_process_get_measurements_response (struct cmd_interface_msg *response)
 	}
 
 	return 0;
+}
+
+/**
+ * Construct SPDM respond if ready request.
+ *
+ * @param buf Output buffer for the generated request data.
+ * @param buf_len Maximum size of buffer.
+ * @param original_request_code Original request code that triggered ResponseNotReady response.
+ * @param token Token received in ResponseNotReady response.
+ * @param spdm_minor_version SPDM minor version to utilize in request.
+ *
+ * @return Length of the generated request data if the request was successfully constructed or an
+ * error code.
+ */
+int spdm_generate_respond_if_ready_request (uint8_t *buf, size_t buf_len,
+	uint8_t original_request_code, uint8_t token, uint8_t spdm_minor_version)
+{
+	struct spdm_respond_if_ready_request *rq = (struct spdm_respond_if_ready_request*) buf;
+	size_t rq_length = sizeof (struct spdm_respond_if_ready_request);
+
+	if (buf == NULL) {
+		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	}
+
+	if (buf_len < rq_length) {
+		return CMD_HANDLER_SPDM_BUF_TOO_SMALL;
+	}
+
+	memset (rq, 0, rq_length);
+
+	spdm_populate_header (&rq->header, SPDM_REQUEST_RESPOND_IF_READY, spdm_minor_version);
+
+	rq->token = token;
+	rq->original_request_code = original_request_code;
+
+	return rq_length;
 }

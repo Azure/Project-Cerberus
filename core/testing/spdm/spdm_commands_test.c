@@ -4029,6 +4029,49 @@ static void spdm_test_process_get_measurements_response_null (CuTest *test)
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
 }
 
+static void spdm_test_generate_respond_if_ready_request (CuTest *test)
+{
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
+	struct spdm_respond_if_ready_request *rq = (struct spdm_respond_if_ready_request*) buf;
+	int status;
+
+	memset (buf, 0x55, sizeof (buf));
+
+	TEST_START;
+
+	status = spdm_generate_respond_if_ready_request (buf, sizeof (buf), 1, 2, 2);
+	CuAssertIntEquals (test, sizeof (struct spdm_respond_if_ready_request), status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM, rq->header.msg_type);
+	CuAssertIntEquals (test, 0, rq->header.integrity_check);
+	CuAssertIntEquals (test, 2, rq->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rq->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_REQUEST_RESPOND_IF_READY, rq->header.req_rsp_code);
+	CuAssertIntEquals (test, 1, rq->original_request_code);
+	CuAssertIntEquals (test, 2, rq->token);
+}
+
+static void spdm_test_generate_respond_if_ready_request_buf_too_small (CuTest *test)
+{
+	uint8_t buf[sizeof (struct spdm_respond_if_ready_request) - 1];
+	int status;
+
+	TEST_START;
+
+	status = spdm_generate_respond_if_ready_request (buf, sizeof (buf), 0, 0, 2);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BUF_TOO_SMALL, status);
+}
+
+static void spdm_test_generate_respond_if_ready_request_null (CuTest *test)
+{
+	uint8_t buf[sizeof (struct spdm_respond_if_ready_request)];
+	int status;
+
+	TEST_START;
+
+	status = spdm_generate_respond_if_ready_request (NULL, sizeof (buf), 0, 0, 2);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
+}
+
 
 TEST_SUITE_START (spdm_commands);
 
@@ -4129,5 +4172,8 @@ TEST (spdm_test_generate_get_measurements_request_null);
 TEST (spdm_test_process_get_measurements_response);
 TEST (spdm_test_process_get_measurements_response_bad_length);
 TEST (spdm_test_process_get_measurements_response_null);
+TEST (spdm_test_generate_respond_if_ready_request);
+TEST (spdm_test_generate_respond_if_ready_request_buf_too_small);
+TEST (spdm_test_generate_respond_if_ready_request_null);
 
 TEST_SUITE_END;

@@ -67,6 +67,7 @@ static int attestation_requester_send_request_and_get_response (
 	uint8_t dest_eid, bool crypto_timeout, uint8_t command)
 {
 	uint32_t timeout_ms;
+	bool rsp_ready = false;
 	int status;
 
 	attestation->state->request_status = ATTESTATION_REQUESTER_REQUEST_IDLE;
@@ -79,15 +80,43 @@ static int attestation_requester_send_request_and_get_response (
 		timeout_ms = device_manager_get_crypto_timeout_by_eid (attestation->device_mgr, dest_eid);
 	}
 
-	status = mctp_interface_issue_request (attestation->mctp, attestation->channel, dest_addr,
-		dest_eid, attestation->state->msg_buffer, request_len, attestation->state->msg_buffer,
-		sizeof (attestation->state->msg_buffer), timeout_ms);
-	if (status != 0) {
-		return status;
-	}
+	while (!rsp_ready) {
+		/* Send request and await response. mctp_interface_issue_request will block till a response
+		 * is received or timeout period elapses. If response is received, the notification
+		 * callbacks will process response and update the request_status.
+		 */
+		status = mctp_interface_issue_request (attestation->mctp, attestation->channel, dest_addr,
+			dest_eid, attestation->state->msg_buffer, request_len, attestation->state->msg_buffer,
+			sizeof (attestation->state->msg_buffer), timeout_ms);
+		if (status != 0) {
+			return status;
+		}
 
-	if (attestation->state->request_status != ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL) {
-		return ATTESTATION_REQUEST_FAILED;
+		if (attestation->state->request_status != ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL) {
+			return ATTESTATION_REQUEST_FAILED;
+		}
+
+		/* If SPDM, responder might send a ResponseNotReady error. The ResponseNotReady notification
+		 * will set sleep_duration_ms to a non-zero value based on the error response as per the
+		 * SPDM DSP0274 spec. First, sleep for the duration requested until response is ready, then
+		 * send a RESPOND_IF_READY request to retrieve response to original request.
+		 */
+
+		// TODO: Check for an upper limit to number of retries
+		if (attestation->state->sleep_duration_ms != 0) {
+			platform_msleep (attestation->state->sleep_duration_ms);
+			attestation->state->sleep_duration_ms = 0;
+
+			request_len = spdm_generate_respond_if_ready_request (attestation->state->msg_buffer,
+				sizeof (attestation->state->msg_buffer), attestation->state->requested_command,
+				attestation->state->respond_if_ready_token, attestation->state->protocol);
+			if (ROT_IS_ERROR ((int) request_len)) {
+				return request_len;
+			}
+		}
+		else {
+			rsp_ready = true;
+		}
 	}
 
 	return 0;
@@ -1126,6 +1155,68 @@ void attestation_requester_on_spdm_get_measurements_response (
 fail:
 	attestation->state->request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
 }
+
+/**
+ * SPDM ResponseNotReady error observer function. If original request command code allows
+ * ResponseNotReady, wait for RDT duration then issue RESPOND_IF_READY request.
+ */
+void attestation_requester_on_spdm_response_not_ready (
+	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+{
+	struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, struct attestation_requester, spdm_rsp_observer);
+	struct spdm_error_response *rsp = (struct spdm_error_response*) response->data;
+	struct spdm_error_response_not_ready *rsp_not_ready =
+		(struct spdm_error_response_not_ready*) spdm_get_spdm_error_rsp_optional_data (rsp);
+	uint8_t rdt_exponent;
+
+	if (attestation->state->protocol < ATTESTATION_PROTOCOL_DMTF_SPDM_1_1) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
+			((attestation->state->protocol << 24) | (attestation->state->requested_command << 16) |
+				(ATTESTATION_PROTOCOL_DMTF_SPDM_1_1 << 8) |	SPDM_RESPONSE_ERROR));
+		goto fail;
+	}
+
+	// DSP0274 SPDM spec indicates these commands cannot respond with ResponseNotReady
+	if ((attestation->state->requested_command == SPDM_REQUEST_GET_VERSION) ||
+		(attestation->state->requested_command == SPDM_REQUEST_GET_CAPABILITIES) ||
+		(attestation->state->requested_command == SPDM_REQUEST_NEGOTIATE_ALGORITHMS)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_ILLEGAL_RSP_NOT_READY, response->source_eid,
+			attestation->state->requested_command);
+		goto fail;
+	}
+
+	if (rsp_not_ready->request_code != attestation->state->requested_command) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RQ_CODE_IN_RSP, response->source_eid,
+			(attestation->state->requested_command << 8) | rsp_not_ready->request_code);
+		goto fail;
+	}
+
+	// TODO: Get maximum permitted sleep duration from PCD
+
+	/* If the requested sleep duration is too large to store, then cap it at the maximum sleep
+	 * duration that can fit in sleep_duration_ms, which is roughly 25 days. If for some reason
+	 * responder requests a duration larger than that, then responder can respond to the
+	 * RESPOND_IF_READY request with another ResponseNotReady. */
+	if (rsp_not_ready->rdt_exponent > 41) {
+		rdt_exponent = 41;
+	}
+	else {
+		rdt_exponent = rsp_not_ready->rdt_exponent;
+	}
+
+	attestation->state->sleep_duration_ms = 1 + ((1 << rdt_exponent) / 1000);
+	attestation->state->respond_if_ready_token = rsp_not_ready->token;
+	attestation->state->request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
+
+	return;
+
+fail:
+	attestation->state->request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
+}
 #endif
 
 #ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
@@ -1481,6 +1572,8 @@ int attestation_requester_init (struct attestation_requester *attestation,
 		attestation_requester_on_spdm_challenge_response;
 	attestation->spdm_rsp_observer.on_spdm_get_measurements_response =
 		attestation_requester_on_spdm_get_measurements_response;
+	attestation->spdm_rsp_observer.on_spdm_response_not_ready =
+		attestation_requester_on_spdm_response_not_ready;
 #endif
 
 #ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE

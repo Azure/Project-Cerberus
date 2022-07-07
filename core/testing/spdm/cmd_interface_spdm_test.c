@@ -899,6 +899,43 @@ static void cmd_interface_spdm_test_process_response_error_response (CuTest *tes
 	complete_cmd_interface_spdm_mock_test (test, &cmd);
 }
 
+static void cmd_interface_spdm_test_process_response_error_response_response_not_ready (
+	CuTest *test)
+{
+	struct cmd_interface_spdm_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct spdm_error_response *rsp = (struct spdm_error_response*) data;
+	int status;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
+	rsp->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rsp->header.req_rsp_code = SPDM_RESPONSE_ERROR;
+
+	rsp->error_code = SPDM_ERROR_RESPONSE_NOT_READY;
+
+	response.length = sizeof (struct spdm_error_response);
+	response.source_eid = 0xaa;
+	response.target_eid = 0xbb;
+
+	TEST_START;
+
+	setup_cmd_interface_spdm_mock_test (test, &cmd, true);
+
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_spdm_response_not_ready,
+		&cmd.observer, 0,
+		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response, sizeof (response)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_cmd_interface_spdm_mock_test (test, &cmd);
+}
+
 static void cmd_interface_spdm_test_process_response_error_response_incorrect_len (CuTest *test)
 {
 	struct cmd_interface_spdm_testing cmd;
@@ -958,6 +995,38 @@ static void cmd_interface_spdm_test_process_response_error_response_no_observer 
 
 	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
 	CuAssertIntEquals (test, CMD_HANDLER_ERROR_MESSAGE, status);
+
+	complete_cmd_interface_spdm_mock_test (test, &cmd);
+}
+
+static void cmd_interface_spdm_test_process_response_error_response_response_not_ready_no_observer (
+	CuTest *test)
+{
+	struct cmd_interface_spdm_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct spdm_error_response *rsp = (struct spdm_error_response*) data;
+	int status;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
+	rsp->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rsp->header.req_rsp_code = SPDM_RESPONSE_ERROR;
+
+	rsp->error_code = SPDM_ERROR_RESPONSE_NOT_READY;
+
+	response.length = sizeof (struct spdm_error_response);
+	response.source_eid = 0xaa;
+	response.target_eid = 0xbb;
+
+	TEST_START;
+
+	setup_cmd_interface_spdm_mock_test (test, &cmd, false);
+
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, 0, status);
 
 	complete_cmd_interface_spdm_mock_test (test, &cmd);
 }
@@ -1094,8 +1163,10 @@ TEST (cmd_interface_spdm_test_process_response_get_measurements_response);
 TEST (cmd_interface_spdm_test_process_response_get_measurements_response_fail);
 TEST (cmd_interface_spdm_test_process_response_get_measurements_response_no_observer);
 TEST (cmd_interface_spdm_test_process_response_error_response);
+TEST (cmd_interface_spdm_test_process_response_error_response_response_not_ready);
 TEST (cmd_interface_spdm_test_process_response_error_response_incorrect_len);
 TEST (cmd_interface_spdm_test_process_response_error_response_no_observer);
+TEST (cmd_interface_spdm_test_process_response_error_response_response_not_ready_no_observer);
 TEST (cmd_interface_spdm_test_process_response_invalid_arg);
 TEST (cmd_interface_spdm_test_process_response_unknown_command);
 TEST (cmd_interface_spdm_test_generate_error_packet);

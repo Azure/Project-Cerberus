@@ -36,6 +36,8 @@ enum {
 	ATTESTATION_LOGGING_MEASUREMENT_DATA_TOO_LARGE,					/**< Received measurements response too large. */
 	ATTESTATION_LOGGING_UNEXPECTED_MEASUREMENT_BLOCK_RAW,			/**< Received measurements response has raw measurement block when digest requested. */
 	ATTESTATION_LOGGING_GET_DEVICE_ID_FAILED,						/**< Device failed to send SPDM device ID block. */
+	ATTESTATION_LOGGING_ILLEGAL_RSP_NOT_READY,						/**< Received response not ready response for a command that does not permit it. */
+	ATTESTATION_LOGGING_UNEXPECTED_RQ_CODE_IN_RSP,					/**< Response not ready for unexpected command received. */
 };
 
 

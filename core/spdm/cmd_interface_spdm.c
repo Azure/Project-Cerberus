@@ -154,10 +154,17 @@ static int cmd_interface_spdm_process_response (struct cmd_interface *intf,
 				struct spdm_error_response *error_msg =
 					(struct spdm_error_response*) response->data;
 
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
-					DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_ERROR_MESSAGE,
-					(error_msg->error_code << 24 | response->source_eid << 16 |
-					response->target_eid << 8),	error_msg->error_data);
+				if (error_msg->error_code == SPDM_ERROR_RESPONSE_NOT_READY) {
+					return observable_notify_observers_with_ptr (&interface->observable,
+						offsetof (struct spdm_protocol_observer, on_spdm_response_not_ready),
+						response);
+				}
+				else {
+					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
+						DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_ERROR_MESSAGE,
+						(error_msg->error_code << 24 | response->source_eid << 16 |
+						response->target_eid << 8),	error_msg->error_data);
+				}
 			}
 
 			return CMD_HANDLER_ERROR_MESSAGE;
