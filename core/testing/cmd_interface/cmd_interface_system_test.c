@@ -6215,6 +6215,124 @@ static void cmd_interface_system_test_process_clear_platform_config_error (CuTes
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_clear_cfms_no_nonce_authorized (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_authorized (test,
+		&cmd.handler.base, &cmd.auth, &cmd.background);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_cfms_no_nonce_challenge (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_challenge (test,
+		&cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_cfms_no_nonce_max_challenge (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_max_challenge (test,
+		&cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_cfms_no_nonce_not_authorized (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_not_authorized (test,
+		&cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_cfms_with_nonce_authorized (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_authorized (test,
+		&cmd.handler.base, &cmd.auth, &cmd.background);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_cfms_with_nonce_not_authorized (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_not_authorized (test,
+		&cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_cfms_no_nonce_invalid_challenge (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_invalid_challenge (test,
+		&cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_cfms_no_nonce_invalid_challenge_limited_response (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_invalid_challenge_limited_response (
+		test, &cmd.handler.base, &cmd.auth);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_clear_cfms_error (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_error (test,
+		&cmd.handler.base, &cmd.auth, &cmd.background);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_reset_intrusion_no_nonce_authorized (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -8372,6 +8490,15 @@ TEST (cmd_interface_system_test_process_clear_platform_config_with_nonce_not_aut
 TEST (cmd_interface_system_test_process_clear_platform_config_no_nonce_invalid_challenge);
 TEST (cmd_interface_system_test_process_clear_platform_config_no_nonce_invalid_challenge_limited_response);
 TEST (cmd_interface_system_test_process_clear_platform_config_error);
+TEST (cmd_interface_system_test_process_clear_cfms_no_nonce_authorized);
+TEST (cmd_interface_system_test_process_clear_cfms_no_nonce_challenge);
+TEST (cmd_interface_system_test_process_clear_cfms_no_nonce_max_challenge);
+TEST (cmd_interface_system_test_process_clear_cfms_no_nonce_not_authorized);
+TEST (cmd_interface_system_test_process_clear_cfms_with_nonce_authorized);
+TEST (cmd_interface_system_test_process_clear_cfms_with_nonce_not_authorized);
+TEST (cmd_interface_system_test_process_clear_cfms_no_nonce_invalid_challenge);
+TEST (cmd_interface_system_test_process_clear_cfms_no_nonce_invalid_challenge_limited_response);
+TEST (cmd_interface_system_test_process_clear_cfms_error);
 TEST (cmd_interface_system_test_process_reset_intrusion_no_nonce_authorized);
 TEST (cmd_interface_system_test_process_reset_intrusion_no_nonce_challenge);
 TEST (cmd_interface_system_test_process_reset_intrusion_no_nonce_max_challenge);

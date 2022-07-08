@@ -37,6 +37,8 @@ enum config_reset_status {
 	CONFIG_RESET_STATUS_PLATFORM_CONFIG_FAILED,		/**< Failed to clear platform configuration. */
 	CONFIG_RESET_STATUS_RESET_INTRUSION,			/**< Intrusion state is being reset. */
 	CONFIG_RESET_STATUS_INTRUSION_FAILED,			/**< Failed to reset intrusion state. */
+	CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS,	/**< Component manifests are being cleared. */
+	CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED, /**< Failed to clear component manifests. */
 };
 
 /**
@@ -47,6 +49,8 @@ struct config_reset {
 	size_t bypass_count;							/**< Number of bypass configuration managers. */
 	struct manifest_manager **config;				/**< List of configuration files to clear for defaults. */
 	size_t config_count;							/**< Number of default configuration managers. */
+	struct manifest_manager **component_manifests;	/**< List of component manifests to disable attesting external component. */
+	size_t component_manifests_count;				/**< Number of component manifest managers. */
 	struct state_manager **state;					/**< List of state information to reset. */
 	size_t state_count;								/**< Number of state managers. */
 	struct riot_key_manager *riot;					/**< Manager for RIoT keys. */
@@ -60,16 +64,17 @@ struct config_reset {
 
 int config_reset_init (struct config_reset *reset, struct manifest_manager **bypass_config,
 	size_t bypass_count, struct manifest_manager **platform_config, size_t platform_count,
+	struct manifest_manager **component_manifests, size_t component_manifests_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
-	struct keystore **keystores, size_t keystore_count,
-	struct intrusion_manager *intrusion);
+	struct keystore **keystores, size_t keystore_count, struct intrusion_manager *intrusion);
 void config_reset_release (struct config_reset *reset);
 
 int config_reset_restore_bypass (struct config_reset *reset);
 int config_reset_restore_defaults (struct config_reset *reset);
 int config_reset_restore_platform_config (struct config_reset *reset);
 int config_reset_reset_intrusion (struct config_reset *reset);
+int config_reset_clear_component_manifests (struct config_reset *reset);
 
 
 #define	CONFIG_RESET_ERROR(code)		ROT_ERROR (ROT_MODULE_CONFIG_RESET, code)

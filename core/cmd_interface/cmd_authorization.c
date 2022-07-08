@@ -52,6 +52,21 @@ static int cmd_authorization_authorize_clear_platform_config (struct cmd_authori
 	}
 }
 
+static int cmd_authorization_authorize_clear_component_manifests (struct cmd_authorization *auth,
+	uint8_t **token, size_t *length)
+{
+	if (auth == NULL) {
+		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
+	}
+
+	if (auth->components) {
+		return auth->components->authorize (auth->components, token, length);
+	}
+	else {
+		return AUTHORIZATION_NOT_AUTHORIZED;
+	}
+}
+
 static int cmd_authorization_authorize_reset_intrusion (struct cmd_authorization *auth,
 	uint8_t **token, size_t *length)
 {
@@ -77,14 +92,16 @@ static int cmd_authorization_authorize_reset_intrusion (struct cmd_authorization
  * disallow this operation.
  * @param platform The authorization context to clear platform-specific configuration.  Set to null
  * to disallow this operation.
- * @param intrusion The authorization context to reset intrusion state.  Set to null to disallow 
+ * @param components The authorization context to clear component manifests.  Set to null to
+ * disallow this operation.
+ * @param intrusion The authorization context to reset intrusion state.  Set to null to disallow
  * this operation.
  *
  * @return 0 if the handler was successfully initialized or an error code.
  */
 int cmd_authorization_init (struct cmd_authorization *auth, struct authorization *bypass,
-	struct authorization *defaults, struct authorization *platform, 
-	struct authorization *intrusion)
+	struct authorization *defaults, struct authorization *platform,
+	struct authorization *components, struct authorization *intrusion)
 {
 	if (auth == NULL) {
 		return CMD_AUTHORIZATION_INVALID_ARGUMENT;
@@ -95,11 +112,14 @@ int cmd_authorization_init (struct cmd_authorization *auth, struct authorization
 	auth->authorize_revert_bypass = cmd_authorization_authorize_revert_bypass;
 	auth->authorize_reset_defaults = cmd_authorization_authorize_reset_defaults;
 	auth->authorize_clear_platform_config = cmd_authorization_authorize_clear_platform_config;
+	auth->authorize_clear_component_manifests =
+		cmd_authorization_authorize_clear_component_manifests;
 	auth->authorize_reset_intrusion = cmd_authorization_authorize_reset_intrusion;
 
 	auth->bypass = bypass;
 	auth->defaults = defaults;
 	auth->platform = platform;
+	auth->components = components;
 	auth->intrusion = intrusion;
 
 	return 0;

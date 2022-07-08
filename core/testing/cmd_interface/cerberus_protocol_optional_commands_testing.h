@@ -404,6 +404,28 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_e
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background);
 
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_authorized (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background);
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_challenge (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_max_challenge (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_not_authorized (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_authorized (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background);
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_not_authorized (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_invalid_challenge (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_invalid_challenge_limited_response (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_error (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background);
+
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background);

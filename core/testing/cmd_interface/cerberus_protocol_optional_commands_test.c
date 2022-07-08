@@ -8411,6 +8411,411 @@ void cerberus_protocol_optional_commands_testing_process_clear_platform_config_e
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 }
 
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_authorized (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	int status;
+	uint8_t *null = NULL;
+	size_t zero = 0;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
+
+	req->type = 3;
+	request.length = sizeof (struct cerberus_protocol_reset_config);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&auth->mock, auth->base.authorize_clear_component_manifests, auth, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
+		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)));
+	status |= mock_expect (&background->mock, background->base.clear_component_manifests,
+		background,	0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, request.length);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_challenge (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cerberus_protocol_reset_config_response *resp =
+		(struct cerberus_protocol_reset_config_response*) data;
+	int status;
+	int i;
+	uint8_t *null = NULL;
+	size_t zero = 0;
+	uint8_t nonce[32];
+	uint8_t *challenge = nonce;
+	size_t length = sizeof (nonce);
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
+
+	req->type = 3;
+	request.length = sizeof (struct cerberus_protocol_reset_config);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	for (i = 0; i < (int) sizeof (nonce); i++) {
+		nonce[i] = i;
+	}
+
+	status = mock_expect (&auth->mock, auth->base.authorize_clear_component_manifests, auth,
+		AUTHORIZATION_CHALLENGE, MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
+		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)));
+	status |= mock_expect_output (&auth->mock, 0, &challenge, sizeof (challenge), -1);
+	status |= mock_expect_output (&auth->mock, 1, &length, sizeof (length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_config_response) + length,
+		request.length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_RESET_CONFIG, resp->header.command);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	status = testing_validate_array (nonce, cerberus_protocol_reset_authorization (resp), length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_max_challenge (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	struct cerberus_protocol_reset_config_response *resp =
+		(struct cerberus_protocol_reset_config_response*) data;
+	int status;
+	int i;
+	uint8_t *null = NULL;
+	size_t zero = 0;
+	uint8_t nonce[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	uint8_t *challenge = nonce;
+	size_t length = sizeof (nonce);
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
+
+	req->type = 3;
+	request.length = sizeof (struct cerberus_protocol_reset_config);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	for (i = 0; i < (int) sizeof (nonce); i++) {
+		nonce[i] = i;
+	}
+
+	status = mock_expect (&auth->mock, auth->base.authorize_clear_component_manifests, auth,
+		AUTHORIZATION_CHALLENGE, MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
+		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)));
+	status |= mock_expect_output (&auth->mock, 0, &challenge, sizeof (challenge), -1);
+	status |= mock_expect_output (&auth->mock, 1, &length, sizeof (length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_config_response) + length,
+		request.length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_RESET_CONFIG, resp->header.command);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	status = testing_validate_array (nonce, cerberus_protocol_reset_authorization (resp), length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_not_authorized (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	int status;
+	uint8_t *null = NULL;
+	size_t zero = 0;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
+
+	req->type = 3;
+	request.length = sizeof (struct cerberus_protocol_reset_config);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&auth->mock, auth->base.authorize_clear_component_manifests, auth,
+		AUTHORIZATION_NOT_AUTHORIZED, MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
+		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, AUTHORIZATION_NOT_AUTHORIZED, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_authorized (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	int status;
+	int i;
+	size_t length = 253;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
+
+	req->type = 3;
+	for (i = 0; i < (int) length; i++) {
+		cerberus_protocol_reset_authorization (req)[i] = i;
+	}
+
+	request.length = sizeof (struct cerberus_protocol_reset_config) + length;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&auth->mock, auth->base.authorize_clear_component_manifests, auth, 0,
+		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
+		MOCK_ARG_PTR_CONTAINS_TMP (&length, sizeof (length)));
+	status |= mock_expect (&background->mock, background->base.clear_component_manifests,
+		background,	0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, request.length);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_with_nonce_not_authorized (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	int status;
+	int i;
+	size_t length = 253;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
+
+	req->type = 3;
+	for (i = 0; i < (int) length; i++) {
+		cerberus_protocol_reset_authorization (req)[i] = i;
+	}
+
+	request.length = sizeof (struct cerberus_protocol_reset_config) + length;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&auth->mock, auth->base.authorize_clear_component_manifests, auth,
+		AUTHORIZATION_NOT_AUTHORIZED,
+		MOCK_ARG_PTR_PTR_CONTAINS_TMP (cerberus_protocol_reset_authorization (req), length),
+		MOCK_ARG_PTR_CONTAINS_TMP (&length, sizeof (length)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, AUTHORIZATION_NOT_AUTHORIZED, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_invalid_challenge (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	int status;
+	int i;
+	uint8_t *null = NULL;
+	size_t zero = 0;
+	uint8_t nonce[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG + 1];
+	uint8_t *challenge = nonce;
+	size_t length = sizeof (nonce);
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
+
+	req->type = 3;
+	request.length = sizeof (struct cerberus_protocol_reset_config);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	for (i = 0; i < (int) sizeof (nonce); i++) {
+		nonce[i] = i;
+	}
+
+	status = mock_expect (&auth->mock, auth->base.authorize_clear_component_manifests, auth,
+		AUTHORIZATION_CHALLENGE, MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
+		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)));
+	status |= mock_expect_output (&auth->mock, 0, &challenge, sizeof (challenge), -1);
+	status |= mock_expect_output (&auth->mock, 1, &length, sizeof (length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BUF_TOO_SMALL, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_invalid_challenge_limited_response (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	int status;
+	int i;
+	uint8_t *null = NULL;
+	size_t zero = 0;
+	uint8_t nonce[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG + 1 - 128];
+	uint8_t *challenge = nonce;
+	size_t length = sizeof (nonce);
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
+
+	req->type = 3;
+	request.length = sizeof (struct cerberus_protocol_reset_config);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	for (i = 0; i < (int) sizeof (nonce); i++) {
+		nonce[i] = i;
+	}
+
+	status = mock_expect (&auth->mock, auth->base.authorize_clear_component_manifests, auth,
+		AUTHORIZATION_CHALLENGE, MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
+		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)));
+	status |= mock_expect_output (&auth->mock, 0, &challenge, sizeof (challenge), -1);
+	status |= mock_expect_output (&auth->mock, 1, &length, sizeof (length), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BUF_TOO_SMALL, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
+void cerberus_protocol_optional_commands_testing_process_clear_cfms_error (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	struct cmd_background_mock *background)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_reset_config *req = (struct cerberus_protocol_reset_config*) data;
+	int status;
+	uint8_t *null = NULL;
+	size_t zero = 0;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_RESET_CONFIG;
+
+	req->type = 3;
+	request.length = sizeof (struct cerberus_protocol_reset_config);
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = mock_expect (&auth->mock, auth->base.authorize_clear_component_manifests, auth, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&null, sizeof (null)),
+		MOCK_ARG_PTR_CONTAINS_TMP (&zero, sizeof (zero)));
+	status |= mock_expect (&background->mock, background->base.clear_component_manifests,
+		background,	CMD_BACKGROUND_CFM_FAILED);
+
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_BACKGROUND_CFM_FAILED, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background)

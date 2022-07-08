@@ -760,6 +760,11 @@ int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 			action = background->restore_defaults;
 			break;
 
+		case CERBERUS_PROTOCOL_CLEAR_CFM:
+			auth = cmd_auth->authorize_clear_component_manifests;
+			action = background->clear_component_manifests;
+			break;
+
 		case CERBERUS_PROTOCOL_CLEAR_PCD:
 			auth = cmd_auth->authorize_clear_platform_config;
 			action = background->clear_platform_config;

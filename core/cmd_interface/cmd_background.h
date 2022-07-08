@@ -89,6 +89,15 @@ struct cmd_background {
 	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
 	int (*clear_platform_config) (struct cmd_background *cmd);
+
+	/**
+	 * Remove all component manifests from the device.
+	 *
+	 * @param cmd The background context for executing the operation.
+	 *
+	 * @return 0 if the operation was successfully scheduled or an error code.
+	 */
+	int (*clear_component_manifests) (struct cmd_background *cmd);
 #endif
 
 #ifdef CMD_ENABLE_INTRUSION
@@ -179,6 +188,7 @@ enum {
 	CMD_BACKGROUND_UNSUPPORTED_OP = CMD_BACKGROUND_ERROR (0x0B),		/**< The scheduled operation is not understood by the task. */
 	CMD_BACKGROUND_PLATFORM_CFG_FAILED = CMD_BACKGROUND_ERROR (0x0C),	/**< Failed to clear platform configuration. */
 	CMD_BACKGROUND_INTRUSION_FAILED = CMD_BACKGROUND_ERROR (0x0D),		/**< Failed to reset the intrusion state. */
+	CMD_BACKGROUND_CFM_FAILED = CMD_BACKGROUND_ERROR (0x0E),			/**< Failed to clear component manifests. */
 };
 
 

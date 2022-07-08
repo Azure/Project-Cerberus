@@ -23,6 +23,7 @@
 #define	CMD_BACKGROUND_AUX_KEY_GEN		(1U << 6)
 #define	CMD_BACKGROUND_PLATFORM_CFG		(1U << 7)
 #define CMD_BACKGROUND_RESET_INTRUSION	(1U << 8)
+#define CMD_BACKGROUND_CLEAR_CFM		(1U << 9)
 
 /**
  * Sub command types to identify which command is consuming the background task.
@@ -170,6 +171,24 @@ static void cmd_background_task_handler (struct cmd_background_task *task)
 					CMD_LOGGING_CLEAR_PLATFORM_FAIL, status, 0);
 
 				status = CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_PLATFORM_CONFIG_FAILED, status);
+			}
+		}
+		else if (notification & CMD_BACKGROUND_CLEAR_CFM) {
+			op_status = &task->config.config_status;
+			cmd_background_task_set_status (task, &task->config.config_status,
+				CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS);
+
+			status = config_reset_clear_component_manifests (task->config.reset);
+			if (status == 0) {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+					CMD_LOGGING_CLEAR_CFM, 0, 0);
+			}
+			else {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+					CMD_LOGGING_CLEAR_CFM_FAIL, status, 0);
+
+				status = CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED,
+					status);
 			}
 		}
 #endif
@@ -329,7 +348,7 @@ static int cmd_background_task_unseal_start (struct cmd_background *cmd,
 			if (task->running != CMD_BACKGROUND_TASK_ATTESTATION) {
 				task->attestation.attestation_status =
 					CMD_BACKGROUND_STATUS (ATTESTATION_CMD_STATUS_REQUEST_BLOCKED, status);
-			}	
+			}
 			xSemaphoreGive (task->lock);
 		}
 	}
@@ -380,8 +399,9 @@ static int cmd_background_task_unseal_result (struct cmd_background *cmd, uint8_
 }
 #endif
 
-#ifdef CMD_ENABLE_RESET_CONFIG
-static int cmd_background_task_reset_bypass (struct cmd_background *cmd)
+#if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
+static int cmd_background_task_start_config_reset (struct cmd_background *cmd,
+	uint32_t notification_bits)
 {
 	struct cmd_background_task *task = (struct cmd_background_task*) cmd;
 	int status = 0;
@@ -400,85 +420,7 @@ static int cmd_background_task_reset_bypass (struct cmd_background *cmd)
 			task->config.config_status = CONFIG_RESET_STATUS_STARTING;
 			task->running = CMD_BACKGROUND_TASK_CONFIG;
 			xSemaphoreGive (task->lock);
-			xTaskNotify (task->task, CMD_BACKGROUND_RUN_BYPASS, eSetBits);
-		}
-		else {
-			status = CMD_BACKGROUND_TASK_BUSY;
-			if (task->running != CMD_BACKGROUND_TASK_CONFIG) {
-				task->config.config_status =
-					CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_REQUEST_BLOCKED, status);
-			}
-			xSemaphoreGive (task->lock);
-		}
-	}
-	else {
-		status = CMD_BACKGROUND_NO_TASK;
-		task->config.config_status =
-			CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_TASK_NOT_RUNNING, status);
-	}
-
-	return status;
-}
-
-static int cmd_background_task_restore_defaults (struct cmd_background *cmd)
-{
-	struct cmd_background_task *task = (struct cmd_background_task*) cmd;
-	int status = 0;
-
-	if (task == NULL) {
-		return CMD_BACKGROUND_INVALID_ARGUMENT;
-	}
-
-	if (task->config.reset == NULL) {
-		return CMD_BACKGROUND_UNSUPPORTED_REQUEST;
-	}
-
-	if (task->task) {
-		xSemaphoreTake (task->lock, portMAX_DELAY);
-		if (task->running == CMD_BACKGROUND_TASK_NONE) {
-			task->config.config_status = CONFIG_RESET_STATUS_STARTING;
-			task->running = CMD_BACKGROUND_TASK_CONFIG;
-			xSemaphoreGive (task->lock);
-			xTaskNotify (task->task, CMD_BACKGROUND_RUN_DEFAULTS, eSetBits);
-		}
-		else {
-			status = CMD_BACKGROUND_TASK_BUSY;
-			if (task->running != CMD_BACKGROUND_TASK_CONFIG) {
-				task->config.config_status =
-					CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_REQUEST_BLOCKED, status);
-			}
-			xSemaphoreGive (task->lock);
-		}
-	}
-	else {
-		status = CMD_BACKGROUND_NO_TASK;
-		task->config.config_status =
-			CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_TASK_NOT_RUNNING, status);
-	}
-
-	return status;
-}
-
-static int cmd_background_task_clear_platform_config (struct cmd_background *cmd)
-{
-	struct cmd_background_task *task = (struct cmd_background_task*) cmd;
-	int status = 0;
-
-	if (task == NULL) {
-		return CMD_BACKGROUND_INVALID_ARGUMENT;
-	}
-
-	if (task->config.reset == NULL) {
-		return CMD_BACKGROUND_UNSUPPORTED_REQUEST;
-	}
-
-	if (task->task) {
-		xSemaphoreTake (task->lock, portMAX_DELAY);
-		if (task->running == CMD_BACKGROUND_TASK_NONE) {
-			task->config.config_status = CONFIG_RESET_STATUS_STARTING;
-			task->running = CMD_BACKGROUND_TASK_CONFIG;
-			xSemaphoreGive (task->lock);
-			xTaskNotify (task->task, CMD_BACKGROUND_PLATFORM_CFG, eSetBits);
+			xTaskNotify (task->task, notification_bits, eSetBits);
 		}
 		else {
 			status = CMD_BACKGROUND_TASK_BUSY;
@@ -499,44 +441,32 @@ static int cmd_background_task_clear_platform_config (struct cmd_background *cmd
 }
 #endif
 
+#ifdef CMD_ENABLE_RESET_CONFIG
+static int cmd_background_task_reset_bypass (struct cmd_background *cmd)
+{
+	return cmd_background_task_start_config_reset (cmd, CMD_BACKGROUND_RUN_BYPASS);
+}
+
+static int cmd_background_task_restore_defaults (struct cmd_background *cmd)
+{
+	return cmd_background_task_start_config_reset (cmd, CMD_BACKGROUND_RUN_DEFAULTS);
+}
+
+static int cmd_background_task_clear_platform_config (struct cmd_background *cmd)
+{
+	return cmd_background_task_start_config_reset (cmd, CMD_BACKGROUND_PLATFORM_CFG);
+}
+
+static int cmd_background_task_clear_component_manifests (struct cmd_background *cmd)
+{
+	return cmd_background_task_start_config_reset (cmd, CMD_BACKGROUND_CLEAR_CFM);
+}
+#endif
+
 #ifdef CMD_ENABLE_INTRUSION
 static int cmd_background_task_reset_intrusion (struct cmd_background *cmd)
 {
-	struct cmd_background_task *task = (struct cmd_background_task*) cmd;
-	int status = 0;
-
-	if (task == NULL) {
-		return CMD_BACKGROUND_INVALID_ARGUMENT;
-	}
-
-	if (task->config.reset == NULL) {
-		return CMD_BACKGROUND_UNSUPPORTED_REQUEST;
-	}
-
-	if (task->task) {
-		xSemaphoreTake (task->lock, portMAX_DELAY);
-		if (task->running == CMD_BACKGROUND_TASK_NONE) {
-			task->config.config_status = CONFIG_RESET_STATUS_STARTING;
-			task->running = CMD_BACKGROUND_TASK_CONFIG;
-			xSemaphoreGive (task->lock);
-			xTaskNotify (task->task, CMD_BACKGROUND_RESET_INTRUSION, eSetBits);
-		}
-		else {
-			status = CMD_BACKGROUND_TASK_BUSY;
-			if (task->running != CMD_BACKGROUND_TASK_CONFIG) {
-				task->config.config_status =
-					CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_REQUEST_BLOCKED, status);
-			}
-			xSemaphoreGive (task->lock);
-		}
-	}
-	else {
-		status = CMD_BACKGROUND_NO_TASK;
-		task->config.config_status =
-			CMD_BACKGROUND_STATUS (CONFIG_RESET_STATUS_TASK_NOT_RUNNING, status);
-	}
-
-	return status;
+	return cmd_background_task_start_config_reset (cmd, CMD_BACKGROUND_RESET_INTRUSION);
 }
 #endif
 
@@ -704,6 +634,7 @@ int cmd_background_task_init (struct cmd_background_task *task, struct system *s
 	task->base.reset_bypass = cmd_background_task_reset_bypass;
 	task->base.restore_defaults = cmd_background_task_restore_defaults;
 	task->base.clear_platform_config = cmd_background_task_clear_platform_config;
+	task->base.clear_component_manifests = cmd_background_task_clear_component_manifests;
 #endif
 #ifdef CMD_ENABLE_INTRUSION
 	task->base.reset_intrusion = cmd_background_task_reset_intrusion;

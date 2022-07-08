@@ -16,6 +16,9 @@
  * @param platform_config A list of managers for the configuration to clear for restoring platform
  * configuration.
  * @param platform_count The number of managers in the platform configuration list.
+ * @param component_manifests A list of managers for the configuration to clear for restoring
+ * 	component manifests to defaults.
+ * @param component_manifests_count The number of managers in the component manifests list.
  * @param state A list of managers for state information to reset.
  * @param state_count The number of managers in the state list.
  * @param riot Manager RIoT keys to be cleared.
@@ -29,13 +32,15 @@
  */
 int config_reset_init (struct config_reset *reset, struct manifest_manager **bypass_config,
 	size_t bypass_count, struct manifest_manager **platform_config, size_t platform_count,
+	struct manifest_manager **component_manifests, size_t component_manifests_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
 	struct keystore **keystores, size_t keystore_count, struct intrusion_manager *intrusion)
 {
 	if ((reset == NULL) || (bypass_count && (bypass_config == NULL)) ||
 		(platform_count && (platform_config == NULL)) || (state_count && (state == NULL)) ||
-		(keystore_count && (keystores == NULL))) {
+		(keystore_count && (keystores == NULL)) ||
+		(component_manifests_count && (component_manifests == NULL))) {
 		return CONFIG_RESET_INVALID_ARGUMENT;
 	}
 
@@ -49,6 +54,8 @@ int config_reset_init (struct config_reset *reset, struct manifest_manager **byp
 	reset->bypass_count = bypass_count;
 	reset->config = platform_config;
 	reset->config_count = platform_count;
+	reset->component_manifests = component_manifests;
+	reset->component_manifests_count = component_manifests_count;
 	reset->state = state;
 	reset->state_count = state_count;
 	reset->riot = riot;
@@ -121,18 +128,19 @@ int config_reset_restore_defaults (struct config_reset *reset)
 		return CONFIG_RESET_INVALID_ARGUMENT;
 	}
 
-	for (i = 0; i < reset->bypass_count; i++) {
-		status = reset->bypass[i]->clear_all_manifests (reset->bypass[i]);
-		if (status != 0) {
-			return status;
-		}
+	status = config_reset_restore_bypass (reset);
+	if ((status != 0) && (status != CONFIG_RESET_NO_MANIFESTS)) {
+		return status;
 	}
 
-	for (i = 0; i < reset->config_count; i++) {
-		status = (reset->config[i])->clear_all_manifests (reset->config[i]);
-		if (status != 0) {
-			return status;
-		}
+	status = config_reset_restore_platform_config (reset);
+	if ((status != 0) && (status != CONFIG_RESET_NO_MANIFESTS)) {
+		return status;
+	}
+
+	status = config_reset_clear_component_manifests (reset);
+	if ((status != 0) && (status != CONFIG_RESET_NO_MANIFESTS)) {
+		return status;
 	}
 
 	for (i = 0; i < reset->state_count; i++) {
@@ -224,4 +232,35 @@ int config_reset_reset_intrusion (struct config_reset *reset)
 	else {
 		return 0;
 	}
+}
+
+/**
+ * Erase all component manifests.
+ *
+ * @param reset The configuration that should be reset.
+ *
+ * @return 0 if defaults were restored or an error code.
+ */
+int config_reset_clear_component_manifests (struct config_reset *reset)
+{
+	size_t i;
+	int status;
+
+	if (reset == NULL) {
+		return CONFIG_RESET_INVALID_ARGUMENT;
+	}
+
+	if (!reset->component_manifests_count) {
+		return CONFIG_RESET_NO_MANIFESTS;
+	}
+
+	for (i = 0; i < reset->component_manifests_count; i++) {
+		status =
+			(reset->component_manifests[i])->clear_all_manifests (reset->component_manifests[i]);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	return 0;
 }

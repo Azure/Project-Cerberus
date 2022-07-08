@@ -40,6 +40,8 @@ enum {
 	CMD_LOGGING_RESET_INTRUSION,			/**< Intrusion state has been reset. */
 	CMD_LOGGING_RESET_INTRUSION_FAIL,		/**< Failed to reset intrusion state. */
 	CMD_LOGGING_CHANNEL,					/**< Command channel identifier. */
+	CMD_LOGGING_CLEAR_CFM,					/**< Component manifest has been cleared. */
+	CMD_LOGGING_CLEAR_CFM_FAIL,				/**< Failed to clear component manifest. */
 };
 
 

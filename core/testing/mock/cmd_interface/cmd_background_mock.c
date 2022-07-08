@@ -66,6 +66,17 @@ static int cmd_background_mock_clear_platform_config (struct cmd_background *cmd
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_clear_platform_config, cmd);
 }
 
+static int cmd_background_mock_clear_component_manifests (struct cmd_background *cmd)
+{
+	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_clear_component_manifests, cmd);
+}
+
 static int cmd_background_mock_reset_intrusion (struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
@@ -162,6 +173,9 @@ static const char* cmd_background_mock_func_name_map (void *func)
 	else if (func == cmd_background_mock_clear_platform_config) {
 		return "clear_platform_config";
 	}
+	else if (func == cmd_background_mock_clear_component_manifests) {
+		return "clear_component_manifests";
+	}
 	else if (func == cmd_background_mock_reset_intrusion) {
 		return "reset_intrusion";
 	}
@@ -241,6 +255,7 @@ int cmd_background_mock_init (struct cmd_background_mock *mock)
 	mock->base.reset_bypass = cmd_background_mock_reset_bypass;
 	mock->base.restore_defaults = cmd_background_mock_restore_defaults;
 	mock->base.clear_platform_config = cmd_background_mock_clear_platform_config;
+	mock->base.clear_component_manifests = cmd_background_mock_clear_component_manifests;
 	mock->base.reset_intrusion = cmd_background_mock_reset_intrusion;
 	mock->base.get_config_reset_status = cmd_background_mock_get_config_reset_status;
 	mock->base.debug_log_clear = cmd_background_mock_debug_log_clear;
