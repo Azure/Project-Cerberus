@@ -66,6 +66,8 @@ static int cfm_manager_flash_activate_pending_cfm (struct manifest_manager *mana
 		cfm_manager_on_cfm_activated (&cfm_mgr->base);
 	}
 
+	cfm_manager_on_cfm_activation_request (&cfm_mgr->base);
+
 	return status;
 }
 
@@ -100,8 +102,6 @@ static int cfm_manager_flash_verify_pending_cfm (struct manifest_manager *manage
 	if (cfm_mgr == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
-
-	cfm_manager_on_cfm_activation_request (&cfm_mgr->base);
 
 	status = manifest_manager_flash_verify_pending_manifest (&cfm_mgr->manifest_manager);
 	if (status == 0) {

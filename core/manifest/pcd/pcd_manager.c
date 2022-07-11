@@ -152,6 +152,23 @@ void pcd_manager_on_clear_active (struct pcd_manager *manager)
 }
 
 /**
+ * Notify observers that a PCD activation request has been received.
+ *
+ * @param manager The manager generating the event.
+ */
+void pcd_manager_on_pcd_activation_request (struct pcd_manager *manager)
+{
+	if (manager == NULL) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+			MANIFEST_LOGGING_PCD_ACTIVATION_REQUEST_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+		return;
+	}
+
+	observable_notify_observers (&manager->observable,
+		offsetof (struct pcd_observer, on_pcd_activation_request));
+}
+
+/**
  * Get the data used for PCD ID measurement.  The PCD instance must be released with the
  * manager.
  *

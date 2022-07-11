@@ -68,6 +68,8 @@ static int pfm_manager_flash_activate_pending_pfm (struct manifest_manager *mana
 		pfm_manager_on_pfm_activated (&pfm_mgr->base);
 	}
 
+	pfm_manager_on_pfm_activation_request (&pfm_mgr->base);
+
 	return status;
 }
 

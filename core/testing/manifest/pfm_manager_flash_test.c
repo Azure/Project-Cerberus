@@ -2126,6 +2126,8 @@ static void pfm_manager_flash_test_activate_pending_pfm_region2_notify_observers
 
 	status = mock_expect (&manager.observer.mock, manager.observer.base.on_pfm_activated,
 		&manager.observer, 0, MOCK_ARG (&manager.pfm2));
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_pfm_activation_request,
+		&manager.observer, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
@@ -2161,6 +2163,8 @@ static void pfm_manager_flash_test_activate_pending_pfm_region1_notify_observers
 
 	status = mock_expect (&manager.observer.mock, manager.observer.base.on_pfm_activated,
 		&manager.observer, 0, MOCK_ARG (&manager.pfm1));
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_pfm_activation_request,
+		&manager.observer, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
@@ -2242,6 +2246,10 @@ static void pfm_manager_flash_test_activate_pending_pfm_no_pending_notify_observ
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_pfm_dirty (&manager.state_mgr, true);
+
+	status = mock_expect (&manager.observer.mock, manager.observer.base.on_pfm_activation_request,
+		&manager.observer, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_NONE_PENDING, status);

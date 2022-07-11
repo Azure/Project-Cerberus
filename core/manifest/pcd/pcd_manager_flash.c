@@ -59,6 +59,8 @@ static int pcd_manager_flash_activate_pending_pcd (struct manifest_manager *mana
 		pcd_manager_on_pcd_activated (&pcd_mgr->base);
 	}
 
+	pcd_manager_on_pcd_activation_request (&pcd_mgr->base);
+
 	return status;
 }
 

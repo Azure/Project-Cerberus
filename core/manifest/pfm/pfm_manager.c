@@ -156,6 +156,23 @@ void pfm_manager_on_clear_active (struct pfm_manager *manager)
 }
 
 /**
+ * Notify observers that a PFM activation request has been received.
+ *
+ * @param manager The manager generating the event.
+ */
+void pfm_manager_on_pfm_activation_request (struct pfm_manager *manager)
+{
+	if (manager == NULL) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+			MANIFEST_LOGGING_PFM_ACTIVATION_REQUEST_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
+		return;
+	}
+
+	observable_notify_observers (&manager->observable,
+		offsetof (struct pfm_observer, on_pfm_activation_request));
+}
+
+/**
  * Get the data used for PFM ID measurement.  The PFM instance must be released with the
  * manager.
  *

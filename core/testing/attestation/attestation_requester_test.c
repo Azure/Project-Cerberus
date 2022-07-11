@@ -27298,7 +27298,8 @@ static void attestation_requester_test_get_routing_table_get_routing_table_entri
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_reset_authenticated_devices (CuTest *test)
+static void attestation_requester_test_reset_authenticated_devices_on_cfm_activation_request (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	int status;
@@ -28244,7 +28245,7 @@ TEST (attestation_requester_test_get_routing_table_no_mctp_bridge);
 TEST (attestation_requester_test_get_routing_table_get_routing_table_entries_unexpected_rsp);
 TEST (attestation_requester_test_get_routing_table_get_routing_table_entries_no_rsp);
 TEST (attestation_requester_test_get_routing_table_get_routing_table_entries_rsp_fail);
-TEST (attestation_requester_test_reset_authenticated_devices);
+TEST (attestation_requester_test_reset_authenticated_devices_on_cfm_activation_request);
 TEST (attestation_requester_test_discovery_and_attestation_loop_single_device);
 TEST (attestation_requester_test_discovery_and_attestation_loop_multiple_devices);
 TEST (attestation_requester_test_discovery_and_attestation_loop_get_routing_table_before_discovery);

@@ -159,7 +159,7 @@ void cfm_manager_on_cfm_activation_request (struct cfm_manager *manager)
 {
 	if (manager == NULL) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-			MANIFEST_LOGGING_ACTIVATION_FAIL, 0, MANIFEST_MANAGER_INVALID_ARGUMENT);
+			MANIFEST_LOGGING_CFM_ACTIVATION_REQUEST_FAIL, MANIFEST_MANAGER_INVALID_ARGUMENT, 0);
 		return;
 	}
 

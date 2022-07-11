@@ -1135,8 +1135,10 @@ static void cfm_manager_flash_test_activate_pending_cfm_region2_notify_observers
 	status = cfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activated,
+	status = mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activated,
 		&manager.observer, 0, MOCK_ARG (&manager.cfm2));
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activation_request,
+		&manager.observer, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1179,8 +1181,10 @@ static void cfm_manager_flash_test_activate_pending_cfm_region1_notify_observers
 	status = cfm_manager_add_observer (&manager.test.base, &manager.observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activated,
+	status = mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activated,
 		&manager.observer, 0, MOCK_ARG (&manager.cfm1));
+	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activation_request,
+		&manager.observer, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1282,6 +1286,10 @@ static void cfm_manager_flash_test_activate_pending_cfm_no_pending_notify_observ
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_add_observer (&manager.test.base, &manager.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activation_request,
+		&manager.observer, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
@@ -2836,8 +2844,6 @@ static void cfm_manager_flash_test_verify_pending_cfm_region2_notify_observers (
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING, 0);
-	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activation_request,
-		&manager.observer, 0);
 	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_verified,
 		&manager.observer, 0, MOCK_ARG (&manager.cfm2));
 
@@ -2886,8 +2892,6 @@ static void cfm_manager_flash_test_verify_pending_cfm_region1_notify_observers (
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING, 0);
-	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activation_request,
-		&manager.observer, 0);
 	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_verified,
 		&manager.observer, 0, MOCK_ARG (&manager.cfm1));
 
@@ -2997,10 +3001,6 @@ static void cfm_manager_flash_test_verify_pending_cfm_already_valid_notify_obser
 	CuAssertPtrEquals (test, &manager.cfm2, manager.test.base.get_pending_cfm (&manager.test.base));
 
 	status = cfm_manager_add_observer (&manager.test.base, &manager.observer.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activation_request,
-		&manager.observer, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
@@ -3424,10 +3424,6 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_error_notify_observ
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_STATUS_REG);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&manager.observer.mock, manager.observer.base.on_cfm_activation_request,
-		&manager.observer, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
