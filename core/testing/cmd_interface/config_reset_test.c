@@ -4463,6 +4463,10 @@ static void config_reset_test_reset_intrusion_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	config[0] = &manifest.base;
 
+	status = manifest_manager_mock_init (&manifest_components);
+	CuAssertIntEquals (test, 0, status);
+	component_manifests[0] = &manifest_components.base;
+
 	status = state_manager_mock_init (&state);
 	state_list[0] = &state.base;
 
