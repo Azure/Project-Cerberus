@@ -44,6 +44,7 @@ enum {
 	MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE = 0x05,			/**< Get Message Type Support */
 	MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT = 0x06,	/**< Get Vendor Defined Message Support */
 	MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES = 0x0A,	/**< Get Routing Table Entries */
+	MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY = 0x0D,			/**< Discovery Notify */
 };
 
 /**

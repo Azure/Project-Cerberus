@@ -515,3 +515,50 @@ int mctp_control_protocol_process_get_routing_table_entries_response (
 
 	return 0;
 }
+
+/**
+ * Construct Discovery Notify request.
+ *
+ * @param buf The buffer containing the generated request.
+ * @param buf_len Maximum size of buffer.
+ *
+ * @return Length of the generated request if the request was successfully constructed or an
+ * error code.
+ */
+int mctp_control_protocol_generate_discovery_notify_request (uint8_t *buf, size_t buf_len)
+{
+	struct mctp_control_discovery_notify *rq = (struct mctp_control_discovery_notify*) buf;
+
+	if (rq == NULL) {
+		return CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT;
+	}
+
+	if (buf_len < sizeof (struct mctp_control_discovery_notify)) {
+		return CMD_HANDLER_MCTP_CTRL_BUF_TOO_SMALL;
+	}
+
+	mctp_control_protocol_populate_header (&rq->header, MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY);
+
+	return sizeof (struct mctp_control_discovery_notify);
+}
+
+/**
+ * Process Discovery Notify response. This function only ensures the response is valid per MCTP
+ * 	control protocol response definition.
+ *
+ * @param response Discovery Notify response to process
+ *
+ * @return 0 if response processed successfully or an error code.
+ */
+int mctp_control_protocol_process_discovery_notify_response (struct cmd_interface_msg *response)
+{
+	if (response == NULL) {
+		return CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT;
+	}
+
+	if (response->length != sizeof (struct mctp_control_discovery_notify_response)) {
+		return CMD_HANDLER_MCTP_CTRL_BAD_LENGTH;
+	}
+
+	return 0;
+}

@@ -10,6 +10,7 @@
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/cmd_channel.h"
 #include "mctp_control_protocol.h"
+#include "mctp_control_protocol_commands.h"
 #include "mctp_logging.h"
 #include "mctp_base_protocol.h"
 #include "mctp_interface.h"
@@ -412,6 +413,8 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 				mctp->rsp_state = MCTP_INTERFACE_RESPONSE_SUCCESS;
 			}
 
+			mctp->response_msg_tag = (mctp->response_msg_tag + 1) % 8;
+
 			platform_semaphore_post (&mctp->wait_for_response);
 
 			return status;
@@ -516,7 +519,8 @@ void mctp_interface_reset_message_processing (struct mctp_interface *mctp)
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 /**
  * Packetize a request message and send it over a command channel.  This call will block until the
- * full message has been transmitted and a response has been received or the operation times out.
+ * full message has been transmitted and a response has been received or the operation times out,
+ * unless a timeout_ms of 0 is set at which point request is sent and function returns immediately.
  *
  * @param mctp MCTP instance that will be processing the request message.
  * @param channel Command channel to use for transmitting the packets.
@@ -529,7 +533,8 @@ void mctp_interface_reset_message_processing (struct mctp_interface *mctp)
  * upon return.
  * @param max_length Maximum length of the message buffer.  This buffer should be
  * MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN bytes to ensure any message packetized in any way can fit.
- * @param timeout_ms Timeout period in milliseconds to wait for response to be received.
+ * @param timeout_ms Timeout period in milliseconds to wait for response to be received.  If
+ * wait for response not needed, set to 0.
  *
  * @return 0 if the request was transmitted successfully or an error code.
  */
@@ -606,8 +611,13 @@ int mctp_interface_issue_request (struct mctp_interface *mctp, struct cmd_channe
 		goto exit;
 	}
 
+	if (timeout_ms == 0) {
+		goto unlock;
+	}
+
 	status = platform_semaphore_wait (&mctp->wait_for_response, timeout_ms);
 	if (status == 1) {
+		mctp->response_msg_tag = (mctp->response_msg_tag + 1) % 8;
 		status = MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT;
 	}
 	else if (mctp->rsp_state == MCTP_INTERFACE_RESPONSE_ERROR) {
@@ -618,11 +628,53 @@ int mctp_interface_issue_request (struct mctp_interface *mctp, struct cmd_channe
 	}
 
 exit:
-	mctp->response_msg_tag = (mctp->response_msg_tag + 1) % 8;
 	mctp->rsp_state = MCTP_INTERFACE_RESPONSE_IDLE;
 
+unlock:
 	platform_mutex_unlock (&mctp->lock);
 
 	return status;
 }
+
+/**
+ * Generate and send a MCTP control protocol Discovery Notify request to MCTP bridge, then return
+ * immediately without waiting for response.
+ *
+ * @param mctp MCTP instance that will be processing the request message.
+ * @param channel Command channel to use for transmitting the packets.
+ *
+ * @return 0 if the request was transmitted successfully or an error code.
+ */
+int mctp_interface_send_discovery_notify (struct mctp_interface *mctp, struct cmd_channel *channel)
+{
+	uint8_t request[MCTP_BASE_PROTOCOL_MIN_MESSAGE_LEN];
+	int bridge_eid;
+	int bridge_addr;
+	int status;
+
+	if ((mctp == NULL) || (channel == NULL)) {
+		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
+	}
+
+	bridge_eid = device_manager_get_device_eid (mctp->device_manager,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
+	if (ROT_IS_ERROR (bridge_eid)) {
+		return bridge_eid;
+	}
+
+	bridge_addr = device_manager_get_device_addr (mctp->device_manager,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
+	if (ROT_IS_ERROR (bridge_addr)) {
+		return bridge_addr;
+	}
+
+	status = mctp_control_protocol_generate_discovery_notify_request (request, sizeof (request));
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	return mctp_interface_issue_request (mctp, channel, bridge_addr, bridge_eid, request, status,
+		request, sizeof (request), 0);
+}
+
 #endif

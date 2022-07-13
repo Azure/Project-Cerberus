@@ -54,6 +54,17 @@ struct mctp_control_protocol_observer {
 	 */
 	void (*on_get_routing_table_entries_response) (struct mctp_control_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
+
+	/**
+	 * Notification that a discovery notify response message has been received.
+	 *
+	 * Arguments passed with the notification will never be null.
+	 *
+	 * @param observer The observer instance being notified.
+	 * @param reponse The response container received.
+	 */
+	void (*on_discovery_notify_response) (struct mctp_control_protocol_observer *observer,
+		const struct cmd_interface_msg *response);
 };
 
 

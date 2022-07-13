@@ -236,6 +236,21 @@ struct mctp_control_get_routing_table_entries_response {
  */
 #define	mctp_control_get_routing_table_entries_response_get_entries(resp) \
 	((struct mctp_control_routing_table_entry*) (resp + 1))
+
+/**
+ * MCTP control discovery notify request
+ */
+struct mctp_control_discovery_notify {
+	struct mctp_control_protocol_header header;					/**< Message header */
+};
+
+/**
+ * MCTP control discovery notify response
+ */
+struct mctp_control_discovery_notify_response {
+	struct mctp_control_protocol_header header;					/**< Message header */
+	uint8_t completion_code;									/**< Completion code */
+};
 #pragma pack(pop)
 
 
@@ -263,6 +278,9 @@ int mctp_control_protocol_generate_get_routing_table_entries_request (uint8_t en
 	uint8_t *buf, size_t buf_len);
 int mctp_control_protocol_process_get_routing_table_entries_response (
 	struct cmd_interface_msg *response);
+
+int mctp_control_protocol_generate_discovery_notify_request (uint8_t *buf, size_t buf_len);
+int mctp_control_protocol_process_discovery_notify_response (struct cmd_interface_msg *response);
 
 
 #define	CMD_HANDLER_MCTP_CTRL_ERROR(code)												ROT_ERROR (ROT_MODULE_CMD_HANDLER_MCTP_CTRL, code)

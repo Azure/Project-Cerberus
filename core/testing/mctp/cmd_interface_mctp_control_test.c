@@ -1226,6 +1226,152 @@ static void cmd_interface_mctp_control_test_process_response_get_routing_table_e
 	complete_cmd_interface_mctp_control_test (test, &cmd);
 }
 
+static void cmd_interface_mctp_control_test_process_response_discovery_notify (CuTest *test)
+{
+	struct cmd_interface_mctp_control_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct mctp_control_discovery_notify_response *rsp =
+		(struct mctp_control_discovery_notify_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = sizeof (struct mctp_control_discovery_notify_response);
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	rsp->header.msg_type = 0;
+	rsp->header.rq = 0;
+	rsp->header.d_bit = 0;
+	rsp->header.integrity_check = 0;
+	rsp->header.rsvd = 0;
+	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
+
+	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+
+	setup_cmd_interface_mctp_control_test (test, &cmd, true);
+
+	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_discovery_notify_response,
+		&cmd.observer, 0,
+		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response, sizeof (response)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_cmd_interface_mctp_control_test (test, &cmd);
+}
+
+static void cmd_interface_mctp_control_test_process_response_discovery_notify_fail (CuTest *test)
+{
+	struct cmd_interface_mctp_control_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct mctp_control_discovery_notify_response *rsp =
+		(struct mctp_control_discovery_notify_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = sizeof (struct mctp_control_discovery_notify_response) - 1;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	rsp->header.msg_type = 0;
+	rsp->header.rq = 0;
+	rsp->header.d_bit = 0;
+	rsp->header.integrity_check = 0;
+	rsp->header.rsvd = 0;
+	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
+
+	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+
+	setup_cmd_interface_mctp_control_test (test, &cmd, true);
+
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
+
+	complete_cmd_interface_mctp_control_test (test, &cmd);
+}
+
+static void cmd_interface_mctp_control_test_process_response_discovery_notify_cc_fail (CuTest *test)
+{
+	struct cmd_interface_mctp_control_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct mctp_control_discovery_notify_response *rsp =
+		(struct mctp_control_discovery_notify_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = sizeof (struct mctp_control_discovery_notify_response);
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	rsp->header.msg_type = 0;
+	rsp->header.rq = 0;
+	rsp->header.d_bit = 0;
+	rsp->header.integrity_check = 0;
+	rsp->header.rsvd = 0;
+	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
+
+	rsp->completion_code = MCTP_CONTROL_PROTOCOL_ERROR;
+
+	setup_cmd_interface_mctp_control_test (test, &cmd, true);
+
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_ERROR_MESSAGE, status);
+
+	complete_cmd_interface_mctp_control_test (test, &cmd);
+}
+
+static void cmd_interface_mctp_control_test_process_response_discovery_notify_no_observer (
+	CuTest *test)
+{
+	struct cmd_interface_mctp_control_testing cmd;
+	struct cmd_interface_msg response;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct mctp_control_discovery_notify_response *rsp =
+		(struct mctp_control_discovery_notify_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = sizeof (struct mctp_control_discovery_notify_response);
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	rsp->header.msg_type = 0;
+	rsp->header.rq = 0;
+	rsp->header.d_bit = 0;
+	rsp->header.integrity_check = 0;
+	rsp->header.rsvd = 0;
+	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
+
+	rsp->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+
+	setup_cmd_interface_mctp_control_test (test, &cmd, false);
+
+	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_cmd_interface_mctp_control_test (test, &cmd);
+}
+
 static void cmd_interface_mctp_control_test_generate_error_packet (CuTest *test)
 {
 	struct cmd_interface_mctp_control_testing cmd;
@@ -1377,6 +1523,10 @@ TEST (cmd_interface_mctp_control_test_process_response_get_routing_table_entries
 TEST (cmd_interface_mctp_control_test_process_response_get_routing_table_entries_fail);
 TEST (cmd_interface_mctp_control_test_process_response_get_routing_table_entries_cc_fail);
 TEST (cmd_interface_mctp_control_test_process_response_get_routing_table_entries_no_observer);
+TEST (cmd_interface_mctp_control_test_process_response_discovery_notify);
+TEST (cmd_interface_mctp_control_test_process_response_discovery_notify_fail);
+TEST (cmd_interface_mctp_control_test_process_response_discovery_notify_cc_fail);
+TEST (cmd_interface_mctp_control_test_process_response_discovery_notify_no_observer);
 TEST (cmd_interface_mctp_control_test_generate_error_packet);
 TEST (cmd_interface_mctp_control_test_add_mctp_control_protocol_observer_invalid_arg);
 TEST (cmd_interface_mctp_control_test_remove_mctp_control_protocol_observer);

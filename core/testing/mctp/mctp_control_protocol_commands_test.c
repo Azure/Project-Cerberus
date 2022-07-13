@@ -444,6 +444,46 @@ static void mctp_control_protocol_commands_test_get_routing_table_entries_format
 	CuAssertIntEquals (test, 0x44, entry->address);
 }
 
+static void mctp_control_protocol_commands_test_discovery_notify_format (CuTest *test)
+{
+	uint8_t raw_buffer_req[] = {
+		0x7e,0x03,0x0d
+	};
+	uint8_t raw_buffer_resp[] = {
+		0x7e,0x03,0x0d,
+		0x11
+	};
+	struct mctp_control_discovery_notify *req;
+	struct mctp_control_discovery_notify_response *resp;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer_req),
+		sizeof (struct mctp_control_discovery_notify));
+	CuAssertIntEquals (test, sizeof (raw_buffer_resp),
+		sizeof (struct mctp_control_discovery_notify_response));
+
+	req = (struct mctp_control_discovery_notify*) raw_buffer_req;
+	CuAssertIntEquals (test, 0, req->header.integrity_check);
+	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
+	CuAssertIntEquals (test, 0, req->header.rq);
+	CuAssertIntEquals (test, 0, req->header.d_bit);
+	CuAssertIntEquals (test, 0, req->header.rsvd);
+	CuAssertIntEquals (test, 0x03, req->header.instance_id);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY, req->header.command_code);
+
+	resp = (struct mctp_control_discovery_notify_response*) raw_buffer_resp;
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, 0, resp->header.d_bit);
+	CuAssertIntEquals (test, 0, resp->header.rsvd);
+	CuAssertIntEquals (test, 0x03, resp->header.instance_id);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY, resp->header.command_code);
+
+	CuAssertIntEquals (test, 0x11, resp->completion_code);
+}
+
 static void mctp_control_protocol_commands_test_process_set_eid (CuTest *test)
 {
 	struct device_manager device_manager;
@@ -1881,6 +1921,160 @@ static void mctp_control_protocol_commands_test_process_get_routing_table_entrie
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void mctp_control_protocol_commands_test_generate_discovery_notify_request (
+	CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct mctp_control_discovery_notify *rq = (struct mctp_control_discovery_notify*) data;
+	int status;
+
+	TEST_START;
+
+	memset (data, 0, sizeof (data));
+
+	status = mctp_control_protocol_generate_discovery_notify_request (data, sizeof (data));
+	CuAssertIntEquals (test, sizeof (struct mctp_control_discovery_notify), status);
+	CuAssertIntEquals (test, 0, rq->header.msg_type);
+	CuAssertIntEquals (test, 0, rq->header.integrity_check);
+	CuAssertIntEquals (test, 0, rq->header.instance_id);
+	CuAssertIntEquals (test, 0, rq->header.rsvd);
+	CuAssertIntEquals (test, 0, rq->header.d_bit);
+	CuAssertIntEquals (test, 1, rq->header.rq);
+	CuAssertIntEquals (test, 0x0d, rq->header.command_code);
+}
+
+static void mctp_control_protocol_commands_test_generate_discovery_notify_request_null (
+	CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	int status;
+
+	TEST_START;
+
+	memset (data, 0, sizeof (data));
+
+	status = mctp_control_protocol_generate_discovery_notify_request (NULL, sizeof (data));
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
+}
+
+static void mctp_control_protocol_commands_test_generate_discovery_notify_request_buf_too_small (
+	CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	int status;
+
+	TEST_START;
+
+	memset (data, 0, sizeof (data));
+
+	status = mctp_control_protocol_generate_discovery_notify_request (data,
+		sizeof (struct mctp_control_discovery_notify) - 1);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BUF_TOO_SMALL, status);
+}
+
+static void mctp_control_protocol_commands_test_process_discovery_notify_response (
+	CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct cmd_interface_msg response;
+	struct mctp_control_discovery_notify_response *rsp =
+		(struct mctp_control_discovery_notify_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (response));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = sizeof (struct mctp_control_discovery_notify_response);
+	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+
+	rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
+	rsp->header.rq = 0;
+	rsp->header.instance_id = 2;
+
+	rsp->completion_code = 0;
+
+	status = mctp_control_protocol_process_discovery_notify_response (&response);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void mctp_control_protocol_commands_test_process_discovery_notify_response_null (
+	CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = mctp_control_protocol_process_discovery_notify_response (NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
+}
+
+static void mctp_control_protocol_commands_test_process_discovery_notify_response_bad_len (
+	CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct cmd_interface_msg response;
+	struct mctp_control_discovery_notify_response *rsp =
+		(struct mctp_control_discovery_notify_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (response));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = sizeof (struct mctp_control_discovery_notify_response) - 1;
+	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+
+	rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
+	rsp->header.rq = 0;
+	rsp->header.instance_id = 2;
+
+	rsp->completion_code = 0;
+
+	status = mctp_control_protocol_process_discovery_notify_response (&response);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
+
+	response.length = sizeof (struct mctp_control_discovery_notify_response) + 1;
+
+	status = mctp_control_protocol_process_discovery_notify_response (&response);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
+}
+
+static void mctp_control_protocol_commands_test_process_discovery_notify_response_cc_fail (
+	CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct cmd_interface_msg response;
+	struct mctp_control_discovery_notify_response *rsp =
+		(struct mctp_control_discovery_notify_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (response));
+	memset (data, 0, sizeof (data));
+	response.data = data;
+	response.length = sizeof (struct mctp_control_discovery_notify_response);
+	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+
+	rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
+	rsp->header.rq = 0;
+	rsp->header.instance_id = 2;
+
+	rsp->completion_code = 1;
+
+	status = mctp_control_protocol_process_discovery_notify_response (&response);
+	CuAssertIntEquals (test, 0, status);
+}
+
 
 TEST_SUITE_START (mctp_control_protocol_commands);
 
@@ -1892,6 +2086,7 @@ TEST (mctp_control_protocol_commands_test_get_mctp_version_format);
 TEST (mctp_control_protocol_commands_test_get_message_type_format);
 TEST (mctp_control_protocol_commands_test_get_vendor_def_msg_support_format);
 TEST (mctp_control_protocol_commands_test_get_routing_table_entries_format);
+TEST (mctp_control_protocol_commands_test_discovery_notify_format);
 TEST (mctp_control_protocol_commands_test_process_set_eid);
 TEST (mctp_control_protocol_commands_test_process_set_eid_force);
 TEST (mctp_control_protocol_commands_test_process_set_eid_null);
@@ -1935,5 +2130,12 @@ TEST (mctp_control_protocol_commands_test_process_get_routing_table_entries_resp
 TEST (mctp_control_protocol_commands_test_process_get_routing_table_entries_response_null);
 TEST (mctp_control_protocol_commands_test_process_get_routing_table_entries_response_bad_len);
 TEST (mctp_control_protocol_commands_test_process_get_routing_table_entries_response_cc_fail);
+TEST (mctp_control_protocol_commands_test_generate_discovery_notify_request);
+TEST (mctp_control_protocol_commands_test_generate_discovery_notify_request_null);
+TEST (mctp_control_protocol_commands_test_generate_discovery_notify_request_buf_too_small);
+TEST (mctp_control_protocol_commands_test_process_discovery_notify_response);
+TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_null);
+TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_bad_len);
+TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_cc_fail);
 
 TEST_SUITE_END;

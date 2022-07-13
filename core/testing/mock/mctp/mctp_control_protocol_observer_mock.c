@@ -51,6 +51,20 @@ static void mctp_control_protocol_observer_mock_on_get_routing_table_entries_res
 		MOCK_ARG_CALL (response));
 }
 
+static void mctp_control_protocol_observer_mock_on_discovery_notify_response (
+	struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
+{
+	struct mctp_control_protocol_observer_mock *mock =
+		(struct mctp_control_protocol_observer_mock*) observer;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, mctp_control_protocol_observer_mock_on_discovery_notify_response,
+		observer, MOCK_ARG_CALL (response));
+}
+
 static void mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response (
 	struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
@@ -70,7 +84,8 @@ static int mctp_control_protocol_observer_mock_func_arg_count (void *func)
 {
 	if ((func == mctp_control_protocol_observer_mock_on_get_message_type_response) ||
 		(func == mctp_control_protocol_observer_mock_on_get_routing_table_entries_response) ||
-		(func == mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response)) {
+		(func == mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response) ||
+		(func == mctp_control_protocol_observer_mock_on_discovery_notify_response)) {
 		return 1;
 	}
 
@@ -90,6 +105,9 @@ static const char* mctp_control_protocol_observer_mock_func_name_map (void *func
 	}
 	else if (func == mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response) {
 		return "on_get_vendor_def_msg_response";
+	}
+	else if (func == mctp_control_protocol_observer_mock_on_discovery_notify_response) {
+		return "on_discovery_notify_response";
 	}
 	else {
 		return "unknown";
@@ -111,6 +129,12 @@ static const char* mctp_control_protocol_observer_mock_arg_name_map (void *func,
 		}
 	}
 	else if (func == mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response) {
+		switch (arg) {
+			case 0:
+				return "response";
+		}
+	}
+	else if (func == mctp_control_protocol_observer_mock_on_discovery_notify_response) {
 		switch (arg) {
 			case 0:
 				return "response";
@@ -151,6 +175,8 @@ int mctp_control_protocol_observer_mock_init (struct mctp_control_protocol_obser
 		mctp_control_protocol_observer_mock_on_get_routing_table_entries_response;
 	mock->base.on_get_vendor_def_msg_response =
 		mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response;
+	mock->base.on_discovery_notify_response =
+		mctp_control_protocol_observer_mock_on_discovery_notify_response;
 
 	mock->mock.func_arg_count = mctp_control_protocol_observer_mock_func_arg_count;
 	mock->mock.func_name_map = mctp_control_protocol_observer_mock_func_name_map;
