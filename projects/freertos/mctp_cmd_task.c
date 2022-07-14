@@ -17,7 +17,9 @@ static void mctp_cmd_task_loop (void *data)
 {
 	struct mctp_cmd_task *task = (struct mctp_cmd_task*) data;
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	mctp_interface_send_discovery_notify (task->mctp, task->channel);
+#endif
 
 	while (1) {
 		cmd_channel_receive_and_process (task->channel, task->mctp, -1);
