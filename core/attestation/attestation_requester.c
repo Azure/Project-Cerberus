@@ -2845,8 +2845,8 @@ void attestation_requester_discovery_and_attestation_loop (
 	}
 
 	status = device_manager_get_attestation_status (attestation->device_mgr, attestation_status);
-	if (status != 0) {
-		status = pcr_store_update_versioned_buffer (pcr, attestation->primary_hash, measurement,
+	if (status == 0) {
+		pcr_store_update_versioned_buffer (pcr, attestation->primary_hash, measurement,
 			attestation_status, DEVICE_MANAGER_ATTESTATION_STATUS_LEN, true, measurement_version);
 	}
 

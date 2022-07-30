@@ -237,7 +237,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	struct attestation_requester_testing *testing, bool init_attestation, bool no_mctp_bridge,
 	bool x509_mock)
 {
-	uint8_t num_pcr_measurements = 0;
+	uint8_t num_pcr_measurements[2] = {6, 6};
 	struct x509_engine *x509;
 	int status;
 
@@ -279,7 +279,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	status = attestation_responder_mock_init (&testing->attestation_responder);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&testing->store, &num_pcr_measurements, 1);
+	status = pcr_store_init (&testing->store, num_pcr_measurements, sizeof (num_pcr_measurements));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_mock_init (&testing->background);
@@ -27343,10 +27343,23 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	uint8_t digest2[SHA256_HASH_LENGTH];
 	uint8_t digest3[SHA256_HASH_LENGTH];
 	uint8_t attestation_status_expected[32] = {0};
-	uint8_t attestation_status[32];
+	uint8_t attestation_status[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
 	uint8_t signature[5];
 	int status;
 	size_t i;
+	uint32_t event = 0xaabbccdd;
+	struct pcr_measurement measurement;
+	uint16_t measurement_type = 5;
+	uint8_t pcr_bank = (uint8_t)(measurement_type >> 8);
+	uint8_t index = (uint8_t) measurement_type;
+	uint8_t version = 0x24;
+	uint8_t pcr_digest[] = {
+		0x38,0x38,0x38,0x4f,0x7f,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0xfc
+	};
 
 	component_type_hash[0] = 0x61;
 	component_type_hash[31] = 0x70;
@@ -27373,6 +27386,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM);
+
+	status = pcr_store_update_event_type (&testing.store, PCR_MEASUREMENT (pcr_bank, index), event);
+	CuAssertIntEquals (test, 0, status);
 
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
@@ -27448,15 +27464,34 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store,
-		attestation_status, 0, 0);
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (attestation_status,
+		sizeof (attestation_status)), MOCK_ARG (sizeof (attestation_status)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
+	status |= mock_expect_output (&testing.primary_hash.mock, 0, pcr_digest, sizeof (pcr_digest),
+		-1);
+    CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (attestation_status_expected, attestation_status,
-		sizeof (attestation_status));
+	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store,
+		attestation_status, measurement_type, version);
+
+	status = pcr_get_measurement (&testing.store.banks[pcr_bank], index, &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_get_measurement_data (&testing.store, 0, 0, attestation_status_expected,
-		sizeof (attestation_status_expected));
+	status = testing_validate_array (pcr_digest, measurement.digest, sizeof (pcr_digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement_data (&testing.store, PCR_MEASUREMENT (pcr_bank, index), 0,
+		attestation_status_expected, sizeof (attestation_status_expected));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (attestation_status_expected, attestation_status,
@@ -27485,11 +27520,24 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	uint8_t digest2[SHA256_HASH_LENGTH];
 	uint8_t digest3[SHA256_HASH_LENGTH];
 	uint8_t attestation_status_expected[32] = {0};
-	uint8_t attestation_status[32];
+	uint8_t attestation_status[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
 	uint8_t signature[5];
-	uint8_t num_pcr_measurements = 0;
+	uint8_t num_pcr_measurements[2] = {6, 6};
 	int status;
 	size_t i;
+	uint32_t event = 0xaabbccdd;
+	struct pcr_measurement measurement;
+	uint16_t measurement_type = 5;
+	uint8_t pcr_bank = (uint8_t)(measurement_type >> 8);
+	uint8_t index = (uint8_t) measurement_type;
+	uint8_t version = 0x24;
+	uint8_t pcr_digest[] = {
+		0x38,0x38,0x38,0x4f,0x7f,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0xfc
+	};
 
 	TEST_START;
 
@@ -27567,7 +27615,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = attestation_responder_mock_init (&testing.attestation_responder);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&testing.store, &num_pcr_measurements, 1);
+	status = pcr_store_init (&testing.store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_update_event_type (&testing.store, PCR_MEASUREMENT (pcr_bank, index), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_mock_init (&testing.background);
@@ -27878,15 +27929,34 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (3));
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store,
-		attestation_status, 0, 0);
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (attestation_status,
+		sizeof (attestation_status)), MOCK_ARG (sizeof (attestation_status)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
+	status |= mock_expect_output (&testing.primary_hash.mock, 0, pcr_digest, sizeof (pcr_digest),
+		-1);
+    CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (attestation_status_expected, attestation_status,
-		sizeof (attestation_status));
+	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store,
+		attestation_status, measurement_type, version);
+
+	status = pcr_get_measurement (&testing.store.banks[pcr_bank], index, &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_get_measurement_data (&testing.store, 0, 0, attestation_status_expected,
-		sizeof (attestation_status_expected));
+	status = testing_validate_array (pcr_digest, measurement.digest, sizeof (pcr_digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement_data (&testing.store, PCR_MEASUREMENT (pcr_bank, index), 0,
+		attestation_status_expected, sizeof (attestation_status_expected));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (attestation_status_expected, attestation_status,
