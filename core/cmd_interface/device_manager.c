@@ -1374,3 +1374,19 @@ int device_manager_mark_component_attestation_invalid (struct device_manager *mg
 
 	return 0;
 }
+
+bool device_manager_is_device_unattestable (struct device_manager *mgr, uint8_t eid)
+{
+	int device_num;
+
+	if (mgr == NULL) {
+		return false;
+	}
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return false;
+	}
+
+	return (mgr->entries[device_num].state == DEVICE_MANAGER_NOT_ATTESTABLE);
+}

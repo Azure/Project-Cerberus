@@ -4770,6 +4770,51 @@ static void device_manager_test_get_attestation_status_invalid_arg (CuTest *test
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 }
 
+static void device_manager_test_is_device_unattestable (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_is_device_unattestable (&manager, 0xAA);
+	CuAssertIntEquals (test, true, status);
+
+	status = device_manager_is_device_unattestable (&manager, 0xCC);
+	CuAssertIntEquals (test, true, status);
+
+	status = device_manager_is_device_unattestable (&manager, 0xBB);
+	CuAssertIntEquals (test, false, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_is_device_unattestable_invalid_arg (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = device_manager_is_device_unattestable (NULL, 0xBB);
+	CuAssertIntEquals (test, false, status);
+}
+
 
 TEST_SUITE_START (device_manager);
 
@@ -4949,5 +4994,7 @@ TEST (device_manager_test_get_attestation_status_invalid_arg);
 TEST (device_manager_test_mark_component_attestation_invalid);
 TEST (device_manager_test_mark_component_attestation_invalid_not_max);
 TEST (device_manager_test_mark_component_attestation_invalid_invalid_arg);
+TEST (device_manager_test_is_device_unattestable);
+TEST (device_manager_test_is_device_unattestable_invalid_arg);
 
 TEST_SUITE_END;

@@ -321,7 +321,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&testing->device_mgr, 1, !no_mctp_bridge,
-		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10000, 10000, 10000);
+		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10, 10, 10);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_entry (&testing->device_mgr, 0,
@@ -25987,6 +25987,24 @@ static void attestation_requester_test_attest_device_update_routing_table (CuTes
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_attest_device_update_routing_table_bridge_refresh_request (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_refresh_routing_table (&testing.test);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_attest_device_unknown_device (CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26456,6 +26474,24 @@ static void attestation_requester_test_discover_device_spdm_update_routing_table
 	setup_attestation_requester_mock_test (test, &testing, true, false, true);
 
 	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
+
+	status = attestation_requester_discover_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_discover_device_spdm_update_routing_table_bridge_refresh_request (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_refresh_routing_table (&testing.test);
 
 	status = attestation_requester_discover_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
@@ -27199,6 +27235,49 @@ static void attestation_requester_test_get_routing_table_table_already_up_to_dat
 	TEST_START;
 
 	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	status = attestation_requester_get_mctp_routing_table (&testing.test);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_routing_table_table_bridge_refresh_request_ignored (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
+
+	attestation_requester_testing_send_and_receive_mctp_get_routing_table (test, true, false, 0, 0,
+		&testing);
+	attestation_requester_testing_send_and_receive_mctp_get_routing_table (test, true, false, 1, 1,
+		&testing);
+
+	status = attestation_requester_get_mctp_routing_table (&testing.test);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	CuAssertIntEquals (test, 0xAA, status);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	CuAssertIntEquals (test, 0xDE, status);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	CuAssertIntEquals (test, 0xDD, status);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	CuAssertIntEquals (test, 0xBB, status);
+
+	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	CuAssertIntEquals (test, 0xAB, status);
+
+	attestation_requester_refresh_routing_table (&testing.test);
 
 	status = attestation_requester_get_mctp_routing_table (&testing.test);
 	CuAssertIntEquals (test, 0, status);
@@ -28011,6 +28090,177 @@ static void attestation_requester_test_discovery_and_attestation_loop_get_routin
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-challenge_auth signing";
+	struct cfm_pmr_digest pmr_digest;
+	uint8_t component_type_hash[SHA256_HASH_LENGTH] = {0};
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t digest3[SHA256_HASH_LENGTH];
+	uint8_t signature[5];
+	int status;
+	size_t i;
+
+	component_type_hash[0] = 0x61;
+	component_type_hash[31] = 0x70;
+
+	pmr_digest.pmr_id = 0;
+	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
+	pmr_digest.digests.digest_count = 1;
+	pmr_digest.digests.digests = digest3;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		digest3[i] = 50 + i;
+	}
+
+	for (i = 0; i < 5; ++i) {
+		signature[i] = i * 10;
+	}
+
+	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
+	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM);
+
+	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
+
+	attestation_requester_testing_send_and_receive_mctp_get_routing_table (test, true, false, 0, 0,
+		&testing);
+	attestation_requester_testing_send_and_receive_mctp_get_routing_table (test, true, false, 1, 1,
+		&testing);
+
+	status = attestation_requester_get_mctp_routing_table (&testing.test);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_refresh_routing_table (&testing.test);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 2,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		&testing, 5);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, 6, true, false, false, NULL);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, &testing,
+		7);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
+			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
+		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
+		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
+		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (signature, sizeof (signature)),
+		MOCK_ARG (5));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (component_type_hash, sizeof (component_type_hash)), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
+		sizeof (struct cfm_pmr_digest), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = attestation_requestor_mctp_bridge_was_reset (&testing.test);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_refresh_routing_table (&testing.test);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_mctp_bridge_was_reset_invalid_arg (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = attestation_requestor_mctp_bridge_was_reset (NULL);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+}
+
+static void attestation_requester_test_refresh_routing_table_invalid_arg (CuTest *test)
+{
+	TEST_START;
+
+	attestation_requester_refresh_routing_table (NULL);
+}
+
+static void attestation_requestor_test_wait_for_next_action (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_refresh_routing_table (&testing.test);
+
+	attestation_requestor_wait_for_next_action (&testing.test);
+
+	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
+
+	attestation_requestor_wait_for_next_action (&testing.test);
+
+	testing.test.cfm_observer.on_cfm_activation_request (&testing.test.cfm_observer);
+
+	attestation_requestor_wait_for_next_action (&testing.test);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requestor_test_wait_for_next_action_invalid_arg (CuTest *test)
+{
+	TEST_START;
+
+	attestation_requestor_wait_for_next_action (NULL);
+}
+
 
 TEST_SUITE_START (attestation_requester);
 
@@ -28279,6 +28529,7 @@ TEST (attestation_requester_test_attest_device_spdm_measurement_data_num_blocks_
 TEST (attestation_requester_test_attest_device_spdm_measurement_data_unexpected_measurement_block);
 TEST (attestation_requester_test_attest_device_spdm_measurement_data_unexpected_measurement_block);
 TEST (attestation_requester_test_attest_device_update_routing_table);
+TEST (attestation_requester_test_attest_device_update_routing_table_bridge_refresh_request);
 TEST (attestation_requester_test_attest_device_unknown_device);
 TEST (attestation_requester_test_attest_device_component_type_not_set);
 TEST (attestation_requester_test_attest_device_unsupported_attestation_protocol);
@@ -28287,6 +28538,7 @@ TEST (attestation_requester_test_attest_device_invalid_arg);
 TEST (attestation_requester_test_discover_device_spdm);
 TEST (attestation_requester_test_discover_device_spdm_1_1);
 TEST (attestation_requester_test_discover_device_spdm_update_routing_table);
+TEST (attestation_requester_test_discover_device_spdm_update_routing_table_bridge_refresh_request);
 TEST (attestation_requester_test_discover_device_invalid_arg);
 TEST (attestation_requester_test_discover_device_no_mctp_bridge);
 TEST (attestation_requester_test_discover_device_get_msg_type_unexpected_rsp);
@@ -28310,6 +28562,7 @@ TEST (attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_su
 TEST (attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_subsystem_id_not_in_response);
 TEST (attestation_requester_test_get_routing_table);
 TEST (attestation_requester_test_get_routing_table_table_already_up_to_date);
+TEST (attestation_requester_test_get_routing_table_table_bridge_refresh_request_ignored);
 TEST (attestation_requester_test_get_routing_table_invalid_arg);
 TEST (attestation_requester_test_get_routing_table_no_mctp_bridge);
 TEST (attestation_requester_test_get_routing_table_get_routing_table_entries_unexpected_rsp);
@@ -28319,5 +28572,10 @@ TEST (attestation_requester_test_reset_authenticated_devices_on_cfm_activation_r
 TEST (attestation_requester_test_discovery_and_attestation_loop_single_device);
 TEST (attestation_requester_test_discovery_and_attestation_loop_multiple_devices);
 TEST (attestation_requester_test_discovery_and_attestation_loop_get_routing_table_before_discovery);
+TEST (attestation_requester_test_mctp_bridge_was_reset);
+TEST (attestation_requester_test_mctp_bridge_was_reset_invalid_arg);
+TEST (attestation_requester_test_refresh_routing_table_invalid_arg);
+TEST (attestation_requestor_test_wait_for_next_action);
+TEST (attestation_requestor_test_wait_for_next_action_invalid_arg);
 
 TEST_SUITE_END;

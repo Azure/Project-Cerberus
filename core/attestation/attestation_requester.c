@@ -710,10 +710,10 @@ void attestation_requester_on_spdm_negotiate_algorithms_response (
 	}
 
 	if ((rsp->base_asym_sel != SPDM_TPM_ALG_ECDSA_ECC_NIST_P256)
-#if ECC_MAX_KEY_LENGTH >= 384
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 		&& (rsp->base_asym_sel != SPDM_TPM_ALG_ECDSA_ECC_NIST_P384)
 #endif
-#if ECC_MAX_KEY_LENGTH >= 521
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 		&& (rsp->base_asym_sel != SPDM_TPM_ALG_ECDSA_ECC_NIST_P521)
 #endif
 		) {
@@ -737,18 +737,6 @@ void attestation_requester_on_spdm_negotiate_algorithms_response (
 		goto fail;
 	}
 
-	if (((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_256) &&
-			(attestation->state->transcript_hash_type != HASH_TYPE_SHA256)) ||
-		((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_384) &&
-			(attestation->state->transcript_hash_type != HASH_TYPE_SHA384)) ||
-		((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_512) &&
-			(attestation->state->transcript_hash_type != HASH_TYPE_SHA512))) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_HASH_ALGO_IN_RSP, response->source_eid,
-			rsp->base_hash_sel);
-		goto fail;
-	}
-
 	if ((rsp->measurement_hash_algo != SPDM_TPM_ALG_SHA_256) &&
 		(rsp->measurement_hash_algo != SPDM_TPM_ALG_SHA_384) &&
 		(rsp->measurement_hash_algo != SPDM_TPM_ALG_SHA_512)) {
@@ -758,16 +746,30 @@ void attestation_requester_on_spdm_negotiate_algorithms_response (
 		goto fail;
 	}
 
-	if (((rsp->measurement_hash_algo == SPDM_TPM_ALG_SHA_256) &&
-			(attestation->state->measurement_hash_type != HASH_TYPE_SHA256)) ||
-		((rsp->measurement_hash_algo == SPDM_TPM_ALG_SHA_384) &&
-			(attestation->state->measurement_hash_type != HASH_TYPE_SHA384)) ||
-		((rsp->measurement_hash_algo == SPDM_TPM_ALG_SHA_512) &&
-			(attestation->state->measurement_hash_type != HASH_TYPE_SHA512))) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_MEAS_HASH_ALGO_IN_RSP, response->source_eid,
-			rsp->measurement_hash_algo);
-		goto fail;
+	if (!attestation->state->device_discovery) {
+		if (((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_256) &&
+				(attestation->state->transcript_hash_type != HASH_TYPE_SHA256)) ||
+			((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_384) &&
+				(attestation->state->transcript_hash_type != HASH_TYPE_SHA384)) ||
+			((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_512) &&
+				(attestation->state->transcript_hash_type != HASH_TYPE_SHA512))) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_UNEXPECTED_HASH_ALGO_IN_RSP, response->source_eid,
+				rsp->base_hash_sel);
+			goto fail;
+		}
+
+		if (((rsp->measurement_hash_algo == SPDM_TPM_ALG_SHA_256) &&
+				(attestation->state->measurement_hash_type != HASH_TYPE_SHA256)) ||
+			((rsp->measurement_hash_algo == SPDM_TPM_ALG_SHA_384) &&
+				(attestation->state->measurement_hash_type != HASH_TYPE_SHA384)) ||
+			((rsp->measurement_hash_algo == SPDM_TPM_ALG_SHA_512) &&
+				(attestation->state->measurement_hash_type != HASH_TYPE_SHA512))) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_UNEXPECTED_MEAS_HASH_ALGO_IN_RSP, response->source_eid,
+				rsp->measurement_hash_algo);
+			goto fail;
+		}
 	}
 
 	attestation_requester_update_response_hash (attestation, attestation->secondary_hash,
@@ -1466,6 +1468,9 @@ void attestation_requester_on_mctp_set_eid_request (
 		TO_DERIVED_TYPE (observer, struct attestation_requester, mctp_rsp_observer);
 
 	attestation->state->get_routing_table = true;
+	attestation->state->mctp_bridge_wait = false;
+
+	platform_semaphore_post (&attestation->state->next_action);
 }
 
 /**
@@ -1506,6 +1511,8 @@ void attestation_requester_on_cfm_activation_request (struct cfm_observer *obser
 		TO_DERIVED_TYPE (observer, struct attestation_requester, cfm_observer);
 
 	device_manager_reset_authenticated_devices (attestation->device_mgr);
+
+	platform_semaphore_post (&attestation->state->next_action);
 }
 #endif
 
@@ -1620,7 +1627,9 @@ int attestation_requester_init_state (const struct attestation_requester *attest
 
 	memset (attestation->state, 0, sizeof (struct attestation_requester_state));
 
-	return 0;
+	attestation->state->mctp_bridge_wait = true;
+
+	return platform_semaphore_init (&attestation->state->next_action);
 }
 
 /**
@@ -1630,7 +1639,9 @@ int attestation_requester_init_state (const struct attestation_requester *attest
  */
 void attestation_requester_deinit (const struct attestation_requester *attestation)
 {
-	UNUSED (attestation);
+	if (attestation != NULL) {
+		platform_semaphore_free (&attestation->state->next_action);
+	}
 }
 
 #ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
@@ -2728,7 +2739,6 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 	uint8_t i_eid;
 	int bridge_addr;
 	int bridge_eid;
-	int self_eid;
 	int status;
 
 	if (attestation == NULL) {
@@ -2753,12 +2763,6 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 		return bridge_eid;
 	}
 
-	self_eid = device_manager_get_device_eid (attestation->device_mgr,
-		DEVICE_MANAGER_SELF_DEVICE_NUM);
-	if (ROT_IS_ERROR (self_eid)) {
-		return self_eid;
-	}
-
 	while (entry_handle != 0xFF) {
 		status = mctp_control_protocol_generate_get_routing_table_entries_request (entry_handle,
 			attestation->state->msg_buffer, sizeof (attestation->state->msg_buffer));
@@ -2777,7 +2781,8 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 		entry = mctp_control_get_routing_table_entries_response_get_entries (routing_table_rsp);
 
 		for (i_entry = 0; i_entry < routing_table_rsp->num_entries; ++i_entry, ++entry) {
-			if (entry->starting_eid == self_eid) {
+			if (device_manager_is_device_unattestable (attestation->device_mgr,
+				entry->starting_eid)) {
 				continue;
 			}
 
@@ -2793,7 +2798,8 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 		entry_handle = routing_table_rsp->next_entry_handle;
 	}
 
-	attestation->state->get_routing_table = 0;
+	attestation->state->get_routing_table = false;
+	attestation->state->mctp_bridge_wait = false;
 
 	return 0;
 }
@@ -2850,12 +2856,71 @@ void attestation_requester_discovery_and_attestation_loop (
 			attestation_status, DEVICE_MANAGER_ATTESTATION_STATUS_LEN, true, measurement_version);
 	}
 
-	return;
-
 get_routing_table:
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 	attestation_requester_get_mctp_routing_table (attestation);
 #endif
 
 	return;
+}
+
+/**
+ * On an MCTP bridge reset event, this function should be called to indicate that the attestation
+ * requester needs to refresh the routing table and rediscover any remote devices.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ *
+ * @return Completion status, 0 if success or an error code otherwise
+ */
+int attestation_requestor_mctp_bridge_was_reset (struct attestation_requester *attestation)
+{
+	if (attestation == NULL) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+
+	attestation->state->mctp_bridge_wait = true;
+
+	return 0;
+}
+
+/**
+ * Indicate that MCTP routing table should be queried from the MCTP bridge.
+ * attestation_requestor_mctp_bridge_was_reset must be called prior to sending this request.  Even
+ * then, MCTP bridge will not be queried for its routing table if routing table has already been
+ * refreshed due to processing of a set EID request from the MCTP bridge.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ */
+void attestation_requester_refresh_routing_table (struct attestation_requester *attestation)
+{
+	if (attestation == NULL) {
+		return;
+	}
+
+	if (attestation->state->mctp_bridge_wait) {
+		attestation->state->get_routing_table = true;
+
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_BRIDGE_RESET_TRIGGERED_ROUTING_TABLE_SYNC, 0, 0);
+
+		platform_semaphore_post (&attestation->state->next_action);
+	}
+}
+
+/**
+ * This call will block until the attestation requester has a pending action to perform.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ */
+void attestation_requestor_wait_for_next_action (struct attestation_requester *attestation)
+{
+	uint32_t duration_ms;
+
+	if (attestation == NULL) {
+		return;
+	}
+
+	duration_ms = device_manager_get_time_till_next_action (attestation->device_mgr);
+
+	platform_semaphore_wait (&attestation->state->next_action, duration_ms);
 }

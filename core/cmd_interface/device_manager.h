@@ -24,7 +24,7 @@
 #define DEVICE_MANAGER_MAX_KEY_LEN								RSA_MAX_KEY_LENGTH
 
 // Attestation cadences
-#define DEVICE_MANAGER_UNAUTHENTICATED_CADENCE_MS				1000
+#define DEVICE_MANAGER_UNAUTHENTICATED_CADENCE_MS				30000
 #define DEVICE_MANAGER_AUTHENTICATED_CADENCE_MS					3600000
 #define DEVICE_MANAGER_UNIDENTIFIED_TIMEOUT_CADENCE_MS			30000
 
@@ -293,6 +293,8 @@ uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr);
 int device_manager_get_attestation_status (struct device_manager *mgr, uint8_t *bitmap);
 
 int device_manager_mark_component_attestation_invalid (struct device_manager *mgr);
+
+bool device_manager_is_device_unattestable (struct device_manager *mgr, uint8_t eid);
 
 
 #define	DEVICE_MGR_ERROR(code)		ROT_ERROR (ROT_MODULE_DEVICE_MANAGER, code)

@@ -16,14 +16,12 @@
 static void attestation_requester_task_loop (void *data)
 {
 	struct attestation_requester_task *task = (struct attestation_requester_task*) data;
-	uint32_t duration_ms;
 
 	while (1) {
 		attestation_requester_discovery_and_attestation_loop (task->attestation, task->pcr,
 			task->authentication_status, task->measurement, task->measurement_version);
 
-		duration_ms = device_manager_get_time_till_next_action (task->device_mgr);
-		platform_msleep (duration_ms);
+		attestation_requestor_wait_for_next_action (task->attestation);
 	}
 }
 
@@ -65,8 +63,8 @@ int attestation_requester_task_init (struct attestation_requester_task *task,
 	task->measurement_version = measurement_version;
 	task->authentication_status = authentication_status;
 
-	status = xTaskCreate (attestation_requester_task_loop, "ATTESTATION_REQUESTER", stack_words,
-		task, priority, &task->attestation_loop_task);
+	status = xTaskCreate (attestation_requester_task_loop, "AttestRq", stack_words, task, priority,
+		&task->attestation_loop_task);
 	if (status != pdPASS) {
 		return status;
 	}

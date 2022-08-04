@@ -38,6 +38,9 @@ enum {
 	ATTESTATION_LOGGING_GET_DEVICE_ID_FAILED,						/**< Device failed to send SPDM device ID block. */
 	ATTESTATION_LOGGING_ILLEGAL_RSP_NOT_READY,						/**< Received response not ready response for a command that does not permit it. */
 	ATTESTATION_LOGGING_UNEXPECTED_RQ_CODE_IN_RSP,					/**< Response not ready for unexpected command received. */
+	ATTESTATION_LOGGING_BRIDGE_RESET_TRIGGERED_ROUTING_TABLE_SYNC,	/**< MCTP bridge has triggered a MCTP routing table sync. */
+	ATTESTATION_LOGGING_BRIDGE_FAILED_TO_DETECT_MCTP_BRIDGE_RESET,	/**< MCTP bridge reset detection failed. */
+	ATTESTATION_LOGGING_ROUTING_TABLE_REFRESH_REQUEST_FAILED,		/**< Failed to request an MCTP routing table refresh. */
 };
 
 
