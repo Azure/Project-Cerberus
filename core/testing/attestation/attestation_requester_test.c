@@ -324,12 +324,13 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10, 10, 10);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&testing->device_mgr, 0,
+	status = device_manager_update_not_attestable_device_entry (&testing->device_mgr, 0,
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	if (!no_mctp_bridge) {
-		status = device_manager_update_device_entry (&testing->device_mgr, 1, 0x0A, 0x20, 1);
+		status = device_manager_update_not_attestable_device_entry (&testing->device_mgr, 1, 0x0A,
+			0x20, 1);
 		CuAssertIntEquals (test, 0, status);
 
 		status = device_manager_update_device_state (&testing->device_mgr, 1,
@@ -4661,7 +4662,7 @@ static void attestation_requester_test_init_state (CuTest *test)
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&testing.device_mgr, 0,
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 0,
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -26105,11 +26106,12 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&testing.device_mgr, 0,
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 0,
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&testing.device_mgr, 1, 0x0A, 0x20, 1);
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 1, 0x0A, 0x20,
+		1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 1, 0xAA, 0xBB,
@@ -26254,11 +26256,12 @@ static void attestation_requester_test_attest_device_component_type_not_set (CuT
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&testing.device_mgr, 0,
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 0,
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&testing.device_mgr, 1, 0x0A, 0x20, 1);
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 1, 0x0A, 0x20,
+		1);
 	CuAssertIntEquals (test, 0, status);
 
 	fw_ver_list[0] = "1.1.1.1";
@@ -26414,7 +26417,7 @@ static void attestation_requester_test_discover_device_spdm (CuTest *test)
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
 	status = device_manager_get_device_state (&testing.device_mgr, 1);
-	CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION, status);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -26459,7 +26462,7 @@ static void attestation_requester_test_discover_device_spdm_1_1 (CuTest *test)
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
 
 	status = device_manager_get_device_state (&testing.device_mgr, 1);
-	CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION, status);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -27413,6 +27416,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct pcr_measured_data pcr_cfm_valid_measured_data;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -27421,24 +27425,13 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
 	uint8_t digest3[SHA256_HASH_LENGTH];
-	uint8_t attestation_status_expected[32] = {0};
-	uint8_t attestation_status[] = {
-		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
-		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
-	};
+	uint8_t attestation_status_expected[1] = {0};
+	uint8_t *attestation_status;
 	uint8_t signature[5];
+	uint8_t version[4] = {0};
+	uint8_t event = 0;
 	int status;
 	size_t i;
-	uint32_t event = 0xaabbccdd;
-	struct pcr_measurement measurement;
-	uint16_t measurement_type = 5;
-	uint8_t pcr_bank = (uint8_t)(measurement_type >> 8);
-	uint8_t index = (uint8_t) measurement_type;
-	uint8_t version = 0x24;
-	uint8_t pcr_digest[] = {
-		0x38,0x38,0x38,0x4f,0x7f,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
-		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0xfc
-	};
 
 	component_type_hash[0] = 0x61;
 	component_type_hash[31] = 0x70;
@@ -27465,9 +27458,6 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM);
-
-	status = pcr_store_update_event_type (&testing.store, PCR_MEASUREMENT (pcr_bank, index), event);
-	CuAssertIntEquals (test, 0, status);
 
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
@@ -27546,35 +27536,38 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
 		MOCK_ARG (sizeof (event)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&version, sizeof (version)),
-		MOCK_ARG (sizeof (version)));
-	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (attestation_status,
-		sizeof (attestation_status)), MOCK_ARG (sizeof (attestation_status)));
-	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
-		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&testing.primary_hash.mock, 0, pcr_digest, sizeof (pcr_digest),
-		-1);
-    CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store,
-		attestation_status, measurement_type, version);
-
-	status = pcr_get_measurement (&testing.store.banks[pcr_bank], index, &measurement);
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (pcr_digest, measurement.digest, sizeof (pcr_digest));
+	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;
+	pcr_cfm_valid_measured_data.data.memory.buffer = testing.device_mgr.attestation_status;
+	pcr_cfm_valid_measured_data.data.memory.length = 1;
+
+	pcr_store_set_measurement_data (&testing.store, 0, &pcr_cfm_valid_measured_data);
+
+	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
+
+	status = device_manager_get_attestation_status (&testing.device_mgr,
+		(const uint8_t**) &attestation_status);
+	CuAssertIntEquals (test, 1, status);
+
+	status = testing_validate_array (attestation_status_expected, attestation_status, status);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_get_measurement_data (&testing.store, PCR_MEASUREMENT (pcr_bank, index), 0,
-		attestation_status_expected, sizeof (attestation_status_expected));
-	CuAssertIntEquals (test, 0, status);
+	status = pcr_store_get_measurement_data (&testing.store, 0, 0, attestation_status_expected,
+		sizeof (attestation_status_expected));
+	CuAssertIntEquals (test, 1, status);
 
-	status = testing_validate_array (attestation_status_expected, attestation_status,
-		sizeof (attestation_status));
+	status = testing_validate_array (attestation_status_expected, attestation_status, status);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -27587,6 +27580,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	struct pcr_measured_data pcr_cfm_valid_measured_data;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -27598,25 +27592,14 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
 	uint8_t digest3[SHA256_HASH_LENGTH];
-	uint8_t attestation_status_expected[32] = {0};
-	uint8_t attestation_status[] = {
-		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
-		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
-	};
+	uint8_t attestation_status_expected[2] = {0};
+	uint8_t *attestation_status;
 	uint8_t signature[5];
-	uint8_t num_pcr_measurements[2] = {6, 6};
+	uint8_t version[4] = {0};
+	uint8_t event = 0;
+	uint8_t num_pcr_measurements = 0;
 	int status;
 	size_t i;
-	uint32_t event = 0xaabbccdd;
-	struct pcr_measurement measurement;
-	uint16_t measurement_type = 5;
-	uint8_t pcr_bank = (uint8_t)(measurement_type >> 8);
-	uint8_t index = (uint8_t) measurement_type;
-	uint8_t version = 0x24;
-	uint8_t pcr_digest[] = {
-		0x38,0x38,0x38,0x4f,0x7f,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
-		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0xfc
-	};
 
 	TEST_START;
 
@@ -27694,10 +27677,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = attestation_responder_mock_init (&testing.attestation_responder);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&testing.store, num_pcr_measurements, sizeof (num_pcr_measurements));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcr_store_update_event_type (&testing.store, PCR_MEASUREMENT (pcr_bank, index), event);
+	status = pcr_store_init (&testing.store, &num_pcr_measurements, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_mock_init (&testing.background);
@@ -27736,11 +27716,11 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10000, 10000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&testing.device_mgr, 0,
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 0,
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&testing.device_mgr, 1, 0, 0x20, 1);
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 1, 0, 0x20, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_add_unidentified_device (&testing.device_mgr, 0x0A);
@@ -28011,35 +27991,38 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
 		MOCK_ARG (sizeof (event)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&version, sizeof (version)),
-		MOCK_ARG (sizeof (version)));
-	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (attestation_status,
-		sizeof (attestation_status)), MOCK_ARG (sizeof (attestation_status)));
-	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
-		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&testing.primary_hash.mock, 0, pcr_digest, sizeof (pcr_digest),
-		-1);
-    CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store,
-		attestation_status, measurement_type, version);
-
-	status = pcr_get_measurement (&testing.store.banks[pcr_bank], index, &measurement);
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected, 2),
+		MOCK_ARG (2));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (pcr_digest, measurement.digest, sizeof (pcr_digest));
+	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;
+	pcr_cfm_valid_measured_data.data.memory.buffer = testing.device_mgr.attestation_status;
+	pcr_cfm_valid_measured_data.data.memory.length = 2;
+
+	pcr_store_set_measurement_data (&testing.store, 0, &pcr_cfm_valid_measured_data);
+
+	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
+
+	status = device_manager_get_attestation_status (&testing.device_mgr,
+		(const uint8_t**) &attestation_status);
+	CuAssertIntEquals (test, 2, status);
+
+	status = testing_validate_array (attestation_status_expected, attestation_status, status);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_get_measurement_data (&testing.store, PCR_MEASUREMENT (pcr_bank, index), 0,
-		attestation_status_expected, sizeof (attestation_status_expected));
-	CuAssertIntEquals (test, 0, status);
+	status = pcr_store_get_measurement_data (&testing.store, 0, 0, attestation_status_expected,
+		sizeof (attestation_status_expected));
+	CuAssertIntEquals (test, 2, status);
 
-	status = testing_validate_array (attestation_status_expected, attestation_status,
-		sizeof (attestation_status));
+	status = testing_validate_array (attestation_status_expected, attestation_status, status);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -28055,7 +28038,6 @@ static void attestation_requester_test_discovery_and_attestation_loop_get_routin
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	uint8_t attestation_status[32];
 	int status;
 
 	TEST_START;
@@ -28069,8 +28051,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_get_routin
 	attestation_requester_testing_send_and_receive_mctp_get_routing_table (test, true, false, 1, 1,
 		&testing);
 
-	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store,
-		attestation_status, 0, 0);
+	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, 0xAA, status);

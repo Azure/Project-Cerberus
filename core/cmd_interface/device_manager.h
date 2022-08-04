@@ -28,9 +28,6 @@
 #define DEVICE_MANAGER_AUTHENTICATED_CADENCE_MS					3600000
 #define DEVICE_MANAGER_UNIDENTIFIED_TIMEOUT_CADENCE_MS			30000
 
-// Number of bytes in attestation status buffer
-#define DEVICE_MANAGER_ATTESTATION_STATUS_LEN					32
-
 /**
  * Convert response timeout in milliseconds to timeout in 10ms multiples
  *
@@ -45,15 +42,24 @@
  */
 #define device_manager_set_crypto_timeout_ms(timeout)			((timeout) / 100)
 
+/**
+ * Determine if device is ready to be attested
+ *
+ * @param state Device state
+ */
+#define device_manager_can_device_be_attested(state)			\
+	((state != DEVICE_MANAGER_NOT_ATTESTABLE) || (state == DEVICE_MANAGER_UNIDENTIFIED))
+
 
 /**
  * Device states
  */
 enum device_manager_device_state {
-	DEVICE_MANAGER_NOT_ATTESTABLE = 0,							/**< Not an attestable device */
+	DEVICE_MANAGER_AUTHENTICATED = 0,							/**< Authenticated state */
 	DEVICE_MANAGER_UNIDENTIFIED,								/**< Communication with device not established */
+	DEVICE_MANAGER_NEVER_ATTESTED,								/**< Device ready for attestation start, but never attested before */
 	DEVICE_MANAGER_READY_FOR_ATTESTATION,						/**< Device ready for attestation start */
-	DEVICE_MANAGER_AUTHENTICATED,								/**< Authenticated state */
+	DEVICE_MANAGER_NOT_ATTESTABLE,								/**< Not an attestable device */
 	NUM_DEVICE_MANAGER_STATES									/**< Number of device states */
 };
 
@@ -197,16 +203,18 @@ struct device_manager_unidentified_entry {
  * populated from PCD
  */
 struct device_manager {
-	struct device_manager_entry *entries;						/**< Device table entries */
-	uint8_t num_devices;										/**< Number of device table entries */
+	struct device_manager_entry *entries;						/**< Device table entries. */
+	uint8_t *attestation_status;								/**< Dynamically allocated buffer to hold attestation status of all attestable devices. */
+	uint8_t num_devices;										/**< Number of device table entries. */
 	uint8_t num_requester_devices; 								/**< Number of requester device table entries. */
-	uint8_t last_device_authenticated;							/**< Device number of last device authenticated */
+	uint8_t num_responder_devices; 								/**< Number of responder device table entries. */
+	uint8_t last_device_authenticated;							/**< Device number of last device authenticated. */
 	uint32_t unauthenticated_cadence_ms; 						/**< Period to wait before reauthenticating unauthenticated device. */
  	uint32_t authenticated_cadence_ms; 							/**< Period to wait before reauthenticating authenticated device. */
  	uint32_t unidentified_timeout_ms;							/**< Timeout period to wait before reidentifying unidentified device. */
 	bool attestable_components_list_invalid;					/**< Flag indicating we failed to correctly load components from PCD. */
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-	struct device_manager_unidentified_entry *unidentified;		/**< Unidentified device circular linked list */
+	struct device_manager_unidentified_entry *unidentified;		/**< Unidentified device circular linked list. */
 #endif
 };
 
@@ -217,15 +225,13 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	uint32_t unidentified_timeout_ms);
 void device_manager_release (struct device_manager *mgr);
 
-int device_manager_resize_entries_table (struct device_manager *mgr, int num_devices);
-
 int device_manager_get_device_num (struct device_manager *mgr, uint8_t eid);
 int device_manager_get_device_addr (struct device_manager *mgr, int device_num);
 int device_manager_get_device_addr_by_eid (struct device_manager *mgr, uint8_t eid);
 int device_manager_get_device_eid (struct device_manager *mgr, int device_num);
 int device_manager_update_device_eid (struct device_manager *mgr, int device_num, uint8_t eid);
-int device_manager_update_device_entry (struct device_manager *mgr, int device_num, uint8_t eid,
-	uint8_t smbus_addr, uint8_t pcd_component_index);
+int device_manager_update_not_attestable_device_entry (struct device_manager *mgr, int device_num,
+	uint8_t eid, uint8_t smbus_addr, uint8_t pcd_component_index);
 int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, int device_num,
 	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id,
 	uint8_t components_count, uint8_t *component_type, uint8_t pcd_component_index);
@@ -290,7 +296,8 @@ int device_manager_get_eid_of_next_device_to_discover (struct device_manager *mg
 #endif
 
 uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr);
-int device_manager_get_attestation_status (struct device_manager *mgr, uint8_t *bitmap);
+int device_manager_get_attestation_status (struct device_manager *mgr,
+	const uint8_t **attestation_status);
 
 int device_manager_mark_component_attestation_invalid (struct device_manager *mgr);
 

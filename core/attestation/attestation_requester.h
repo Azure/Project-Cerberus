@@ -110,8 +110,8 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 #endif
 
 void attestation_requester_discovery_and_attestation_loop (
-	struct attestation_requester *attestation, struct pcr_store *pcr, uint8_t *attestation_status,
-	uint16_t measurement, uint8_t measurement_version);
+	struct attestation_requester *attestation, struct pcr_store *pcr, uint16_t measurement,
+	uint8_t measurement_version);
 
 int attestation_requestor_mctp_bridge_was_reset (struct attestation_requester *attestation);
 

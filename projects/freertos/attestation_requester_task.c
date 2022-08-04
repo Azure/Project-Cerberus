@@ -19,7 +19,7 @@ static void attestation_requester_task_loop (void *data)
 
 	while (1) {
 		attestation_requester_discovery_and_attestation_loop (task->attestation, task->pcr,
-			task->authentication_status, task->measurement, task->measurement_version);
+			task->measurement, task->measurement_version);
 
 		attestation_requestor_wait_for_next_action (task->attestation);
 	}
@@ -37,20 +37,17 @@ static void attestation_requester_task_loop (void *data)
  * @param priority The priority level for running the component attestation task.
  * @param stack_words The size of the component attesation task stack.  The stack size is measured
  * in words.
- * @param authentication_status Pointer to bitmap of component device authentication statuses.  Must
- * be DEVICE_MANAGER_ATTESTATION_STATUS_LEN bytes long.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int attestation_requester_task_init (struct attestation_requester_task *task,
 	struct attestation_requester *attestation, struct device_manager *device_mgr,
 	struct pcr_store *pcr, uint16_t measurement, uint8_t measurement_version, int priority,
-	uint16_t stack_words, uint8_t *authentication_status)
+	uint16_t stack_words)
 {
 	int status;
 
-	if ((task == NULL) || (attestation == NULL) || (device_mgr == NULL) || (pcr == NULL) ||
-		(authentication_status == NULL)) {
+	if ((task == NULL) || (attestation == NULL) || (device_mgr == NULL) || (pcr == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
@@ -61,7 +58,6 @@ int attestation_requester_task_init (struct attestation_requester_task *task,
 	task->pcr = pcr;
 	task->measurement = measurement;
 	task->measurement_version = measurement_version;
-	task->authentication_status = authentication_status;
 
 	status = xTaskCreate (attestation_requester_task_loop, "AttestRq", stack_words, task, priority,
 		&task->attestation_loop_task);

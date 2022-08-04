@@ -1268,10 +1268,10 @@ static void spdm_test_get_capabilities (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (&msg, &manager, &hash.base);
@@ -1444,10 +1444,10 @@ static void spdm_test_get_capabilities_ct_too_large (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (&msg, &manager, &hash.base);
@@ -1586,10 +1586,10 @@ static void spdm_test_get_capabilities_1_1 (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (&msg, &manager, &hash.base);
@@ -1709,10 +1709,10 @@ static void spdm_test_get_capabilities_unknown_device (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (&msg, &manager, &hash.base);
@@ -1796,10 +1796,10 @@ static void spdm_test_get_capabilities_hash_update_rq_fail (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (&msg, &manager, &hash.base);
@@ -1921,10 +1921,10 @@ static void spdm_test_get_capabilities_hash_update_rsp_fail (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (&msg, &manager, &hash.base);

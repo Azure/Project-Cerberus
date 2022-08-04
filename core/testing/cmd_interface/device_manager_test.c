@@ -357,7 +357,7 @@ static void device_manager_test_update_device_capabilities_request_invalid_devic
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_update_device_entry (CuTest *test)
+static void device_manager_test_update_not_attestable_device_entry (CuTest *test)
 {
 	struct device_manager manager;
 	int status;
@@ -368,7 +368,7 @@ static void device_manager_test_update_device_entry (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xBB,	0xAA, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xBB,	0xAA, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_addr (&manager, 0);
@@ -380,7 +380,7 @@ static void device_manager_test_update_device_entry (CuTest *test)
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_update_device_entry_invalid_arg (CuTest *test)
+static void device_manager_test_update_not_attestable_device_entry_invalid_arg (CuTest *test)
 {
 	struct device_manager manager;
 	int status;
@@ -391,13 +391,13 @@ static void device_manager_test_update_device_entry_invalid_arg (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (NULL, 0, 0, 0, 0);
+	status = device_manager_update_not_attestable_device_entry (NULL, 0, 0, 0, 0);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_update_device_entry_invalid_device (CuTest *test)
+static void device_manager_test_update_not_attestable_device_entry_invalid_device (CuTest *test)
 {
 	struct device_manager manager;
 	int status;
@@ -408,7 +408,7 @@ static void device_manager_test_update_device_entry_invalid_device (CuTest *test
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 2, 0, 0, 2);
+	status = device_manager_update_not_attestable_device_entry (&manager, 2, 0, 0, 2);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -574,7 +574,7 @@ static void device_manager_test_get_device_addr_by_eid (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xBB,	0xAA, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xBB,	0xAA, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_addr_by_eid (&manager, 0xBB);
@@ -820,10 +820,10 @@ static void device_manager_test_get_device_num (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA,	0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA,	0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_num (&manager, 0xAA);
@@ -856,318 +856,14 @@ static void device_manager_test_get_device_num_invalid_eid (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA,	0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA,	0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_num (&manager, 0xEE);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
-
-	device_manager_release (&manager);
-}
-
-static void device_manager_test_resize_entries_table_add_entries (CuTest *test)
-{
-	struct device_manager manager;
-	struct device_manager_full_capabilities expected;
-	struct device_manager_full_capabilities out;
-	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t key[DEVICE_MANAGER_MAX_KEY_LEN];
-	const struct device_manager_key* temp_key;
-	int status;
-
-	memset (digest, 0xAA, sizeof (digest));
-	memset (key, 0xBB, sizeof (key));
-
-	TEST_START;
-
-	memset (&expected, 0, sizeof (expected));
-	expected.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	expected.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
-	expected.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
-	expected.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
-	expected.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	expected.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	expected.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
-
-	status = device_manager_init (&manager, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_entry (&manager, 0, 0xBB,	0xAA, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_AUTHENTICATED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_cert_chain_digest (&manager, 0xBB, 0, digest, sizeof (digest));
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_alias_key (&manager, 0xBB, key, sizeof (key), 0xEE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_get_device_eid (&manager, 1);
-	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
-
-	status = device_manager_resize_entries_table (&manager, 2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_get_device_addr (&manager, 0);
-	CuAssertIntEquals (test, 0xAA, status);
-
-	status = device_manager_get_device_eid (&manager, 0);
-	CuAssertIntEquals (test, 0xBB, status);
-
-	status = device_manager_get_device_state (&manager, 0);
-	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
-
-	status = device_manager_compare_cert_chain_digest (&manager, 0xBB, digest, sizeof (digest));
-	CuAssertIntEquals (test, 0, status);
-
-	temp_key = device_manager_get_alias_key (&manager, 0xBB);
-	CuAssertPtrNotNull (test, temp_key);
-	CuAssertIntEquals (test, sizeof (key), temp_key->key_len);
-	CuAssertIntEquals (test, 0xEE, temp_key->key_type);
-
-	status = testing_validate_array (key, temp_key->key, sizeof (key));
-	CuAssertIntEquals (test, 0, status);
-
-	memset (&out, 0x55, sizeof (out));
-	status = device_manager_get_device_capabilities (&manager, 0, &out);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array ((uint8_t*) &expected, (uint8_t*) &out, sizeof (expected));
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_get_device_eid (&manager, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&manager);
-}
-
-static void device_manager_test_resize_entries_table_remove_entries (CuTest *test)
-{
-	struct device_manager manager;
-	struct device_manager_full_capabilities expected;
-	struct device_manager_full_capabilities out;
-	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t key[DEVICE_MANAGER_MAX_KEY_LEN];
-	const struct device_manager_key* temp_key;
-	int status;
-
-	memset (digest, 0xAA, sizeof (digest));
-	memset (key, 0xBB, sizeof (key));
-
-	TEST_START;
-
-	memset (&expected, 0, sizeof (expected));
-	expected.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	expected.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
-	expected.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
-	expected.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
-	expected.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	expected.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	expected.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
-
-	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_entry (&manager, 0, 0xBB, 0xAA, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_AUTHENTICATED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_cert_chain_digest (&manager, 0xBB, 0, digest, sizeof (digest));
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_alias_key (&manager, 0xBB, key, sizeof (key), 0xEE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_get_device_eid (&manager, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_resize_entries_table (&manager, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_get_device_addr (&manager, 0);
-	CuAssertIntEquals (test, 0xAA, status);
-
-	status = device_manager_get_device_eid (&manager, 0);
-	CuAssertIntEquals (test, 0xBB, status);
-
-	status = device_manager_get_device_state (&manager, 0);
-	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
-
-	status = device_manager_compare_cert_chain_digest (&manager, 0xBB, digest, sizeof (digest));
-	CuAssertIntEquals (test, 0, status);
-
-	temp_key = device_manager_get_alias_key (&manager, 0xBB);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrNotNull (test, temp_key->key);
-	CuAssertIntEquals (test, sizeof (key), temp_key->key_len);
-	CuAssertIntEquals (test, 0xEE, temp_key->key_type);
-
-	status = testing_validate_array (key, temp_key->key, sizeof (key));
-	CuAssertIntEquals (test, 0, status);
-
-	memset (&out, 0x55, sizeof (out));
-	status = device_manager_get_device_capabilities (&manager, 0, &out);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array ((uint8_t*) &expected, (uint8_t*) &out, sizeof (expected));
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_get_device_eid (&manager, 1);
-	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
-
-	device_manager_release (&manager);
-}
-
-static void device_manager_test_resize_entries_table_invalid_arg (CuTest *test)
-{
-	struct device_manager manager;
-	int status;
-
-	TEST_START;
-
-	status = device_manager_resize_entries_table (NULL, 1);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
-
-	status = device_manager_resize_entries_table (&manager, 0);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
-}
-
-static void device_manager_test_resize_entries_table_same_size (CuTest *test)
-{
-	struct device_manager manager;
-	struct device_manager_full_capabilities expected;
-	struct device_manager_full_capabilities expected2;
-	struct device_manager_full_capabilities out;
-	uint8_t digest1[HASH_MAX_HASH_LEN];
-	uint8_t digest2[HASH_MAX_HASH_LEN];
-	uint8_t key1[DEVICE_MANAGER_MAX_KEY_LEN];
-	uint8_t key2[DEVICE_MANAGER_MAX_KEY_LEN];
-	const struct device_manager_key* temp_key;
-	int status;
-
-	memset (digest1, 0xAA, sizeof (digest1));
-	memset (digest2, 0xBB, sizeof (digest2));
-	memset (key1, 0xCC, sizeof (key1));
-	memset (key2, 0xDD, sizeof (key2));
-
-	TEST_START;
-
-	memset (&expected, 0, sizeof (expected));
-	expected.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	expected.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
-	expected.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
-	expected.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
-	expected.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	expected.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	expected.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
-
-	memset (&expected2, 0, sizeof (expected2));
-	expected2.request.max_message_size = 50;
-	expected2.request.max_packet_size = 10;
-	expected2.request.security_mode = DEVICE_MANAGER_SECURITY_CONFIDENTIALITY;
-	expected2.request.bus_role = DEVICE_MANAGER_MASTER_BUS_ROLE;
-	expected2.request.hierarchy_role = DEVICE_MANAGER_PA_ROT_MODE;
-	expected2.max_timeout = 100;
-	expected2.max_sig = 200;
-
-	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_entry (&manager, 0, 0xBB, 0xAA, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_AUTHENTICATED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_READY_FOR_ATTESTATION);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_cert_chain_digest (&manager, 0xBB, 0, digest1, sizeof (digest1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_alias_key (&manager, 0xBB, key1, sizeof (key1), 0xEE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_cert_chain_digest (&manager, 0xCC, 0, digest2, sizeof (digest2));
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_alias_key (&manager, 0xCC, key2, sizeof (key2), 0xFF);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_capabilities (&manager, 1, &expected2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_resize_entries_table (&manager, 2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_get_device_addr (&manager, 0);
-	CuAssertIntEquals (test, 0xAA, status);
-
-	status = device_manager_get_device_eid (&manager, 0);
-	CuAssertIntEquals (test, 0xBB, status);
-
-	status = device_manager_get_device_addr (&manager, 1);
-	CuAssertIntEquals (test, 0xDD, status);
-
-	status = device_manager_get_device_eid (&manager, 1);
-	CuAssertIntEquals (test, 0xCC, status);
-
-	status = device_manager_get_device_state (&manager, 0);
-	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
-
-	status = device_manager_get_device_state (&manager, 1);
-	CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION, status);
-
-	status = device_manager_compare_cert_chain_digest (&manager, 0xBB, digest1, sizeof (digest1));
-	CuAssertIntEquals (test, 0, status);
-
-	temp_key = device_manager_get_alias_key (&manager, 0xBB);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrNotNull (test, temp_key->key);
-	CuAssertIntEquals (test, sizeof (key1), temp_key->key_len);
-	CuAssertIntEquals (test, 0xEE, temp_key->key_type);
-
-	status = testing_validate_array (key1, temp_key->key, sizeof (key1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_compare_cert_chain_digest (&manager, 0xCC, digest2, sizeof (digest2));
-	CuAssertIntEquals (test, 0, status);
-
-	temp_key = device_manager_get_alias_key (&manager, 0xCC);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrNotNull (test, temp_key->key);
-	CuAssertIntEquals (test, sizeof (key2), temp_key->key_len);
-	CuAssertIntEquals (test, 0xFF, temp_key->key_type);
-
-	status = testing_validate_array (key2, temp_key->key, sizeof (key2));
-	CuAssertIntEquals (test, 0, status);
-
-	memset (&out, 0x55, sizeof (out));
-	status = device_manager_get_device_capabilities (&manager, 0, &out);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array ((uint8_t*) &expected, (uint8_t*) &out, sizeof (expected));
-	CuAssertIntEquals (test, 0, status);
-
-	memset (&out, 0x55, sizeof (out));
-	status = device_manager_get_device_capabilities (&manager, 1, &out);
-	CuAssertIntEquals (test, 0, status);
-
-	status = testing_validate_array ((uint8_t*) &expected2, (uint8_t*) &out, sizeof (expected2));
-	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&manager);
 }
@@ -1411,10 +1107,10 @@ static void device_manager_test_get_max_message_len_by_eid_local_device (CuTest 
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len_by_eid (&manager, 0xAA);
@@ -1445,10 +1141,10 @@ static void device_manager_test_get_max_message_len_by_eid_remote_device (CuTest
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 1, &remote);
@@ -1493,10 +1189,10 @@ static void device_manager_test_get_max_message_len_by_eid_remote_device_local_s
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
@@ -1534,10 +1230,10 @@ static void device_manager_test_get_max_message_len_by_eid_remote_device_no_capa
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
@@ -1572,10 +1268,10 @@ static void device_manager_test_get_max_message_len_by_eid_remote_device_unknown
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
@@ -1599,10 +1295,10 @@ static void device_manager_test_get_max_message_len_by_eid_null (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_message_len_by_eid (NULL, 0xAA);
@@ -1798,10 +1494,10 @@ static void device_manager_test_get_max_transmission_unit_by_eid_local_device (C
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (&manager, 0xAA);
@@ -1832,10 +1528,10 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device (
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 1, &remote);
@@ -1880,10 +1576,10 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device_l
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
@@ -1921,10 +1617,10 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device_n
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
@@ -1959,10 +1655,10 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device_u
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
@@ -1986,10 +1682,10 @@ static void device_manager_test_get_max_transmission_unit_by_eid_null (CuTest *t
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (NULL, 0xAA);
@@ -2126,10 +1822,10 @@ static void device_manager_test_get_reponse_timeout_by_eid_local_device (CuTest 
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout_by_eid (&manager, 0xAA);
@@ -2160,10 +1856,10 @@ static void device_manager_test_get_reponse_timeout_by_eid_remote_device (CuTest
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 1, &remote);
@@ -2188,10 +1884,10 @@ static void device_manager_test_get_reponse_timeout_by_eid_remote_device_no_capa
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout_by_eid (&manager, 0xCC);
@@ -2223,10 +1919,10 @@ static void device_manager_test_get_reponse_timeout_by_eid_remote_device_unknown
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
@@ -2250,10 +1946,10 @@ static void device_manager_test_get_reponse_timeout_by_eid_null (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_reponse_timeout_by_eid (NULL, 0xCC);
@@ -2390,10 +2086,10 @@ static void device_manager_test_get_crypto_timeout_by_eid_local_device (CuTest *
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout_by_eid (&manager, 0xAA);
@@ -2424,10 +2120,10 @@ static void device_manager_test_get_crypto_timeout_by_eid_remote_device (CuTest 
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 1, &remote);
@@ -2452,10 +2148,10 @@ static void device_manager_test_get_crypto_timeout_by_eid_remote_device_no_capab
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout_by_eid (&manager, 0xCC);
@@ -2487,10 +2183,10 @@ static void device_manager_test_get_crypto_timeout_by_eid_remote_device_unknown_
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_capabilities (&manager, 0, &local);
@@ -2514,10 +2210,10 @@ static void device_manager_test_get_crypto_timeout_by_eid_null (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	timeout = device_manager_get_crypto_timeout_by_eid (NULL, 0xCC);
@@ -2613,10 +2309,10 @@ static void device_manager_test_update_cert_chain_digest (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC,	0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_cert_chain_digest (&manager, 0xCC, 0, digest_exp,
@@ -2666,7 +2362,7 @@ static void device_manager_test_update_cert_chain_digest_unknown_device (CuTest 
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_cert_chain_digest (&manager, 0xCC, 0, digest_exp,
@@ -2688,10 +2384,10 @@ static void device_manager_test_update_cert_chain_digest_input_too_large (CuTest
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_cert_chain_digest (&manager, 0xCC, 0, digest, sizeof (digest));
@@ -2714,10 +2410,10 @@ static void device_manager_test_compare_cert_chain_digest (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_cert_chain_digest (&manager, 0xCC, 0, digest, sizeof (digest));
@@ -2741,10 +2437,10 @@ static void device_manager_test_compare_cert_chain_digest_invalid_arg (CuTest *t
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_compare_cert_chain_digest (NULL, 0xCC, digest_actual,
@@ -2773,7 +2469,7 @@ static void device_manager_test_compare_cert_chain_digest_unknown_device (CuTest
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_compare_cert_chain_digest (&manager, 0xCC, digest, sizeof (digest));
@@ -2794,10 +2490,10 @@ static void device_manager_test_compare_cert_chain_digest_digest_len_mismatch (C
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_cert_chain_digest (&manager, 0xCC, 0, digest_exp,
@@ -2831,10 +2527,10 @@ static void device_manager_test_compare_cert_chain_digest_digest_mismatch (CuTes
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_cert_chain_digest (&manager, 0xCC, 0, digest_exp,
@@ -2862,10 +2558,10 @@ static void device_manager_test_compare_cert_chain_digest_digest_not_unique (CuT
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_cert_chain_digest (&manager, 0xAA, 0, digest, sizeof (digest));
@@ -2892,10 +2588,10 @@ static void device_manager_test_update_alias_key (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_alias_key (&manager, 0xCC, key_exp, sizeof (key_exp), 0xAA);
@@ -2949,7 +2645,7 @@ static void device_manager_test_update_alias_key_unknown_device (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_alias_key (&manager, 0xCC, key, sizeof (key), 0xAA);
@@ -2970,10 +2666,10 @@ static void device_manager_test_update_alias_key_input_too_large (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_alias_key (&manager, 0xCC, key, sizeof (key), 0xAA);
@@ -2997,10 +2693,10 @@ static void device_manager_test_get_alias_key (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_alias_key (&manager, 0xCC, key_exp, sizeof (key_exp), 0xAA);
@@ -3029,10 +2725,10 @@ static void device_manager_test_get_alias_key_invalid_arg (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	key = device_manager_get_alias_key (NULL, 0xCC);
@@ -3053,7 +2749,7 @@ static void device_manager_test_get_alias_key_unknown_device (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	key = device_manager_get_alias_key (&manager, 0xCC);
@@ -3074,10 +2770,10 @@ static void device_manager_test_get_alias_key_empty (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	key = device_manager_get_alias_key (&manager, 0xCC);
@@ -3109,10 +2805,10 @@ static void device_manager_test_get_eid_of_next_device_to_attest_one_device (CuT
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_READY_FOR_ATTESTATION);
@@ -3135,16 +2831,16 @@ static void device_manager_test_get_eid_of_next_device_to_attest_multiple (CuTes
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 200, 200, 200);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 2, 0xEE, 0xFF, 2);
+	status = device_manager_update_not_attestable_device_entry (&manager, 2, 0xEE, 0xFF, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 3, 0xA0, 0xB0, 3);
+	status = device_manager_update_not_attestable_device_entry (&manager, 3, 0xA0, 0xB0, 3);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_READY_FOR_ATTESTATION);
@@ -3191,16 +2887,16 @@ static void device_manager_test_get_eid_of_next_device_to_attest_multiple_authen
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 200, 200, 200);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 2, 0xEE,	0xFF, 2);
+	status = device_manager_update_not_attestable_device_entry (&manager, 2, 0xEE,	0xFF, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 3, 0xA0,	0xB0, 3);
+	status = device_manager_update_not_attestable_device_entry (&manager, 3, 0xA0,	0xB0, 3);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_AUTHENTICATED);
@@ -3240,10 +2936,10 @@ static void device_manager_test_get_eid_of_next_device_to_attest_no_available_de
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_eid_of_next_device_to_attest (&manager);
@@ -3263,10 +2959,10 @@ static void device_manager_test_get_eid_of_next_device_to_attest_no_ready_device
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_READY_FOR_ATTESTATION);
@@ -3296,10 +2992,10 @@ static void device_manager_test_get_eid_of_next_device_to_attest_no_attestable_d
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_NOT_ATTESTABLE);
@@ -3325,10 +3021,10 @@ static void device_manager_test_reset_authenticated_devices (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_AUTHENTICATED);
@@ -3341,7 +3037,7 @@ static void device_manager_test_reset_authenticated_devices (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state (&manager, 0);
-	CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION, status);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, status);
 
 	status = device_manager_get_device_state (&manager, 1);
 	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, status);
@@ -3370,13 +3066,13 @@ static void device_manager_test_reset_discovered_devices (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 2, 0xEE, 0xFF, 2);
+	status = device_manager_update_not_attestable_device_entry (&manager, 2, 0xEE, 0xFF, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_AUTHENTICATED);
@@ -4037,10 +3733,10 @@ static void device_manager_test_get_time_till_next_action_single_attestation (Cu
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_READY_FOR_ATTESTATION);
@@ -4070,10 +3766,10 @@ static void device_manager_test_get_time_till_next_action_multiple_attestation (
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_READY_FOR_ATTESTATION);
@@ -4113,10 +3809,10 @@ static void device_manager_test_get_time_till_next_action_single_attestation_aut
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_AUTHENTICATED);
@@ -4141,10 +3837,10 @@ static void device_manager_test_get_time_till_next_action_multiple_attestation_a
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_AUTHENTICATED);
@@ -4172,10 +3868,10 @@ static void device_manager_test_get_time_till_next_action_multiple_attestation_a
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_READY_FOR_ATTESTATION);
@@ -4208,6 +3904,12 @@ static void device_manager_test_get_time_till_next_action_single_discovery (CuTe
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
 	status = device_manager_add_unidentified_device (&manager, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4227,6 +3929,12 @@ static void device_manager_test_get_time_till_next_action_multiple_discovery (Cu
 
 	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_add_unidentified_device (&manager, 0xAA);
@@ -4256,6 +3964,12 @@ static void device_manager_test_get_time_till_next_action_single_discovery_timeo
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
 	status = device_manager_add_unidentified_device (&manager, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4278,6 +3992,12 @@ static void device_manager_test_get_time_till_next_action_multiple_discovery_tim
 
 	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_add_unidentified_device (&manager, 0xAA);
@@ -4317,6 +4037,12 @@ static void device_manager_test_get_time_till_next_action_multiple_discovery_som
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
 	status = device_manager_add_unidentified_device (&manager, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4347,10 +4073,16 @@ static void device_manager_test_get_time_till_next_action_attestation_and_discov
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_NOT_ATTESTABLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_READY_FOR_ATTESTATION);
@@ -4393,6 +4125,12 @@ static void device_manager_test_get_time_till_next_action_no_devices (CuTest *te
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
 	duration_ms = device_manager_get_time_till_next_action (&manager);
 	CuAssertIntEquals (test, 10000, duration_ms);
 
@@ -4412,8 +4150,7 @@ static void device_manager_test_get_time_till_next_action_invalid_arg (CuTest *t
 static void device_manager_test_get_attestation_status (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t bitmap[32];
-	int i_bitmap;
+	const uint8_t *attestation_status;
 	int i_device;
 	int i_pcd;
 	int status;
@@ -4425,23 +4162,59 @@ static void device_manager_test_get_attestation_status (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1, i_pcd = 0; i_device < 255; ++i_device, ++i_pcd) {
-		status = device_manager_update_device_entry (&manager, i_device, 0, 0, i_pcd);
+		status = device_manager_update_not_attestable_device_entry (&manager, i_device, 0, 0,
+			i_pcd);
+		CuAssertIntEquals (test, 0, status);
 
-		if (i_pcd % 2) {
-			status = device_manager_update_device_state (&manager, i_device,
-				DEVICE_MANAGER_AUTHENTICATED);
-			CuAssertIntEquals (test, 0, status);
+		switch (i_pcd % 4) {
+			case 0:
+				status = device_manager_update_device_state (&manager, i_device,
+					DEVICE_MANAGER_AUTHENTICATED);
+				break;
+
+			case 1:
+				status = device_manager_update_device_state (&manager, i_device,
+					DEVICE_MANAGER_READY_FOR_ATTESTATION);
+				break;
+
+			case 2:
+				status = device_manager_update_device_state (&manager, i_device,
+					DEVICE_MANAGER_UNIDENTIFIED);
+				break;
+
+			default:
+				status = device_manager_update_device_state (&manager, i_device,
+					DEVICE_MANAGER_NEVER_ATTESTED);
+		}
+
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, 254, status);
+
+	for (i_device = 0; i_device < 254; ++i_device) {
+		switch (i_device % 4) {
+			case 0:
+				CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED,
+					attestation_status[i_device]);
+				break;
+
+			case 1:
+				CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION,
+					attestation_status[i_device]);
+				break;
+
+			case 2:
+				CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED,
+					attestation_status[i_device]);
+				break;
+
+			default:
+				CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED,
+					attestation_status[i_device]);
 		}
 	}
-
-	status = device_manager_get_attestation_status (&manager, bitmap);
-	CuAssertIntEquals (test, 0, status);
-
-	for (i_bitmap = 0; i_bitmap < 31; ++i_bitmap) {
-		CuAssertIntEquals (test, 0x55, bitmap[i_bitmap]);
-	}
-
-	CuAssertIntEquals (test, 0x15, bitmap[31]);
 
 	device_manager_release (&manager);
 }
@@ -4449,8 +4222,7 @@ static void device_manager_test_get_attestation_status (CuTest *test)
 static void device_manager_test_get_attestation_status_all_unauthenticated (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t bitmap[32];
-	int i_bitmap;
+	const uint8_t *attestation_status;
 	int i_device;
 	int i_pcd;
 	int status;
@@ -4462,20 +4234,20 @@ static void device_manager_test_get_attestation_status_all_unauthenticated (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1, i_pcd = 0; i_device < 255; ++i_device, ++ i_pcd) {
-		status = device_manager_update_device_entry (&manager, i_device, 0, 0, i_pcd);
-		status = device_manager_update_device_state (&manager, i_device,
+		status = device_manager_update_not_attestable_device_entry (&manager, i_device, 0, 0,
+			i_pcd);
+		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_READY_FOR_ATTESTATION);
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = device_manager_get_attestation_status (&manager, bitmap);
-	CuAssertIntEquals (test, 0, status);
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, 254, status);
 
-	for (i_bitmap = 0; i_bitmap < 31; ++i_bitmap) {
-		CuAssertIntEquals (test, 0xFF, bitmap[i_bitmap]);
+	for (i_device = 0; i_device < 254; ++i_device) {
+		CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION,
+			attestation_status[i_device]);
 	}
-
-	CuAssertIntEquals (test, 0x3F, bitmap[31]);
 
 	device_manager_release (&manager);
 }
@@ -4483,8 +4255,7 @@ static void device_manager_test_get_attestation_status_all_unauthenticated (CuTe
 static void device_manager_test_get_attestation_status_all_unauthenticated_not_max (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t bitmap[32];
-	int i_bitmap;
+	const uint8_t *attestation_status;
 	int i_device;
 	int i_pcd;
 	int status;
@@ -4496,20 +4267,19 @@ static void device_manager_test_get_attestation_status_all_unauthenticated_not_m
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1, i_pcd = 0; i_device < 11; ++i_device, ++ i_pcd) {
-		status = device_manager_update_device_entry (&manager, i_device, 0, 0, i_pcd);
-		status = device_manager_update_device_state (&manager, i_device,
+		status = device_manager_update_not_attestable_device_entry (&manager, i_device, 0, 0,
+			i_pcd);
+		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_READY_FOR_ATTESTATION);
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = device_manager_get_attestation_status (&manager, bitmap);
-	CuAssertIntEquals (test, 0, status);
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, 10, status);
 
-	CuAssertIntEquals (test, 0xFF, bitmap[0]);
-	CuAssertIntEquals (test, 0x03, bitmap[1]);
-
-	for (i_bitmap = 2; i_bitmap < 32; ++i_bitmap) {
-		CuAssertIntEquals (test, 0, bitmap[i_bitmap]);
+	for (i_device = 0; i_device < 10; ++i_device) {
+		CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION,
+			attestation_status[i_device]);
 	}
 
 	device_manager_release (&manager);
@@ -4518,8 +4288,7 @@ static void device_manager_test_get_attestation_status_all_unauthenticated_not_m
 static void device_manager_test_get_attestation_status_all_authenticated (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t bitmap[32];
-	int i_bitmap;
+	const uint8_t *attestation_status;
 	int i_device;
 	int status;
 
@@ -4530,17 +4299,18 @@ static void device_manager_test_get_attestation_status_all_authenticated (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1; i_device < 255; ++i_device) {
-		status = device_manager_update_device_entry (&manager, i_device, 0, 0, i_device);
-		status = device_manager_update_device_state (&manager, i_device,
+		status = device_manager_update_not_attestable_device_entry (&manager, i_device, 0, 0,
+			i_device);
+		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_AUTHENTICATED);
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = device_manager_get_attestation_status (&manager, bitmap);
-	CuAssertIntEquals (test, 0, status);
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, 254, status);
 
-	for (i_bitmap = 0; i_bitmap < 32; ++i_bitmap) {
-		CuAssertIntEquals (test, 0x00, bitmap[i_bitmap]);
+	for (i_device = 0; i_device < 254; ++i_device) {
+		CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, attestation_status[i_device]);
 	}
 
 	device_manager_release (&manager);
@@ -4549,8 +4319,7 @@ static void device_manager_test_get_attestation_status_all_authenticated (CuTest
 static void device_manager_test_get_attestation_status_all_authenticated_not_max (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t bitmap[32];
-	int i_bitmap;
+	const uint8_t *attestation_status;
 	int i_device;
 	int status;
 
@@ -4561,17 +4330,18 @@ static void device_manager_test_get_attestation_status_all_authenticated_not_max
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1; i_device < 11; ++i_device) {
-		status = device_manager_update_device_entry (&manager, i_device, 0, 0, i_device);
-		status = device_manager_update_device_state (&manager, i_device,
+		status = device_manager_update_not_attestable_device_entry (&manager, i_device, 0, 0,
+			i_device);
+		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_AUTHENTICATED);
 		CuAssertIntEquals (test, 0, status);
 	}
 
-	status = device_manager_get_attestation_status (&manager, bitmap);
-	CuAssertIntEquals (test, 0, status);
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, 10, status);
 
-	for (i_bitmap = 0; i_bitmap < 32; ++i_bitmap) {
-		CuAssertIntEquals (test, 0x00, bitmap[i_bitmap]);
+	for (i_device = 0; i_device < 10; ++i_device) {
+		CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, attestation_status[i_device]);
 	}
 
 	device_manager_release (&manager);
@@ -4580,8 +4350,7 @@ static void device_manager_test_get_attestation_status_all_authenticated_not_max
 static void device_manager_test_get_attestation_status_multiple_components_same_entry (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t bitmap[32];
-	int i_bitmap;
+	const uint8_t *attestation_status;
 	int i_device;
 	int i_pcd;
 	int status;
@@ -4597,10 +4366,11 @@ static void device_manager_test_get_attestation_status_multiple_components_same_
 			++i_pcd;
 		}
 
-		status = device_manager_update_device_entry (&manager, i_device, 0, 0, i_pcd);
+		status = device_manager_update_not_attestable_device_entry (&manager, i_device, 0, 0,
+			i_pcd);
 		CuAssertIntEquals (test, 0, status);
 
-		if ((i_pcd % 4) == 0) {
+		if ((i_device % 4) == 0) {
 			status = device_manager_update_device_state (&manager, i_device,
 				DEVICE_MANAGER_READY_FOR_ATTESTATION);
 			CuAssertIntEquals (test, 0, status);
@@ -4612,15 +4382,17 @@ static void device_manager_test_get_attestation_status_multiple_components_same_
 		}
 	}
 
-	status = device_manager_get_attestation_status (&manager, bitmap);
-	CuAssertIntEquals (test, 0, status);
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, 254, status);
 
-	for (i_bitmap = 0; i_bitmap < 16; ++i_bitmap) {
-		CuAssertIntEquals (test, 0x11, bitmap[i_bitmap]);
-	}
-
-	for (i_bitmap = 16; i_bitmap < 32; ++i_bitmap) {
-		CuAssertIntEquals (test, 0, bitmap[i_bitmap]);
+	for (i_device = 0; i_device < 254; ++i_device) {
+		if (((i_device + 1) % 4) == 0) {
+			CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION,
+				attestation_status[i_device]);
+		}
+		else {
+			CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, attestation_status[i_device]);
+		}
 	}
 
 	device_manager_release (&manager);
@@ -4630,8 +4402,7 @@ static void device_manager_test_get_attestation_status_multiple_components_same_
 	CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t bitmap[32];
-	int i_bitmap;
+	const uint8_t *attestation_status;
 	int i_device;
 	int i_pcd;
 	int status;
@@ -4647,7 +4418,8 @@ static void device_manager_test_get_attestation_status_multiple_components_same_
 			++i_pcd;
 		}
 
-		status = device_manager_update_device_entry (&manager, i_device, 0, 0, i_pcd);
+		status = device_manager_update_not_attestable_device_entry (&manager, i_device, 0, 0,
+			i_pcd);
 		CuAssertIntEquals (test, 0, status);
 
 		if ((i_device % 4) == 0) {
@@ -4662,14 +4434,17 @@ static void device_manager_test_get_attestation_status_multiple_components_same_
 		}
 	}
 
-	status = device_manager_get_attestation_status (&manager, bitmap);
-	CuAssertIntEquals (test, 0, status);
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, 16, status);
 
-	CuAssertIntEquals (test, 0x54, bitmap[0]);
-	CuAssertIntEquals (test, 0x01, bitmap[1]);
-
-	for (i_bitmap = 2; i_bitmap < 32; ++i_bitmap) {
-		CuAssertIntEquals (test, 0, bitmap[i_bitmap]);
+	for (i_device = 0; i_device < 16; ++i_device) {
+		if (((i_device + 1) % 4) == 0) {
+			CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION,
+				attestation_status[i_device]);
+		}
+		else {
+			CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, attestation_status[i_device]);
+		}
 	}
 
 	device_manager_release (&manager);
@@ -4688,8 +4463,7 @@ static void device_manager_test_mark_component_attestation_invalid_invalid_arg (
 static void device_manager_test_mark_component_attestation_invalid (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t bitmap[32];
-	int i_bitmap;
+	const uint8_t *attestation_status;
 	int i_device;
 	int i_pcd;
 	int status;
@@ -4701,8 +4475,9 @@ static void device_manager_test_mark_component_attestation_invalid (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1, i_pcd = 0; i_device < 255; ++i_device, ++ i_pcd) {
-		status = device_manager_update_device_entry (&manager, i_device, 0, 0, i_pcd);
-		status = device_manager_update_device_state (&manager, i_device,
+		status = device_manager_update_not_attestable_device_entry (&manager, i_device, 0, 0,
+			i_pcd);
+		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_AUTHENTICATED);
 		CuAssertIntEquals (test, 0, status);
 	}
@@ -4710,11 +4485,11 @@ static void device_manager_test_mark_component_attestation_invalid (CuTest *test
 	status = device_manager_mark_component_attestation_invalid (&manager);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_attestation_status (&manager, bitmap);
-	CuAssertIntEquals (test, 0, status);
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, 254, status);
 
-	for (i_bitmap = 0; i_bitmap < 32; ++i_bitmap) {
-		CuAssertIntEquals (test, 0xFF, bitmap[i_bitmap]);
+	for (i_device = 0; i_device < 254; ++i_device) {
+		CuAssertIntEquals (test, 0xFF, attestation_status[i_device]);
 	}
 
 	device_manager_release (&manager);
@@ -4723,8 +4498,7 @@ static void device_manager_test_mark_component_attestation_invalid (CuTest *test
 static void device_manager_test_mark_component_attestation_invalid_not_max (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t bitmap[32];
-	int i_bitmap;
+	const uint8_t *attestation_status;
 	int i_device;
 	int i_pcd;
 	int status;
@@ -4736,8 +4510,9 @@ static void device_manager_test_mark_component_attestation_invalid_not_max (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1, i_pcd = 0; i_device < 11; ++i_device, ++ i_pcd) {
-		status = device_manager_update_device_entry (&manager, i_device, 0, 0, i_pcd);
-		status = device_manager_update_device_state (&manager, i_device,
+		status = device_manager_update_not_attestable_device_entry (&manager, i_device, 0, 0,
+			i_pcd);
+		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_AUTHENTICATED);
 		CuAssertIntEquals (test, 0, status);
 	}
@@ -4745,11 +4520,11 @@ static void device_manager_test_mark_component_attestation_invalid_not_max (CuTe
 	status = device_manager_mark_component_attestation_invalid (&manager);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_attestation_status (&manager, bitmap);
-	CuAssertIntEquals (test, 0, status);
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, 10, status);
 
-	for (i_bitmap = 0; i_bitmap < 32; ++i_bitmap) {
-		CuAssertIntEquals (test, 0xFF, bitmap[i_bitmap]);
+	for (i_device = 0; i_device < 10; ++i_device) {
+		CuAssertIntEquals (test, 0xFF, attestation_status[i_device]);
 	}
 
 	device_manager_release (&manager);
@@ -4758,12 +4533,12 @@ static void device_manager_test_mark_component_attestation_invalid_not_max (CuTe
 static void device_manager_test_get_attestation_status_invalid_arg (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t bitmap[32];
+	const uint8_t *attestation_status;
 	int status;
 
 	TEST_START;
 
-	status = device_manager_get_attestation_status (NULL, bitmap);
+	status = device_manager_get_attestation_status (NULL, (const uint8_t**) &attestation_status);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
 	status = device_manager_get_attestation_status (&manager, NULL);
@@ -4781,16 +4556,10 @@ static void device_manager_test_is_device_unattestable (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&manager, 1, 0xCC, 0xDD, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_NOT_ATTESTABLE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_is_device_unattestable (&manager, 0xAA);
@@ -4833,9 +4602,9 @@ TEST (device_manager_test_get_device_capabilities_request_null);
 TEST (device_manager_test_update_device_capabilities_request);
 TEST (device_manager_test_update_device_capabilities_request_invalid_arg);
 TEST (device_manager_test_update_device_capabilities_request_invalid_device);
-TEST (device_manager_test_update_device_entry);
-TEST (device_manager_test_update_device_entry_invalid_arg);
-TEST (device_manager_test_update_device_entry_invalid_device);
+TEST (device_manager_test_update_not_attestable_device_entry);
+TEST (device_manager_test_update_not_attestable_device_entry_invalid_arg);
+TEST (device_manager_test_update_not_attestable_device_entry_invalid_device);
 TEST (device_manager_test_update_mctp_bridge_device_entry);
 TEST (device_manager_test_update_mctp_bridge_device_entry_invalid_arg);
 TEST (device_manager_test_update_mctp_bridge_device_entry_invalid_device);
@@ -4860,10 +4629,6 @@ TEST (device_manager_test_get_device_state_by_eid_invalid_device);
 TEST (device_manager_test_get_device_num);
 TEST (device_manager_test_get_device_num_null);
 TEST (device_manager_test_get_device_num_invalid_eid);
-TEST (device_manager_test_resize_entries_table_add_entries);
-TEST (device_manager_test_resize_entries_table_remove_entries);
-TEST (device_manager_test_resize_entries_table_invalid_arg);
-TEST (device_manager_test_resize_entries_table_same_size);
 TEST (device_manager_test_update_device_eid);
 TEST (device_manager_test_update_device_eid_invalid_arg);
 TEST (device_manager_test_update_device_eid_invalid_device);

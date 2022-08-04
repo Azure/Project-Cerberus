@@ -49,7 +49,7 @@ static void setup_mock_cmd_channel_test (CuTest *test, struct cmd_channel_testin
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&channel->device_mgr, 0,
+	status = device_manager_update_not_attestable_device_entry (&channel->device_mgr, 0,
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x5D, 0);
 	CuAssertIntEquals (test, 0, status);
 

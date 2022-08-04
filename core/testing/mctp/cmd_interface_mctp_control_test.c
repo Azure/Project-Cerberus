@@ -44,12 +44,12 @@ static void setup_cmd_interface_mctp_control_test (CuTest *test,
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&cmd->device_manager,
+	status = device_manager_update_not_attestable_device_entry (&cmd->device_manager,
 		DEVICE_MANAGER_SELF_DEVICE_NUM, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
 		DEVICE_MANAGER_SELF_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&cmd->device_manager,
+	status = device_manager_update_not_attestable_device_entry (&cmd->device_manager,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, MCTP_BASE_PROTOCOL_BMC_EID, 0x10,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);

@@ -5078,8 +5078,8 @@ static void cerberus_protocol_master_commands_test_generate_get_device_capabilit
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_mgr, 0, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID,
-		0xAA, 0);
+	status = device_manager_update_not_attestable_device_entry (&device_mgr, 0,
+		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0xAA, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cerberus_protocol_generate_get_device_capabilities_request (&device_mgr, buf,
@@ -5114,8 +5114,8 @@ static void cerberus_protocol_master_commands_test_generate_get_device_capabilit
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_mgr, 0, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID,
-		0xAA, 0);
+	status = device_manager_update_not_attestable_device_entry (&device_mgr, 0,
+		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0xAA, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cerberus_protocol_generate_get_device_capabilities_request (&device_mgr, buf,
@@ -5138,8 +5138,8 @@ static void cerberus_protocol_master_commands_test_generate_get_device_capabilit
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_mgr, 0, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID,
-		0xAA, 0);
+	status = device_manager_update_not_attestable_device_entry (&device_mgr, 0,
+		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0xAA, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cerberus_protocol_generate_get_device_capabilities_request (NULL, buf, sizeof (buf));

@@ -515,11 +515,12 @@ static void mctp_control_protocol_commands_test_process_set_eid (CuTest *test)
 	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager, DEVICE_MANAGER_SELF_DEVICE_NUM,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, DEVICE_MANAGER_SELF_DEVICE_NUM);
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
+		DEVICE_MANAGER_SELF_DEVICE_NUM, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
+		DEVICE_MANAGER_SELF_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager,
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, MCTP_BASE_PROTOCOL_BMC_EID, 0x10,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
@@ -576,11 +577,12 @@ static void mctp_control_protocol_commands_test_process_set_eid_force (CuTest *t
 	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager, DEVICE_MANAGER_SELF_DEVICE_NUM,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, DEVICE_MANAGER_SELF_DEVICE_NUM);
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
+		DEVICE_MANAGER_SELF_DEVICE_NUM,	MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
+		DEVICE_MANAGER_SELF_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager,
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, MCTP_BASE_PROTOCOL_BMC_EID, 0x10,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
@@ -635,11 +637,12 @@ static void mctp_control_protocol_commands_test_process_set_eid_null (CuTest *te
 	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager, DEVICE_MANAGER_SELF_DEVICE_NUM,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, DEVICE_MANAGER_SELF_DEVICE_NUM);
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
+		DEVICE_MANAGER_SELF_DEVICE_NUM,	MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
+		DEVICE_MANAGER_SELF_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager,
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, MCTP_BASE_PROTOCOL_BMC_EID, 0x10,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
@@ -680,11 +683,12 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_len (CuT
 	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager, DEVICE_MANAGER_SELF_DEVICE_NUM,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, DEVICE_MANAGER_SELF_DEVICE_NUM);
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
+		DEVICE_MANAGER_SELF_DEVICE_NUM, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
+		DEVICE_MANAGER_SELF_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager,
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, MCTP_BASE_PROTOCOL_BMC_EID, 0x10,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
@@ -741,11 +745,12 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager, DEVICE_MANAGER_SELF_DEVICE_NUM,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, DEVICE_MANAGER_SELF_DEVICE_NUM);
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
+		DEVICE_MANAGER_SELF_DEVICE_NUM, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
+		DEVICE_MANAGER_SELF_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager,
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, MCTP_BASE_PROTOCOL_BMC_EID, 0x10,
 		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
@@ -826,8 +831,9 @@ static void mctp_control_protocol_commands_test_process_get_eid (CuTest *test)
 	status = device_manager_init (&device_manager, 1, 0, 0, 0, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager, DEVICE_MANAGER_SELF_DEVICE_NUM,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, DEVICE_MANAGER_SELF_DEVICE_NUM);
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
+		DEVICE_MANAGER_SELF_DEVICE_NUM, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
+		DEVICE_MANAGER_SELF_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_control_protocol_get_eid (&device_manager, &request);
@@ -871,8 +877,9 @@ static void mctp_control_protocol_commands_test_process_get_eid_null (CuTest *te
 	status = device_manager_init (&device_manager, 1, 0, 0, 0, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager, DEVICE_MANAGER_SELF_DEVICE_NUM,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, DEVICE_MANAGER_SELF_DEVICE_NUM);
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
+		DEVICE_MANAGER_SELF_DEVICE_NUM, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
+		DEVICE_MANAGER_SELF_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_control_protocol_get_eid (NULL, &request);
@@ -911,8 +918,9 @@ static void mctp_control_protocol_commands_test_process_get_eid_invalid_len (CuT
 	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&device_manager, DEVICE_MANAGER_SELF_DEVICE_NUM,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, DEVICE_MANAGER_SELF_DEVICE_NUM);
+	status = device_manager_update_not_attestable_device_entry (&device_manager,
+		DEVICE_MANAGER_SELF_DEVICE_NUM, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41,
+		DEVICE_MANAGER_SELF_DEVICE_NUM);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_control_protocol_get_eid (&device_manager, &request);

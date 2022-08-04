@@ -75,7 +75,7 @@ int mctp_control_protocol_set_eid (struct device_manager *device_mgr,
 			goto update_device_mgr_fail;
 		}
 
-		status = device_manager_update_device_entry (device_mgr,
+		status = device_manager_update_not_attestable_device_entry (device_mgr,
 			DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, request->source_eid, request->source_addr,
 			DEVICE_MANAGER_NOT_PCD_COMPONENT);
 		if (status != 0) {

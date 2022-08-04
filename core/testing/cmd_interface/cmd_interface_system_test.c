@@ -204,11 +204,11 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&cmd->device_manager, 0,
+	status = device_manager_update_not_attestable_device_entry (&cmd->device_manager, 0,
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&cmd->device_manager, 1,
+	status = device_manager_update_not_attestable_device_entry (&cmd->device_manager, 1,
 		MCTP_BASE_PROTOCOL_BMC_EID, 0, 1);
 	CuAssertIntEquals (test, 0, status);
 

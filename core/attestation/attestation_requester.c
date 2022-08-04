@@ -2628,7 +2628,7 @@ static int attestation_requester_discover_device_spdm_protocol (
 		}
 
 		status = device_manager_update_device_state (attestation->device_mgr, device_num,
-			DEVICE_MANAGER_READY_FOR_ATTESTATION);
+			DEVICE_MANAGER_NEVER_ATTESTED);
 		if (status != 0) {
 			return status;
 		}
@@ -2810,19 +2810,18 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
  *
  * @param attestation Attestation requester instance to utilize.
  * @param pcr PCR store instance to utilize.
- * @param attestation_status Attestation status bitmap. Must be
- * 	DEVICE_MANAGER_ATTESTATION_STATUS_LEN bytes long.
  * @param measurement The measurement ID for attestation results.
  * @param measurement_version The version associated with the measurement data.
  */
 void attestation_requester_discovery_and_attestation_loop (
-	struct attestation_requester *attestation, struct pcr_store *pcr, uint8_t *attestation_status,
-	uint16_t measurement, uint8_t measurement_version)
+	struct attestation_requester *attestation, struct pcr_store *pcr, uint16_t measurement,
+	uint8_t measurement_version)
 {
+	const uint8_t *attestation_status;
 	int eid = 0;
 	int status;
 
-	if ((attestation == NULL) || (pcr == NULL) || (attestation_status == NULL)) {
+	if ((attestation == NULL) || (pcr == NULL)) {
 		return;
 	}
 
@@ -2850,10 +2849,11 @@ void attestation_requester_discovery_and_attestation_loop (
 		}
 	}
 
-	status = device_manager_get_attestation_status (attestation->device_mgr, attestation_status);
-	if (status == 0) {
+	status = device_manager_get_attestation_status (attestation->device_mgr,
+		&attestation_status);
+	if (!ROT_IS_ERROR (status)) {
 		pcr_store_update_versioned_buffer (pcr, attestation->primary_hash, measurement,
-			attestation_status, DEVICE_MANAGER_ATTESTATION_STATUS_LEN, true, measurement_version);
+			attestation_status, status, true, measurement_version);
 	}
 
 get_routing_table:

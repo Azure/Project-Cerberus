@@ -42,7 +42,8 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 	}
 
 	if ((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) &&
-		(prev_state == DEVICE_MANAGER_READY_FOR_ATTESTATION)) {
+		((prev_state == DEVICE_MANAGER_READY_FOR_ATTESTATION) ||
+			(prev_state == DEVICE_MANAGER_NEVER_ATTESTED))) {
 		timeout = mgr->unauthenticated_cadence_ms;
 	}
 
@@ -74,6 +75,7 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	uint32_t unidentified_timeout_ms)
 {
 	int total_num_devices = num_requester_devices + num_responder_devices;
+	int status;
 
 	if ((mgr == NULL) || (num_requester_devices == 0) ||
 		(hierarchy >= NUM_BUS_HIERACHY_ROLES) || (bus_role >= NUM_BUS_ROLES)) {
@@ -87,8 +89,18 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 		return DEVICE_MGR_NO_MEMORY;
 	}
 
+	mgr->attestation_status = platform_malloc (num_responder_devices);
+	if (mgr->attestation_status == NULL) {
+		platform_free (mgr->entries);
+		return DEVICE_MGR_NO_MEMORY;
+	}
+
+	/* Set attestation status to invalid value to indicate attestation requester has not run yet */
+	memset (mgr->attestation_status, 0xFF, num_responder_devices);
+
 	mgr->num_devices = total_num_devices;
 	mgr->num_requester_devices = num_requester_devices;
+	mgr->num_responder_devices = num_responder_devices;
 	mgr->unauthenticated_cadence_ms = unauthenticated_cadence_ms;
 	mgr->authenticated_cadence_ms = authenticated_cadence_ms;
 	mgr->unidentified_timeout_ms = unidentified_timeout_ms;
@@ -108,8 +120,14 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	mgr->entries[DEVICE_MANAGER_SELF_DEVICE_NUM].capabilities.max_sig =
 		device_manager_set_crypto_timeout_ms (MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS);
 
-	return device_manager_update_device_state (mgr, DEVICE_MANAGER_SELF_DEVICE_NUM,
+	status = device_manager_update_device_state (mgr, DEVICE_MANAGER_SELF_DEVICE_NUM,
 		DEVICE_MANAGER_NOT_ATTESTABLE);
+	if (status != 0) {
+		platform_free (mgr->entries);
+		platform_free (mgr->attestation_status);
+	}
+
+	return status;
 }
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
@@ -145,6 +163,7 @@ void device_manager_release (struct device_manager *mgr)
 {
 	if (mgr) {
 		platform_free (mgr->entries);
+		platform_free (mgr->attestation_status);
 
 		mgr->num_devices = 0;
 
@@ -152,46 +171,6 @@ void device_manager_release (struct device_manager *mgr)
 		device_manager_clear_unidentified_devices (mgr);
 #endif
 	}
-}
-
-/**
- * Add new device manager entries
- *
- * @param mgr Device manager instance to update.
- * @param num_devices Number of devices Cerberus can communicate with.
- *
- * @return Completion status, 0 if success or an error code.
- */
-int device_manager_resize_entries_table (struct device_manager *mgr, int num_devices)
-{
-	uint8_t *temp;
-
-	if ((mgr == NULL) || (num_devices == 0)) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
-	}
-
-	if (num_devices == mgr->num_devices) {
-		return 0;
-	}
-
-	temp = platform_calloc (num_devices, sizeof (struct device_manager_entry));
-	if (mgr->entries == NULL) {
-		return DEVICE_MGR_NO_MEMORY;
-	}
-
-	if (num_devices < mgr->num_devices) {
-		memcpy (temp, mgr->entries, num_devices * sizeof (struct device_manager_entry));
-	}
-	else {
-		memcpy (temp, mgr->entries, mgr->num_devices * sizeof (struct device_manager_entry));
-	}
-
-	platform_free (mgr->entries);
-
-	mgr->entries = (struct device_manager_entry*) temp;
-	mgr->num_devices = num_devices;
-
-	return 0;
 }
 
 /**
@@ -315,8 +294,8 @@ int device_manager_update_device_eid (struct device_manager *mgr, int device_num
  *
  * @return Completion status, 0 if success or an error code.
  */
-int device_manager_update_device_entry (struct device_manager *mgr, int device_num, uint8_t eid,
-	uint8_t smbus_addr, uint8_t pcd_component_index)
+int device_manager_update_not_attestable_device_entry (struct device_manager *mgr, int device_num,
+	uint8_t eid, uint8_t smbus_addr, uint8_t pcd_component_index)
 {
 	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
@@ -329,6 +308,7 @@ int device_manager_update_device_entry (struct device_manager *mgr, int device_n
 	mgr->entries[device_num].eid = eid;
 	mgr->entries[device_num].smbus_addr = smbus_addr;
 	mgr->entries[device_num].pcd_component_index = pcd_component_index;
+	mgr->entries[device_num].state = DEVICE_MANAGER_NOT_ATTESTABLE;
 
 	return platform_init_timeout (0, &mgr->entries[device_num].attestation_timeout);
 }
@@ -336,7 +316,7 @@ int device_manager_update_device_entry (struct device_manager *mgr, int device_n
 /**
  * Update device manager device table MCTP bridge component entry.  All attestable devices need to
  * be in device entries that follow non-attestable devices.  The order in which device entries are
- * added needs to follow order in CFM.
+ * added needs to follow order in PCD.
  *
  * @param mgr Device manager instance to utilize.
  * @param device_num Device table entry to update.
@@ -902,7 +882,7 @@ const uint8_t* device_manager_get_component_type_digest (struct device_manager *
 		return NULL;
 	}
 
-	if (mgr->entries[device_num].state < DEVICE_MANAGER_READY_FOR_ATTESTATION) {
+	if (!device_manager_can_device_be_attested (mgr->entries[device_num].state)) {
 		return NULL;
 	}
 
@@ -910,10 +890,10 @@ const uint8_t* device_manager_get_component_type_digest (struct device_manager *
 }
 
 /**
- * Get EID of first device that is ready for attestation. DEVICE_MANAGER_READY_FOR_ATTESTATION have
- * a cadence of DEVICE_MANAGER_UNAUTHENTICATED_CADENCE_MS, and DEVICE_MANAGER_AUTHENTICATED has a
- * cadence of DEVICE_MANAGER_AUTHENTICATED_CADENCE_MS. The device manager keeps track of last device
- * authenticated, so checking starts after that device.
+ * Get EID of first device that is ready for attestation. DEVICE_MANAGER_READY_FOR_ATTESTATION or
+ * DEVICE_MANAGER_NEVER_ATTESTED have a cadence of DEVICE_MANAGER_UNAUTHENTICATED_CADENCE_MS, and
+ * DEVICE_MANAGER_AUTHENTICATED has a cadence of DEVICE_MANAGER_AUTHENTICATED_CADENCE_MS. The device
+ * manager keeps track of last device authenticated, so checking starts after that device.
  *
  * @param mgr Device manager instance to utilize.
  *
@@ -934,15 +914,16 @@ int device_manager_get_eid_of_next_device_to_attest (struct device_manager *mgr)
 
 	for (i_device = starting_device; num_checked < mgr->num_devices;
 		i_device = (i_device + 1) % mgr->num_devices, ++num_checked) {
+		if (!device_manager_can_device_be_attested ((mgr->entries[i_device].state))) {
+			continue;
+		}
 
-		if (mgr->entries[i_device].state >= DEVICE_MANAGER_READY_FOR_ATTESTATION) {
-			status = platform_has_timeout_expired (&mgr->entries[i_device].attestation_timeout);
-			if (ROT_IS_ERROR (status)) {
-				return status;
-			}
-			if (status) {
-				goto found;
-			}
+		status = platform_has_timeout_expired (&mgr->entries[i_device].attestation_timeout);
+		if (ROT_IS_ERROR (status)) {
+			return status;
+		}
+		if (status) {
+			goto found;
 		}
 	}
 
@@ -973,7 +954,7 @@ int device_manager_reset_authenticated_devices (struct device_manager *mgr)
 	for (i_device = 0; i_device < mgr->num_devices; ++i_device) {
 		if (mgr->entries[i_device].state == DEVICE_MANAGER_AUTHENTICATED) {
 			status = device_manager_update_device_state (mgr, i_device,
-				DEVICE_MANAGER_READY_FOR_ATTESTATION);
+				DEVICE_MANAGER_NEVER_ATTESTED);
 			if (status != 0) {
 				return status;
 			}
@@ -1000,12 +981,14 @@ int device_manager_reset_discovered_devices (struct device_manager *mgr)
 	}
 
 	for (i_device = 0; i_device < mgr->num_devices; ++i_device) {
-		if (mgr->entries[i_device].state >= DEVICE_MANAGER_READY_FOR_ATTESTATION) {
-			status = device_manager_update_device_state (mgr, i_device,
-				DEVICE_MANAGER_UNIDENTIFIED);
-			if (status != 0) {
-				return status;
-			}
+		if (!device_manager_can_device_be_attested (mgr->entries[i_device].state)) {
+			continue;
+		}
+
+		status = device_manager_update_device_state (mgr, i_device,
+			DEVICE_MANAGER_UNIDENTIFIED);
+		if (status != 0) {
+			return status;
 		}
 	}
 
@@ -1291,7 +1274,7 @@ uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr)
 	}
 
 	for (i_device = 0; i_device < mgr->num_devices; ++i_device) {
-		if (mgr->entries[i_device].state < DEVICE_MANAGER_READY_FOR_ATTESTATION) {
+		if (!device_manager_can_device_be_attested (mgr->entries[i_device].state)) {
 			continue;
 		}
 
@@ -1323,45 +1306,40 @@ uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr)
 }
 
 /**
- * Update provided bitmap with attestation statuses of responder devices.  Bit position in bitmap
- * maps to the index of a component in the PCD.  A bit value of 0 indicates successful
- * authentication of device, and re-attestation period has not elapsed.  A value of 1 indicates
- * attestation has either failed to complete, authentication failed, or attestation to that device
- * has not occurred yet ever or since re-attestation period elapsed.
+ * Update attestation status buffer with attestation statuses of responder devices, then return
+ * pointer to buffer.  Byte position in buffer maps to the index of a component in the PCD.  Byte
+ * value maps to device_manager_device_state enum value.
  *
  * @param mgr Device manager instance to utilize.
- * @param bitmap Bitmap buffer provided. Must be DEVICE_MANAGER_ATTESTATION_STATUS_LEN bytes long.
+ * @param attestation_status Buffer to fill with pointer to attestation status buffer.
  *
- * @return 0 if completed successfully or an error code.
+ * @return Length of attestation_status if completed successfully or an error code.
  */
-int device_manager_get_attestation_status (struct device_manager *mgr, uint8_t *bitmap)
+int device_manager_get_attestation_status (struct device_manager *mgr,
+	const uint8_t **attestation_status)
 {
+	size_t attestation_status_len;
 	int i_device;
-	int i_byte;
-	int i_bit;
+	int i_entry;
 
-	if ((mgr == NULL) || (bitmap == NULL)) {
+	if ((mgr == NULL) || (attestation_status == NULL)) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if (mgr->attestable_components_list_invalid) {
-		memset (bitmap, 0xFF, DEVICE_MANAGER_ATTESTATION_STATUS_LEN);
-	}
-	else {
-		memset (bitmap, 0, DEVICE_MANAGER_ATTESTATION_STATUS_LEN);
+	attestation_status_len = mgr->num_responder_devices;
+	*attestation_status = mgr->attestation_status;
 
+	memset (mgr->attestation_status, 0xFF, attestation_status_len);
+
+	if (!mgr->attestable_components_list_invalid) {
 		// Skip the requester devices in the beginning of the list
-		for (i_device = mgr->num_requester_devices, i_byte = 0; i_device < mgr->num_devices;
-			++i_device) {
-			i_bit = mgr->entries[i_device].pcd_component_index;
-			i_byte = i_bit / 8;
-			i_bit = i_bit % 8;
-			bitmap[i_byte] |=
-				((mgr->entries[i_device].state != DEVICE_MANAGER_AUTHENTICATED) << i_bit);
+		for (i_device = mgr->num_requester_devices, i_entry = 0; i_device < mgr->num_devices;
+			++i_device, ++i_entry) {
+			mgr->attestation_status[i_entry] = mgr->entries[i_device].state;
 		}
 	}
 
-	return 0;
+	return attestation_status_len;
 }
 
 int device_manager_mark_component_attestation_invalid (struct device_manager *mgr)

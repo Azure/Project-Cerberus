@@ -112,11 +112,11 @@ static void setup_mctp_interface_with_interface_mock_test (CuTest *test,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&mctp->device_mgr, 0,
+	status = device_manager_update_not_attestable_device_entry (&mctp->device_mgr, 0,
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x5D, DEVICE_MANAGER_NOT_PCD_COMPONENT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&mctp->device_mgr, 1,
+	status = device_manager_update_not_attestable_device_entry (&mctp->device_mgr, 1,
 		MCTP_BASE_PROTOCOL_BMC_EID, 0x51, DEVICE_MANAGER_NOT_PCD_COMPONENT);
 	CuAssertIntEquals (test, 0, status);
 
@@ -146,7 +146,7 @@ static void setup_mctp_interface_with_interface_mock_test_no_mctp_bridge (CuTest
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_entry (&mctp->device_mgr, 0,
+	status = device_manager_update_not_attestable_device_entry (&mctp->device_mgr, 0,
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x5D, DEVICE_MANAGER_NOT_PCD_COMPONENT);
 	CuAssertIntEquals (test, 0, status);
 
