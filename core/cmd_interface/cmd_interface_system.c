@@ -13,6 +13,7 @@
 #include "cerberus_protocol_master_commands.h"
 #include "cerberus_protocol_optional_commands.h"
 #include "cerberus_protocol_debug_commands.h"
+#include "cerberus_protocol_diagnostic_commands.h"
 #include "cmd_interface_system.h"
 
 
@@ -225,6 +226,11 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 		case CERBERUS_PROTOCOL_GET_ATTESTATION_DATA:
 			status = cerberus_protocol_get_attestation_data (interface->pcr_store, request);
 			break;
+
+#ifdef CMD_ENABLE_HEAP_STATS
+		case CERBERUS_PROTOCOL_DIAG_HEAP_USAGE:
+			return cerberus_protocol_heap_stats (interface->cmd_device, request);
+#endif
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:

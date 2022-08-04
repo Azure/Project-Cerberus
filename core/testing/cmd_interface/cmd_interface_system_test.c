@@ -14,6 +14,7 @@
 #include "cmd_interface/cerberus_protocol_required_commands.h"
 #include "cmd_interface/cerberus_protocol_master_commands.h"
 #include "cmd_interface/cerberus_protocol_optional_commands.h"
+#include "cmd_interface/cerberus_protocol_diagnostic_commands.h"
 #include "cmd_interface/attestation_cmd_interface.h"
 #include "logging/logging_flash.h"
 #include "logging/debug_log.h"
@@ -52,6 +53,7 @@
 #include "testing/cmd_interface/cerberus_protocol_master_commands_testing.h"
 #include "testing/cmd_interface/cerberus_protocol_optional_commands_testing.h"
 #include "testing/cmd_interface/cerberus_protocol_debug_commands_testing.h"
+#include "testing/cmd_interface/cerberus_protocol_diagnostic_commands_testing.h"
 #include "testing/crypto/x509_testing.h"
 #include "testing/recovery/recovery_image_header_testing.h"
 #include "testing/riot/riot_core_testing.h"
@@ -7337,6 +7339,48 @@ static void cmd_interface_system_test_process_session_sync_invalid_len (CuTest *
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_heap_stats (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	cerberus_protocol_diagnostic_commands_testing_process_heap_stats (test, &cmd.handler.base,
+		&cmd.cmd_device);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_heap_stats_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	cerberus_protocol_diagnostic_commands_testing_process_heap_stats_invalid_len (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_heap_stats_fail (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	cerberus_protocol_diagnostic_commands_testing_process_heap_stats_fail (test, &cmd.handler.base,
+		&cmd.cmd_device);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_supports_all_required_commands (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -8573,6 +8617,9 @@ TEST (cmd_interface_system_test_process_session_sync_no_session_mgr);
 TEST (cmd_interface_system_test_process_session_sync_fail);
 TEST (cmd_interface_system_test_process_session_sync_unencrypted);
 TEST (cmd_interface_system_test_process_session_sync_invalid_len);
+TEST (cmd_interface_system_test_process_heap_stats);
+TEST (cmd_interface_system_test_process_heap_stats_invalid_len);
+TEST (cmd_interface_system_test_process_heap_stats_fail);
 TEST (cmd_interface_system_test_supports_all_required_commands);
 TEST (cmd_interface_system_test_process_response_null);
 TEST (cmd_interface_system_test_process_response_payload_too_short);
