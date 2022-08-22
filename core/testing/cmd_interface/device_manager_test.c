@@ -27,6 +27,20 @@ static void device_manager_test_init (CuTest *test)
 
 	TEST_START;
 
+	status = device_manager_init (&manager, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_init_no_responder_devices (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
 	status = device_manager_init (&manager, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
@@ -4219,6 +4233,25 @@ static void device_manager_test_get_attestation_status (CuTest *test)
 	device_manager_release (&manager);
 }
 
+static void device_manager_test_get_attestation_status_no_responder_devices (CuTest *test)
+{
+	struct device_manager manager;
+	const uint8_t *attestation_status;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrEquals (test, NULL, (void*) attestation_status);
+
+	device_manager_release (&manager);
+}
+
 static void device_manager_test_get_attestation_status_all_unauthenticated (CuTest *test)
 {
 	struct device_manager manager;
@@ -4588,6 +4621,7 @@ static void device_manager_test_is_device_unattestable_invalid_arg (CuTest *test
 TEST_SUITE_START (device_manager);
 
 TEST (device_manager_test_init);
+TEST (device_manager_test_init_no_responder_devices);
 TEST (device_manager_test_init_invalid_arg);
 TEST (device_manager_test_release_null);
 TEST (device_manager_test_get_device_capabilities);
@@ -4749,6 +4783,7 @@ TEST (device_manager_test_get_time_till_next_action_attestation_and_discovery);
 TEST (device_manager_test_get_time_till_next_action_no_devices);
 TEST (device_manager_test_get_time_till_next_action_invalid_arg);
 TEST (device_manager_test_get_attestation_status);
+TEST (device_manager_test_get_attestation_status_no_responder_devices);
 TEST (device_manager_test_get_attestation_status_all_unauthenticated);
 TEST (device_manager_test_get_attestation_status_all_unauthenticated_not_max);
 TEST (device_manager_test_get_attestation_status_all_authenticated);

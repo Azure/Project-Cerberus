@@ -72,6 +72,12 @@ static int pcr_update_buffer_common (struct pcr_bank *pcr, struct hash_engine *h
 	uint8_t config = 0;
 	int status;
 
+	/* If there is an attempt to update buffer with 0 total bytes, using no data buffer and not
+	 * including event and version information, then fail due to invalid arguments */
+	if (!include_event && !include_version && ((buf == NULL) || (buf_len == 0))) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
 	status = hash->start_sha256 (hash);
 	if (status != 0) {
 		return status;
@@ -135,7 +141,7 @@ static int pcr_read_measurement_data_bytes (uint8_t *buffer, size_t buffer_len, 
 {
 	int bytes_read;
 
-	if ((buffer_len == 0) || (offset > data_len - 1)) {
+	if ((data == NULL) || (data_len == 0) || (buffer_len == 0) || (offset > data_len - 1)) {
 		return 0;
 	}
 
@@ -253,7 +259,7 @@ int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const ui
 int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t measurement_index,
 	const uint8_t *buf, size_t buf_len, bool include_event)
 {
-	if ((pcr == NULL) || (buf == NULL) || (buf_len == 0) || (hash == NULL)) {
+	if ((pcr == NULL) || (hash == NULL)) {
 		return PCR_INVALID_ARGUMENT;
 	}
 
@@ -279,7 +285,7 @@ int pcr_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
 	uint8_t version)
 {
-	if ((pcr == NULL) || (buf == NULL) || (buf_len == 0) || (hash == NULL)) {
+	if ((pcr == NULL) || (hash == NULL)) {
 		return PCR_INVALID_ARGUMENT;
 	}
 
@@ -449,12 +455,7 @@ int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 			case PCR_DATA_TYPE_2BYTE:
 			case PCR_DATA_TYPE_4BYTE:
 			case PCR_DATA_TYPE_8BYTE:
-				break;
-
 			case PCR_DATA_TYPE_MEMORY:
-				if (measurement_data->data.memory.buffer == NULL) {
-					return PCR_MEASURED_DATA_INVALID_MEMORY;
-				}
 				break;
 
 			case PCR_DATA_TYPE_FLASH:

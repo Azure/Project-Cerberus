@@ -171,6 +171,11 @@ static int cfm_flash_get_pmr_id_list (struct cfm *cfm, uint8_t entry, uint8_t **
 		return num_pmr_digest;
 	}
 
+	if (num_pmr_digest == 0) {
+		*pmr_list = NULL;
+		return 0;
+	}
+
 	*pmr_list = platform_malloc (sizeof (uint8_t) * num_pmr_digest);
 	if (*pmr_list == NULL) {
 		return CFM_NO_MEMORY;

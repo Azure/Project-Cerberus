@@ -32,9 +32,9 @@ enum attestation_requester_request_state {
 };
 
 /**
- * Variable context associated with an attestation requester
+ * Context related to a attestation or discovery transaction
  */
-struct attestation_requester_state {
+struct attestation_requester_transaction_state {
 	uint8_t msg_buffer[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];	/**< Buffer to be used for request generation and response processing. */
 	size_t msg_buffer_len;										/**< Length of data in message buffer */
 	enum attestation_requester_request_state request_status;	/**< Response processing status. */
@@ -55,6 +55,13 @@ struct attestation_requester_state {
 	bool challenge_supported;									/**< Challenge command supported. */
 	bool raw_bitstream_requested;								/**< Requested raw measurement data from device. */
 	bool device_discovery;										/**< Performing device discovery. */
+};
+
+/**
+ * Variable context associated with an attestation requester
+ */
+struct attestation_requester_state {
+	struct attestation_requester_transaction_state txn;			/**< Current transaction context. */
 	bool get_routing_table;										/**< Flag indicating that MCTP routing table should be updated. */
 	bool mctp_bridge_wait;										/**< Flag indicating Cerberus is waiting on MCTP bridge to start discovery flow */
 	platform_semaphore next_action;								/**< Semaphore used to indicate attestation requester has a pending action. */

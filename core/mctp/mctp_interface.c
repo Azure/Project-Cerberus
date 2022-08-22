@@ -617,7 +617,12 @@ int mctp_interface_issue_request (struct mctp_interface *mctp, struct cmd_channe
 
 	status = platform_semaphore_wait (&mctp->wait_for_response, timeout_ms);
 	if (status == 1) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
+			MCTP_LOGGING_RSP_TIMEOUT, (mctp->response_eid << 8) | mctp->response_msg_tag,
+			timeout_ms);
+
 		mctp->response_msg_tag = (mctp->response_msg_tag + 1) % 8;
+
 		status = MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT;
 	}
 	else if (mctp->rsp_state == MCTP_INTERFACE_RESPONSE_ERROR) {

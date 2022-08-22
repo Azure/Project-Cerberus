@@ -89,14 +89,13 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 		return DEVICE_MGR_NO_MEMORY;
 	}
 
-	mgr->attestation_status = platform_malloc (num_responder_devices);
-	if (mgr->attestation_status == NULL) {
-		platform_free (mgr->entries);
-		return DEVICE_MGR_NO_MEMORY;
+	if (num_responder_devices != 0) {
+		mgr->attestation_status = platform_malloc (num_responder_devices);
+		if (mgr->attestation_status == NULL) {
+			platform_free (mgr->entries);
+			return DEVICE_MGR_NO_MEMORY;
+		}
 	}
-
-	/* Set attestation status to invalid value to indicate attestation requester has not run yet */
-	memset (mgr->attestation_status, 0xFF, num_responder_devices);
 
 	mgr->num_devices = total_num_devices;
 	mgr->num_requester_devices = num_requester_devices;
@@ -610,7 +609,7 @@ uint32_t device_manager_get_reponse_timeout_by_eid (struct device_manager *mgr, 
 
 /**
  * Get the maximum amount of time to wait for a response from a remote device when executing
- * cryptographic requsets.  If the device is not known or has invalid capabilities, the local device
+ * cryptographic requests.  If the device is not known or has invalid capabilities, the local device
  * timeout is assumed.
  *
  * @param mgr Device manager to query.
@@ -634,7 +633,7 @@ uint32_t device_manager_get_crypto_timeout (struct device_manager *mgr, int devi
 
 /**
  * Get the maximum amount of time to wait for a response from a remote device when executing
- * cryptographic requsets.  If the device is not known or has invalid capabilities, the local device
+ * cryptographic requests.  If the device is not known or has invalid capabilities, the local device
  * timeout is assumed.
  *
  * @param mgr Device manager to query.
@@ -1285,6 +1284,7 @@ uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr)
 	}
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
+{
 	struct device_manager_unidentified_entry *runner = mgr->unidentified;
 
 	if (runner == NULL) {
@@ -1298,8 +1298,10 @@ uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr)
 		runner = runner->next;
 
 		platform_init_current_tick (&now);
-		duration_ms = min (platform_get_duration (&now, &runner->discovery_timeout), duration_ms);
+		duration_ms = min (platform_get_duration (&now, &runner->discovery_timeout),
+			duration_ms);
 	}
+}
 #endif
 
 	return duration_ms;
@@ -1311,9 +1313,11 @@ uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr)
  * value maps to device_manager_device_state enum value.
  *
  * @param mgr Device manager instance to utilize.
- * @param attestation_status Buffer to fill with pointer to attestation status buffer.
+ * @param attestation_status Buffer to fill with pointer to attestation status buffer.  If the
+ * device has no responder devices, the output will be NULL.
  *
- * @return Length of attestation_status if completed successfully or an error code.
+ * @return Length of attestation_status if completed successfully or an error code.  If the device
+ *  has no responder devices, the length returned shall be 0.
  */
 int device_manager_get_attestation_status (struct device_manager *mgr,
 	const uint8_t **attestation_status)
@@ -1329,13 +1333,15 @@ int device_manager_get_attestation_status (struct device_manager *mgr,
 	attestation_status_len = mgr->num_responder_devices;
 	*attestation_status = mgr->attestation_status;
 
-	memset (mgr->attestation_status, 0xFF, attestation_status_len);
+	if (mgr->num_responder_devices != 0) {
+		memset (mgr->attestation_status, 0xFF, attestation_status_len);
 
-	if (!mgr->attestable_components_list_invalid) {
-		// Skip the requester devices in the beginning of the list
-		for (i_device = mgr->num_requester_devices, i_entry = 0; i_device < mgr->num_devices;
-			++i_device, ++i_entry) {
-			mgr->attestation_status[i_entry] = mgr->entries[i_device].state;
+		if (!mgr->attestable_components_list_invalid) {
+			// Skip the requester devices in the beginning of the list
+			for (i_device = mgr->num_requester_devices, i_entry = 0; i_device < mgr->num_devices;
+				++i_device, ++i_entry) {
+				mgr->attestation_status[i_entry] = mgr->entries[i_device].state;
+			}
 		}
 	}
 

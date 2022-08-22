@@ -7498,6 +7498,7 @@ TEST (cfm_flash_test_get_component_device_get_num_pmr_digest_fail);
 TEST (cfm_flash_test_get_component_device_pmr_digest_read_fail);
 TEST (cfm_flash_test_get_component_device_component_not_found);
 TEST (cfm_flash_test_get_component_device_verify_never_run);
+// TODO: Add cfm_flash_test_get_component_device_no_pmr_id_list with new CFM format
 TEST (cfm_flash_test_free_component_device_null);
 TEST (cfm_flash_test_get_next_measurement);
 TEST (cfm_flash_test_get_next_measurement_second_measurement);
