@@ -20,8 +20,7 @@ static int firmware_image_mock_load (struct firmware_image *fw, struct flash *fl
 		MOCK_ARG_CALL (base_addr));
 }
 
-static int firmware_image_mock_verify (struct firmware_image *fw, struct hash_engine *hash,
-	struct rsa_engine *rsa)
+static int firmware_image_mock_verify (struct firmware_image *fw, struct hash_engine *hash)
 {
 	struct firmware_image_mock *mock = (struct firmware_image_mock*) fw;
 
@@ -29,8 +28,7 @@ static int firmware_image_mock_verify (struct firmware_image *fw, struct hash_en
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, firmware_image_mock_verify, fw, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (rsa));
+	MOCK_RETURN (&mock->mock, firmware_image_mock_verify, fw, MOCK_ARG_CALL (hash));
 }
 
 static int firmware_image_mock_get_image_size (struct firmware_image *fw)
@@ -70,8 +68,11 @@ static struct firmware_header* firmware_image_mock_get_firmware_header (struct f
 
 static int firmware_image_mock_func_arg_count (void *func)
 {
-	if ((func == firmware_image_mock_load) || (func == firmware_image_mock_verify)) {
+	if (func == firmware_image_mock_load) {
 		return 2;
+	}
+	else if (func == firmware_image_mock_verify) {
+		return 1;
 	}
 	else {
 		return 0;
@@ -115,9 +116,6 @@ static const char* firmware_image_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "hash";
-
-			case 1:
-				return "rsa";
 		}
 	}
 

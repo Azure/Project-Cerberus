@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#ifndef CMD_CMD_AUTHORIZATION_H_
-#define CMD_CMD_AUTHORIZATION_H_
+#ifndef CMD_AUTHORIZATION_H_
+#define CMD_AUTHORIZATION_H_
 
 #include <stdint.h>
 #include <stddef.h>
@@ -46,7 +46,7 @@ struct cmd_authorization {
 		size_t *length);
 
 	/**
-	 * Check for authorization to clear the platform-specific configuratation for the device.
+	 * Check for authorization to clear the platform-specific configuration for the device.
 	 *
 	 * @param auth Authorization handler to query.
 	 * @param token Input or output authorization token, depending on the initial value.  See
@@ -120,4 +120,4 @@ enum {
 };
 
 
-#endif /* CMD_CMD_AUTHORIZATION_H_ */
+#endif /* CMD_AUTHORIZATION_H_ */

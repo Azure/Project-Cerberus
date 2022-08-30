@@ -8,13 +8,13 @@
 #include "status/rot_status.h"
 #include "flash/flash.h"
 #include "crypto/hash.h"
-#include "crypto/rsa.h"
 #include "firmware/key_manifest.h"
 #include "firmware/firmware_header.h"
 
 
 /**
- * A platform-independent API for managing a complete firmware image for the system.
+ * A platform-independent API for managing a complete firmware image for the system.  Firmware image
+ * instances are not guaranteed to be thread-safe.
  */
 struct firmware_image {
 	/**
@@ -40,13 +40,16 @@ struct firmware_image {
 	 * Verify the complete firmware image.  All components in the image will be fully validated.
 	 * This includes checking image signatures and key revocation.
 	 *
+	 * Image structures and signing requirements can vary greatly between different devices.  Any
+	 * additional crypto, such as RSA or ECC, that is required for image verification must be
+	 * included as part of the specific implementation.
+	 *
 	 * @param fw The firmware image to validate.
 	 * @param hash The hash engine to use for validation.
-	 * @param rsa The RSA engine to use for signature checking.
 	 *
 	 * @return 0 if the firmware image is valid or an error code.
 	 */
-	int (*verify) (struct firmware_image *fw, struct hash_engine *hash, struct rsa_engine *rsa);
+	int (*verify) (struct firmware_image *fw, struct hash_engine *hash);
 
 	/**
 	 * Get the total size of the firmware image.

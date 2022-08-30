@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#ifndef DEVICE_MANAGER_
-#define DEVICE_MANAGER_
+#ifndef DEVICE_MANAGER_H_
+#define DEVICE_MANAGER_H_
 
 #include <stdint.h>
 #include "attestation/attestation.h"
@@ -323,4 +323,4 @@ enum {
 };
 
 
-#endif // DEVICE_MANAGER_
+#endif /* DEVICE_MANAGER_H_ */

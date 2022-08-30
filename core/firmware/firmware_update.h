@@ -14,7 +14,6 @@
 #include "flash/flash.h"
 #include "flash/flash_updater.h"
 #include "crypto/hash.h"
-#include "crypto/rsa.h"
 #include "common/observable.h"
 
 
@@ -120,7 +119,6 @@ struct firmware_update {
 	const struct firmware_flash_map *flash;	/**< The flash address mapping to use for the update. */
 	struct firmware_image *fw;				/**< The platform driver for handling firmware images. */
 	struct hash_engine *hash;				/**< The hash engine to use during update .*/
-	struct rsa_engine *rsa;					/**< The RSA engine to use for validation operations. */
 	struct app_context *context;			/**< The platform application context API. */
 	struct flash_updater update_mgr;		/**< Update manager for writing data to flash. */
 	bool recovery_bad;						/**< Indication if the recovery image on flash is bad. */
@@ -147,7 +145,7 @@ struct firmware_update_notification {
 
 int firmware_update_init (struct firmware_update *updater, const struct firmware_flash_map *flash,
 	struct app_context *context, struct firmware_image *fw, struct hash_engine *hash,
-	struct rsa_engine *rsa, int allowed_revision);
+	int allowed_revision);
 void firmware_update_release (struct firmware_update *updater);
 
 void firmware_update_set_image_offset (struct firmware_update *updater, int offset);

@@ -106,7 +106,7 @@ struct cmd_background {
 	 *
 	 * @param cmd The background context for executing the operation.
 	 *
-	 * @return 0 if the operation was successfuly scheduled or an error code.
+	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
 	int (*reset_intrusion) (struct cmd_background *cmd);
 #endif

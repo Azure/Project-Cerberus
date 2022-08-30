@@ -12,6 +12,9 @@
 #include "crypto/hash.h"
 
 
+/* NOTE:  Firmware images wrapped as an app_image have a fixed structure that requires RSA2k signing
+ * with SHA256.  For a more flexible mechanism for wrapping firmware image, use firmware_component. */
+
 /**
  * The length of the application image signature.
  */

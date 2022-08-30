@@ -10,8 +10,11 @@
 
 
 /**
- * A platform-independent API for providing hooks to the hardware controlled certificate validation
- * information.
+ * A platform-independent API for providing hooks to the hardware controlled security configuration
+ * that is used during key and image validation.
+ *
+ * This can be leveraged by key_manifest implementations whose structure is shared between multiple
+ * hardware platforms, but have differences in how the underlying security is configured.
  */
 struct cert_device_hw {
 	/**

@@ -18,19 +18,18 @@
  * @param context The application context API.
  * @param fw The platform handler for firmware images.
  * @param hash The hash engine to use during updates.
- * @param rsa The RSA engine to use for signature verification.
  * @param allowed_revision The lowest image ID that will be allowed for firmware updates.
  *
  * @return 0 if the updater was successfully initialized or an error code.
  */
 int firmware_update_init (struct firmware_update *updater, const struct firmware_flash_map *flash,
 	struct app_context *context, struct firmware_image *fw, struct hash_engine *hash,
-	struct rsa_engine *rsa, int allowed_revision)
+	int allowed_revision)
 {
 	int status;
 
 	if ((updater == NULL) || (flash == NULL) || (context == NULL) || (fw == NULL) ||
-		(hash == NULL) || (rsa == NULL)) {
+		(hash == NULL)) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
@@ -60,7 +59,6 @@ int firmware_update_init (struct firmware_update *updater, const struct firmware
 	updater->fw = fw;
 	updater->context = context;
 	updater->hash = hash;
-	updater->rsa = rsa;
 	updater->recovery_rev = -1;
 	updater->min_rev = allowed_revision;
 
@@ -154,7 +152,7 @@ int firmware_update_validate_recovery_image (struct firmware_update *updater)
 			updater->flash->recovery_addr + updater->img_offset);
 
 		if (status == 0) {
-			status = updater->fw->verify (updater->fw, updater->hash, updater->rsa);
+			status = updater->fw->verify (updater->fw, updater->hash);
 
 			if (updater->internal.verify_boot_image && (status == 0)) {
 				status = updater->internal.verify_boot_image (updater,
@@ -271,7 +269,7 @@ static int firmware_update_restore_image (struct firmware_update *updater, struc
 		return status;
 	}
 
-	status = updater->fw->verify (updater->fw, updater->hash, updater->rsa);
+	status = updater->fw->verify (updater->fw, updater->hash);
 	if (status != 0) {
 		return status;
 	}
@@ -590,7 +588,7 @@ int firmware_update_run_update (struct firmware_update *updater,
 		return status;
 	}
 
-	status = updater->fw->verify (updater->fw, updater->hash, updater->rsa);
+	status = updater->fw->verify (updater->fw, updater->hash);
 	if (status != 0) {
 		if ((status == RSA_ENGINE_BAD_SIGNATURE) || (status == FIRMWARE_IMAGE_MANIFEST_REVOKED)) {
 			firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);

@@ -19,7 +19,7 @@ struct firmware_update_mock {
 
 int firmware_update_mock_init (struct firmware_update_mock *mock,
 	const struct firmware_flash_map *flash, struct app_context *context, struct firmware_image *fw,
-	struct hash_engine *hash, struct rsa_engine *rsa, int allowed_revision);
+	struct hash_engine *hash, int allowed_revision);
 void firmware_update_mock_release (struct firmware_update_mock *mock);
 
 int firmware_update_mock_validate_and_release (struct firmware_update_mock *mock);
