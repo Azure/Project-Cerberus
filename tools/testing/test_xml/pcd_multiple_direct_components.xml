@@ -1,25 +1,24 @@
 <PCD sku="SKU1" version="0x1A">
-	<RoT type="PA-RoT" mctp_ctrl_timeout="2000"
-		mctp_bridge_get_table_wait="3000">
+	<RoT type="PA-RoT" attestation_success_retry="10" attestation_fail_retry="20"
+	discovery_fail_retry="30" mctp_ctrl_timeout="40" mctp_bridge_get_table_wait="50"
+	mctp_bridge_additional_timeout="60">
 		<Ports>
 			<Port id="0">
 				<SPIFreq>32000000</SPIFreq>
-				<ResetCtrl>Reset</ResetCtrl>
-				<FlashMode>Dual</FlashMode>
+				<ResetCtrl>Pulse</ResetCtrl>
+				<FlashMode>DualFilteredBypass</FlashMode>
 				<Policy>Passive</Policy>
 				<RuntimeVerification>Enabled</RuntimeVerification>
 				<WatchdogMonitoring>Enabled</WatchdogMonitoring>
-				<HostResetAction>ResetFlash</HostResetAction>
 				<PulseInterval>0</PulseInterval>
 			</Port>
 			<Port id="1">
 				<SPIFreq>64000000</SPIFreq>
 				<ResetCtrl>Notify</ResetCtrl>
-				<FlashMode>Single</FlashMode>
+				<FlashMode>SingleFilteredBypass</FlashMode>
 				<Policy>Active</Policy>
 				<RuntimeVerification>Disabled</RuntimeVerification>
 				<WatchdogMonitoring>Disabled</WatchdogMonitoring>
-				<HostResetAction>None</HostResetAction>
 				<PulseInterval>10</PulseInterval>
 			</Port>
 		</Ports>
@@ -49,11 +48,7 @@
 		</Interface>
 	</PowerController>
 	<Components>
-		<Component type="Alpha" connection="Direct"
-			attestation_success_retry="86400000"
-			attestation_fail_retry="10000"
-			attestation_rsp_not_ready_max_retry="3"
-			attestation_rsp_not_ready_max_duration="1000">
+		<Component type="Alpha" connection="Direct">
 			<Policy>Passive</Policy>
 			<Interface type="I2C">
 				<Bus>3</Bus>
@@ -72,13 +67,26 @@
 				<Mask>0xe0</Mask>
 			</PwrCtrl>
 		</Component>
-		<Component type="Beta" connection="MCTPBridge" count="2"
-			attestation_success_retry="86400000"
-			attestation_fail_retry="10000"
-			discovery_fail_retry="10000"
-			mctp_bridge_additional_timeout="0"
-			attestation_rsp_not_ready_max_retry="3"
-			attestation_rsp_not_ready_max_duration="1000">
+		<Component type="Theta" connection="Direct">
+			<Policy>Passive</Policy>
+			<Interface type="I2C">
+				<Bus>5</Bus>
+				<Address>0x81</Address>
+				<I2CMode>MasterSlave</I2CMode>
+				<EID>0x88</EID>
+				<Muxes>
+					<Mux level="0">
+						<Address>0x11</Address>
+						<Channel>4</Channel>
+					</Mux>
+				</Muxes>
+			</Interface>
+			<PwrCtrl>
+				<Register>0x56</Register>
+				<Mask>0xe6</Mask>
+			</PwrCtrl>
+		</Component>
+		<Component type="Beta" connection="MCTPBridge" count="2">
 			<Policy>Passive</Policy>
 			<DeviceID>0x0a</DeviceID>
 			<VendorID>0x0b</VendorID>

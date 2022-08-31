@@ -87,7 +87,7 @@ static int manifest_manager_flash_check_pending_platform_id (struct manifest_man
 	pending = manifest_manager_flash_get_region (manager, false);
 
 	if (active->is_valid && pending->is_valid) {
-		status = manifest_flash_compare_platform_id (active->flash, pending->flash, 
+		status = manifest_flash_compare_platform_id (active->flash, pending->flash,
 			manager->sku_upgrade_permitted);
 		if (status == 1) {
 			pending->is_valid = false;

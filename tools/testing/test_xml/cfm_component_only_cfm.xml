@@ -1,0 +1,8 @@
+<CFMComponent type="Component1" attestation_protocol="Cerberus" slot_num="1" transcript_hash_type="SHA384" measurement_hash_type="SHA256">
+	<AllowableCFM index="1" platform="platformC">
+		<ManifestID>
+			<Check>GreaterThan</Check>
+			<ID>0x12</ID>
+		</ManifestID>
+	</AllowableCFM>
+</CFMComponent>

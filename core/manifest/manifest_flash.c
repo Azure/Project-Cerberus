@@ -646,7 +646,7 @@ int manifest_flash_get_signature (struct manifest_flash *manifest, uint8_t *sign
  * @param parent_type Identifier for the type of the parent element.  If the element has no parent,
  * MANIFEST_NO_PARENT must be provided.
  * @param read_offset Offset into the element data to start reading.  The entire element is still
- * validated, but the buffer will only contain element data starting starting at the offset.
+ * validated, but the buffer will only contain element data starting at the offset.
  * @param found Optional output indicating which TOC entry was used for the element.
  * @param format Optional output for the format version of the element data.
  * @param total_len Optional output for the total length of the element data.
@@ -1079,9 +1079,9 @@ int manifest_flash_compare_platform_id (struct manifest_flash *manifest1,
 	if (!manifest1->manifest_valid || !manifest2->manifest_valid) {
 		return MANIFEST_NO_MANIFEST;
 	}
-	
+
 	if (sku_upgrade_permitted) {
-		return (strncmp (manifest1->platform_id, manifest2->platform_id, 
+		return (strncmp (manifest1->platform_id, manifest2->platform_id,
 			strlen (manifest1->platform_id)) != 0);
 	}
 	else {

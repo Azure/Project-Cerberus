@@ -324,7 +324,7 @@ int device_manager_update_not_attestable_device_entry (struct device_manager *mg
  * @param pci_subsystem_vid PCI Subsystem Vendor ID.
  * @param pci_subsystem_id PCI Subsystem ID.
  * @param components_count Number of identical components this element describes.
- * @param component_type Digest of component type key in PCD and CFM.
+ * @param component_id Component ID in PCD and CFM.
  * @param pcd_component_index Index of component in PCD.  If not a PCD component, use
  * 	DEVICE_MANAGER_NOT_PCD_COMPONENT.
  *
@@ -332,12 +332,12 @@ int device_manager_update_not_attestable_device_entry (struct device_manager *mg
  */
 int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, int device_num,
 	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id,
-	uint8_t components_count, uint8_t *component_type, uint8_t pcd_component_index)
+	uint8_t components_count, uint32_t component_id, uint8_t pcd_component_index)
 {
 	int i_component;
 	int status;
 
-	if ((mgr == NULL) || (component_type == NULL) || (components_count == 0)) {
+	if ((mgr == NULL) || (components_count == 0)) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
@@ -346,6 +346,7 @@ int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, 
 	}
 
 	for (i_component = device_num; i_component < (device_num + components_count); ++i_component) {
+		mgr->entries[i_component].component_id = component_id;
 		mgr->entries[i_component].pci_device_id = pci_device_id;
 		mgr->entries[i_component].pci_vid = pci_vid;
 		mgr->entries[i_component].pci_subsystem_id = pci_subsystem_id;
@@ -358,9 +359,6 @@ int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, 
 		if (status != 0) {
 			return status;
 		}
-
-		memcpy (mgr->entries[i_component].component_type, component_type,
-			sizeof (mgr->entries[i_component].component_type));
 
 		status = platform_init_timeout (0, &mgr->entries[i_component].attestation_timeout);
 		if (status != 0) {
@@ -861,31 +859,31 @@ int device_manager_update_device_state_by_eid (struct device_manager *mgr, uint8
 }
 
 /**
- * Find component type digest for a device in device manager table.
+ * Find component ID for a device in device manager table.
  *
  * @param mgr The device manager to utilize.
  * @param eid The EID of the device table entry to utilize.
+ * @param component_id Component ID in PCD and CFM.
  *
- * @return The component type digest if found or NULL.
+ * @return Completion status, 0 if success or an error code.
  */
-const uint8_t* device_manager_get_component_type_digest (struct device_manager *mgr, uint8_t eid)
+int device_manager_get_component_id (struct device_manager *mgr, uint8_t eid,
+	uint32_t *component_id)
 {
 	int device_num;
 
-	if (mgr == NULL) {
-		return NULL;
+	if ((mgr == NULL) || (component_id == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
 	device_num = device_manager_get_device_num (mgr, eid);
 	if (ROT_IS_ERROR (device_num)) {
-		return NULL;
+		return device_num;
 	}
 
-	if (!device_manager_can_device_be_attested (mgr->entries[device_num].state)) {
-		return NULL;
-	}
+	*component_id = mgr->entries[device_num].component_id;
 
-	return mgr->entries[device_num].component_type;
+	return 0;
 }
 
 /**

@@ -208,7 +208,7 @@ static void pcd_manager_flash_testing_validate_and_release (CuTest *test,
 static int pcd_manager_flash_testing_verify_a_pcd (struct pcd_manager_flash_testing *manager,
 	uint32_t address, const struct pcd_testing_data *testing_data, int sig_verification_result)
 {
-	uint32_t vvalidate_toc_start = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE;
+	uint32_t validate_toc_start = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE;
 	uint32_t validate_start = testing_data->manifest.plat_id_offset +
 		MANIFEST_V2_PLATFORM_HEADER_SIZE;
 	int status;
@@ -241,8 +241,8 @@ static int pcd_manager_flash_testing_verify_a_pcd (struct pcd_manager_flash_test
 			MANIFEST_V2_TOC_ENTRY_SIZE));
 
 	status |= flash_master_mock_expect_verify_flash (&manager->flash_mock,
-		address + vvalidate_toc_start, testing_data->manifest.raw + vvalidate_toc_start,
-		testing_data->manifest.toc_hash_offset - vvalidate_toc_start);
+		address + validate_toc_start, testing_data->manifest.raw + validate_toc_start,
+		testing_data->manifest.toc_hash_offset - validate_toc_start);
 
 	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -549,7 +549,6 @@ static void pcd_manager_flash_test_init_activate_pending (CuTest *test)
 	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
 		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
 	CuAssertIntEquals (test, 0, status);
-
 	CuAssertPtrEquals (test, &manager.pcd2, manager.test.base.get_active_pcd (&manager.test.base));
 
 	pcd_manager_flash_testing_validate_and_release (test, &manager);

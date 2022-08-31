@@ -95,12 +95,11 @@ enum {
 	ATTESTATION_REQUEST_FAILED = ATTESTATION_ERROR (0x0F),					/**< Request to attestation target failed */
 	ATTESTATION_UNSUPPORTED_PROTOCOL = ATTESTATION_ERROR (0x10),			/**< Unsupported attestation protocol. */
 	ATTESTATION_NO_CFM = ATTESTATION_ERROR (0x11),							/**< No active CFM found. */
-	ATTESTATION_COMPONENT_TYPE_NOT_SET = ATTESTATION_ERROR (0x12),			/**< Component to attest has no component type in device manager. */
-	ATTESTATION_CFM_INVALID_ATTESTATION = ATTESTATION_ERROR (0x13),			/**< CFM attestation rule invalid for device being attested. */
-	ATTESTATION_CFM_ATTESTATION_RULE_FAIL = ATTESTATION_ERROR (0x14),		/**< CFM attestation rule failed for device being attested. */
-	ATTESTATION_ALIAS_KEY_LOAD_FAIL = ATTESTATION_ERROR (0x15),				/**< Failed to load device alias key from device manager. */
-	ATTESTATION_REFRESH_ROUTING_TABLE = ATTESTATION_ERROR (0x16),			/**< Updated MCTP bridge routing table needs to be retrieved. */
-	ATTESTATION_GET_DEVICE_ID_FAIL = ATTESTATION_ERROR (0x17),				/**< Device failed to send SPDM device ID block. */
+	ATTESTATION_CFM_INVALID_ATTESTATION = ATTESTATION_ERROR (0x12),			/**< CFM attestation rule invalid for device being attested. */
+	ATTESTATION_CFM_ATTESTATION_RULE_FAIL = ATTESTATION_ERROR (0x13),		/**< CFM attestation rule failed for device being attested. */
+	ATTESTATION_ALIAS_KEY_LOAD_FAIL = ATTESTATION_ERROR (0x14),				/**< Failed to load device alias key from device manager. */
+	ATTESTATION_REFRESH_ROUTING_TABLE = ATTESTATION_ERROR (0x15),			/**< Updated MCTP bridge routing table needs to be retrieved. */
+	ATTESTATION_GET_DEVICE_ID_FAIL = ATTESTATION_ERROR (0x16),				/**< Device failed to send SPDM device ID block. */
 };
 
 

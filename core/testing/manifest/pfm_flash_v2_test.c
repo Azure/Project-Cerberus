@@ -613,7 +613,7 @@ static const uint8_t PFM_V2_DATA[] = {
 /**
  * PFM_V2_DATA hash for testing.
  *
- * head -c -256 pfm.img | openssl dgst -sha256
+ * head -c -256 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_HASH[] = {
 	0x75,0xc2,0x3f,0x51,0xcf,0x40,0x36,0xeb,0xa0,0x41,0x51,0x11,0x04,0x74,0xfb,0x9c,
@@ -763,7 +763,7 @@ static const uint8_t PFM_V2_PLAT_FIRST_DATA[] = {
 /**
  * PFM_V2_PLAT_FIRST_DATA hash for testing.
  *
- * head -c -256 pfm.img | openssl dgst -sha256
+ * head -c -256 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_PLAT_FIRST_HASH[] = {
 	0x3f,0x2c,0xc8,0xee,0x5e,0xf5,0x54,0x64,0x02,0x50,0xe1,0x8a,0xe9,0xfb,0x15,0x3b,
@@ -913,7 +913,7 @@ static const uint8_t PFM_V2_TWO_FW_DATA[] = {
 /**
  * PFM_V2_TWO_FW_DATA hash for testing.
  *
- * head -c -73 pfm.img | openssl dgst -sha256
+ * head -c -73 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_TWO_FW_HASH[] = {
 	0x55,0xe6,0xf0,0xd1,0x92,0x51,0xa5,0x7b,0xf1,0xc6,0x4f,0xf4,0xca,0xa4,0x11,0x68,
@@ -1107,7 +1107,7 @@ static const uint8_t PFM_V2_SHA384_DATA[] = {
 /**
  * PFM_V2_SHA384_DATA hash for testing.
  *
- * head -c -105 pfm.img | openssl dgst -sha384
+ * head -c -105 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_SHA384_HASH[] = {
 	0x49,0x6b,0x47,0x2f,0x61,0xa4,0x29,0x80,0x48,0x7c,0x01,0xc4,0xc9,0xe0,0x69,0xde,
@@ -1299,7 +1299,7 @@ static const uint8_t PFM_V2_SHA512_DATA[] = {
 /**
  * PFM_V2_SHA512_DATA hash for testing.
  *
- * head -c -512 pfm.img | openssl dgst -sha512
+ * head -c -512 pfm.img | openssl dgst -sha512 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_SHA512_HASH[] = {
 	0x79,0x5c,0xb8,0x63,0xc1,0x38,0x06,0x74,0x9f,0x15,0xb0,0x65,0xcb,0x88,0x92,0x56,
@@ -1493,7 +1493,7 @@ static const uint8_t PFM_V2_DIFF_HASH_TYPE_DATA[] = {
 /**
  * PFM_V2_DIFF_HASH_TYPE_DATA hash for testing.
  *
- * head -c -139 pfm.img | openssl dgst -sha512
+ * head -c -139 pfm.img | openssl dgst -sha512 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_DIFF_HASH_TYPE_HASH[] = {
 	0x6c,0xa4,0x5c,0x83,0xa5,0xea,0x94,0xa5,0x8a,0xaf,0x84,0x10,0x35,0xa4,0x4b,0xb7,
@@ -1637,7 +1637,7 @@ static const uint8_t PFM_V2_NO_TOC_HASHES_DATA[] = {
 /**
  * PFM_V2_NO_TOC_HASHES_DATA hash for testing.
  *
- * head -c -73 pfm.img | openssl dgst -sha256
+ * head -c -73 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_NO_TOC_HASHES_HASH[] = {
 	0x0f,0x7f,0xbb,0x63,0x21,0xb0,0xd2,0x18,0x79,0x3a,0x29,0xe0,0xca,0x1c,0xe1,0xfc,
@@ -1831,7 +1831,7 @@ static const uint8_t PFM_V2_NO_FW_HASHES_DATA[] = {
 /**
  * PFM_V2_NO_FW_HASHES_DATA hash for testing.
  *
- * head -c -73 pfm.img | openssl dgst -sha256
+ * head -c -73 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_NO_FW_HASHES_HASH[] = {
 	0x54,0x24,0xd8,0xd5,0x83,0x8c,0xb1,0xee,0xdc,0xf0,0x50,0x2f,0xab,0xa2,0x48,0xbd,
@@ -2026,7 +2026,7 @@ static const uint8_t PFM_V2_NO_FLASH_DEV_DATA[] = {
 /**
  * PFM_V2_NO_FLASH_DEV_DATA hash for testing.
  *
- * head -c -256 pfm.img | openssl dgst -sha256
+ * head -c -256 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_NO_FLASH_DEV_HASH[] = {
 	0x1f,0x44,0xf8,0x9e,0xfb,0xd4,0x9e,0x72,0x01,0x22,0x8f,0x4d,0x3f,0xae,0x4d,0xf0,
@@ -2162,7 +2162,7 @@ static const uint8_t PFM_V2_EMPTY_DATA[] = {
 /**
  * PFM_V2_EMPTY_DATA hash for testing.
  *
- * head -c -256 pfm.img | openssl dgst -sha256
+ * head -c -256 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_EMPTY_HASH[] = {
 	0xe9,0x95,0x63,0xb7,0x15,0xa0,0x31,0x3a,0x1a,0x24,0x7a,0xb0,0x29,0xbf,0xff,0x35,
@@ -2247,7 +2247,7 @@ static const uint8_t PFM_V2_NO_FW_DATA[] = {
 /**
  * PFM_V2_NO_FW_DATA hash for testing.
  *
- * head -c -256 pfm.img | openssl dgst -sha256
+ * head -c -256 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_NO_FW_HASH[] = {
 	0xa0,0xd0,0x92,0x97,0x67,0x94,0x24,0xd8,0x85,0x6c,0x1e,0xfb,0x0d,0x9c,0x6e,0x0f,
@@ -2339,7 +2339,7 @@ static const uint8_t PFM_V2_THREE_FW_NO_VER_DATA[] = {
 /**
  * PFM_V2_THREE_FW_NO_VER_DATA hash for testing.
  *
- * head -c -105 pfm.img | openssl dgst -sha384
+ * head -c -105 pfm.img | openssl dgst -sha384 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_THREE_FW_NO_VER_HASH[] = {
 	0xc1,0x84,0xc1,0x18,0x15,0x7b,0x7e,0x9d,0x2b,0x1b,0x4e,0xd3,0x2d,0xf3,0xf2,0xaf,
@@ -2591,7 +2591,7 @@ static const uint8_t PFM_V2_MULTIPLE_DATA[] = {
 /**
  * PFM_V2_MULTIPLE_DATA hash for testing.
  *
- * head -c -105 pfm.img | openssl dgst -sha384
+ * head -c -105 pfm.img | openssl dgst -sha384 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_MULTIPLE_HASH[] = {
 	0xd7,0x76,0xf7,0xf9,0xe7,0xf3,0x4e,0x90,0x64,0x5b,0x3b,0xa3,0x20,0xdd,0x39,0x7b,
@@ -3188,7 +3188,7 @@ static const uint8_t PFM_V2_MAX_VERSION_DATA[] = {
 /**
  * PFM_V2_MAX_VERSION_DATA hash for testing.
  *
- * head -c -256 pfm.img | openssl dgst -sha256
+ * head -c -256 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_MAX_VERSION_HASH[] = {
 	0x4a,0xee,0xe3,0xe6,0xd7,0xf4,0x75,0xef,0xc1,0xa2,0xe1,0x54,0x1b,0x19,0x50,0x37,
@@ -3526,7 +3526,7 @@ static const uint8_t PFM_V2_RW_TEST_DATA[] = {
 /**
  * PFM_V2_RW_TEST_DATA hash for testing.
  *
- * head -c -256 pfm.img | openssl dgst -sha256
+ * head -c -256 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_RW_TEST_HASH[] = {
 	0x9d,0x7d,0x42,0x24,0x70,0x50,0xd5,0x51,0x34,0x87,0x65,0xe4,0xa2,0x39,0x38,0xe5,
@@ -4038,7 +4038,7 @@ static const uint8_t PFM_V2_THREE_FW_DATA[] = {
 /**
  * PFM_V2_THREE_FW_DATA hash for testing.
  *
- * head -c -73 pfm.img | openssl dgst -sha256
+ * head -c -73 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_THREE_FW_HASH[] = {
 	0x41,0xd3,0xe5,0x19,0x19,0x96,0x46,0xaa,0xe3,0x28,0x72,0xcd,0xf0,0xb3,0x83,0xc9,
@@ -4285,7 +4285,7 @@ static const uint8_t PFM_V2_MULTI_IMG_REGION_DATA[] = {
 /**
  * PFM_V2_MULTI_IMG_REGION_DATA hash for testing.
  *
- * head -c -256 pfm.img | openssl dgst -sha256
+ * head -c -256 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_MULTI_IMG_REGION_HASH[] = {
 	0x25,0xc2,0xe6,0x56,0x5b,0x2a,0x64,0xbc,0x8e,0x4e,0x87,0x92,0x47,0xb8,0xa3,0x6f,
@@ -4616,7 +4616,7 @@ static const uint8_t PFM_V2_IMG_TEST_DATA[] = {
 /**
  * PFM_V2_IMG_TEST_DATA hash for testing.
  *
- * head -c -73 pfm.img | openssl dgst -sha256
+ * head -c -73 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_IMG_TEST_HASH[] = {
 	0x97,0x33,0xd0,0xd8,0xa1,0x3f,0x68,0xc7,0x56,0x2f,0x7f,0x57,0xf5,0x4a,0x1f,0x05,
@@ -5691,7 +5691,7 @@ static const uint8_t PFM_V2_BAD_REGIONS_DATA[] = {
 /**
  * PFM_V2_BAD_REGIONS_DATA hash for testing.
  *
- * head -c -73 pfm.img | openssl dgst -sha256
+ * head -c -73 pfm.img | openssl dgst -sha256 -binary | to_array.sh -
  */
 static const uint8_t PFM_V2_BAD_REGIONS_HASH[] = {
 	0x47,0xeb,0x72,0x26,0x94,0xe5,0x6d,0x6f,0xda,0x48,0x16,0x10,0xab,0x89,0xdb,0x18,

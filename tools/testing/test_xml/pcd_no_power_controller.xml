@@ -30,24 +30,6 @@
 			<BridgeAddress>0x10</BridgeAddress>
 		</Interface>
 	</RoT>
-	<PowerController>
-		<Interface type="I2C">
-			<Bus>2</Bus>
-			<EID>0x14</EID>
-			<Address>0x22</Address>
-			<I2CMode>MultiMaster</I2CMode>
-			<Muxes>
-				<Mux level="2">
-					<Address>0x45</Address>
-					<Channel>4</Channel>
-				</Mux>
-				<Mux level="1">
-					<Address>0x66</Address>
-					<Channel>7</Channel>
-				</Mux>
-			</Muxes>
-		</Interface>
-	</PowerController>
 	<Components>
 		<Component type="Alpha" connection="Direct"
 			attestation_success_retry="86400000"

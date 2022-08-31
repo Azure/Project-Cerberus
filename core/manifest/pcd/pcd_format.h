@@ -39,6 +39,15 @@ struct pcd_rot_element {
 	uint8_t bridge_address;										/**< MCTP bridge slave address. */
 	uint8_t bridge_eid;											/**< MCTP bridge EID. */
 	uint8_t reserved;											/**< Unused. */
+	uint32_t attestation_success_retry;							/**< Wait time before reattesting after device succeeds attestation, in ms. */
+	uint32_t attestation_fail_retry;							/**< Wait time before reattesting after device fails attestation, in ms. */
+	uint32_t discovery_fail_retry;								/**< Wait time before retrying after device fails discovery, in ms. */
+	uint32_t mctp_ctrl_timeout;									/**< MCTP control protocol response timeout period, in ms. */
+	uint32_t mctp_bridge_get_table_wait;						/**< Wait time after RoT boots to send MCTP get table request. If 0, RoT only waits for EID assignment. */
+	uint32_t mctp_bridge_additional_timeout;					/**< Additional time for timeout period due to MCTP bridge. */
+	uint32_t attestation_rsp_not_ready_max_duration;			/**< Maximum duration to wait before retrying after receiving SPDM ResponseNotReady error, in ms. */
+	uint8_t attestation_rsp_not_ready_max_retry;				/**< Maximum number of SPDM ResponseNotReady retries permitted by device. */
+	uint8_t reserved2[3];										/**< Unused. */
 };
 
 #define PCD_ROT_FLAGS_ROT_TYPE_SHIFT							0
@@ -71,6 +80,9 @@ struct pcd_port_element {
 	uint32_t spi_frequency_hz;									/**< Flash SPI frequency in Hz. */
 };
 
+#define PCD_PORT_FLAGS_HOST_RESET_ACTION_SHIFT					6
+#define PCD_PORT_FLAGS_HOST_RESET_ACTION_SET_MASK				(1 << PCD_PORT_FLAGS_HOST_RESET_ACTION_SHIFT)
+
 #define PCD_PORT_FLAGS_WATCHDOG_MONITORING_SHIFT				5
 #define PCD_PORT_FLAGS_WATCHDOG_MONITORING_SET_MASK				(1 << PCD_PORT_FLAGS_WATCHDOG_MONITORING_SHIFT)
 
@@ -82,6 +94,14 @@ struct pcd_port_element {
 
 #define PCD_PORT_FLAGS_RESET_CTRL_SHIFT							0
 #define PCD_PORT_FLAGS_RESET_CTRL_SET_MASK						(3 << PCD_PORT_FLAGS_RESET_CTRL_SHIFT)
+
+/**
+ * Get port host reset action setting.
+ *
+ * @param port Pointer to a pcd_port element.
+ */
+#define	pcd_get_port_host_reset_action(port)	(enum pcd_port_host_reset_action) ((((port)->port_flags) & \
+	PCD_PORT_FLAGS_HOST_RESET_ACTION_SET_MASK) >> PCD_PORT_FLAGS_HOST_RESET_ACTION_SHIFT)
 
 /**
  * Get port watchdog monitoring setting.
@@ -160,8 +180,8 @@ struct pcd_component_common {
 	uint8_t policy;												/**< Component attestation policy. */
 	uint8_t power_ctrl_reg;										/**< Power control register. */
 	uint8_t power_ctrl_mask;									/**< Power control mask. */
-	uint8_t type_len;											/**< Component type length. */
-	uint8_t type[MANIFEST_MAX_STRING];							/**< Component type. */
+	uint8_t reserved;											/**< Unused. */
+	uint32_t component_id;										/**< Component ID. */
 };
 
 /**

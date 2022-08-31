@@ -9,6 +9,7 @@ import ctypes
 import sys
 import os
 import traceback
+import json
 from Crypto.PublicKey import RSA
 from Crypto.PublicKey import ECC
 from Crypto.Signature import PKCS1_v1_5
@@ -142,6 +143,8 @@ def load_config (config_file):
             config["max_rw_sections"] = string.split ("=")[-1].strip ()
         elif string.startswith ("CFM"):
             config["cfm"] = string.split ("=")[-1].strip ()
+        elif string.startswith ("ComponentMap"):
+            config["component_map"] = string.split("=")[-1].strip ()
         else:
             config["xml_list"].append (string)
 
@@ -177,6 +180,61 @@ def load_key (key_type, key_size, prv_key_path):
     else:
         print ("No RSA private key provided in config, unsigned manifest will be generated.")
         return False, key_size, None
+
+def load_component_map (map_file_path):
+    """
+    Load component map from provided JSON filepath
+
+    :param map_file_path: Component type and ID mapping file to parse
+
+    :return Dictionary mapping component types to component IDs
+    """
+
+    component_map = {}
+
+    try:
+        with open (map_file_path, newline="") as map_file:
+            component_map = json.load (map_file)
+    except Exception:
+        raise IOError ("Component map could not be loaded from provided file: {0}".format (
+            map_file_path))
+
+    return component_map
+
+def add_component_mapping (component_type, map_file_path):
+    """
+    Add component type to ID mapping in file at provided JSON filepath
+
+    :param component_type: Component type to map
+    :param map_file_path: Component type and ID mapping file
+
+    :return New component ID mapped to provided component type
+    """
+
+    components = {}
+    next_component_id = 0
+
+    try:
+        with open (map_file_path, newline="") as map_file:
+            components = json.load (map_file)
+
+            if components is not None and len (components) > 0:
+                component_ids = sorted (list (components.values()))
+                next_component_id = int (component_ids[-1]) + 1
+    except Exception:
+        raise IOError ("Component map could not be loaded from provided file: {1}".format (
+            map_file_path))
+
+    try:
+        with open (map_file_path, 'w', newline="") as map_file:
+            components.update ({ component_type: next_component_id })
+
+            json.dump (components, map_file, indent=4, separators=(',',': '))
+    except Exception:
+        raise IOError ("Component map could not be updated in provided file: {1}".format (
+            map_file_path))
+
+    return next_component_id
 
 def generate_manifest_header (manifest_id, key_size, manifest_type, hash_type, key_type,
     manifest_version):
@@ -236,7 +294,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     :return list of XML elements, boolean indicating whether to sign output or not, key size,
         key to use for signing, output ID, output filename and manifest xml version, boolean for
         whether XML is for an empty manifest, number of non-contiguous RW sections supported,
-        selection list
+        selection list, component type to ID map, component map file
     """
 
     config = load_config (config_filename)
@@ -248,6 +306,8 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     empty = False
     max_rw_sections = 3
     selection_list = None
+    component_map = None
+    component_map_file = ""
 
     if "key_type" in config and config["key_type"]:
         if config["key_type"] == "ECC":
@@ -278,6 +338,10 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     elif xml_type is manifest_types.CFM:
         raise RuntimeError ("Missing CFM XML")
 
+    if "component_map" in config and config["component_map"]:
+        component_map_file = config["component_map"]
+        component_map = load_component_map (component_map_file)
+
     if max_num_xmls and (len (config["xml_list"]) > max_num_xmls):
         raise RuntimeError ("Too many XML files provided: {0}".format (len (config["xml_list"])))
 
@@ -302,13 +366,15 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
                 "Failed to generate manifest: XML version is different - {0}".format (xml))
 
         for previous_file, previous_xml in processed_xml.items():
-            if (previous_xml.get('version_id') == parsed_xml.get('version_id')):
+            if ((xml_type == manifest_types.PFM) and \
+                (previous_xml.get('version_id') == parsed_xml.get('version_id'))):
                 if (previous_xml == parsed_xml):
                     matching_xml_found = True
+                    break
                 else:
                     raise RuntimeError (
                         "Failed to generate manifest: XML files {0} and {1} have same version " \
-                        "string, but different data".format (previous_file, xml))
+                        "string {2}, but different data".format (previous_file, xml, previous_xml.get ('version_id')))
 
         if matching_xml_found:
             matching_xml_found = False
@@ -325,7 +391,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
         empty = True
 
     return processed_xml, sign, key_size, key, key_type, hash_type, manifest_id, config["output"], \
-        xml_version, empty, max_rw_sections, selection_list
+        xml_version, empty, max_rw_sections, selection_list, component_map, component_map_file
 
 def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output_filename,
     manifest_length, sig_length):

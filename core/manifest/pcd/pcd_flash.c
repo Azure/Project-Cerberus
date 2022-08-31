@@ -145,6 +145,15 @@ static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 	info->eid = rot_element.rot_eid;
 	info->bridge_i2c_addr = rot_element.bridge_address;
 	info->bridge_eid = rot_element.bridge_eid;
+	info->attestation_success_retry = rot_element.attestation_success_retry;
+	info->attestation_fail_retry = rot_element.attestation_fail_retry;
+	info->discovery_fail_retry = rot_element.discovery_fail_retry;
+	info->mctp_ctrl_timeout = rot_element.mctp_ctrl_timeout;
+	info->mctp_bridge_get_table_wait = rot_element.mctp_bridge_get_table_wait;
+	info->mctp_bridge_additional_timeout = rot_element.mctp_bridge_additional_timeout;
+	info->attestation_rsp_not_ready_max_duration =
+		rot_element.attestation_rsp_not_ready_max_duration;
+	info->attestation_rsp_not_ready_max_retry = rot_element.attestation_rsp_not_ready_max_retry;
 
 	return 0;
 }
@@ -202,6 +211,7 @@ static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd
 		info->reset_ctrl = pcd_get_port_reset_control (&port_element);
 		info->runtime_verification = pcd_get_port_runtime_verification (&port_element);
 		info->watchdog_monitoring = pcd_get_port_watchdog_monitoring (&port_element);
+		info->host_reset_action = pcd_get_port_host_reset_action (&port_element);
 		info->policy = port_element.policy;
 		info->pulse_interval = port_element.pulse_interval;
 
@@ -273,8 +283,7 @@ static int pcd_flash_get_next_mctp_bridge_component (struct pcd *pcd,
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
-	if ((size_t) status <
-		(sizeof (struct pcd_mctp_bridge_component_element) - MANIFEST_MAX_STRING)) {
+	if ((size_t) status < (sizeof (struct pcd_mctp_bridge_component_element))) {
 		return PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT;
 	}
 
@@ -282,15 +291,14 @@ static int pcd_flash_get_next_mctp_bridge_component (struct pcd *pcd,
 
 	connection = pcd_get_mctp_bridge_component_connection (element_ptr, status);
 
+	component->component_id = bridge_component.component.component_id;
 	component->components_count = connection->components_count;
 	component->pci_device_id = connection->device_id;
 	component->pci_vid = connection->vendor_id;
 	component->pci_subsystem_id = connection->subsystem_device_id;
 	component->pci_subsystem_vid = connection->subsystem_vendor_id;
 
-	return pcd_flash->base_flash.hash->calculate_sha256 (pcd_flash->base_flash.hash,
-		bridge_component.component.type, bridge_component.component.type_len,
-		component->component_type, sizeof (component->component_type));
+	return 0;
 }
 
 /**

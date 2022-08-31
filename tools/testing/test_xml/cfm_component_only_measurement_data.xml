@@ -1,0 +1,27 @@
+<CFMComponent type="Component1" attestation_protocol="Cerberus" slot_num="1" transcript_hash_type="SHA384" measurement_hash_type="SHA256">
+	<MeasurementData pmr_id="1" measurement_id="2">
+		<AllowableData>
+			<Endianness>BigEndian</Endianness>
+			<Check>Equal</Check>
+			<Data>
+				"Test1"
+			</Data>
+			<Data>
+				"Test2"
+			</Data>
+			<Bitmask>
+				00FF00FFFF
+			</Bitmask>
+		</AllowableData>
+		<AllowableData>
+			<Endianness>LittleEndian</Endianness>
+			<Check>GreaterThan</Check>
+			<Data>
+				0000220000
+			</Data>
+			<Bitmask>
+				0000FF0000
+			</Bitmask>
+		</AllowableData>
+	</MeasurementData>
+</CFMComponent>

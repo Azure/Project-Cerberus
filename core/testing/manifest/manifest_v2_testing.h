@@ -26,7 +26,7 @@ struct manifest_v2_testing_data {
 	size_t toc_len;					/**< Length of the table of contents. */
 	const uint8_t *toc_hash;		/**< Hash of the manifest table of contents. */
 	size_t toc_hash_len;			/**< Hash length in the table of contents. */
-	uint32_t toc_hash_offset;		/**< Offset the table of contents hash. */
+	uint32_t toc_hash_offset;		/**< Offset of the table of contents hash. */
 	enum hash_type toc_hash_type;	/**< Hash type used for the table of contents. */
 	int toc_entries;				/**< Number of table of contents entries. */
 	int toc_hashes;					/**< Number of table of contents hashes. */

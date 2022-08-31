@@ -1,0 +1,92 @@
+<PCD sku="SKU1-Specific" version="0x1B">
+        <RoT type="PA-RoT" mctp_ctrl_timeout="2000"
+                mctp_bridge_get_table_wait="3000">
+                <Ports>
+                        <Port id="0">
+                                <SPIFreq>32000000</SPIFreq>
+                                <ResetCtrl>Reset</ResetCtrl>
+                                <FlashMode>Dual</FlashMode>
+                                <Policy>Passive</Policy>
+                                <RuntimeVerification>Enabled</RuntimeVerification>
+                                <WatchdogMonitoring>Enabled</WatchdogMonitoring>
+                                <PulseInterval>0</PulseInterval>
+                        </Port>
+                        <Port id="1">
+                                <SPIFreq>64000000</SPIFreq>
+                                <ResetCtrl>Notify</ResetCtrl>
+                                <FlashMode>Single</FlashMode>
+                                <Policy>Active</Policy>
+                                <RuntimeVerification>Disabled</RuntimeVerification>
+                                <WatchdogMonitoring>Disabled</WatchdogMonitoring>
+                                <PulseInterval>10</PulseInterval>
+                        </Port>
+                </Ports>
+                <Interface type="I2C">
+                        <Address>0x41</Address>
+                        <RoTEID>0x0b</RoTEID>
+                        <BridgeEID>0x0a</BridgeEID>
+                        <BridgeAddress>0x10</BridgeAddress>
+                </Interface>
+        </RoT>
+        <PowerController>
+                <Interface type="I2C">
+                        <Bus>2</Bus>
+                        <EID>0x14</EID>
+                        <Address>0x22</Address>
+                        <I2CMode>MultiMaster</I2CMode>
+                        <Muxes>
+                                <Mux level="2">
+                                        <Address>0x45</Address>
+                                        <Channel>4</Channel>
+                                </Mux>
+                                <Mux level="1">
+                                        <Address>0x66</Address>
+                                        <Channel>7</Channel>
+                                </Mux>
+                        </Muxes>
+                </Interface>
+        </PowerController>
+        <Components>
+                <Component type="Alpha" connection="Direct"
+                        attestation_success_retry="86400000"
+                        attestation_fail_retry="10000"
+                        attestation_rsp_not_ready_max_retry="3"
+                        attestation_rsp_not_ready_max_duration="1000">
+                        <Policy>Passive</Policy>
+                        <Interface type="I2C">
+                                <Bus>3</Bus>
+                                <Address>0x75</Address>
+                                <I2CMode>MultiMaster</I2CMode>
+                                <EID>0x77</EID>
+                                <Muxes>
+                                        <Mux level="0">
+                                                <Address>0x55</Address>
+                                                <Channel>3</Channel>
+                                        </Mux>
+                                </Muxes>
+                        </Interface>
+                        <PwrCtrl>
+                                <Register>0x50</Register>
+                                <Mask>0xe0</Mask>
+                        </PwrCtrl>
+                </Component>
+                <Component type="Beta" connection="MCTPBridge" count="2"
+                        attestation_success_retry="86400000"
+                        attestation_fail_retry="10000"
+                        discovery_fail_retry="10000"
+                        mctp_bridge_additional_timeout="0"
+                        attestation_rsp_not_ready_max_retry="3"
+                        attestation_rsp_not_ready_max_duration="1000">
+                        <Policy>Passive</Policy>
+                        <DeviceID>0x0a</DeviceID>
+                        <VendorID>0x0b</VendorID>
+                        <SubsystemDeviceID>0x0c</SubsystemDeviceID>
+                        <SubsystemVendorID>0x0d</SubsystemVendorID>
+                        <EID>0x30</EID>
+                        <PwrCtrl>
+                                <Register>0x70</Register>
+                                <Mask>0xF0</Mask>
+                        </PwrCtrl>
+                </Component>
+        </Components>
+</PCD>

@@ -1,0 +1,52 @@
+<CFMComponent type="Component2" attestation_protocol="SPDM" slot_num="0" transcript_hash_type="SHA512" measurement_hash_type="SHA384">
+	<RootCADigest>
+		<Digest>
+			EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+		</Digest>
+	</RootCADigest>
+	<PMR pmr_id="0">
+		<InitialValue>
+			333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333
+		</InitialValue>
+	</PMR>
+	<PMRDigest pmr_id="2">
+		<Digest>
+			BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+		</Digest>
+	</PMRDigest>
+	<Measurement pmr_id="1" measurement_id="5">
+		<Digest>
+			DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+		</Digest>
+	</Measurement>
+	<MeasurementData pmr_id="1" measurement_id="3">
+		<AllowableData>
+			<Endianness>LittleEndian</Endianness>
+			<Check>GreaterThan</Check>
+			<Data>
+				123456
+			</Data>
+			<Bitmask>
+				FF0FFF
+			</Bitmask>
+		</AllowableData>
+	</MeasurementData>
+	<AllowablePFM port="2" platform="platform1">
+		<ManifestID>
+			<Check>GreaterOrEqual</Check>
+			<ID>0x12</ID>
+		</ManifestID>
+	</AllowablePFM>
+	<AllowableCFM index="0" platform="platform2">
+		<ManifestID>
+			<Check>LessOrEqual</Check>
+			<ID>0x34</ID>
+		</ManifestID>
+	</AllowableCFM>
+	<AllowablePCD platform="platform3">
+		<ManifestID>
+			<Check>LessThan</Check>
+			<ID>0x56</ID>
+		</ManifestID>
+	</AllowablePCD>
+</CFMComponent>

@@ -431,14 +431,9 @@ static void device_manager_test_update_not_attestable_device_entry_invalid_devic
 static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t component_type[SHA256_HASH_LENGTH];
-	const uint8_t *device_component_type;
-	size_t i_type;
+	uint32_t component_id = 50;
+	uint32_t device_component_id;
 	int status;
-
-	for (i_type = 0; i_type < sizeof (component_type); ++i_type) {
-		component_type[i_type] = i_type;
-	}
 
 	TEST_START;
 
@@ -447,7 +442,7 @@ static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_mctp_bridge_device_entry (&manager, 0, 0xBB,	0xAA, 0xCC, 0xDD,
-		2, component_type, 0);
+		2, component_id, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
@@ -459,12 +454,9 @@ static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_READY_FOR_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
-	device_component_type = device_manager_get_component_type_digest (&manager, 0x0C);
-	CuAssertPtrNotNull (test, device_component_type);
-
-	status = testing_validate_array (component_type, device_component_type,
-		sizeof (component_type));
+	status = device_manager_get_component_id (&manager, 0x0C, &device_component_id);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, component_id, device_component_id);
 
 	status = device_manager_get_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 1, status);
@@ -475,12 +467,9 @@ static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_READY_FOR_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
-	device_component_type = device_manager_get_component_type_digest (&manager, 0x0C);
-	CuAssertPtrNotNull (test, device_component_type);
-
-	status = testing_validate_array (component_type, device_component_type,
-		sizeof (component_type));
+	status = device_manager_get_component_id (&manager, 0x0C, &device_component_id);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, component_id, device_component_id);
 
 	device_manager_release (&manager);
 }
@@ -488,7 +477,7 @@ static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 static void device_manager_test_update_mctp_bridge_device_entry_invalid_arg (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t component_type[SHA256_HASH_LENGTH];
+	uint32_t component_id = 50;
 	int status;
 
 	TEST_START;
@@ -498,15 +487,11 @@ static void device_manager_test_update_mctp_bridge_device_entry_invalid_arg (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_mctp_bridge_device_entry (NULL, 0, 0xBB,	0xAA, 0xCC, 0xDD,
-		2, component_type, 0);
+		2, component_id, 0);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
 	status = device_manager_update_mctp_bridge_device_entry (&manager, 0, 0xBB,	0xAA, 0xCC, 0xDD,
-		0, component_type, 0);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
-
-	status = device_manager_update_mctp_bridge_device_entry (&manager, 0, 0xBB,	0xAA, 0xCC, 0xDD,
-		2, NULL, 0);
+		0, component_id, 0);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
 	device_manager_release (&manager);
@@ -515,7 +500,7 @@ static void device_manager_test_update_mctp_bridge_device_entry_invalid_arg (CuT
 static void device_manager_test_update_mctp_bridge_device_entry_invalid_device (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t component_type[SHA256_HASH_LENGTH];
+	uint32_t component_id = 50;
 	int status;
 
 	TEST_START;
@@ -525,7 +510,7 @@ static void device_manager_test_update_mctp_bridge_device_entry_invalid_device (
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_mctp_bridge_device_entry (&manager, 2, 0xBB,	0xAA, 0xCC, 0xDD,
-		1, component_type, 2);
+		1, component_id, 2);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -534,7 +519,7 @@ static void device_manager_test_update_mctp_bridge_device_entry_invalid_device (
 static void device_manager_test_update_mctp_bridge_device_entry_too_many_components (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t component_type[SHA256_HASH_LENGTH];
+	uint32_t component_id = 50;
 	int status;
 
 	TEST_START;
@@ -544,7 +529,7 @@ static void device_manager_test_update_mctp_bridge_device_entry_too_many_compone
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_mctp_bridge_device_entry (&manager, 1, 0xBB,	0xAA, 0xCC, 0xDD,
-		2, component_type, 1);
+		2, component_id, 1);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -2236,19 +2221,15 @@ static void device_manager_test_get_crypto_timeout_by_eid_null (CuTest *test)
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_get_component_type_digest (CuTest *test)
+static void device_manager_test_get_component_id (CuTest *test)
 {
 	struct device_manager manager;
-	uint8_t digest[SHA256_HASH_LENGTH] = {0};
-	const uint8_t *component_type;
+	uint32_t component_id = 50;
+	uint32_t device_component_id;
 	int status;
 
 	TEST_START;
 
-	digest[0] = 0xAA;
-	digest[10] = 0xBB;
-	digest[20] = 0xCC;
-	digest[SHA256_HASH_LENGTH - 1] = 0xDD;
 	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
@@ -2257,24 +2238,23 @@ static void device_manager_test_get_component_type_digest (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_mctp_bridge_device_entry (&manager, 0, 0xAA, 0xBB, 0xCC, 0xDD,
-		1, digest, 0);
+		1, component_id, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_READY_FOR_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
-	component_type = device_manager_get_component_type_digest (&manager, 0x0A);
-
-	status = testing_validate_array (digest, component_type, sizeof (digest));
+	status = device_manager_get_component_id (&manager, 0x0A, &device_component_id);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, component_id, device_component_id);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_get_component_type_digest_unknown_eid (CuTest *test)
+static void device_manager_test_get_component_id_unknown_eid (CuTest *test)
 {
 	struct device_manager manager;
-	const uint8_t *component_type;
+	uint32_t device_component_id;
 	int status;
 
 	TEST_START;
@@ -2283,16 +2263,16 @@ static void device_manager_test_get_component_type_digest_unknown_eid (CuTest *t
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	component_type = device_manager_get_component_type_digest (&manager, 0x0b);
-	CuAssertPtrEquals (test, NULL, (void*) component_type);
+	status = device_manager_get_component_id (&manager, 0x0b, &device_component_id);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_get_component_type_digest_null (CuTest *test)
+static void device_manager_test_get_component_id_null (CuTest *test)
 {
 	struct device_manager manager;
-	const uint8_t *component_type;
+	uint32_t device_component_id;
 	int status;
 
 	TEST_START;
@@ -2301,8 +2281,11 @@ static void device_manager_test_get_component_type_digest_null (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
 	CuAssertIntEquals (test, 0, status);
 
-	component_type = device_manager_get_component_type_digest (NULL, 0);
-	CuAssertPtrEquals (test, NULL, (void*) component_type);
+	status = device_manager_get_component_id (NULL, 0, &device_component_id);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = device_manager_get_component_id (&manager, 0, NULL);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
 	device_manager_release (&manager);
 }
@@ -4710,9 +4693,9 @@ TEST (device_manager_test_get_crypto_timeout_by_eid_remote_device);
 TEST (device_manager_test_get_crypto_timeout_by_eid_remote_device_no_capabilities);
 TEST (device_manager_test_get_crypto_timeout_by_eid_remote_device_unknown_device);
 TEST (device_manager_test_get_crypto_timeout_by_eid_null);
-TEST (device_manager_test_get_component_type_digest);
-TEST (device_manager_test_get_component_type_digest_unknown_eid);
-TEST (device_manager_test_get_component_type_digest_null);
+TEST (device_manager_test_get_component_id);
+TEST (device_manager_test_get_component_id_unknown_eid);
+TEST (device_manager_test_get_component_id_null);
 TEST (device_manager_test_update_cert_chain_digest);
 TEST (device_manager_test_update_cert_chain_digest_invalid_arg);
 TEST (device_manager_test_update_cert_chain_digest_unknown_device);

@@ -259,12 +259,15 @@ int32_t visualize_toc (uint8_t *start)
 		case MANIFEST_HASH_SHA256:
 			hash_len = SHA256_HASH_LENGTH;
 			break;
+
 		case MANIFEST_HASH_SHA384:
 			hash_len = SHA384_HASH_LENGTH;
 			break;
+
 		case MANIFEST_HASH_SHA512:
 			hash_len = SHA512_HASH_LENGTH;
 			break;
+
 		default:
 			printf ("Unsupported hash type selected: %i\n", toc_header->hash_type);
 			return -1;
@@ -347,6 +350,20 @@ int32_t visualize_pcd_rot_element (uint8_t *start, const char* prefix)
 	printf ("%s\tbridge_address: 0x%x\n", prefix, rot->bridge_address);
 	printf ("%s\tbridge_eid: 0x%x\n", prefix, rot->bridge_eid);
 	printf ("%s\treserved: %i\n", prefix, rot->reserved);
+	printf ("%s\tattestation_success_retry: %i\n", prefix, rot->attestation_success_retry);
+	printf ("%s\tattestation_fail_retry: %i\n", prefix, rot->attestation_fail_retry);
+	printf ("%s\tdiscovery_fail_retry: %i\n", prefix, rot->discovery_fail_retry);
+	printf ("%s\tmctp_ctrl_timeout: %i\n", prefix, rot->mctp_ctrl_timeout);
+	printf ("%s\tmctp_bridge_get_table_wait: %i\n", prefix, rot->mctp_bridge_get_table_wait);
+	printf ("%s\tmctp_bridge_additional_timeout: %i\n", prefix,
+		rot->mctp_bridge_additional_timeout);
+	printf ("%s\tattestation_rsp_not_ready_max_duration: %i\n", prefix,
+		rot->attestation_rsp_not_ready_max_duration);
+	printf ("%s\tattestation_rsp_not_ready_max_retry: %i\n", prefix,
+		rot->attestation_rsp_not_ready_max_retry);
+	printf ("%s\treserved2[0]: %i\n", prefix, rot->reserved2[0]);
+	printf ("%s\treserved2[1]: %i\n", prefix, rot->reserved2[1]);
+	printf ("%s\treserved2[2]: %i\n", prefix, rot->reserved2[2]);
 	printf ("%s}\n", prefix);
 
 	return (pointer - start);
@@ -413,32 +430,16 @@ int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char* 
 	uint8_t *pointer = start;
 	struct pcd_component_common *component = (struct pcd_component_common*) pointer;
 	struct pcd_i2c_interface *interface;
-	char* type;
-	size_t type_len;
 
-	pointer += (sizeof (struct pcd_component_common) - MANIFEST_MAX_STRING);
+	pointer += (sizeof (struct pcd_component_common));
 
 	printf ("%spcd_direct_i2c_component_element\n", prefix);
 	printf ("%s{\n", prefix);
 	printf ("%s\tpolicy: 0x%x\n", prefix, component->policy);
 	printf ("%s\tpower_ctrl_reg: 0x%x\n", prefix, component->power_ctrl_reg);
 	printf ("%s\tpower_ctrl_mask: 0x%x\n", prefix, component->power_ctrl_mask);
-	printf ("%s\ttype_len: %i\n", prefix, component->type_len);
-
-	type = malloc ((size_t) component->type_len + 1);
-	if (type == NULL) {
-		printf ("Failed to allocate type buffer.\n");
-		return -1;
-	}
-
-	memcpy (type, pointer, component->type_len);
-	type[component->type_len] = '\0';
-
-	printf ("%s\tType: %s\n", prefix, type);
-	free (type);
-
-	type_len = (((size_t) component->type_len + 3) & ~((size_t) 3));
-	pointer += type_len;
+	printf ("%s\treserved: %i\n", prefix, component->reserved);
+	printf ("%s\tcomponent_id: 0x%x\n", prefix, component->component_id);
 
 	interface = (struct pcd_i2c_interface*) pointer;
 	pointer += sizeof (struct pcd_i2c_interface);
@@ -474,45 +475,28 @@ int32_t visualize_pcd_mctp_bridge_component_element (uint8_t *start, const char*
 {
 	uint8_t *pointer = start;
 	struct pcd_component_common *component = (struct pcd_component_common*) pointer;
-	char* type;
-	size_t type_len;
+	struct pcd_mctp_bridge_component_connection *bridge_connection;
 
-	pointer += (sizeof (struct pcd_component_common) - MANIFEST_MAX_STRING);
+	pointer += (sizeof (struct pcd_component_common));
 
 	printf ("%spcd_mctp_bridge_component_element\n", prefix);
 	printf ("%s{\n", prefix);
 	printf ("%s\tpolicy: 0x%x\n", prefix, component->policy);
 	printf ("%s\tpower_ctrl_reg: 0x%x\n", prefix, component->power_ctrl_reg);
 	printf ("%s\tpower_ctrl_mask: 0x%x\n", prefix, component->power_ctrl_mask);
-	printf ("%s\ttype_len: %i\n", prefix, component->type_len);
+	printf ("%s\treserved: %i\n", prefix, component->reserved);
+	printf ("%s\tcomponent_id: 0x%x\n", prefix, component->component_id);
 
-	type = malloc ((size_t) component->type_len + 1);
-	if (type == NULL) {
-		printf ("Failed to allocate type buffer.\n");
-		return -1;
-	}
+	bridge_connection = (struct pcd_mctp_bridge_component_connection*) pointer;
+	pointer += sizeof (struct pcd_mctp_bridge_component_connection);
 
-	memcpy (type, pointer, component->type_len);
-	type[component->type_len] = '\0';
-
-	printf ("%s\tType: %s\n", prefix, type);
-	free (type);
-
-	type_len = (((size_t) component->type_len + 3) & ~((size_t) 3));
-	pointer += type_len;
-
-	printf ("%s\tdevice_id: 0x%x\n", prefix, *((uint16_t*) pointer));
-	pointer += 2;
-	printf ("%s\tvendor_id: 0x%x\n", prefix, *((uint16_t*) pointer));
-	pointer += 2;
-	printf ("%s\tsubsystem_device_id: 0x%x\n", prefix, *((uint16_t*) pointer));
-	pointer += 2;
-	printf ("%s\tsubsystem_vendor_id: 0x%x\n", prefix, *((uint16_t*) pointer));
-	pointer += 2;
-	printf ("%s\tcomponents_count: %i\n", prefix, *((uint8_t*) pointer++));
-	printf ("%s\teid: 0x%x\n", prefix, *((uint8_t*) pointer++));
-	printf ("%s\treserved: %i\n", prefix, *((uint16_t*) pointer));
-	pointer += 2;
+	printf ("%s\tdevice_id: 0x%x\n", prefix, bridge_connection->device_id);
+	printf ("%s\tvendor_id: 0x%x\n", prefix, bridge_connection->vendor_id);
+	printf ("%s\tsubsystem_device_id: 0x%x\n", prefix, bridge_connection->subsystem_device_id);
+	printf ("%s\tsubsystem_vendor_id: 0x%x\n", prefix, bridge_connection->subsystem_vendor_id);
+	printf ("%s\tcomponents_count: %i\n", prefix, bridge_connection->components_count);
+	printf ("%s\teid: 0x%x\n", prefix, bridge_connection->eid);
+	printf ("%s\treserved: %i\n", prefix, bridge_connection->reserved);
 
 	printf ("%s}\n", prefix);
 
@@ -560,6 +544,7 @@ int32_t visualize_common_element (uint8_t type, uint8_t *pointer, const char *pr
 	switch (type) {
 		case MANIFEST_PLATFORM_ID:
 			return visualize_platform_id (pointer, prefix);
+
 		default:
 			printf ("Unsupported element type: 0x%x\n", type);
 			return -1;
@@ -694,18 +679,21 @@ int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
 		printf ("%s\t\t\treserved: %i\n", prefix, img->reserved);
 
 		switch (img->hash_type) {
-		case MANIFEST_HASH_SHA256:
-			hash_len = SHA256_HASH_LENGTH;
-			break;
-		case MANIFEST_HASH_SHA384:
-			hash_len = SHA384_HASH_LENGTH;
-			break;
-		case MANIFEST_HASH_SHA512:
-			hash_len = SHA512_HASH_LENGTH;
-			break;
-		default:
-			printf ("Unsupported hash type selected: %i\n", img->hash_type);
-			return -1;
+			case MANIFEST_HASH_SHA256:
+				hash_len = SHA256_HASH_LENGTH;
+				break;
+
+			case MANIFEST_HASH_SHA384:
+				hash_len = SHA384_HASH_LENGTH;
+				break;
+
+			case MANIFEST_HASH_SHA512:
+				hash_len = SHA512_HASH_LENGTH;
+				break;
+
+			default:
+				printf ("Unsupported hash type selected: %i\n", img->hash_type);
+				return -1;
 		}
 
 		printf ("%s\t\t\tHash:\n", prefix);
@@ -750,43 +738,32 @@ int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_component_device (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_component_device (uint8_t *start, const char* prefix,
+	uint8_t *measurement_hash_type)
 {
 	uint8_t *pointer = start;
 	struct cfm_component_device_element *device = (struct cfm_component_device_element*) pointer;
-	char* type;
-	size_t type_len;
 
-	pointer += (sizeof (struct cfm_component_device_element) - MANIFEST_MAX_STRING);
+	pointer += sizeof (struct cfm_component_device_element);
 
 	printf ("%scfm_component_device_element\n", prefix);
 	printf ("%s{\n", prefix);
 	printf ("%s\tcert_slot: %i\n", prefix, device->cert_slot);
 	printf ("%s\tattestation_protocol: %i\n", prefix, device->attestation_protocol);
+	printf ("%s\ttranscript_hash_type: %i\n", prefix, device->transcript_hash_type);
+	printf ("%s\tmeasurement_hash_type: %i\n", prefix, device->measurement_hash_type);
 	printf ("%s\treserved: %i\n", prefix, device->reserved);
-	printf ("%s\ttype_len: %i\n", prefix, device->type_len);
-
-	type = malloc ((size_t) device->type_len + 1);
-	if (type == NULL) {
-		printf ("Failed to allocate type buffer.\n");
-		return -1;
-	}
-
-	memcpy (type, pointer, device->type_len);
-	type[device->type_len] = '\0';
-
-	printf ("%s\tType: %s\n", prefix, type);
-	free (type);
-
-	type_len = (((size_t) device->type_len + 3) & ~((size_t) 3));
-	pointer += type_len;
+	printf ("%s\treserved2: %i\n", prefix, device->reserved2);
+	printf ("%s\tcomponent_id: %d\n", prefix, device->component_id);
 
 	printf ("%s}\n", prefix);
+
+	*measurement_hash_type = device->measurement_hash_type;
 
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_pmr_digest (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_pmr_digest (uint8_t *start, const char* prefix, uint8_t measurement_hash_type)
 {
 	uint8_t *pointer = start;
 	struct cfm_pmr_digest_element *pmr_digest = (struct cfm_pmr_digest_element*) pointer;
@@ -797,24 +774,25 @@ int32_t visualize_cfm_pmr_digest (uint8_t *start, const char* prefix)
 	printf ("%scfm_pmr_digest_element\n", prefix);
 	printf ("%s{\n", prefix);
 	printf ("%s\tpmr_id: %i\n", prefix, pmr_digest->pmr_id);
-	printf ("%s\treserved: %i\n", prefix, pmr_digest->reserved);
-	printf ("%s\tpmr_hash_type: %i\n", prefix, pmr_digest->pmr_hash_type);
 	printf ("%s\tdigest_count: %i\n", prefix, pmr_digest->digest_count);
-	printf ("%s\treserved2: %i\n", prefix, pmr_digest->reserved2);
+	printf ("%s\treserved: %i\n", prefix, pmr_digest->reserved);
 
-	switch (pmr_digest->pmr_hash_type) {
-	case MANIFEST_HASH_SHA256:
-		hash_len = SHA256_HASH_LENGTH;
-		break;
-	case MANIFEST_HASH_SHA384:
-		hash_len = SHA384_HASH_LENGTH;
-		break;
-	case MANIFEST_HASH_SHA512:
-		hash_len = SHA512_HASH_LENGTH;
-		break;
-	default:
-		printf ("Unsupported hash type selected: %i\n", pmr_digest->pmr_hash_type);
-		return -1;
+	switch (measurement_hash_type) {
+		case MANIFEST_HASH_SHA256:
+			hash_len = SHA256_HASH_LENGTH;
+			break;
+
+		case MANIFEST_HASH_SHA384:
+			hash_len = SHA384_HASH_LENGTH;
+			break;
+
+		case MANIFEST_HASH_SHA512:
+			hash_len = SHA512_HASH_LENGTH;
+			break;
+
+		default:
+			printf ("Unsupported measurement hash type: %i\n", measurement_hash_type);
+			return -1;
 	}
 
 	printf ("%s\tHashes:\n", prefix);
@@ -841,7 +819,8 @@ int32_t visualize_cfm_pmr_digest (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_measurement (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_measurement (uint8_t *start, const char* prefix,
+	uint8_t measurement_hash_type)
 {
 	uint8_t *pointer = start;
 	struct cfm_measurement_element *measurement = (struct cfm_measurement_element*) pointer;
@@ -853,23 +832,25 @@ int32_t visualize_cfm_measurement (uint8_t *start, const char* prefix)
 	printf ("%s{\n", prefix);
 	printf ("%s\tpmr_id: %i\n", prefix, measurement->pmr_id);
 	printf ("%s\tmeasurement_id: %i\n", prefix, measurement->measurement_id);
-	printf ("%s\treserved: %i\n", prefix, measurement->reserved);
-	printf ("%s\thash_type: %i\n", prefix, measurement->hash_type);
 	printf ("%s\tdigest_count: %i\n", prefix, measurement->digest_count);
+	printf ("%s\treserved: %i\n", prefix, measurement->reserved);
 
-	switch (measurement->hash_type) {
-	case MANIFEST_HASH_SHA256:
-		hash_len = SHA256_HASH_LENGTH;
-		break;
-	case MANIFEST_HASH_SHA384:
-		hash_len = SHA384_HASH_LENGTH;
-		break;
-	case MANIFEST_HASH_SHA512:
-		hash_len = SHA512_HASH_LENGTH;
-		break;
-	default:
-		printf ("Unsupported hash type selected: %i\n", measurement->hash_type);
-		return -1;
+	switch (measurement_hash_type) {
+		case MANIFEST_HASH_SHA256:
+			hash_len = SHA256_HASH_LENGTH;
+			break;
+
+		case MANIFEST_HASH_SHA384:
+			hash_len = SHA384_HASH_LENGTH;
+			break;
+
+		case MANIFEST_HASH_SHA512:
+			hash_len = SHA512_HASH_LENGTH;
+			break;
+
+		default:
+			printf ("Unsupported measurement hash type: %i\n", measurement_hash_type);
+			return -1;
 	}
 
 	printf ("%s\tHashes:\n", prefix);
@@ -927,6 +908,7 @@ int32_t visualize_cfm_allowable_data (uint8_t *start, const char* prefix)
 	printf ("%s{\n", prefix);
 	printf ("%s\treserved: %i\n", prefix, allowable_data->reserved);
 	printf ("%s\tbitmask_presence: %i\n", prefix, allowable_data->bitmask_presence);
+	printf ("%s\tendianness: %i\n", prefix, allowable_data->endianness);
 	printf ("%s\tcheck: %i\n", prefix, allowable_data->check);
 	printf ("%s\tnum_data: %i\n", prefix, allowable_data->num_data);
 	printf ("%s\tdata_len: %i\n", prefix, allowable_data->data_len);
@@ -1096,7 +1078,8 @@ int32_t visualize_cfm_allowable_id (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_root_ca_digests (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_root_ca_digests (uint8_t *start, const char* prefix,
+	uint8_t measurement_hash_type)
 {
 	uint8_t *pointer = start;
 	struct cfm_root_ca_digests_element *root_ca_digests =
@@ -1107,24 +1090,27 @@ int32_t visualize_cfm_root_ca_digests (uint8_t *start, const char* prefix)
 
 	printf ("%scfm_root_ca_digests_element\n", prefix);
 	printf ("%s{\n", prefix);
-	printf ("%s\treserved: %i\n", prefix, root_ca_digests->reserved);
-	printf ("%s\thash_type: %i\n", prefix, root_ca_digests->hash_type);
 	printf ("%s\tca_count: %i\n", prefix, root_ca_digests->ca_count);
-	printf ("%s\treserved2: %i\n", prefix, root_ca_digests->reserved2);
+	printf ("%s\treserved[0]: %i\n", prefix, root_ca_digests->reserved[0]);
+	printf ("%s\treserved[1]: %i\n", prefix, root_ca_digests->reserved[1]);
+	printf ("%s\treserved[2]: %i\n", prefix, root_ca_digests->reserved[2]);
 
-	switch (root_ca_digests->hash_type) {
-	case MANIFEST_HASH_SHA256:
-		hash_len = SHA256_HASH_LENGTH;
-		break;
-	case MANIFEST_HASH_SHA384:
-		hash_len = SHA384_HASH_LENGTH;
-		break;
-	case MANIFEST_HASH_SHA512:
-		hash_len = SHA512_HASH_LENGTH;
-		break;
-	default:
-		printf ("Unsupported hash type selected: %i\n", root_ca_digests->hash_type);
-		return -1;
+	switch (measurement_hash_type) {
+		case MANIFEST_HASH_SHA256:
+			hash_len = SHA256_HASH_LENGTH;
+			break;
+
+		case MANIFEST_HASH_SHA384:
+			hash_len = SHA384_HASH_LENGTH;
+			break;
+
+		case MANIFEST_HASH_SHA512:
+			hash_len = SHA512_HASH_LENGTH;
+			break;
+
+		default:
+			printf ("Unsupported measurement hash type: %i\n", measurement_hash_type);
+			return -1;
 	}
 
 	printf ("%s\tHashes:\n", prefix);
@@ -1151,33 +1137,36 @@ int32_t visualize_cfm_root_ca_digests (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_pmr (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_pmr (uint8_t *start, const char* prefix, uint8_t measurement_hash_type)
 {
 	uint8_t *pointer = start;
 	struct cfm_pmr_element *pmr = (struct cfm_pmr_element*) pointer;
 	int hash_len;
 
-	pointer += (sizeof (struct cfm_pmr_element) - sizeof (pmr->initial_value));
+	pointer += (sizeof (struct cfm_pmr_element) - SHA512_HASH_LENGTH);
 
 	printf ("%scfm_pmr_element\n", prefix);
 	printf ("%s{\n", prefix);
 	printf ("%s\tpmr_id: %i\n", prefix, pmr->pmr_id);
-	printf ("%s\treserved: %i\n", prefix, pmr->reserved);
-	printf ("%s\thash_type: %i\n", prefix, pmr->hash_type);
-	printf ("%s\treserved2: %i\n", prefix, pmr->reserved2);
+	printf ("%s\treserved[0]: %i\n", prefix, pmr->reserved[0]);
+	printf ("%s\treserved[1]: %i\n", prefix, pmr->reserved[1]);
+	printf ("%s\treserved[2]: %i\n", prefix, pmr->reserved[2]);
 
-	switch (pmr->hash_type) {
+	switch (measurement_hash_type) {
 		case MANIFEST_HASH_SHA256:
 			hash_len = SHA256_HASH_LENGTH;
 			break;
+
 		case MANIFEST_HASH_SHA384:
 			hash_len = SHA384_HASH_LENGTH;
 			break;
+
 		case MANIFEST_HASH_SHA512:
 			hash_len = SHA512_HASH_LENGTH;
 			break;
+
 		default:
-			printf ("Unsupported hash type selected: %i\n", pmr->hash_type);
+			printf ("Unsupported measurement hash type: %i\n", measurement_hash_type);
 			return -1;
 	}
 
@@ -1216,12 +1205,15 @@ int32_t visualize_pfm (uint8_t *start)
 			case PFM_FLASH_DEVICE:
 				offset = visualize_pfm_flash_device_element (pointer, "");
 				break;
+
 			case PFM_FIRMWARE:
 				offset = visualize_pfm_fw_element (pointer, "");
 				break;
+
 			case PFM_FIRMWARE_VERSION:
 				offset = visualize_pfm_fw_version_element (pointer, "");
 				break;
+
 			default:
 				offset = visualize_common_element (element_types[i], pointer, "");
 				break;
@@ -1241,6 +1233,7 @@ int32_t visualize_cfm (uint8_t *start)
 {
 	uint8_t *pointer = start;
 	int32_t offset;
+	uint8_t measurement_hash_type = SHA256_HASH_LENGTH;
 
 	offset = visualize_toc (pointer);
 	if (offset == -1) {
@@ -1252,15 +1245,15 @@ int32_t visualize_cfm (uint8_t *start)
 	for (int i = 0; i < entry_count; ++i) {
 		switch (element_types[i]) {
 			case CFM_COMPONENT_DEVICE:
-				offset = visualize_cfm_component_device (pointer, "");
+				offset = visualize_cfm_component_device (pointer, "", &measurement_hash_type);
 				break;
 
 			case CFM_PMR_DIGEST:
-				offset = visualize_cfm_pmr_digest (pointer, "");
+				offset = visualize_cfm_pmr_digest (pointer, "", measurement_hash_type);
 				break;
 
 			case CFM_MEASUREMENT:
-				offset = visualize_cfm_measurement (pointer, "");
+				offset = visualize_cfm_measurement (pointer, "", measurement_hash_type);
 				break;
 
 			case CFM_MEASUREMENT_DATA:
@@ -1288,11 +1281,11 @@ int32_t visualize_cfm (uint8_t *start)
 				break;
 
 			case CFM_ROOT_CA:
-				offset = visualize_cfm_root_ca_digests (pointer, "");
+				offset = visualize_cfm_root_ca_digests (pointer, "", measurement_hash_type);
 				break;
 
 			case CFM_PMR:
-				offset = visualize_cfm_pmr (pointer, "");
+				offset = visualize_cfm_pmr (pointer, "", measurement_hash_type);
 				break;
 
 			default:
@@ -1327,18 +1320,23 @@ int32_t visualize_pcd (uint8_t *start)
 			case PCD_ROT:
 				offset = visualize_pcd_rot_element (pointer, "");
 				break;
+
 			case PCD_SPI_FLASH_PORT:
 				offset = visualize_pcd_port_element (pointer, "");
 				break;
+
 			case PCD_POWER_CONTROLLER:
 				offset = visualize_pcd_power_controller_element (pointer, "");
 				break;
+
 			case PCD_COMPONENT_DIRECT:
 				offset = visualize_pcd_direct_i2c_component_element (pointer, "");
 				break;
+
 			case PCD_COMPONENT_MCTP_BRIDGE:
 				offset = visualize_pcd_mctp_bridge_component_element (pointer, "");
 				break;
+
 			default:
 				offset = visualize_common_element (element_types[i], pointer, "");
 				break;
@@ -1402,15 +1400,19 @@ int main (int argc, char** argv)
 		case PFM_MAGIC_NUM:
 			offset = visualize_pfm_v1 (manifest + sizeof (struct manifest_header));
 			break;
+
 		case PFM_V2_MAGIC_NUM:
 			offset = visualize_pfm (manifest + sizeof (struct manifest_header));
 			break;
+
 		case CFM_V2_MAGIC_NUM:
 			offset = visualize_cfm (manifest + sizeof (struct manifest_header));
 			break;
+
 		case PCD_V2_MAGIC_NUM:
 			offset = visualize_pcd (manifest + sizeof (struct manifest_header));
 			break;
+
 		default:
 			goto exit;
 	}

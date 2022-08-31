@@ -19,20 +19,18 @@ from Crypto.PublicKey import RSA
 CFM_CONFIG_FILENAME = "cfm_generator.config"
 
 
-def generate_root_ca_digests (xml_root_ca_digests, hash_engine):
+def generate_root_ca_digests (xml_root_ca_digests, hash_engine, measurement_hash_type):
     """
     Create a buffer of a Root CA digest struct instance from parsed XML list
 
     :param xml_root_ca_digests: List of parsed XML of root CA digests to be included in CFM
     :param hash_engine: Hashing engine
+    :param measurement_hash_type: Hash type for Root CA digests
 
     :return Root CA digests buffer, Root CA digests TOC entry, Root CA digests hash
     """
 
-    hash_type = manifest_common.get_key_from_dict (xml_root_ca_digests, "hash_type",
-        "Root CA Digests")
-
-    digest_len = manifest_common.get_hash_len (hash_type)
+    digest_len = manifest_common.get_hash_len (measurement_hash_type)
     num_digests = len (xml_root_ca_digests["allowable_digests"])
     digests_buf = (ctypes.c_ubyte * (digest_len * num_digests)) ()
     digests_len = 0
@@ -48,13 +46,11 @@ def generate_root_ca_digests (xml_root_ca_digests, hash_engine):
 
     class cfm_root_ca_digest_element (ctypes.LittleEndianStructure):
         _pack_ = 1
-        _fields_ = [('reserved', ctypes.c_ubyte, 5),
-                    ('hash_type', ctypes.c_ubyte, 3),
-                    ('ca_count', ctypes.c_ubyte),
-                    ('reserved2', ctypes.c_uint16),
+        _fields_ = [('ca_count', ctypes.c_ubyte),
+                    ('reserved', ctypes.c_ubyte * 3),
                     ('digests', ctypes.c_ubyte * digests_len)]
 
-    root_ca_digests = cfm_root_ca_digest_element (0, hash_type, num_digests, 0, digests_buf)
+    root_ca_digests = cfm_root_ca_digest_element (num_digests, (ctypes.c_ubyte * 3) (), digests_buf)
     root_ca_digests_len = ctypes.sizeof (root_ca_digests)
 
     root_ca_digests_toc_entry = manifest_common.manifest_toc_entry (
@@ -65,12 +61,13 @@ def generate_root_ca_digests (xml_root_ca_digests, hash_engine):
 
     return root_ca_digests, root_ca_digests_toc_entry, root_ca_digests_hash
 
-def generate_pmr (xml_pmr, hash_engine):
+def generate_pmr (xml_pmr, hash_engine, measurement_hash_type):
     """
     Create a buffer of PMR section struct instances from parsed XML list
 
     :param xml_pmr: List of parsed XML of PMRs to be included in CFM
     :param hash_engine: Hashing engine
+    :param measurement_hash_type: Hash type for PMR value
 
     :return PMR buffer, list of PMR TOC entries, list of PMR hashes
     """
@@ -79,12 +76,9 @@ def generate_pmr (xml_pmr, hash_engine):
     pmrs_toc_list = []
     pmrs_hash_list = []
     pmrs_len = 0
+    digest_len = manifest_common.get_hash_len (measurement_hash_type)
 
     for pmr_id, pmr_dict in xml_pmr.items ():
-        pmr_hash_type = manifest_common.get_key_from_dict (pmr_dict, "hash_type","PMR")
-
-        digest_len = manifest_common.get_hash_len (pmr_hash_type)
-
         if len (pmr_dict["initial_value"]) != digest_len:
             raise ValueError ("Initial value of PMR '{0}' has unexpected length {1} vs {2}".format (
                 pmr_id, len (pmr_dict["initial_value"]), digest_len))
@@ -95,12 +89,10 @@ def generate_pmr (xml_pmr, hash_engine):
         class cfm_pmr_element (ctypes.LittleEndianStructure):
             _pack_ = 1
             _fields_ = [('pmr_id', ctypes.c_ubyte),
-                        ('reserved', ctypes.c_ubyte, 5),
-                        ('hash_type', ctypes.c_ubyte, 3),
-                        ('reserved2', ctypes.c_uint16),
+                        ('reserved', ctypes.c_ubyte * 3),
                         ('initial_value', ctypes.c_ubyte * digest_len)]
 
-        pmr = cfm_pmr_element (pmr_id, 0, pmr_hash_type, 0, initial_value_arr)
+        pmr = cfm_pmr_element (pmr_id, (ctypes.c_ubyte * 3) (), initial_value_arr)
         pmr_len = ctypes.sizeof (pmr)
 
         pmr_toc_entry = manifest_common.manifest_toc_entry (
@@ -120,12 +112,13 @@ def generate_pmr (xml_pmr, hash_engine):
 
     return pmrs_buf, pmrs_toc_list, pmrs_hash_list
 
-def generate_pmr_digests (xml_pmr_digests, hash_engine):
+def generate_pmr_digests (xml_pmr_digests, hash_engine, measurement_hash_type):
     """
     Create a buffer of PMR digests section struct instances from parsed XML list
 
     :param xml_pmr_digests: List of parsed XML of PMR digests to be included in CFM
     :param hash_engine: Hashing engine
+    :param measurement_hash_type: Hash type for PMR digests
 
     :return PMR digests buffer, number of PMR digests, list of PMR digests TOC entries,
         list of PMR digests hashes
@@ -135,12 +128,9 @@ def generate_pmr_digests (xml_pmr_digests, hash_engine):
     pmr_digests_toc_list = []
     pmr_digests_hash_list = []
     pmr_digests_len = 0
+    digest_len = manifest_common.get_hash_len (measurement_hash_type)
 
     for pmr_id, pmr_digest_dict in xml_pmr_digests.items ():
-        pmr_hash_type = manifest_common.get_key_from_dict (pmr_digest_dict, "hash_type",
-            "PMR Digests")
-
-        digest_len = manifest_common.get_hash_len (pmr_hash_type)
         num_digests = len (pmr_digest_dict["allowable_digests"])
         digests_buf = (ctypes.c_ubyte * (digest_len * num_digests)) ()
         digests_len = 0
@@ -148,7 +138,7 @@ def generate_pmr_digests (xml_pmr_digests, hash_engine):
         for digest in pmr_digest_dict["allowable_digests"]:
             if len (digest) != digest_len:
                 raise ValueError ("Hash of type '{0}' has unexpected length {1} vs {2}".format (
-                    pmr_hash_type, len (digest), digest_len))
+                    measurement_hash_type, len (digest), digest_len))
 
             digest_arr = (ctypes.c_ubyte * digest_len).from_buffer_copy (digest)
             ctypes.memmove (ctypes.addressof (digests_buf) + digests_len, digest_arr, digest_len)
@@ -157,13 +147,11 @@ def generate_pmr_digests (xml_pmr_digests, hash_engine):
         class cfm_pmr_digest_element (ctypes.LittleEndianStructure):
             _pack_ = 1
             _fields_ = [('pmr_id', ctypes.c_ubyte),
-                        ('reserved', ctypes.c_ubyte, 5),
-                        ('pmr_hash_type', ctypes.c_ubyte, 3),
                         ('num_digests', ctypes.c_ubyte),
-                        ('reserved2', ctypes.c_ubyte),
+                        ('reserved', ctypes.c_uint16),
                         ('digests', ctypes.c_ubyte * digests_len)]
 
-        pmr_digest = cfm_pmr_digest_element (pmr_id, 0, pmr_hash_type, num_digests, 0, digests_buf)
+        pmr_digest = cfm_pmr_digest_element (pmr_id, num_digests, 0, digests_buf)
         pmr_digest_len = ctypes.sizeof (pmr_digest)
 
         pmr_digest_toc_entry = manifest_common.manifest_toc_entry (
@@ -183,12 +171,13 @@ def generate_pmr_digests (xml_pmr_digests, hash_engine):
 
     return pmr_digests_buf, len (xml_pmr_digests), pmr_digests_toc_list, pmr_digests_hash_list
 
-def generate_measurements (xml_measurements, hash_engine):
+def generate_measurements (xml_measurements, hash_engine, measurement_hash_type):
     """
     Create a buffer of measurements section struct instances from parsed XML list
 
     :param xml_measurements: List of parsed XML of measurements to be included in CFM
     :param hash_engine: Hashing engine
+    :param measurement_hash_type: Hash type for measurement digests
 
     :return measurements buffer, number of measurements, list of measurements TOC entries,
         list of measurements hashes
@@ -198,13 +187,10 @@ def generate_measurements (xml_measurements, hash_engine):
     measurements_toc_list = []
     measurements_hash_list = []
     measurements_len = 0
+    digest_len = manifest_common.get_hash_len (measurement_hash_type)
 
     for pmr_id, measurement_entries_dict in xml_measurements.items ():
         for measurement_id, measurements_dict in measurement_entries_dict.items ():
-            measurements_hash_type = manifest_common.get_key_from_dict (measurements_dict,
-                "hash_type", "Measurements")
-
-            digest_len = manifest_common.get_hash_len (measurements_hash_type)
             num_digests = len (measurements_dict["allowable_digests"])
             digests_buf = (ctypes.c_ubyte * (digest_len * num_digests)) ()
             digests_len = 0
@@ -212,23 +198,23 @@ def generate_measurements (xml_measurements, hash_engine):
             for digest in measurements_dict["allowable_digests"]:
                 if len (digest) != digest_len:
                     raise ValueError ("Hash of type '{0}' has unexpected length {1} vs {2}".format (
-                        measurements_hash_type, len (digest), digest_len))
+                        measurement_hash_type, len (digest), digest_len))
 
                 digest_arr = (ctypes.c_ubyte * digest_len).from_buffer_copy (digest)
-                ctypes.memmove (ctypes.addressof (digests_buf) + digests_len, digest_arr, digest_len)
+                ctypes.memmove (ctypes.addressof (digests_buf) + digests_len, digest_arr,
+                    digest_len)
                 digests_len += digest_len
 
             class cfm_measurement_element (ctypes.LittleEndianStructure):
                 _pack_ = 1
                 _fields_ = [('pmr_id', ctypes.c_ubyte),
                             ('measurement_id', ctypes.c_ubyte),
-                            ('reserved', ctypes.c_ubyte, 5),
-                            ('measurement_hash_type', ctypes.c_ubyte, 3),
                             ('digest_count', ctypes.c_ubyte),
+                            ('reserved', ctypes.c_ubyte),
                             ('digests', ctypes.c_ubyte * digests_len)]
 
-            measurement = cfm_measurement_element (pmr_id, measurement_id, 0,
-                measurements_hash_type, num_digests, digests_buf)
+            measurement = cfm_measurement_element (pmr_id, measurement_id, num_digests, 0,
+                digests_buf)
             measurement_len = ctypes.sizeof (measurement)
 
             measurement_toc_entry = manifest_common.manifest_toc_entry (
@@ -293,6 +279,9 @@ def generate_measurement_data (xml_measurement_data, hash_engine):
 
                 check = manifest_common.get_key_from_dict (group, "check", "Measurement Data")
 
+                endianness = manifest_common.get_key_from_dict (group, "endianness",
+                    "Measurement Data")
+
                 if "bitmask" in group:
                     bitmask_len = data_len
                     bitmask_padding, bitmask_padding_len = \
@@ -302,8 +291,9 @@ def generate_measurement_data (xml_measurement_data, hash_engine):
 
                     class cfm_allowable_data_element (ctypes.LittleEndianStructure):
                         _pack_ = 1
-                        _fields_ = [('reserved', ctypes.c_uint8, 7),
+                        _fields_ = [('reserved', ctypes.c_uint8, 6),
                                     ('bitmask_presence', ctypes.c_uint8, 1),
+                                    ('endianness', ctypes.c_uint8, 1),
                                     ('check', ctypes.c_uint8),
                                     ('num_data', ctypes.c_uint8),
                                     ('data_len', ctypes.c_uint16),
@@ -313,13 +303,15 @@ def generate_measurement_data (xml_measurement_data, hash_engine):
                                     ('data', ctypes.c_ubyte * data_buf_len),
                                     ('data_padding', ctypes.c_ubyte * data_padding_len)]
 
-                    allowable_data = cfm_allowable_data_element (0, 1, check, num_data, data_len,
-                        reserved_buf, bitmask_arr, bitmask_padding, data_buf, data_padding)
+                    allowable_data = cfm_allowable_data_element (0, 1, endianness, check, num_data,
+                        data_len, reserved_buf, bitmask_arr, bitmask_padding, data_buf,
+                        data_padding)
                 else:
                     class cfm_allowable_data_element (ctypes.LittleEndianStructure):
                         _pack_ = 1
-                        _fields_ = [('reserved', ctypes.c_uint8, 7),
+                        _fields_ = [('reserved', ctypes.c_uint8, 6),
                                     ('bitmask_presence', ctypes.c_uint8, 1),
+                                    ('endianness', ctypes.c_uint8, 1),
                                     ('check', ctypes.c_uint8),
                                     ('num_data', ctypes.c_uint8),
                                     ('data_len', ctypes.c_uint16),
@@ -327,8 +319,8 @@ def generate_measurement_data (xml_measurement_data, hash_engine):
                                     ('data', ctypes.c_ubyte * data_buf_len),
                                     ('data_padding', ctypes.c_ubyte * data_padding_len)]
 
-                    allowable_data = cfm_allowable_data_element (0, 0, check, num_data, data_len,
-                        reserved_buf, data_buf, data_padding)
+                    allowable_data = cfm_allowable_data_element (0, 0, endianness, check, num_data,
+                        data_len, reserved_buf, data_buf, data_padding)
 
                 allowable_data_len = ctypes.sizeof (allowable_data)
                 measurement_data_buf_len += allowable_data_len
@@ -529,7 +521,7 @@ def generate_allowable_pcd (xml_list, hash_engine):
 
 def generate_comp_device (comp_device_type, num_pmr_digests, num_measurement, num_measurement_data,
     num_allowable_pfm, num_allowable_cfm, num_allowable_pcd, cert_slot, attestation_protocol,
-    hash_engine):
+    hash_engine, transcript_hash_type, measurement_hash_type):
     """
     Create a component device object from parsed XML list
 
@@ -543,6 +535,8 @@ def generate_comp_device (comp_device_type, num_pmr_digests, num_measurement, nu
     :param cert_slot: The certificate slot to utilize during attestation for this component device
     :param attestation_protocol: The attestation protocol this component device supports
     :param hash_engine: Hashing engine
+    :param transcript_hash_type: Hash type used for SPDM transcript hashing.
+    :param measurement_hash_type: Hash type used to generate measurement, PMR, and root CA digests.
 
     :return Instance of a comp_device object, comp_device's TOC entry, hash of comp_device object
     """
@@ -553,23 +547,23 @@ def generate_comp_device (comp_device_type, num_pmr_digests, num_measurement, nu
             "Component '{0}' has no PMR digests, measurement, measurement data or manifest ID tags".format (
                 comp_device_type))
 
-    type_len = len (comp_device_type)
-
-    manifest_common.check_maximum (type_len, 255, "Component type {0} length".format (
-        comp_device_type))
-    padding, padding_len = manifest_common.generate_4byte_padding_buf (type_len)
+    component_id = component_map.get (comp_device_type)
+    if component_id is None:
+        component_id = manifest_common.add_component_mapping (comp_device_type,
+            component_map_file)
 
     class cfm_comp_device_element (ctypes.LittleEndianStructure):
         _pack_ = 1
         _fields_ = [('cert_slot', ctypes.c_ubyte),
                     ('attestation_protocol', ctypes.c_ubyte),
-                    ('reserved', ctypes.c_ubyte),
-                    ('type_len', ctypes.c_ubyte),
-                    ('type', ctypes.c_char * type_len),
-                    ('type_padding', ctypes.c_ubyte * padding_len)]
+                    ('transcript_hash_type', ctypes.c_ubyte, 3),
+                    ('measurement_hash_type', ctypes.c_ubyte, 3),
+                    ('reserved', ctypes.c_ubyte, 2),
+                    ('reserved2', ctypes.c_ubyte),
+                    ('component_id', ctypes.c_int32)]
 
-    comp_device = cfm_comp_device_element (cert_slot, attestation_protocol, 0, type_len,
-        comp_device_type.encode ('utf-8'), padding)
+    comp_device = cfm_comp_device_element (cert_slot, attestation_protocol, transcript_hash_type,
+        measurement_hash_type, 0, 0, int (component_id))
     comp_device_len = ctypes.sizeof (comp_device)
 
     comp_device_toc_entry = manifest_common.manifest_toc_entry (
@@ -590,7 +584,7 @@ parser.add_argument ('config', nargs = '?', default = default_config,
 args = parser.parse_args ()
 
 processed_xml, sign, key_size, key, key_type, hash_type, cfm_id, output, xml_version, empty, \
-    max_num_rw_sections, selection_list = \
+    max_num_rw_sections, selection_list, component_map, component_map_file = \
         manifest_common.load_xmls (args.config, None, manifest_types.CFM)
 
 hash_engine = manifest_common.get_hash_engine (hash_type)
@@ -631,7 +625,8 @@ if not empty:
 
         if "root_ca_digests" in component_dict:
             root_ca_digests, root_ca_digests_toc_entry, root_ca_digests_hash = \
-                generate_root_ca_digests (component_dict["root_ca_digests"], hash_engine)
+                generate_root_ca_digests (component_dict["root_ca_digests"], hash_engine,
+                    component_dict["measurement_hash_type"])
 
             cfm_len += ctypes.sizeof (root_ca_digests)
             component_elements_list.append (root_ca_digests)
@@ -639,7 +634,8 @@ if not empty:
             component_hash_list.append (root_ca_digests_hash)
 
         if "pmr" in component_dict:
-            pmr, pmr_toc_list, pmr_hash_list = generate_pmr (component_dict["pmr"], hash_engine)
+            pmr, pmr_toc_list, pmr_hash_list = generate_pmr (component_dict["pmr"], hash_engine,
+                component_dict["measurement_hash_type"])
 
             cfm_len += ctypes.sizeof (pmr)
             component_elements_list.append (pmr)
@@ -648,7 +644,8 @@ if not empty:
 
         if "pmr_digests" in component_dict:
             pmr_digests, num_pmr_digests, pmr_digests_toc_list, pmr_digests_hash_list = \
-                generate_pmr_digests (component_dict["pmr_digests"], hash_engine)
+                generate_pmr_digests (component_dict["pmr_digests"], hash_engine,
+                    component_dict["measurement_hash_type"])
 
             cfm_len += ctypes.sizeof (pmr_digests)
             component_elements_list.append (pmr_digests)
@@ -657,7 +654,8 @@ if not empty:
 
         if "measurements" in component_dict:
             measurements, num_measurements, measurements_toc_list, measurements_hash_list = \
-                generate_measurements (component_dict["measurements"], hash_engine)
+                generate_measurements (component_dict["measurements"], hash_engine,
+                    component_dict["measurement_hash_type"])
 
             cfm_len += ctypes.sizeof (measurements)
             component_elements_list.append (measurements)
@@ -706,7 +704,8 @@ if not empty:
         comp_device, comp_device_toc_entry, comp_device_hash = generate_comp_device (component_type,
             num_pmr_digests, num_measurements, num_measurement_data, num_allowable_pfm,
             num_allowable_cfm, num_allowable_pcd, component_dict["slot_num"],
-            component_dict["attestation_protocol"], hash_engine)
+            component_dict["attestation_protocol"], hash_engine,
+            component_dict["transcript_hash_type"], component_dict["measurement_hash_type"])
 
         cfm_len += ctypes.sizeof (comp_device)
         elements_list.append (comp_device)

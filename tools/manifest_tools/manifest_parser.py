@@ -12,20 +12,30 @@ import xml.etree.ElementTree as et
 import manifest_types
 
 
+XML_ATTESTATION_FAIL_RETRY_ATTRIB = "attestation_fail_retry"
 XML_ATTESTATION_PROTOCOL_ATTRIB = "attestation_protocol"
+XML_ATTESTATION_SUCCESS_RETRY_ATTRIB = "attestation_success_retry"
+XML_ATTESTATION_RSP_NOT_READY_MAX_RETRY_ATTRIB = "attestation_rsp_not_ready_max_retry"
+XML_ATTESTATION_RSP_NOT_READY_MAX_DURATION_ATTRIB = "attestation_rsp_not_ready_max_duration"
 XML_CONNECTION_ATTRIB = "connection"
 XML_COUNT_ATTRIB = "count"
+XML_DISCOVERY_FAIL_RETRY_ATTRIB = "discovery_fail_retry"
 XML_EMPTY_ATTRIB = "empty"
 XML_ENTRY_ID_ATTRIB = "entry_id"
 XML_ID_ATTRIB = "id"
 XML_INDEX_ATTRIB = "index"
 XML_MEASUREMENT_ID_ATTRIB = "measurement_id"
 XML_LEVEL_ATTRIB = "level"
+XML_MCTP_BRIDGE_ADDITIONAL_TIMEOUT_ATTRIB= "mctp_bridge_additional_timeout"
+XML_MCTP_BRIDGE_GET_TABLE_WAIT_ATTRIB = "mctp_bridge_get_table_wait"
+XML_MCTP_CTRL_TIMEOUT_ATTRIB = "mctp_ctrl_timeout"
+XML_MEASUREMENT_HASH_TYPE_ATTRIB = "measurement_hash_type"
 XML_PLATFORM_ATTRIB = "platform"
 XML_PMR_ID_ATTRIB = "pmr_id"
 XML_PORT_ATTRIB = "port"
 XML_SKU_ATTRIB = "sku"
 XML_SLOT_NUM_ATTRIB = "slot_num"
+XML_TRANSCRIPT_HASH_TYPE_ATTRIB = "transcript_hash_type"
 XML_TYPE_ATTRIB = "type"
 XML_VERSION_ATTRIB = "version"
 
@@ -50,11 +60,13 @@ XML_DEVICETYPE_TAG = "DeviceType"
 XML_DIGEST_TAG = "Digest"
 XML_EID_TAG = "EID"
 XML_END_ADDR_TAG = "EndAddr"
+XML_ENDIANNESS_TAG = "Endianness"
 XML_FAILURE_ACTION_TAG = "FailureAction"
 XML_FW_TAG = "Firmware"
 XML_FLASHMODE_TAG = "FlashMode"
 XML_HASH_TAG = "Hash"
 XML_HASH_TYPE_TAG = "HashType"
+XML_HOSTRESETACTION_TAG = "HostResetAction"
 XML_I2CMODE_TAG = "I2CMode"
 XML_ID_TAG = "ID"
 XML_INITIAL_VALUE_TAG = "InitialValue"
@@ -103,6 +115,8 @@ PCD_FLASH_MODE_SINGLE = "Single"
 PCD_FLASH_MODE_DUAL = "Dual"
 PCD_FLASH_MODE_SINGLE_FILTERED_BYPASS = "SingleFilteredBypass"
 PCD_FLASH_MODE_DUAL_FILTERED_BYPASS = "DualFilteredBypass"
+PCD_HOST_RESET_ACTION_NONE = "None"
+PCD_HOST_RESET_ACTION_RESET_FLASH = "ResetFlash"
 PCD_RESET_CTRL_NOTIFY = "Notify"
 PCD_RESET_CTRL_RESET = "Reset"
 PCD_RESET_CTRL_PULSE = "Pulse"
@@ -122,6 +136,8 @@ CFM_CHECK_LESS_THAN = "LessThan"
 CFM_CHECK_LESS_OR_EQUAL = "LessOrEqual"
 CFM_CHECK_GREATER_THAN = "GreaterThan"
 CFM_CHECK_GREATER_OR_EQUAL = "GreaterOrEqual"
+CFM_ENDIANNESS_BIG_ENDIAN = "BigEndian"
+CFM_ENDIANNESS_LITTLE_ENDIAN = "LittleEndian"
 
 
 def xml_extract_attrib (root, attrib_name, string, xml_file, required=True):
@@ -384,26 +400,34 @@ def process_cfm (root, xml_file, selection_list):
 
     component["slot_num"] = int (xml_extract_attrib (root, XML_SLOT_NUM_ATTRIB, False, xml_file))
 
+    result = xml_extract_attrib (root, XML_TRANSCRIPT_HASH_TYPE_ATTRIB, True, xml_file)
+    if result == "SHA256":
+        component["transcript_hash_type"] = 0
+    elif result == "SHA384":
+        component["transcript_hash_type"] = 1
+    elif result == "SHA512":
+        component["transcript_hash_type"] = 2
+    else:
+        raise ValueError ("Component {0} has unknown transcript hash type '{1}' in {2}".format (
+            component_type, result, xml_file))
+
+    result = xml_extract_attrib (root, XML_MEASUREMENT_HASH_TYPE_ATTRIB, True, xml_file)
+    if result == "SHA256":
+        component["measurement_hash_type"] = 0
+    elif result == "SHA384":
+        component["measurement_hash_type"] = 1
+    elif result == "SHA512":
+        component["measurement_hash_type"] = 2
+    else:
+        raise ValueError ("Component {0} has unknown measurement hash type '{1}' in {2}".format (
+            component_type, result, xml_file))
+
     for root_ca_digests in root.findall (XML_ROOT_CA_DIGEST_TAG):
         if "root_ca_digests" in component:
             raise ValueError ("Component {0} has multiple root CA digest entries in {1}".format (
                 component_type, xml_file))
 
         component["root_ca_digests"] = {}
-
-        result = xml_extract_single_value (root_ca_digests, {"hash_type": XML_HASH_TYPE_TAG},
-            xml_file)
-
-        if result["hash_type"] is None or result["hash_type"] == "SHA256":
-            component["root_ca_digests"]["hash_type"] = 0
-        elif result["hash_type"] == "SHA384":
-            component["root_ca_digests"]["hash_type"] = 1
-        elif result["hash_type"] == "SHA512":
-            component["root_ca_digests"]["hash_type"] = 2
-        else:
-            raise ValueError ("Unknown hash type '{0}' in root CA digests".format (
-                result["hash_type"]))
-
         component["root_ca_digests"]["allowable_digests"] = []
 
         for allowable_digest in root_ca_digests.findall (XML_DIGEST_TAG):
@@ -422,20 +446,7 @@ def process_cfm (root, xml_file, selection_list):
                     pmr_id, component_type, xml_file))
 
         component["pmr"][pmr_id] = xml_extract_single_value (pmr,
-            {"hash_type": XML_HASH_TYPE_TAG, "initial_value": XML_INITIAL_VALUE_TAG}, xml_file)
-
-        if component["pmr"][pmr_id]["hash_type"] is None or \
-        component["pmr"][pmr_id]["hash_type"] == "SHA256":
-            component["pmr"][pmr_id]["hash_type"] = 0
-        elif component["pmr"][pmr_id]["hash_type"] == "SHA384":
-            component["pmr"][pmr_id]["hash_type"] = 1
-        elif component["pmr"][pmr_id]["hash_type"] == "SHA512":
-            component["pmr"][pmr_id]["hash_type"] = 2
-        else:
-            raise ValueError (
-                "Unknown hash type '{0}' in PMR ID {1} for component {2} in manifest {3}".format (
-                    component["pmr"][pmr_id]["hash_type"], pmr_id), pmr_id, component_type,
-                    xml_file)
+            {"initial_value": XML_INITIAL_VALUE_TAG}, xml_file)
 
         component["pmr"][pmr_id]["initial_value"] = binascii.a2b_hex (
             re.sub ("\s", "", component["pmr"][pmr_id]["initial_value"]))
@@ -452,18 +463,6 @@ def process_cfm (root, xml_file, selection_list):
                     pmr_id, component_type, xml_file))
 
         component["pmr_digests"][pmr_id] = {}
-
-        result = xml_extract_single_value (pmr_digest, {"hash_type": XML_HASH_TYPE_TAG}, xml_file)
-
-        if result["hash_type"] is None or result["hash_type"] == "SHA256":
-            component["pmr_digests"][pmr_id]["hash_type"] = 0
-        elif result["hash_type"] == "SHA384":
-            component["pmr_digests"][pmr_id]["hash_type"] = 1
-        elif result["hash_type"] == "SHA512":
-            component["pmr_digests"][pmr_id]["hash_type"] = 2
-        else:
-            raise ValueError ("Unknown hash type '{0}' in PMR digest".format (result["hash_type"]))
-
         component["pmr_digests"][pmr_id]["allowable_digests"] = []
 
         for allowable_digest in pmr_digest.findall (XML_DIGEST_TAG):
@@ -487,19 +486,6 @@ def process_cfm (root, xml_file, selection_list):
             component["measurements"][pmr_id] = {}
 
         component["measurements"][pmr_id][measurement_id] = {}
-
-        result = xml_extract_single_value (measurement, {"hash_type": XML_HASH_TYPE_TAG}, xml_file)
-
-        if result["hash_type"] is None or result["hash_type"] == "SHA256":
-            component["measurements"][pmr_id][measurement_id]["hash_type"] = 0
-        elif result["hash_type"] == "SHA384":
-            component["measurements"][pmr_id][measurement_id]["hash_type"] = 1
-        elif result["hash_type"] == "SHA512":
-            component["measurements"][pmr_id][measurement_id]["hash_type"] = 2
-        else:
-            raise ValueError ("Unknown hash type '{0}' in signed image".format (
-                result["hash_type"]))
-
         component["measurements"][pmr_id][measurement_id]["allowable_digests"] = []
 
         for allowable_digest in measurement.findall (XML_DIGEST_TAG):
@@ -538,6 +524,17 @@ def process_cfm (root, xml_file, selection_list):
             check = process_cfm_check (allowable_data, "data", component_type, xml_file)
             data_dict["check"] = check
 
+            endianness_tag = xml_extract_single_value (allowable_data,
+                {"endianness": XML_ENDIANNESS_TAG}, xml_file)
+            if endianness_tag["endianness"] == CFM_ENDIANNESS_LITTLE_ENDIAN:
+                data_dict["endianness"] = 0
+            elif endianness_tag["endianness"] == CFM_ENDIANNESS_BIG_ENDIAN:
+                data_dict["endianness"] = 1
+            else:
+                raise ValueError (
+                    "Unknown endianness '{0}' in allowable data for component {1} in manifest {2}".format (
+                        endianness_tag["endianness"], component_type, xml_file))
+
             for data in allowable_data.findall (XML_DATA_TAG):
                 data_text = data.text.strip ()
                 if data_text[0] == '"' and data_text[-1] == '"':
@@ -552,7 +549,7 @@ def process_cfm (root, xml_file, selection_list):
                     if len (data_text) != data_len:
                         raise ValueError (
                             "Data {0} has different length than other data for component {1} in manifest {2}: {3} vs {4}".format (
-                            data_text, component_type, xml_file, len (data_text), data_len))
+                                data_text, component_type, xml_file, len (data_text), data_len))
                 else:
                     component["measurement_data"][pmr_id][measurement_id]["data_len"] = \
                         len (data_text)
@@ -642,6 +639,12 @@ def process_pcd (root, xml_file):
 
     xml["rot"].update ({"type":result})
 
+    result = xml_extract_attrib (rot, XML_MCTP_CTRL_TIMEOUT_ATTRIB, False, xml_file)
+    xml["rot"].update ({"mctp_ctrl_timeout":int (result)})
+
+    result = xml_extract_attrib (rot, XML_MCTP_BRIDGE_GET_TABLE_WAIT_ATTRIB, False, xml_file)
+    xml["rot"].update ({"mctp_bridge_get_table_wait":int (result)})
+
     ports = xml_find_single_tag (rot, XML_PORTS_TAG, xml_file, False)
     if ports is not None:
         xml["rot"]["ports"] = {}
@@ -654,7 +657,8 @@ def process_pcd (root, xml_file):
                 "flash_mode": XML_FLASHMODE_TAG, "reset_ctrl": XML_RESETCTRL_TAG,
                 "policy": XML_POLICY_TAG, "pulse_interval": XML_PULSEINTERVAL_TAG,
                 "runtime_verification": XML_RUNTIMEVERIFICATION_TAG,
-                "watchdog_monitoring": XML_WATCHDOGMONITORING_TAG}, xml_file)
+                "watchdog_monitoring": XML_WATCHDOGMONITORING_TAG,
+                "host_reset_action": XML_HOSTRESETACTION_TAG}, xml_file)
 
             if result["flash_mode"] == PCD_FLASH_MODE_DUAL:
                 result["flash_mode"] = 0
@@ -700,6 +704,14 @@ def process_pcd (root, xml_file):
             else:
                 raise ValueError ("Unknown port {0} watchdog monitoring setting: {1}".format (
                     port_id, result["watchdog_monitoring"]))
+
+            if result["host_reset_action"] == PCD_HOST_RESET_ACTION_NONE:
+                result["host_reset_action"] = 0
+            elif result["host_reset_action"] == PCD_HOST_RESET_ACTION_RESET_FLASH:
+                result["host_reset_action"] = 1
+            else:
+                raise ValueError ("Unknown port {0} host reset action: {1}".format (port_id,
+                    result["host_reset_action"]))
 
             xml["rot"]["ports"].update ({port_id:result})
 
@@ -776,13 +788,29 @@ def process_pcd (root, xml_file):
 
     components = xml_find_single_tag (root, XML_COMPONENTS_TAG, xml_file, False)
     if components is not None:
-        xml = []
+        xml["components"]= []
 
         for component in components.findall (XML_COMPONENT_TAG):
             curr_component = {}
 
             result = xml_extract_attrib (component, XML_TYPE_ATTRIB, True, xml_file)
             curr_component.update ({"type":result})
+
+            result = xml_extract_attrib (component, XML_ATTESTATION_SUCCESS_RETRY_ATTRIB,
+                False, xml_file)
+            curr_component.update ({"attestation_success_retry":int (result)})
+
+            result = xml_extract_attrib (component, XML_ATTESTATION_FAIL_RETRY_ATTRIB, False,
+                xml_file)
+            curr_component.update ({"attestation_fail_retry":int (result)})
+
+            result = xml_extract_attrib (component,
+                XML_ATTESTATION_RSP_NOT_READY_MAX_DURATION_ATTRIB, False, xml_file)
+            curr_component.update ({"attestation_rsp_not_ready_max_duration":int (result)})
+
+            result = xml_extract_attrib (component, XML_ATTESTATION_RSP_NOT_READY_MAX_RETRY_ATTRIB,
+                False, xml_file)
+            curr_component.update ({"attestation_rsp_not_ready_max_retry":int (result)})
 
             cnxn_type = xml_extract_attrib (component, XML_CONNECTION_ATTRIB, True, xml_file)
             if cnxn_type == PCD_COMPONENT_CONNECTION_DIRECT:
@@ -840,6 +868,14 @@ def process_pcd (root, xml_file):
                 count = xml_extract_attrib (component, XML_COUNT_ATTRIB, False, xml_file)
                 curr_component.update ({"count": int (count)})
 
+                result = xml_extract_attrib (component, XML_DISCOVERY_FAIL_RETRY_ATTRIB, False,
+                    xml_file)
+                curr_component.update ({"discovery_fail_retry":int (result)})
+
+                result = xml_extract_attrib (component, XML_MCTP_BRIDGE_ADDITIONAL_TIMEOUT_ATTRIB,
+                    False, xml_file)
+                curr_component.update ({"mctp_bridge_additional_timeout":int (result)})
+
                 result = xml_extract_single_value (component, {"eid": XML_EID_TAG,
                     "deviceid": XML_DEVICE_ID_TAG, "vendorid": XML_VENDOR_ID_TAG,
                     "subdeviceid": XML_SUB_DEVICE_ID_TAG, "subvendorid": XML_SUB_VENDOR_ID_TAG},
@@ -879,7 +915,7 @@ def process_pcd (root, xml_file):
 
             curr_component["powerctrl"].update (result)
 
-            xml.append (curr_component)
+            xml["components"].append (curr_component)
 
     return xml, manifest_types.VERSION_2, False
 

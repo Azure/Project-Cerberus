@@ -663,7 +663,7 @@ int flash_mock_expect_verify_flash (struct flash_mock *mock, uint32_t start, con
 }
 
 /**
- * Set up expectations for successfully reading chunks of flash for verification.  The flash chucks
+ * Set up expectations for successfully reading chunks of flash for verification.  The flash chunks
  * will optionally be hashed.
  *
  * @param mock The mock for the flash being verified.

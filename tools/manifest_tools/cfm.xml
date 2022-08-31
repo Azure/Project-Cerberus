@@ -2,4 +2,7 @@
     <Component>
         "Component1"
     </Component>
+    <Component>
+	    "Component2"
+    </Component>
 </CFM>

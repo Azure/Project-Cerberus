@@ -1,0 +1,11 @@
+<PCD sku="SKU1" version="0x1A">
+	<RoT type="PA-RoT" mctp_ctrl_timeout="2000"
+		mctp_bridge_get_table_wait="3000">
+		<Interface type="I2C">
+			<Address>0x41</Address>
+			<RoTEID>0x0b</RoTEID>
+			<BridgeEID>0x0a</BridgeEID>
+			<BridgeAddress>0x10</BridgeAddress>
+		</Interface>
+	</RoT>
+</PCD>

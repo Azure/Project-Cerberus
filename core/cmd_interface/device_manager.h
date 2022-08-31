@@ -174,7 +174,7 @@ struct device_manager_entry {
 	struct device_manager_full_capabilities capabilities;		/**< Device capabilities */
 	struct device_manager_key alias_key;						/**< Container with device alias key */
 	platform_clock attestation_timeout;							/**< Clock tracking when device should be attested */
-	uint8_t component_type[SHA256_HASH_LENGTH];					/**< Digest of component type key in PCD and CFM */
+	uint32_t component_id;										/**< Component ID in PCD and CFM */
 	uint8_t cert_chain_digest[HASH_MAX_HASH_LEN];				/**< Device certificate chain digest */
 	enum device_manager_device_state state;						/**< Device state */
 	size_t hash_len;											/**< Length of certificate chain hash */
@@ -234,7 +234,7 @@ int device_manager_update_not_attestable_device_entry (struct device_manager *mg
 	uint8_t eid, uint8_t smbus_addr, uint8_t pcd_component_index);
 int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, int device_num,
 	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id,
-	uint8_t components_count, uint8_t *component_type, uint8_t pcd_component_index);
+	uint8_t components_count, uint32_t component_id, uint8_t pcd_component_index);
 
 int device_manager_get_device_capabilities (struct device_manager *mgr, int device_num,
 	struct device_manager_full_capabilities *capabilities);
@@ -280,7 +280,8 @@ int device_manager_get_eid_of_next_device_to_attest (struct device_manager *mgr)
 int device_manager_reset_authenticated_devices (struct device_manager *mgr);
 int device_manager_reset_discovered_devices (struct device_manager *mgr);
 
-const uint8_t* device_manager_get_component_type_digest (struct device_manager *mgr, uint8_t eid);
+int device_manager_get_component_id (struct device_manager *mgr, uint8_t eid,
+	uint32_t *component_id);
 
 int device_manager_get_device_num_by_device_ids (struct device_manager *mgr, uint16_t pci_vid,
 	uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id);

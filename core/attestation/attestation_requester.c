@@ -175,7 +175,7 @@ static int attestation_requester_verify_digest_in_allowable_list (
  *
  * @param attestation Attestation requester instance to utilize.
  * @param active_cfm Active CFM to utilize.
- * @param component_type SHA256 digest of component type of device.
+ * @param component_id The component ID of the device.
  * @param eid EID of device to attest.
  * @param pmr_id ID of PMR to verify.
  *
@@ -183,12 +183,12 @@ static int attestation_requester_verify_digest_in_allowable_list (
  * 	an error code otherwise
  */
 static int attestation_requester_verify_pmr (const struct attestation_requester *attestation,
-	struct cfm *active_cfm, const uint8_t *component_type, uint8_t eid, uint8_t pmr_id)
+	struct cfm *active_cfm, uint32_t component_id, uint8_t eid, uint8_t pmr_id)
 {
 	struct cfm_pmr_digest pmr_digest;
 	int status;
 
-	status = active_cfm->get_component_pmr_digest (active_cfm, component_type, pmr_id, &pmr_digest);
+	status = active_cfm->get_component_pmr_digest (active_cfm, component_id, pmr_id, &pmr_digest);
 	if (status == 0) {
 		status = attestation_requester_verify_digest_in_allowable_list (attestation,
 			&pmr_digest.digests, NULL, attestation->state->txn.measurement_hash_type);
@@ -280,13 +280,13 @@ static int attestation_requester_update_response_hash (
  * @param attestation Attestation requester instance to utilize.
  * @param eid EID of device that sent certificate chain.
  * @param active_cfm Active CFM to utilize.
- * @param component_type SHA256 digest of component type of device.
+ * @param component_id The component ID of the device.
  *
  * @return 0 if completed successfully, or an error code
  */
 static int attestation_requester_verify_and_load_leaf_key (
 	const struct attestation_requester *attestation, uint8_t eid, struct cfm *active_cfm,
-	const uint8_t *component_type)
+	uint32_t component_id)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	struct x509_ca_certs certs_chain;
@@ -327,7 +327,7 @@ static int attestation_requester_verify_and_load_leaf_key (
  	 *		attestation but device's attestation can succeed, useful for testing.
 	 *	3) If CFM has no alternate root CA, but requester has a provisioned root CA, use the
 	 * 		requester's root CA then skip over root CA provided by device. */
-	status = active_cfm->get_root_ca_digest (active_cfm, component_type, &root_ca_digests);
+	status = active_cfm->get_root_ca_digest (active_cfm, component_id, &root_ca_digests);
 	if (status == 0) {
 		status = hash_calculate (attestation->primary_hash, root_ca_digests.digests.hash_type,
 			&attestation->state->txn.cert_buffer[cert_offset], cert_len, digest, sizeof (digest));
@@ -1656,13 +1656,13 @@ void attestation_requester_deinit (const struct attestation_requester *attestati
  * @param eid EID of device to attest.
  * @param device_addr Slave address of device.
  * @param active_cfm Active CFM to utilize.
- * @param component_type SHA256 digest of component type of device.
+ * @param component_id The component ID of the device.
  *
  * @return Completion status, 0 if success or an error code otherwise.
  */
 static int attestation_requester_attest_device_cerberus_protocol (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, const uint8_t *component_type)
+	struct cfm *active_cfm, uint32_t component_id)
 {
 	uint8_t i_cert;	int challenge_rq_len;
 	int status;
@@ -1716,7 +1716,7 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		}
 
 		status = attestation_requester_verify_and_load_leaf_key (attestation, eid, active_cfm,
-			component_type);
+			component_id);
 		if (status != 0) {
 			return status;
 		}
@@ -1749,7 +1749,7 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		goto hash_cancel;
 	}
 
-	status = attestation_requester_verify_pmr (attestation, active_cfm, component_type, eid, 0);
+	status = attestation_requester_verify_pmr (attestation, active_cfm, component_id, eid, 0);
 	if (status == 0) {
 		status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
 			DEVICE_MANAGER_AUTHENTICATED);
@@ -1998,20 +1998,20 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
  * @param eid EID of device being attested.
  * @param device_addr Slave address of device.
  * @param active_cfm Active CFM to utilize.
- * @param component_type SHA256 digest of component type of device.
+ * @param component_id The component ID of the device.
  *
  * @return Completion status, 0 if success, CFM_PMR_DIGEST_NOT_FOUND if no PMR0 digest checking
  * 	defined in CFM for this device, or an error code otherwise
  */
 static int attestation_requester_get_and_verify_all_spdm_measurement_blocks (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, const uint8_t *component_type)
+	struct cfm *active_cfm, uint32_t component_id)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	struct cfm_pmr_digest pmr_digest;
 	int status;
 
-	status = active_cfm->get_component_pmr_digest (active_cfm, component_type, 0, &pmr_digest);
+	status = active_cfm->get_component_pmr_digest (active_cfm, component_id, 0, &pmr_digest);
 	if (status != 0) {
 		return status;
 	}
@@ -2053,21 +2053,21 @@ free_pmr_digest:
  * @param eid EID of device being attested.
  * @param device_addr Slave address of device.
  * @param active_cfm Active CFM to utilize.
- * @param component_type SHA256 digest of component type of device.
+ * @param component_id The component ID of the device.
  *
  * @return Completion status, 0 if success or no measurement entries in CFM, or an error code
  * 	otherwise
  */
 static int attestation_requester_get_and_verify_spdm_measurement_blocks_in_cfm (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, const uint8_t *component_type)
+	struct cfm *active_cfm, uint32_t component_id)
 {
 	struct cfm_measurement measurement;
 	bool first = true;
 	int status = 0;
 
 	while (status == 0) {
-		status = active_cfm->get_next_measurement (active_cfm, component_type, &measurement, first);
+		status = active_cfm->get_next_measurement (active_cfm, component_id, &measurement, first);
 		if (status == 0) {
 			status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
 				device_addr, measurement.measurement_id + 1, false);
@@ -2213,21 +2213,21 @@ static int attestation_requester_verify_data_in_allowable_list (
  * @param eid EID of device being attested.
  * @param device_addr Slave address of device.
  * @param active_cfm Active CFM to utilize.
- * @param component_type SHA256 digest of component type of device.
+ * @param component_id The component ID of the device.
  *
  * @return Completion status, 0 if success or no measurement entries in CFM, or an error code
  * 	otherwise
  */
 static int attestation_requester_get_and_verify_raw_spdm_measurement_blocks_in_cfm (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, const uint8_t *component_type)
+	struct cfm *active_cfm, uint32_t component_id)
 {
 	struct cfm_measurement_data data;
 	bool first = true;
 	int status = 0;
 
 	while (status == 0) {
-		status = active_cfm->get_next_measurement_data (active_cfm, component_type, &data, first);
+		status = active_cfm->get_next_measurement_data (active_cfm, component_id, &data, first);
 		if (status == 0) {
 			status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
 				device_addr, data.measurement_id + 1, true);
@@ -2263,13 +2263,13 @@ static int attestation_requester_get_and_verify_raw_spdm_measurement_blocks_in_c
  * @param eid EID of device to attest.
  * @param device_addr Slave address of device.
  * @param active_cfm Active CFM to utilize.
- * @param component_type SHA256 digest of component type of device.
+ * @param component_id The component ID of the device.
  *
  * @return Completion status, 0 if success or an error code otherwise
  */
 static int attestation_requester_attest_device_spdm (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, const uint8_t *component_type)
+	struct cfm *active_cfm, uint32_t component_id)
 {
 	uint8_t nonce[SPDM_NONCE_LEN];
 	int rq_len;
@@ -2338,7 +2338,7 @@ static int attestation_requester_attest_device_spdm (
 		}
 
 		status = attestation_requester_verify_and_load_leaf_key (attestation, eid, active_cfm,
-			component_type);
+			component_id);
 		if (status != 0) {
 			goto hash_cancel;
 		}
@@ -2374,14 +2374,14 @@ static int attestation_requester_attest_device_spdm (
 			goto hash_cancel;
 		}
 
-		status = attestation_requester_verify_pmr (attestation, active_cfm, component_type, eid, 0);
+		status = attestation_requester_verify_pmr (attestation, active_cfm, component_id, eid, 0);
 		if ((status != 0) && (status != CFM_PMR_DIGEST_NOT_FOUND)) {
 			goto hash_cancel;
 		}
 	}
 	else {
 		status = attestation_requester_get_and_verify_all_spdm_measurement_blocks (attestation, eid,
-			device_addr, active_cfm, component_type);
+			device_addr, active_cfm, component_id);
 		if ((status != 0) && (status != CFM_PMR_DIGEST_NOT_FOUND)) {
 			goto hash_cancel;
 		}
@@ -2391,13 +2391,13 @@ static int attestation_requester_attest_device_spdm (
 	 * all measurement blocks, we dont have to check rest of the attestation rules. */
 	if (status == CFM_PMR_DIGEST_NOT_FOUND) {
 		status = attestation_requester_get_and_verify_spdm_measurement_blocks_in_cfm (attestation,
-			eid, device_addr, active_cfm, component_type);
+			eid, device_addr, active_cfm, component_id);
 		if (status != 0) {
 			goto hash_cancel;
 		}
 
 		status = attestation_requester_get_and_verify_raw_spdm_measurement_blocks_in_cfm (
-			attestation, eid, device_addr, active_cfm, component_type);
+			attestation, eid, device_addr, active_cfm, component_id);
 		if (status != 0) {
 			goto hash_cancel;
 		}
@@ -2429,7 +2429,7 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 {
 	struct cfm_component_device component_device;
 	struct cfm *active_cfm;
-	const uint8_t *component_type;
+	uint32_t component_id;
 	enum cfm_attestation_type attestation_protocol;
 	int device_addr;
 	int status;
@@ -2449,9 +2449,9 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 		return device_addr;
 	}
 
-	component_type = device_manager_get_component_type_digest (attestation->device_mgr, eid);
-	if (component_type == NULL) {
-		return ATTESTATION_COMPONENT_TYPE_NOT_SET;
+	status = device_manager_get_component_id (attestation->device_mgr, eid, &component_id);
+	if (status != 0) {
+		return status;
 	}
 
 	active_cfm = attestation->cfm_manager->get_active_cfm (attestation->cfm_manager);
@@ -2459,7 +2459,7 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 		return ATTESTATION_NO_CFM;
 	}
 
-	status = active_cfm->get_component_device (active_cfm, component_type, &component_device);
+	status = active_cfm->get_component_device (active_cfm, component_id, &component_device);
 	if (status != 0) {
 		goto free_cfm;
 	}
@@ -2484,7 +2484,7 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 #ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
 		case CFM_ATTESTATION_CERBERUS_PROTOCOL:
 			status = attestation_requester_attest_device_cerberus_protocol (attestation, eid,
-				device_addr, active_cfm, component_type);
+				device_addr, active_cfm, component_id);
 
 			break;
 #endif
@@ -2496,7 +2496,7 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 			}
 			else {
 				status = attestation_requester_attest_device_spdm (attestation, eid, device_addr,
-					active_cfm, component_type);
+					active_cfm, component_id);
 			}
 
 			break;

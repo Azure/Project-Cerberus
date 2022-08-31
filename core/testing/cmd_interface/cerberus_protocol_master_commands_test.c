@@ -1514,8 +1514,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	CuAssertIntEquals (test, 0xAABBCCDD, resp->version);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	status = testing_validate_array (types_buf, cerberus_protocol_cfm_component_ids (resp),
-		resp_length);
+	status = testing_validate_array (types_buf,
+		(uint8_t*) cerberus_protocol_cfm_component_ids (resp), resp_length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm_mock);
@@ -1607,8 +1607,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_reg
 	CuAssertIntEquals (test, 0xAABBCCDD, resp->version);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	status = testing_validate_array (types_buf, cerberus_protocol_cfm_component_ids (resp),
-		resp_length);
+	status = testing_validate_array (types_buf,
+		(uint8_t*) cerberus_protocol_cfm_component_ids (resp), resp_length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm_mock);
@@ -1701,7 +1701,7 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_non
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	status = testing_validate_array (&types_buf[offset],
-		cerberus_protocol_cfm_component_ids (resp), resp_length);
+		(uint8_t*) cerberus_protocol_cfm_component_ids (resp), resp_length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm_mock);
@@ -1793,8 +1793,8 @@ void cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_lim
 	CuAssertIntEquals (test, 0xAABBCCDD, resp->version);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
-	status = testing_validate_array (types_buf, cerberus_protocol_cfm_component_ids (resp),
-		resp_length);
+	status = testing_validate_array (types_buf,
+		(uint8_t*) cerberus_protocol_cfm_component_ids (resp), resp_length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_mock_validate_and_release (&cfm_mock);

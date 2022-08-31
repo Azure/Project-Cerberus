@@ -23,6 +23,22 @@ struct pcd_rot_info {
 	uint8_t eid;													/**< MCTP EID */
 	uint8_t bridge_i2c_addr;										/**< MCTP bridge I2C address */
 	uint8_t bridge_eid;												/**< MCTP bridge EID */
+	uint32_t attestation_success_retry;								/**< Wait time before reattesting after device succeeds attestation, in ms. */
+	uint32_t attestation_fail_retry;								/**< Wait time before reattesting after device fails attestation, in ms. */
+	uint32_t discovery_fail_retry;									/**< Wait time before retrying after device fails discovery, in ms. */
+	uint32_t mctp_ctrl_timeout;										/**< MCTP control protocol response timeout period, in ms. */
+	uint32_t mctp_bridge_get_table_wait;							/**< Wait time after RoT boots to send MCTP get table request. If 0, RoT only waits for EID assignment. */
+	uint32_t mctp_bridge_additional_timeout;						/**< Additional time for timeout period due to MCTP bridge. */
+	uint32_t attestation_rsp_not_ready_max_duration;				/**< Maximum duration to wait before retrying after receiving SPDM ResponseNotReady error, in ms. */
+	uint8_t attestation_rsp_not_ready_max_retry;					/**< Maximum number of SPDM ResponseNotReady retries permitted by device. */
+};
+
+/**
+ * Flags for host reset action setting.
+ */
+enum pcd_port_host_reset_action {
+	PCD_PORT_HOST_RESET_ACTION_NONE = 0x0,							/**< No action on host reset. */
+	PCD_PORT_HOST_RESET_ACTION_RESET_FLASH = 0x1,					/**< Reset flash on host reset. */
 };
 
 /**
@@ -72,6 +88,7 @@ struct pcd_port_info {
 	uint8_t policy;													/**< Port attestation policy */
 	enum pcd_port_runtime_verification runtime_verification;		/**< Runtime verification setting */
 	enum pcd_port_watchdog_monitoring watchdog_monitoring;			/**< Watchdog monitoring setting */
+	enum pcd_port_host_reset_action host_reset_action;				/**< Host reset action setting */
 	uint8_t pulse_interval;											/**< Pulse interval in multiples of 10ms */
 };
 
@@ -108,7 +125,7 @@ struct pcd_mux_info {
  */
 struct pcd_mctp_bridge_components_info {
 	void *context;												/**< Implementation context. */
-	uint8_t component_type[SHA256_HASH_LENGTH];					/**< Digest of component type key in PCD and CFM */
+	uint32_t component_id;										/**< Unique identifier for component type connected to bridge */
 	uint16_t pci_vid;											/**< PCI Vendor ID */
 	uint16_t pci_device_id;										/**< PCI Device ID */
 	uint16_t pci_subsystem_vid;									/**< PCI Subsystem Vendor ID */

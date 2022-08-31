@@ -1,6 +1,5 @@
-<CFMComponent type="Component1" attestation_protocol="Cerberus" slot_num="1">
+<CFMComponent type="Component1" attestation_protocol="Cerberus" slot_num="1" transcript_hash_type="SHA384" measurement_hash_type="SHA256">
 	<RootCADigest>
-		<HashType>SHA256</HashType>
 		<Digest>
 			EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 		</Digest>
@@ -9,19 +8,16 @@
 		</Digest>
 	</RootCADigest>
 	<PMR pmr_id="1">
-		<HashType>SHA256</HashType>
 		<InitialValue>
 			1111111111111111111111111111111111111111111111111111111111111111
 		</InitialValue>
 	</PMR>
 	<PMR pmr_id="2">
-		<HashType>SHA512</HashType>
 		<InitialValue>
-			11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
+			2222222222222222222222222222222222222222222222222222222222222222
 		</InitialValue>
 	</PMR>
 	<PMRDigest pmr_id="0">
-		<HashType>SHA256</HashType>
 		<Digest>
 			AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 		</Digest>
@@ -30,28 +26,26 @@
 		</Digest>
 	</PMRDigest>
 	<PMRDigest pmr_id="4">
-		<HashType>SHA512</HashType>
-		<Digest>
-			CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-		</Digest>
-	</PMRDigest>
-	<Measurement pmr_id = "1" measurement_id="2">
-		<HashType>SHA256</HashType>
 		<Digest>
 			CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+		</Digest>
+	</PMRDigest>
+	<Measurement pmr_id="1" measurement_id="2">
+		<Digest>
+			DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 		</Digest>
 		<Digest>
 			EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 		</Digest>
 	</Measurement>
-	<Measurement pmr_id = "2" measurement_id="2">
-		<HashType>SHA256</HashType>
+	<Measurement pmr_id="2" measurement_id="2">
 		<Digest>
 			CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 		</Digest>
 	</Measurement>
 	<MeasurementData pmr_id="1" measurement_id="2">
 		<AllowableData>
+			<Endianness>BigEndian</Endianness>
 			<Check>Equal</Check>
 			<Data>
 				"Test1"
@@ -64,6 +58,7 @@
 			</Bitmask>
 		</AllowableData>
 		<AllowableData>
+			<Endianness>LittleEndian</Endianness>
 			<Check>GreaterThan</Check>
 			<Data>
 				0000220000
@@ -75,6 +70,7 @@
 	</MeasurementData>
 	<MeasurementData pmr_id="1" measurement_id="4">
 		<AllowableData>
+			<Endianness>LittleEndian</Endianness>
 			<Check>NotEqual</Check>
 			<Data>
 				6543
@@ -84,6 +80,7 @@
 			</Bitmask>
 		</AllowableData>
 		<AllowableData>
+			<Endianness>BigEndian</Endianness>
 			<Check>NotEqual</Check>
 			<Data>
 				1011

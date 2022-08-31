@@ -1,28 +1,6 @@
 <PCD sku="SKU1" version="0x1A">
 	<RoT type="PA-RoT" mctp_ctrl_timeout="2000"
 		mctp_bridge_get_table_wait="3000">
-		<Ports>
-			<Port id="0">
-				<SPIFreq>32000000</SPIFreq>
-				<ResetCtrl>Reset</ResetCtrl>
-				<FlashMode>Dual</FlashMode>
-				<Policy>Passive</Policy>
-				<RuntimeVerification>Enabled</RuntimeVerification>
-				<WatchdogMonitoring>Enabled</WatchdogMonitoring>
-				<HostResetAction>ResetFlash</HostResetAction>
-				<PulseInterval>0</PulseInterval>
-			</Port>
-			<Port id="1">
-				<SPIFreq>64000000</SPIFreq>
-				<ResetCtrl>Notify</ResetCtrl>
-				<FlashMode>Single</FlashMode>
-				<Policy>Active</Policy>
-				<RuntimeVerification>Disabled</RuntimeVerification>
-				<WatchdogMonitoring>Disabled</WatchdogMonitoring>
-				<HostResetAction>None</HostResetAction>
-				<PulseInterval>10</PulseInterval>
-			</Port>
-		</Ports>
 		<Interface type="I2C">
 			<Address>0x41</Address>
 			<RoTEID>0x0b</RoTEID>

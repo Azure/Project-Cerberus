@@ -1,0 +1,8 @@
+<CFMComponent type="Component1" attestation_protocol="Cerberus" slot_num="1" transcript_hash_type="SHA256" measurement_hash_type="SHA512">
+	<AllowablePCD platform="platformD">
+		<ManifestID>
+			<Check>LessOrEqual</Check>
+			<ID>0x34</ID>
+		</ManifestID>
+	</AllowablePCD>
+</CFMComponent>

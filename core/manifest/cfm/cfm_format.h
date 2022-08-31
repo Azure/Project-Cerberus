@@ -52,9 +52,11 @@ enum cfm_attestation_protocol {
 struct cfm_component_device_element {
 	uint8_t cert_slot;											/**< Slot number of certificate chain to use for attestation challenges. */
 	uint8_t attestation_protocol;								/**< Protocol to use for attestation requests to the component. */
-	uint8_t reserved;											/**< Reserved. */
-	uint8_t type_len;											/**< Component type length. */
-	uint8_t type[MANIFEST_MAX_STRING];							/**< Component type. */
+	uint8_t transcript_hash_type:3;								/**< Hash type used for SPDM transcript hashing. */
+	uint8_t measurement_hash_type:3;							/**< Hash type used to generate measurement, PMR, and root CA digests. */
+	uint8_t reserved:2;											/**< Reserved. */
+	uint8_t reserved2;											/**< Reserved. */
+	uint32_t component_id;										/**< Component ID that maps to PCD entry. */
 };
 
 /**
@@ -62,10 +64,8 @@ struct cfm_component_device_element {
  */
 struct cfm_pmr_digest_element {
 	uint8_t pmr_id;												/**< PMR ID. */
-	uint8_t reserved:5;											/**< Reserved. */
-	uint8_t pmr_hash_type:3;									/**< PMR hash type. */
 	uint8_t digest_count;										/**< Number of allowable digests for this PMR. */
-	uint8_t reserved2;											/**< Reserved. */
+	uint16_t reserved;											/**< Reserved. */
 };
 
 /**
@@ -74,9 +74,8 @@ struct cfm_pmr_digest_element {
 struct cfm_measurement_element {
 	uint8_t pmr_id;												/**< PMR ID. */
 	uint8_t measurement_id;										/**< PMR entry ID if Cerberus protocol, or measurement block index if SPDM. */
-	uint8_t reserved:5;											/**< Reserved. */
-	uint8_t hash_type:3;										/**< Hash type. */
 	uint8_t digest_count;										/**< Number of allowable digests for this measurement. */
+	uint8_t reserved;											/**< Reserved. */
 };
 
 /**
@@ -92,8 +91,9 @@ struct cfm_measurement_data_element {
  * CFM allowable data element.
  */
 struct cfm_allowable_data_element {
-	uint8_t reserved:7;											/**< Reserved. */
+	uint8_t reserved:6;											/**< Reserved. */
 	uint8_t bitmask_presence:1;									/**< Flag indicating presence of a bitmask. */
+	uint8_t endianness:1;										/**< Endianness of multi-byte data values. */
 	uint8_t check;												/**< Checking method. */
 	uint8_t num_data;											/**< Number of allowable data. */
 	uint16_t data_len;											/**< Length of data to use for comparison. */
@@ -145,10 +145,8 @@ struct cfm_allowable_id_element {
  * CFM root CA digests element.
  */
 struct cfm_root_ca_digests_element {
-	uint8_t reserved:5;											/**< Reserved. */
-	uint8_t hash_type:3;										/**< Hash type. */
 	uint8_t ca_count;											/**< Number of allowable root CA digests. */
-	uint16_t reserved2;											/**< Reserved. */
+	uint8_t reserved[3];										/**< Reserved. */
 };
 
 /**
@@ -156,9 +154,7 @@ struct cfm_root_ca_digests_element {
  */
 struct cfm_pmr_element {
 	uint8_t pmr_id;												/**< PMR ID. */
-	uint8_t reserved:5;											/**< Reserved. */
-	uint8_t hash_type:3;										/**< Hash type. */
-	uint16_t reserved2;											/**< Reserved. */
+	uint8_t reserved[3];										/**< Reserved. */
 	uint8_t initial_value[SHA512_HASH_LENGTH];					/**< Initial value to use when generating PMR. */
 };
 

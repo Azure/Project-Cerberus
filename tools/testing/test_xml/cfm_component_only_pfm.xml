@@ -1,0 +1,13 @@
+<CFMComponent type="Component1" attestation_protocol="Cerberus" slot_num="1" transcript_hash_type="SHA384" measurement_hash_type="SHA256">
+	<AllowablePFM port="1" platform="platformA">
+		<ManifestID>
+			<Check>Equal</Check>
+			<ID>0x99</ID>
+			<ID>0x9A</ID>
+		</ManifestID>
+		<ManifestID>
+			<Check>GreaterThan</Check>
+			<ID>0x9D</ID>
+		</ManifestID>
+	</AllowablePFM>
+</CFMComponent>
