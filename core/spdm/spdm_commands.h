@@ -205,6 +205,17 @@ struct spdm_get_capabilities {
 #define SPDM_TPM_ALG_SHA3_512	 								(1 << 5)
 
 /**
+ * SPDM cryptographic hashing algorithm bitmask selection for measurements in Negotiate Algorithm
+ * response, from section 10.4 in DSP0274 SPDM spec.
+ */
+#define SPDM_MEAS_RSP_TPM_ALG_SHA_256	 							(1 << 1)
+#define SPDM_MEAS_RSP_TPM_ALG_SHA_384	 							(1 << 2)
+#define SPDM_MEAS_RSP_TPM_ALG_SHA_512	 							(1 << 3)
+#define SPDM_MEAS_RSP_TPM_ALG_SHA3_256	 							(1 << 4)
+#define SPDM_MEAS_RSP_TPM_ALG_SHA3_384	 							(1 << 5)
+#define SPDM_MEAS_RSP_TPM_ALG_SHA3_512	 							(1 << 6)
+
+/**
  * SPDM negotiate algorithms request format
  */
 struct spdm_negotiate_algorithms_request {

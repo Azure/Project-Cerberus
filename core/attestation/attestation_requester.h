@@ -107,7 +107,7 @@ int attestation_requester_init_state (const struct attestation_requester *attest
 void attestation_requester_deinit (const struct attestation_requester *ctrl);
 
 int attestation_requester_attest_device (const struct attestation_requester *attestation,
-	uint8_t eid, enum hash_type hash_type);
+	uint8_t eid);
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 int attestation_requester_discover_device (const struct attestation_requester *attestation,

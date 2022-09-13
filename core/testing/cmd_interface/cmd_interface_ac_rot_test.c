@@ -78,7 +78,7 @@ static void setup_cmd_interface_ac_rot_mock_test_init (CuTest *test,
 	int status;
 
 	status = device_manager_init (&cmd->device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&cmd->device_manager, 0,
@@ -283,7 +283,7 @@ static void cmd_interface_ac_rot_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_device_mock_init (&cmd_device);
@@ -369,7 +369,7 @@ static void cmd_interface_ac_rot_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_device_mock_init (&cmd_device);

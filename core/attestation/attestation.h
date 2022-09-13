@@ -100,6 +100,7 @@ enum {
 	ATTESTATION_ALIAS_KEY_LOAD_FAIL = ATTESTATION_ERROR (0x14),				/**< Failed to load device alias key from device manager. */
 	ATTESTATION_REFRESH_ROUTING_TABLE = ATTESTATION_ERROR (0x15),			/**< Updated MCTP bridge routing table needs to be retrieved. */
 	ATTESTATION_GET_DEVICE_ID_FAIL = ATTESTATION_ERROR (0x16),				/**< Device failed to send SPDM device ID block. */
+	ATTESTATION_TOO_MANY_RETRIES_REQUESTED = ATTESTATION_ERROR (0x17),		/**< Device requested too many ResponseNotReady retries. */
 };
 
 

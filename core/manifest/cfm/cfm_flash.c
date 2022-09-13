@@ -397,7 +397,7 @@ static int cfm_flash_get_component_pmr (struct cfm *cfm, uint32_t component_id, 
 	struct cfm_pmr_element *pmr_element_ptr = &buffer.pmr_element;
 	size_t pmr_element_len;
 	uint8_t entry = 0;
-	uint8_t hash_type;
+	enum hash_type hash_type;
 	int hash_len;
 	int status;
 
@@ -527,7 +527,7 @@ static int cfm_flash_get_component_pmr_digest (struct cfm *cfm, uint32_t compone
 	struct cfm_pmr_digest_element *pmr_digest_element_ptr = &buffer.pmr_digest_element;
 	size_t pmr_digest_element_len;
 	uint8_t entry = 0;
-	uint8_t hash_type;
+	enum hash_type hash_type;
 	int status;
 
 	if (pmr_digest == NULL) {
@@ -586,7 +586,7 @@ static int cfm_flash_get_next_measurement (struct cfm *cfm, uint32_t component_i
 	struct cfm_measurement_element *measurement_element_ptr = &buffer.measurement_element;
 	size_t measurement_element_len = sizeof (struct cfm_measurement_element);
 	uint8_t *element_entry_ptr;
-	uint8_t hash_type;
+	enum hash_type hash_type;
 	int status;
 
 	if (pmr_measurement == NULL) {
@@ -730,6 +730,8 @@ static int cfm_flash_get_next_measurement_data (struct cfm *cfm, uint32_t compon
 		allowable_data_ptr->check = (enum cfm_check) allowable_data_element_ptr->check;
 		allowable_data_ptr->data_len = allowable_data_element_ptr->data_len;
 		allowable_data_ptr->data_count = allowable_data_element_ptr->num_data;
+		allowable_data_ptr->big_endian =
+			(allowable_data_element_ptr->endianness == CFM_MULTIBYTE_BIG_ENDIAN);
 
 		offset = sizeof (struct cfm_allowable_data_element);
 
@@ -813,7 +815,7 @@ static int cfm_flash_get_root_ca_digest (struct cfm *cfm, uint32_t component_id,
 		&buffer.root_ca_digests_element;
 	size_t root_ca_digests_element_len = sizeof (struct cfm_root_ca_digests_element);
 	uint8_t entry = 0;
-	uint8_t hash_type;
+	enum hash_type hash_type;
 	int status;
 
 	if (root_ca_digest == NULL) {

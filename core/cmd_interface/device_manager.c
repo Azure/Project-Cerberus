@@ -40,11 +40,13 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 	if (state == DEVICE_MANAGER_AUTHENTICATED) {
 		timeout = mgr->authenticated_cadence_ms;
 	}
-
-	if ((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) &&
+	else if ((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) &&
 		((prev_state == DEVICE_MANAGER_READY_FOR_ATTESTATION) ||
 			(prev_state == DEVICE_MANAGER_NEVER_ATTESTED))) {
 		timeout = mgr->unauthenticated_cadence_ms;
+	}
+	else if (state == DEVICE_MANAGER_NEVER_ATTESTED) {
+		timeout = 0;
 	}
 
 	return platform_init_timeout (timeout, &mgr->entries[device_num].attestation_timeout);
@@ -66,13 +68,19 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
  * @param unauthenticated_cadence_ms Period to wait before reauthenticating unauthenticated device.
  * @param authenticated_cadence_ms Period to wait before reauthenticating authenticated device.
  * @param unidentified_timeout_ms Timeout period to wait before reidentifying unidentified device.
+ * @param mctp_ctrl_timeout_ms Timeout duration for MCTP control requests.
+ * @param mctp_bridge_additional_timeout_ms Timeout adjustment to MCTP bridge communication.
+ * @param attestation_rsp_not_ready_max_duration_ms Maximum SPDM ResponseNotReady duration.
+ * @param attestation_rsp_not_ready_max_retry Maximum SPDM ResponseNotReady retries.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	int num_responder_devices, uint8_t hierarchy, uint8_t bus_role,
 	uint32_t unauthenticated_cadence_ms, uint32_t authenticated_cadence_ms,
-	uint32_t unidentified_timeout_ms)
+	uint32_t unidentified_timeout_ms, uint32_t mctp_ctrl_timeout_ms,
+	uint32_t mctp_bridge_additional_timeout_ms, uint32_t attestation_rsp_not_ready_max_duration_ms,
+	uint8_t attestation_rsp_not_ready_max_retry)
 {
 	int total_num_devices = num_requester_devices + num_responder_devices;
 	int status;
@@ -103,6 +111,10 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	mgr->unauthenticated_cadence_ms = unauthenticated_cadence_ms;
 	mgr->authenticated_cadence_ms = authenticated_cadence_ms;
 	mgr->unidentified_timeout_ms = unidentified_timeout_ms;
+	mgr->mctp_ctrl_timeout_ms = mctp_ctrl_timeout_ms;
+	mgr->mctp_bridge_additional_timeout_ms = mctp_bridge_additional_timeout_ms;
+	mgr->attestation_rsp_not_ready_max_duration_ms = attestation_rsp_not_ready_max_duration_ms;
+	mgr->attestation_rsp_not_ready_max_retry = attestation_rsp_not_ready_max_retry;
 
 	/* Initialize the local device capabilities. */
 	mgr->entries[DEVICE_MANAGER_SELF_DEVICE_NUM].capabilities.request.max_message_size =
@@ -127,6 +139,25 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	}
 
 	return status;
+}
+
+/**
+ * Initialize a device manager for an AC-RoT Cerberus.  This will set Cerberus hierachy role to
+ * DEVICE_MANAGER_AC_ROT_MODE, set the number of responder devices to zero, and set all the
+ * component attestation defaults to zero.
+ *
+ * @param mgr Device manager instance to initialize.
+ * @param num_requester_devices Number of requester devices to manage. This must be at least 1 to
+ * 	support the local device.
+ * @param bus_role Role the local device will take on the I2C bus.
+ *
+ * @return Initialization status, 0 if success or an error code.
+ */
+int device_manager_init_ac_rot (struct device_manager *mgr, int num_requester_devices,
+	uint8_t bus_role)
+{
+	return device_manager_init (mgr, num_requester_devices, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		bus_role, 0, 0, 0, 0, 0, 0, 0);
 }
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
@@ -581,10 +612,12 @@ uint32_t device_manager_get_reponse_timeout (struct device_manager *mgr, int dev
 
 	if ((device_num >= mgr->num_devices) ||
 		(mgr->entries[device_num].capabilities.max_timeout == 0)) {
-		return mgr->entries[0].capabilities.max_timeout * 10;
+		return ((mgr->entries[0].capabilities.max_timeout * 10) +
+			mgr->mctp_bridge_additional_timeout_ms);
 	}
 
-	return mgr->entries[device_num].capabilities.max_timeout * 10;
+	return ((mgr->entries[device_num].capabilities.max_timeout * 10) +
+		mgr->mctp_bridge_additional_timeout_ms);
 }
 
 /**
@@ -623,10 +656,12 @@ uint32_t device_manager_get_crypto_timeout (struct device_manager *mgr, int devi
 
 	if ((device_num >= mgr->num_devices) ||
 		(mgr->entries[device_num].capabilities.max_sig == 0)) {
-		return mgr->entries[0].capabilities.max_sig * 100;
+		return ((mgr->entries[0].capabilities.max_sig * 100) +
+			mgr->mctp_bridge_additional_timeout_ms);
 	}
 
-	return mgr->entries[device_num].capabilities.max_sig * 100;
+	return ((mgr->entries[device_num].capabilities.max_sig * 100) +
+		mgr->mctp_bridge_additional_timeout_ms);
 }
 
 /**
@@ -646,6 +681,45 @@ uint32_t device_manager_get_crypto_timeout_by_eid (struct device_manager *mgr, u
 	}
 
 	return device_manager_get_crypto_timeout (mgr, device_manager_get_device_num (mgr, eid));
+}
+
+/**
+ * Get the SPDM ResponseNotReady limits.
+ *
+ * @param mgr Device manager to query.
+ * @param max_timeout_ms Buffer to fill with maximum ResponseNotReady wait duration in milliseconds.
+ * @param max_retries Buffer to fill with maximum number of ResponseNotReady retries permitted.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_get_rsp_not_ready_limits (struct device_manager *mgr, uint32_t *max_timeout_ms,
+	uint8_t *max_retries)
+{
+	if ((mgr == NULL) || (max_timeout_ms == NULL) || (max_retries == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	*max_timeout_ms = mgr->attestation_rsp_not_ready_max_duration_ms;
+	*max_retries = mgr->attestation_rsp_not_ready_max_retry;
+
+	return 0;
+}
+
+/**
+ * Get the maximum amount of time to wait for a response from a remote device when executing
+ * MCTP control protocol requests.
+ *
+ * @param mgr Device manager to query.
+ *
+ * @return The response timeout.
+ */
+uint32_t device_manager_get_mctp_ctrl_timeout (struct device_manager *mgr)
+{
+	if (mgr == NULL) {
+		return DEVICE_MANAGER_MCTP_CTRL_PROTOCOL_TIMEOUT_MS;
+	}
+
+	return (mgr->mctp_ctrl_timeout_ms + mgr->mctp_bridge_additional_timeout_ms);
 }
 
 /**
@@ -697,6 +771,32 @@ int device_manager_update_cert_chain_digest (struct device_manager *mgr, uint8_t
 
 	mgr->entries[device_num].hash_len = digest_len;
 	mgr->entries[device_num].slot_num = slot_num;
+
+	return 0;
+}
+
+/**
+ * Clear certificate chain digest buffer in device manager device table entry
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param eid EID of device to update.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_clear_cert_chain_digest (struct device_manager *mgr, uint8_t eid)
+{
+	int device_num;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	mgr->entries[device_num].hash_len = 0;
 
 	return 0;
 }
@@ -888,9 +988,9 @@ int device_manager_get_component_id (struct device_manager *mgr, uint8_t eid,
 
 /**
  * Get EID of first device that is ready for attestation. DEVICE_MANAGER_READY_FOR_ATTESTATION or
- * DEVICE_MANAGER_NEVER_ATTESTED have a cadence of DEVICE_MANAGER_UNAUTHENTICATED_CADENCE_MS, and
- * DEVICE_MANAGER_AUTHENTICATED has a cadence of DEVICE_MANAGER_AUTHENTICATED_CADENCE_MS. The device
- * manager keeps track of last device authenticated, so checking starts after that device.
+ * DEVICE_MANAGER_NEVER_ATTESTED have a cadence of unauthenticated_cadence_ms, and
+ * DEVICE_MANAGER_AUTHENTICATED has a cadence of authenticated_cadence_ms. The device manager keeps
+ * track of last device authenticated, so checking starts after that device.
  *
  * @param mgr Device manager instance to utilize.
  *
@@ -1263,7 +1363,7 @@ found:
 uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr)
 {
 	platform_clock now;
-	uint32_t duration_ms = 10000;
+	uint32_t duration_ms = DEVICE_MANAGER_MIN_ACTIVITY_CHECK;
 	uint8_t i_device;
 
 	if (mgr == NULL) {

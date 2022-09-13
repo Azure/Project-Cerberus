@@ -2953,8 +2953,7 @@ static void cfm_flash_test_buffer_supported_components_offset_too_large (CuTest 
 	struct cfm_flash_testing cfm;
 	uint32_t components[2];
 	size_t components_len = sizeof (components);
-	uint32_t component1 = 3;
-	size_t component_len = sizeof (component1);
+	size_t component_len = sizeof (uint32_t);
 	int status;
 
 	TEST_START;
@@ -4135,6 +4134,7 @@ static void cfm_flash_test_get_next_measurement_data (CuTest *test)
 	CuAssertIntEquals (test, 0, allowable_data_ptr->check);
 	CuAssertIntEquals (test, 5, allowable_data_ptr->data_len);
 	CuAssertIntEquals (test, 2, allowable_data_ptr->data_count);
+	CuAssertIntEquals (test, 1, allowable_data_ptr->big_endian);
 
 	status = testing_validate_array (MEASUREMENT_DATA_PMR_1_MEASUREMENT_2_DEVICE_1_BITMASK,
 		allowable_data_ptr->bitmask, allowable_data_ptr->data_len);
@@ -4151,6 +4151,7 @@ static void cfm_flash_test_get_next_measurement_data (CuTest *test)
 	CuAssertIntEquals (test, 4, allowable_data_ptr->check);
 	CuAssertIntEquals (test, 5, allowable_data_ptr->data_len);
 	CuAssertIntEquals (test, 1, allowable_data_ptr->data_count);
+	CuAssertIntEquals (test, 0, allowable_data_ptr->big_endian);
 
 	status = testing_validate_array (MEASUREMENT_DATA_PMR_1_MEASUREMENT_2_DEVICE_1_BITMASK_CHECK_2,
 		allowable_data_ptr->bitmask, allowable_data_ptr->data_len);
@@ -4239,6 +4240,7 @@ static void cfm_flash_test_get_next_measurement_data_second_measurement_data (Cu
 	CuAssertIntEquals (test, 1, allowable_data_ptr->check);
 	CuAssertIntEquals (test, 2, allowable_data_ptr->data_len);
 	CuAssertIntEquals (test, 1, allowable_data_ptr->data_count);
+	CuAssertIntEquals (test, 0, allowable_data_ptr->big_endian);
 
 	status = testing_validate_array (MEASUREMENT_DATA_PMR_1_MEASUREMENT_4_DEVICE_1_BITMASK,
 		allowable_data_ptr->bitmask, allowable_data_ptr->data_len);
@@ -4251,6 +4253,7 @@ static void cfm_flash_test_get_next_measurement_data_second_measurement_data (Cu
 	CuAssertIntEquals (test, 1, allowable_data_ptr->check);
 	CuAssertIntEquals (test, 2, allowable_data_ptr->data_len);
 	CuAssertIntEquals (test, 1, allowable_data_ptr->data_count);
+	CuAssertIntEquals (test, 1, allowable_data_ptr->big_endian);
 	CuAssertPtrEquals (test, NULL, (void*) allowable_data_ptr->bitmask);
 
 	status = testing_validate_array (MEASUREMENT_DATA_PMR_1_MEASUREMENT_4_DEVICE_1_2,
@@ -4384,6 +4387,7 @@ static void cfm_flash_test_get_next_measurement_data_second_component (CuTest *t
 	CuAssertIntEquals (test, 4, allowable_data_ptr->check);
 	CuAssertIntEquals (test, 3, allowable_data_ptr->data_len);
 	CuAssertIntEquals (test, 1, allowable_data_ptr->data_count);
+	CuAssertIntEquals (test, 0, allowable_data_ptr->big_endian);
 
 	status = testing_validate_array (MEASUREMENT_DATA_PMR_1_MEASUREMENT_3_DEVICE_2_BITMASK,
 		allowable_data_ptr->bitmask, allowable_data_ptr->data_len);
@@ -4442,6 +4446,7 @@ static void cfm_flash_test_get_next_measurement_data_single_check (CuTest *test)
 	CuAssertIntEquals (test, 4, allowable_data_ptr->check);
 	CuAssertIntEquals (test, 3, allowable_data_ptr->data_len);
 	CuAssertIntEquals (test, 1, allowable_data_ptr->data_count);
+	CuAssertIntEquals (test, 0, allowable_data_ptr->big_endian);
 
 	status = testing_validate_array (MEASUREMENT_DATA_PMR_1_MEASUREMENT_3_DEVICE_2_BITMASK,
 		allowable_data_ptr->bitmask, allowable_data_ptr->data_len);
@@ -4530,6 +4535,7 @@ static void cfm_flash_test_get_next_measurement_data_single_allowable_data (CuTe
 	CuAssertIntEquals (test, 1, allowable_data_ptr->check);
 	CuAssertIntEquals (test, 2, allowable_data_ptr->data_len);
 	CuAssertIntEquals (test, 1, allowable_data_ptr->data_count);
+	CuAssertIntEquals (test, 0, allowable_data_ptr->big_endian);
 
 	status = testing_validate_array (MEASUREMENT_DATA_PMR_1_MEASUREMENT_4_DEVICE_1_BITMASK,
 		allowable_data_ptr->bitmask, allowable_data_ptr->data_len);
@@ -4542,6 +4548,7 @@ static void cfm_flash_test_get_next_measurement_data_single_allowable_data (CuTe
 	CuAssertIntEquals (test, 1, allowable_data_ptr->check);
 	CuAssertIntEquals (test, 2, allowable_data_ptr->data_len);
 	CuAssertIntEquals (test, 1, allowable_data_ptr->data_count);
+	CuAssertIntEquals (test, 1, allowable_data_ptr->big_endian);
 	CuAssertPtrEquals (test, NULL, (void*) allowable_data_ptr->bitmask);
 
 	status = testing_validate_array (MEASUREMENT_DATA_PMR_1_MEASUREMENT_4_DEVICE_1_2,
@@ -4628,6 +4635,7 @@ static void cfm_flash_test_get_next_measurement_data_no_bitmask (CuTest *test)
 	CuAssertIntEquals (test, 1, allowable_data_ptr->check);
 	CuAssertIntEquals (test, 2, allowable_data_ptr->data_len);
 	CuAssertIntEquals (test, 1, allowable_data_ptr->data_count);
+	CuAssertIntEquals (test, 0, allowable_data_ptr->big_endian);
 
 	status = testing_validate_array (MEASUREMENT_DATA_PMR_1_MEASUREMENT_4_DEVICE_1_BITMASK,
 		allowable_data_ptr->bitmask, allowable_data_ptr->data_len);
@@ -4640,6 +4648,7 @@ static void cfm_flash_test_get_next_measurement_data_no_bitmask (CuTest *test)
 	CuAssertIntEquals (test, 1, allowable_data_ptr->check);
 	CuAssertIntEquals (test, 2, allowable_data_ptr->data_len);
 	CuAssertIntEquals (test, 1, allowable_data_ptr->data_count);
+	CuAssertIntEquals (test, 1, allowable_data_ptr->big_endian);
 	CuAssertPtrEquals (test, NULL, (void*) allowable_data_ptr->bitmask);
 
 	status = testing_validate_array (MEASUREMENT_DATA_PMR_1_MEASUREMENT_4_DEVICE_1_2,

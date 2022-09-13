@@ -319,7 +319,8 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&testing->device_mgr, 1, !no_mctp_bridge,
-		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10, 10, 10);
+		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10, 10, 10, 10, 0, 0,
+		0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&testing->device_mgr, 0,
@@ -399,8 +400,8 @@ static void setup_attestation_requester_mock_test (CuTest *test,
  */
 static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 	struct attestation_requester_testing *testing, bool init_attestation, bool riot_no_root_ca,
-	bool rsa, bool x509_mock, uint8_t hash_algo, enum cfm_attestation_type attestation_protocol,
-	uint8_t slot_id, uint32_t component_id)
+	bool rsa, bool x509_mock, enum hash_type hash_algo,
+	enum cfm_attestation_type attestation_protocol, uint8_t slot_id, uint32_t component_id)
 {
 	struct cfm_component_device component_device;
 	struct x509_engine *x509;
@@ -411,6 +412,8 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 	component_device.component_id = component_id;
 	component_device.num_pmr_ids = 1;
 	component_device.pmr_id_list = pmr_id_list;
+	component_device.measurement_hash_type = hash_algo;
+	component_device.transcript_hash_type = hash_algo;
 
 	setup_attestation_requester_mock_test (test, testing, false, false, x509_mock);
 
@@ -427,7 +430,7 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 		memset (testing->hash_len, SHA256_HASH_LENGTH, sizeof (testing->hash_len));
 		testing->hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 		testing->hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-		testing->meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+		testing->meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
 		testing->meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 		testing->cert_buffer_len += SHA256_HASH_LENGTH;
 	}
@@ -435,7 +438,7 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 		memset (testing->hash_len, SHA384_HASH_LENGTH, sizeof (testing->hash_len));
 		testing->hashing_alg_requested = SPDM_TPM_ALG_SHA_384;
 		testing->hashing_alg_supported = SPDM_TPM_ALG_SHA_384;
-		testing->meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_384;
+		testing->meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_384;
 		testing->meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_384;
 		testing->cert_buffer_len += SHA384_HASH_LENGTH;
 	}
@@ -443,7 +446,7 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 		memset (testing->hash_len, SHA512_HASH_LENGTH, sizeof (testing->hash_len));
 		testing->hashing_alg_requested = SPDM_TPM_ALG_SHA_512;
 		testing->hashing_alg_supported = SPDM_TPM_ALG_SHA_512;
-		testing->meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_512;
+		testing->meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_512;
 		testing->meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_512;
 		testing->cert_buffer_len += SHA512_HASH_LENGTH;
 	}
@@ -1556,7 +1559,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_certific
 	uint8_t msg_tag, bool riot_no_root_ca, bool vendor_root_ca, uint8_t *ca_digests,
 	uint32_t component_id)
 {
-	struct cfm_root_ca_digests root_ca_digests;
+	struct cfm_root_ca_digests root_ca_digests = {0};
 	uint8_t out_digest[SHA256_HASH_LENGTH] = {0};
 	const uint8_t *root_cert = (riot_no_root_ca || vendor_root_ca) ? X509_CERTSS_ECC_CA_NOPL_DER :
 		X509_CERTSS_RSA_CA_NOPL_DER;
@@ -1598,6 +1601,9 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_certific
 			&testing->cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->cfm.mock, 1, &root_ca_digests,
 			sizeof (struct cfm_root_ca_digests), -1);
+		status |= mock_expect (&testing->cfm.mock, testing->cfm.base.free_root_ca_digest,
+			&testing->cfm, 0,
+			MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 		CuAssertIntEquals (test, 0, status);
 
 		status = mock_expect (&testing->primary_hash.mock,
@@ -3657,7 +3663,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
 	bool x509_mock, bool use_riot_root_ca, bool vendor_root_ca, uint8_t *ca_digests,
 	uint8_t component_id)
 {
-	struct cfm_root_ca_digests root_ca_digests;
+	struct cfm_root_ca_digests root_ca_digests = {0};
 	uint8_t out_digest[HASH_MAX_HASH_LEN];
 	const uint8_t *root_ca_cert = use_riot_root_ca ? X509_CERTSS_RSA_CA_NOPL_DER :
 		X509_CERTSS_ECC_CA_NOPL_DER;
@@ -3704,6 +3710,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
 			&testing->cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 		status |= mock_expect_output_tmp (&testing->cfm.mock, 1, &root_ca_digests,
 			sizeof (struct cfm_root_ca_digests), -1);
+		status |= mock_expect (&testing->cfm.mock, testing->cfm.base.free_root_ca_digest,
+			&testing->cfm, 0,
+			MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 		CuAssertIntEquals (test, 0, status);
 
 		status = mock_expect (&testing->primary_hash.mock,
@@ -3768,22 +3777,19 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
 	if (hash_algo == HASH_TYPE_SHA256) {
 		status = mock_expect (&testing->primary_hash.mock,
 			testing->primary_hash.base.calculate_sha256, &testing->primary_hash, 0,
-			MOCK_ARG_NOT_NULL, MOCK_ARG (testing->cert_buffer_len -
-				sizeof (struct spdm_certificate_chain) - hash_len), MOCK_ARG_NOT_NULL,
+			MOCK_ARG_NOT_NULL, MOCK_ARG (testing->cert_buffer_len), MOCK_ARG_NOT_NULL,
 			MOCK_ARG (HASH_MAX_HASH_LEN));
 	}
 	else if (hash_algo == HASH_TYPE_SHA384) {
 		status = mock_expect (&testing->primary_hash.mock,
 			testing->primary_hash.base.calculate_sha384, &testing->primary_hash, 0,
-			MOCK_ARG_NOT_NULL, MOCK_ARG (testing->cert_buffer_len -
-				sizeof (struct spdm_certificate_chain) - hash_len), MOCK_ARG_NOT_NULL,
+			MOCK_ARG_NOT_NULL, MOCK_ARG (testing->cert_buffer_len), MOCK_ARG_NOT_NULL,
 			MOCK_ARG (HASH_MAX_HASH_LEN));
 	}
 	else {
 		status = mock_expect (&testing->primary_hash.mock,
 			testing->primary_hash.base.calculate_sha512, &testing->primary_hash, 0,
-			MOCK_ARG_NOT_NULL, MOCK_ARG (testing->cert_buffer_len -
-				sizeof (struct spdm_certificate_chain) - hash_len), MOCK_ARG_NOT_NULL,
+			MOCK_ARG_NOT_NULL, MOCK_ARG (testing->cert_buffer_len), MOCK_ARG_NOT_NULL,
 			MOCK_ARG (HASH_MAX_HASH_LEN));
 	}
 	status |= mock_expect_output_tmp (&testing->primary_hash.mock, 2, out_digest, hash_len, -1);
@@ -4640,7 +4646,7 @@ static void attestation_requester_test_init_state (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&testing.device_mgr, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
-		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 1000, 1000);
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 0,
@@ -4743,7 +4749,7 @@ static void attestation_requester_test_attest_device_cerberus_ecc (CuTest *test)
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -4799,7 +4805,7 @@ static void attestation_requester_test_attest_device_cerberus_ecc_vendor_root_ca
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -4854,7 +4860,7 @@ static void attestation_requester_test_attest_device_cerberus_ecc_untrusted_root
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -4909,7 +4915,7 @@ static void attestation_requester_test_attest_device_cerberus_rsa (CuTest *test)
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -4964,7 +4970,7 @@ static void attestation_requester_test_attest_device_cerberus_mbedtls_x509 (CuTe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -5023,7 +5029,7 @@ static void attestation_requester_test_attest_device_cerberus_already_authentica
 		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -5079,7 +5085,7 @@ static void attestation_requester_test_attest_device_cerberus_multiple_pmr0_dige
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -5102,7 +5108,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	attestation_requester_testing_send_and_receive_cerberus_device_capabilities (test, true, false,
 		true, 0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5122,7 +5128,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	attestation_requester_testing_send_and_receive_cerberus_device_capabilities (test, false, false,
 		false, 0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5142,7 +5148,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	attestation_requester_testing_send_and_receive_cerberus_device_capabilities (test, true, true,
 		false, 0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5165,7 +5171,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_fail (C
 		SHA256_HASH_LENGTH, 1, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5201,7 +5207,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_hash_fa
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5225,7 +5231,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_unexpec
 		SHA256_HASH_LENGTH, 1, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5248,7 +5254,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp 
 		SHA256_HASH_LENGTH, 1, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5281,7 +5287,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_digest_
 	attestation_requester_testing_send_and_receive_cerberus_get_digest_with_mocks (test, &testing,
 		1);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5307,7 +5313,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fa
 		false, false, 2, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_RSA_CA_NOPL_DER,
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5334,7 +5340,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 		true, false, 2, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_RSA_CA_NOPL_DER,
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5361,7 +5367,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 		false, true, 2, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_RSA_CA_NOPL_DER,
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5400,7 +5406,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_in
 		&testing.x509_mock, X509_ENGINE_NO_MEMORY, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5453,7 +5459,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5507,7 +5513,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5517,7 +5523,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_root_ca_digests root_ca_digests;
+	struct cfm_root_ca_digests root_ca_digests = {0};
 	uint32_t component_id = 5;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
 	int i_digest;
@@ -5561,6 +5567,9 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
+		&testing.cfm, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.primary_hash.mock,
@@ -5577,7 +5586,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5587,7 +5596,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_root_ca_digests root_ca_digests;
+	struct cfm_root_ca_digests root_ca_digests = {0};
 	uint32_t component_id = 12;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
 	uint8_t out_digest[SHA256_HASH_LENGTH] = {0};
@@ -5633,6 +5642,9 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
+		&testing.cfm, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.primary_hash.mock,
@@ -5651,7 +5663,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5661,7 +5673,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_root_ca_digests root_ca_digests;
+	struct cfm_root_ca_digests root_ca_digests = {0};
 	uint32_t component_id = 50;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
 	int i_digest;
@@ -5705,6 +5717,9 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
+		&testing.cfm, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.primary_hash.mock,
@@ -5728,7 +5743,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5786,7 +5801,7 @@ static void attestation_requester_test_attest_device_cerberus_add_intermediate_c
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5847,7 +5862,7 @@ static void attestation_requester_test_attest_device_cerberus_load_certificate_f
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5914,7 +5929,7 @@ static void attestation_requester_test_attest_device_cerberus_authenticate_cert_
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5987,7 +6002,7 @@ static void attestation_requester_test_attest_device_cerberus_hash_cert_chain_fa
 		MOCK_ARG (HASH_MAX_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6063,7 +6078,7 @@ static void attestation_requester_test_attest_device_cerberus_compare_cert_chain
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_MISMATCH, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6146,7 +6161,7 @@ static void attestation_requester_test_attest_device_cerberus_get_public_key_typ
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6231,7 +6246,7 @@ static void attestation_requester_test_attest_device_cerberus_get_public_key_fai
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6257,7 +6272,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 		false, false, 2, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_RSA_CA_NOPL_DER,
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6287,7 +6302,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_start_ha
 		&testing.primary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6322,7 +6337,7 @@ static void attestation_requester_test_attest_device_cerberus_generate_challenge
 		RNG_ENGINE_NO_MEMORY, MOCK_ARG (ATTESTATION_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6351,7 +6366,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_hash_upd
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, true, false,
 		false, false, false, false, 5, 0, HASH_ENGINE_NO_MEMORY, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6379,7 +6394,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_fail (Cu
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, true, false,
 		false, false, false, false, 5, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6408,7 +6423,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		true, false, false, false, 5, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6437,7 +6452,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, true, false, false, 5, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6466,7 +6481,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, true, false, 5, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6495,7 +6510,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, true, 5, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6524,7 +6539,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_update_h
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 5, 0, 0, HASH_ENGINE_NO_MEMORY, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6553,7 +6568,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_hash_fin
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 5, 0, 0, 0, HASH_ENGINE_NO_MEMORY, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6582,7 +6597,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_ecc_init
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 5, 0, 0, 0, 0, ECC_ENGINE_NO_MEMORY, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6611,7 +6626,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_ecc_veri
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 5, 0, 0, 0, 0, 0, ECC_ENGINE_NO_MEMORY, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6640,7 +6655,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_not_
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 5, 0, 0, 0, 0, 0, 0, false, true, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6669,7 +6684,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_init
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 5, 0, 0, 0, 0, ECC_ENGINE_NO_MEMORY, 0, false, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6698,7 +6713,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_veri
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, false,
 		false, false, false, false, 5, 0, 0, 0, 0, 0, ECC_ENGINE_NO_MEMORY, false, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6727,7 +6742,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, true, false, true,
 		false, false, false, false, 5, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6755,7 +6770,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp (
 	attestation_requester_testing_send_and_receive_cerberus_challenge (test, false, false, false,
 		false, false, false, false, 5, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -6791,7 +6806,7 @@ static void attestation_requester_test_attest_device_cerberus_get_component_pmr_
 		&testing.cfm, MANIFEST_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MANIFEST_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -6841,7 +6856,7 @@ static void attestation_requester_test_attest_device_cerberus_pmr0_digest_invali
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -6891,7 +6906,7 @@ static void attestation_requester_test_attest_device_cerberus_no_pmr0_digest_mat
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -6992,7 +7007,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_challenge 
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -7076,7 +7091,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_challe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -7177,7 +7192,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_challenge 
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -7261,7 +7276,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -7362,7 +7377,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_challenge 
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -7446,7 +7461,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -7569,7 +7584,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -7671,7 +7686,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -7813,7 +7828,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_rsp_r
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -7935,7 +7950,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_r
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -8058,7 +8073,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -8160,7 +8175,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0 (
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -8302,7 +8317,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0_rsp_r
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -8424,7 +8439,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0_r
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -8547,7 +8562,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -8649,7 +8664,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0 (
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -8791,7 +8806,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0_rsp_r
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -8912,7 +8927,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0_r
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -9036,7 +9051,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -9159,7 +9174,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -9261,7 +9276,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -9395,7 +9410,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -9518,7 +9533,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -9620,7 +9635,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -9754,7 +9769,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -9877,7 +9892,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -9979,7 +9994,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -10113,7 +10128,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -10237,7 +10252,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -10424,7 +10439,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -10449,12 +10464,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement);
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -10554,7 +10569,138 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_only_measurement_data_equal_big_endian (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-measurements signing";
+	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_allowable_data data;
+	uint32_t component_id = 101;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t measurement[SHA256_HASH_LENGTH];
+	uint8_t signature[5];
+	int status;
+	size_t i;
+
+	data.bitmask = NULL;
+	data.check = CFM_CHECK_EQUAL;
+	data.data_count = 1;
+	data.data_len = sizeof (measurement);
+	data.allowable_data = measurement;
+	data.big_endian = true;
+
+	cfm_measurement_data.pmr_id = 0;
+	cfm_measurement_data.measurement_id = 0;
+	cfm_measurement_data.check = &data;
+	cfm_measurement_data.check_count = 1;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		measurement[i] = 51 + i;
+	}
+
+	for (i = 0; i < 5; ++i) {
+		signature[i] = i * 10;
+	}
+
+	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
+	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = false;
+	testing.raw_rsp[0] = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, 4, true, false, false, NULL, component_id);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
+		false, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, true,
+		false, &testing, 8, 1);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
+			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
+		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
+		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
+		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (signature, sizeof (signature)),
+		MOCK_ARG (5));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
+		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
+		sizeof (struct cfm_measurement_data), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -10571,7 +10717,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
 	struct cfm_measurement_data cfm_measurement_data;
-	struct cfm_allowable_data data;
+	struct cfm_allowable_data data = {0};
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -10690,7 +10836,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -10716,12 +10862,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -10818,7 +10964,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -10845,12 +10991,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -10953,7 +11099,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -10979,12 +11125,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_NOT_EQUAL;
 	data.data_count = 2;
 	data.data_len = SHA256_HASH_LENGTH;
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -11085,7 +11231,139 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_big_endian (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-measurements signing";
+	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_allowable_data data;
+	uint32_t component_id = 101;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t measurement2[SHA256_HASH_LENGTH * 2];
+	uint8_t signature[5];
+	int status;
+	size_t i;
+
+	data.bitmask = NULL;
+	data.check = CFM_CHECK_NOT_EQUAL;
+	data.data_count = 2;
+	data.data_len = SHA256_HASH_LENGTH;
+	data.allowable_data = measurement2;
+	data.big_endian = true;
+
+	cfm_measurement_data.pmr_id = 0;
+	cfm_measurement_data.measurement_id = 0;
+	cfm_measurement_data.check = &data;
+	cfm_measurement_data.check_count = 1;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		measurement2[i] = 10 + i;
+		measurement2[i + SHA256_HASH_LENGTH] = 11 + i;
+	}
+
+	for (i = 0; i < 5; ++i) {
+		signature[i] = i * 10;
+	}
+
+	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
+	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = false;
+	testing.raw_rsp[0] = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, 4, true, false, false, NULL, component_id);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
+		false, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, true,
+		false, &testing, 8, 1);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
+			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
+		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
+		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
+		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (signature, sizeof (signature)),
+		MOCK_ARG (5));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
+		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
+		sizeof (struct cfm_measurement_data), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -11112,12 +11390,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_NOT_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -11223,7 +11501,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -11249,12 +11527,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_NOT_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement);
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -11351,7 +11629,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -11376,7 +11654,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t signature[5];
 	int status;
 	size_t i;
-
+	data.big_endian = false;
 
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_NOT_EQUAL;
@@ -11480,7 +11758,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -11507,12 +11785,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_NOT_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -11613,7 +11891,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -11639,12 +11917,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_LESS_THAN;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -11670,8 +11948,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
-		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
-		component_id);
+		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,	component_id);
 
 	testing.challenge_unsupported = true;
 	testing.get_all_blocks = false;
@@ -11718,8 +11995,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
@@ -11747,7 +12023,139 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_big_endian (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-measurements signing";
+	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_allowable_data data;
+	uint32_t component_id = 101;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t measurement2[SHA256_HASH_LENGTH];
+	uint8_t signature[5];
+	int status;
+	size_t i;
+
+	data.bitmask = NULL;
+	data.check = CFM_CHECK_LESS_THAN;
+	data.data_count = 1;
+	data.data_len = sizeof (measurement2);
+	data.allowable_data = measurement2;
+	data.big_endian = true;
+
+	cfm_measurement_data.pmr_id = 0;
+	cfm_measurement_data.measurement_id = 0;
+	cfm_measurement_data.check = &data;
+	cfm_measurement_data.check_count = 1;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		measurement2[i] = 51 + i;
+	}
+
+	measurement2[0] = 53;
+	measurement2[1] = 50;
+
+	for (i = 0; i < 5; ++i) {
+		signature[i] = i * 10;
+	}
+
+	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
+	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,	component_id);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = false;
+	testing.raw_rsp[0] = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, 4, true, false, false, NULL, component_id);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
+		false, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, true,
+		false, &testing, 8, 1);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
+			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
+		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
+		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (signature, sizeof (signature)),
+		MOCK_ARG (5));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
+		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
+		sizeof (struct cfm_measurement_data), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -11774,12 +12182,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_LESS_THAN;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -11885,7 +12293,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -11911,12 +12319,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_LESS_THAN;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -12013,7 +12421,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -12040,12 +12448,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_LESS_THAN;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -12146,7 +12554,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -12172,12 +12580,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -12279,7 +12687,140 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_big_endian (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-measurements signing";
+	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_allowable_data data;
+	uint32_t component_id = 101;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t measurement2[SHA256_HASH_LENGTH];
+	uint8_t signature[5];
+	int status;
+	size_t i;
+
+	data.bitmask = NULL;
+	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
+	data.data_count = 1;
+	data.data_len = sizeof (measurement2);
+	data.allowable_data = measurement2;
+	data.big_endian = true;
+
+	cfm_measurement_data.pmr_id = 0;
+	cfm_measurement_data.measurement_id = 0;
+	cfm_measurement_data.check = &data;
+	cfm_measurement_data.check_count = 1;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		measurement2[i] = 51 + i;
+	}
+
+	measurement2[0] = 52;
+
+	for (i = 0; i < 5; ++i) {
+		signature[i] = i * 10;
+	}
+
+	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
+	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = false;
+	testing.raw_rsp[0] = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, 4, true, false, false, NULL, component_id);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
+		false, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, true,
+		false, &testing, 8, 1);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
+			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
+		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
+		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
+		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (signature, sizeof (signature)),
+		MOCK_ARG (5));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
+		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
+		sizeof (struct cfm_measurement_data), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -12305,12 +12846,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -12410,7 +12951,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -12437,12 +12978,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -12548,7 +13089,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -12575,12 +13116,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -12685,7 +13226,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -12711,12 +13252,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -12815,7 +13356,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -12842,12 +13383,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -12950,7 +13491,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -12976,12 +13517,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_GREATER_THAN;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -13083,7 +13624,140 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_big_endian (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-measurements signing";
+	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_allowable_data data;
+	uint32_t component_id = 101;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t measurement2[SHA256_HASH_LENGTH];
+	uint8_t signature[5];
+	int status;
+	size_t i;
+
+	data.bitmask = NULL;
+	data.check = CFM_CHECK_GREATER_THAN;
+	data.data_count = 1;
+	data.data_len = sizeof (measurement2);
+	data.allowable_data = measurement2;
+	data.big_endian = true;
+
+	cfm_measurement_data.pmr_id = 0;
+	cfm_measurement_data.measurement_id = 0;
+	cfm_measurement_data.check = &data;
+	cfm_measurement_data.check_count = 1;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		measurement2[i] = 51 + i;
+	}
+
+	measurement2[0] = 50;
+
+	for (i = 0; i < 5; ++i) {
+		signature[i] = i * 10;
+	}
+
+	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
+	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = false;
+	testing.raw_rsp[0] = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, 4, true, false, false, NULL, component_id);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
+		false, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, true,
+		false, &testing, 8, 1);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
+			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
+		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
+		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
+		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (signature, sizeof (signature)),
+		MOCK_ARG (5));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
+		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
+		sizeof (struct cfm_measurement_data), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -13115,6 +13789,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -13220,7 +13895,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -13246,12 +13921,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_GREATER_THAN;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -13348,7 +14023,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -13375,12 +14050,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_GREATER_THAN;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -13481,7 +14156,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -13507,12 +14182,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -13614,7 +14289,140 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_big_endian (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-measurements signing";
+	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_allowable_data data;
+	uint32_t component_id = 101;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t measurement2[SHA256_HASH_LENGTH];
+	uint8_t signature[5];
+	int status;
+	size_t i;
+
+	data.bitmask = NULL;
+	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
+	data.data_count = 1;
+	data.data_len = sizeof (measurement2);
+	data.allowable_data = measurement2;
+	data.big_endian = true;
+
+	cfm_measurement_data.pmr_id = 0;
+	cfm_measurement_data.measurement_id = 0;
+	cfm_measurement_data.check = &data;
+	cfm_measurement_data.check_count = 1;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		measurement2[i] = 51 + i;
+	}
+
+	measurement2[0] = 50;
+
+	for (i = 0; i < 5; ++i) {
+		signature[i] = i * 10;
+	}
+
+	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
+	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = false;
+	testing.raw_rsp[0] = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, 4, true, false, false, NULL, component_id);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
+		false, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, true,
+		false, &testing, 8, 1);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
+			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
+		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
+		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
+		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (signature, sizeof (signature)),
+		MOCK_ARG (5));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
+		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
+		sizeof (struct cfm_measurement_data), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -13640,12 +14448,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -13745,7 +14553,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -13772,12 +14580,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -13883,7 +14691,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -13910,12 +14718,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -14020,7 +14828,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -14046,12 +14854,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -14150,7 +14958,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -14177,12 +14985,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -14285,7 +15093,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -14311,12 +15119,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 2;
 	data.data_len = SHA256_HASH_LENGTH;
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -14417,7 +15225,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -14443,12 +15251,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 2;
 	data.data_len = SHA256_HASH_LENGTH;
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -14546,7 +15354,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -14572,12 +15380,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_NOT_EQUAL;
 	data.data_count = 2;
 	data.data_len = SHA256_HASH_LENGTH;
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -14678,7 +15486,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -14704,12 +15512,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_NOT_EQUAL;
 	data.data_count = 2;
 	data.data_len = SHA256_HASH_LENGTH;
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -14807,7 +15615,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -14833,12 +15641,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_LESS_THAN;
 	data.data_count = 2;
 	data.data_len = SHA256_HASH_LENGTH;
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -14936,7 +15744,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -14962,12 +15770,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
 	data.data_count = 2;
 	data.data_len = SHA256_HASH_LENGTH;
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -15065,7 +15873,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -15091,12 +15899,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_GREATER_THAN;
 	data.data_count = 2;
 	data.data_len = SHA256_HASH_LENGTH;
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -15194,7 +16002,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -15220,12 +16028,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
 	data.data_count = 2;
 	data.data_len = SHA256_HASH_LENGTH;
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -15323,7 +16131,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -15351,18 +16159,19 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data[0].bitmask = measurement_bitmask;
 	data[0].check = CFM_CHECK_EQUAL;
 	data[0].data_count = 1;
 	data[0].data_len = sizeof (measurement);
 	data[0].allowable_data = measurement;
+	data[0].big_endian = false;
 
 	data[1].bitmask = NULL;
 	data[1].check = CFM_CHECK_EQUAL;
 	data[1].data_count = 1;
 	data[1].data_len = sizeof (measurement2);
 	data[1].allowable_data = measurement2;
+	data[1].big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -15465,7 +16274,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -15486,12 +16295,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement);
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -15574,7 +16383,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -15600,12 +16409,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement);
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -15705,7 +16514,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -15731,12 +16540,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement);
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -15836,7 +16645,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -15868,12 +16677,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement);
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -15885,6 +16694,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	data2.data_count = 1;
 	data2.data_len = sizeof (measurement2);
 	data2.allowable_data = measurement2;
+	data2.big_endian = false;
 
 	cfm_measurement_data2.pmr_id = 0;
 	cfm_measurement_data2.measurement_id = 1;
@@ -16037,7 +16847,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -16157,7 +16967,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -16188,7 +16998,6 @@ static void attestation_requester_test_attest_device_spdm_measurement_and_measur
 	int status;
 	size_t i;
 
-
 	cfm_measurement.digests.digest_count = 1;
 	cfm_measurement.digests.hash_type = HASH_TYPE_SHA256;
 	cfm_measurement.digests.digests = measurement;
@@ -16200,6 +17009,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_and_measur
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 1;
@@ -16352,7 +17162,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_and_measur
 		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -16465,7 +17275,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -16578,7 +17388,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -16691,7 +17501,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -16801,7 +17611,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -16911,7 +17721,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -17021,7 +17831,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -17123,7 +17933,7 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -17224,7 +18034,7 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -17325,7 +18135,7 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -17430,7 +18240,7 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -17549,8 +18359,7 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 
 	status = mock_expect (&testing.primary_hash.mock,
 		testing.primary_hash.base.calculate_sha384, &testing.primary_hash, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (testing.cert_buffer_len - cert_chain_overhead), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (HASH_MAX_HASH_LEN));
+		MOCK_ARG (testing.cert_buffer_len), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 2, out_digest, SHA384_HASH_LENGTH,
 		-1);
 	CuAssertIntEquals (test, 0, status);
@@ -17597,7 +18406,7 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -17699,7 +18508,7 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -17721,6 +18530,8 @@ static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuT
 	component_device.component_id = component_id;
 	component_device.num_pmr_ids = 1;
 	component_device.pmr_id_list = pmr_id_list;
+	component_device.transcript_hash_type = 0;
+	component_device.measurement_hash_type = 0;
 
 	TEST_START;
 
@@ -17728,10 +18539,10 @@ static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuT
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
 		component_id);
 
-	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp, &testing.channel.base,
-		&testing.primary_hash.base, NULL, &testing.ecc.base, &testing.rsa.base,
-		&testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr,
-		&testing.cfm_manager.base);
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base,
+		&testing.rsa.base, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
+		&testing.device_mgr, &testing.cfm_manager.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
@@ -17750,7 +18561,7 @@ static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuT
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_OPERATION, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -17770,7 +18581,7 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha256_fail
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -17790,7 +18601,7 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha384_fail
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -17810,7 +18621,7 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha512_fail
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -17845,7 +18656,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_req_hash_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -17881,7 +18692,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_fail (CuTe
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, true, false, false,
 		0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -17920,7 +18731,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_response_n
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, true, false, false,
 		0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -17956,7 +18767,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_unexpected
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, true, false,
 		0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -17992,7 +18803,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp (Cu
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, false, false, false,
 		false, 0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18029,7 +18840,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false, true,
 		0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18069,7 +18880,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false, false,
 		0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18108,7 +18919,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false, false,
 		0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18132,7 +18943,7 @@ static void attestation_requester_test_attest_device_spdm_get_version_rsp_hash_u
 	attestation_requester_testing_send_and_receive_spdm_get_version_with_mocks (test, 0, true,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18199,7 +19010,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_req_h
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18258,7 +19069,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_fail 
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18320,7 +19131,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_respo
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18380,7 +19191,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_unexp
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18440,7 +19251,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18502,7 +19313,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_get_c
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18564,7 +19375,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18588,7 +19399,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_rsp_h
 	attestation_requester_testing_send_and_receive_spdm_get_capabilities_with_mocks (test, 0, true,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18634,7 +19445,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18681,7 +19492,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_f
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18730,7 +19541,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18777,7 +19588,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18824,7 +19635,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18872,7 +19683,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18921,7 +19732,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -18970,7 +19781,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19019,7 +19830,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19039,7 +19850,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM, 0);
 
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_512 + 1;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_512 + 1;
 
 	req.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
 	req.header.spdm_minor_version = testing.spdm_version;
@@ -19068,7 +19879,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19088,7 +19899,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM, 0);
 
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_384;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_384;
 
 	req.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
 	req.header.spdm_minor_version = testing.spdm_version;
@@ -19117,7 +19928,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19141,7 +19952,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		true, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19181,7 +19992,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_req_hash_u
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19221,7 +20032,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_fail (CuTe
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19261,7 +20072,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_unexpected
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19301,7 +20112,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp (Cu
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19343,7 +20154,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_invalid_rs
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19383,7 +20194,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_req_slot_e
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19409,7 +20220,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_hash_u
 	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, true, true,
 		&testing, 3);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19449,7 +20260,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_digest_not
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19467,12 +20278,14 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	uint8_t digest2[SHA384_HASH_LENGTH];
 	uint8_t digest3[SHA384_HASH_LENGTH];
 	uint8_t signature[5];
+	uint8_t num_pcr_measurements[2] = {6, 6};
 	struct attestation_requester_testing testing;
 	struct spdm_get_digests_request req;
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
 	struct spdm_respond_if_ready_request *request;
 	struct spdm_get_digests_response *rsp = (struct spdm_get_digests_response*) &rsp_buf;
+	struct cfm_component_device component_device;
 	size_t rsp_len;
 	size_t offset;
 	size_t i;
@@ -19500,9 +20313,192 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 
 	TEST_START;
 
-	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
-		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
-		component_id);
+	component_device.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
+	component_device.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
+	component_device.component_id = component_id;
+	component_device.num_pmr_ids = 1;
+	component_device.pmr_id_list = pmr_id_list;
+	component_device.measurement_hash_type = HASH_TYPE_SHA384;
+	component_device.transcript_hash_type = HASH_TYPE_SHA384;
+
+	memset (&testing, 0, sizeof (struct attestation_requester_testing));
+
+	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing.max_protocol_version = 255;
+	testing.spdm_version = 2;
+	testing.spdm_min_version = 1;
+	testing.spdm_max_version = 2;
+
+	status = hash_mock_init (&testing.primary_hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&testing.secondary_hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&testing.ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rsa_mock_init (&testing.rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = x509_mock_init (&testing.x509_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&testing.rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&testing.keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_mock_init (&testing.channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_control_mock_init (&testing.fw_update);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_responder_mock_init (&testing.attestation_responder);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_init (&testing.store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_background_mock_init (&testing.background);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_authorization_mock_init (&testing.authorization);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_device_mock_init (&testing.device);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&testing.cfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&testing.cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key,
+		&testing.keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.keystore.mock, 1, &testing.dev_id_der,
+		sizeof (testing.dev_id_der), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
+	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
+
+	status = riot_key_manager_init_static (&testing.riot, &testing.keystore.base, &keys,
+		&testing.x509_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_init (&testing.device_mgr, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10, 10, 10, 10, 0, 0, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 0,
+		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 1, 0x0A, 0x20,
+		1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 1,
+		DEVICE_MANAGER_UNIDENTIFIED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	fw_ver_list[0] = "1.1.1.1";
+	testing.fw_version.count = 1;
+	testing.fw_version.id = fw_ver_list;
+
+	status = cmd_interface_system_init (&testing.cmd_cerberus, &testing.fw_update.base, NULL,
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base,
+		&testing.device_mgr, &testing.store, &testing.primary_hash.base,
+		&testing.background.base, NULL, NULL, &testing.fw_version, &testing.riot,
+		&testing.authorization.base, NULL, NULL, NULL,	NULL, NULL, NULL, &testing.device.base, 1,
+		2, 3, 4, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_mctp_control_init (&testing.cmd_mctp, &testing.device_mgr, 0x1414, 4);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_spdm_init (&testing.cmd_spdm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_interface_init (&testing.mctp, &testing.cmd_cerberus.base,
+		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
+
+	memset (testing.hash_len, SHA384_HASH_LENGTH, sizeof (testing.hash_len));
+	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_384;
+	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_384;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_384;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_384;
+	testing.cert_buffer_len += SHA384_HASH_LENGTH;
+
+	memcpy (&cert_buffer[testing.cert_buffer_len], X509_CERTSS_ECC_CA_NOPL_DER,
+		X509_CERTSS_ECC_CA_NOPL_DER_LEN);
+
+	testing.cert_buffer_len += X509_CERTSS_ECC_CA_NOPL_DER_LEN;
+
+	memcpy (&cert_buffer[testing.cert_buffer_len], RIOT_CORE_DEVID_SIGNED_CERT,
+		RIOT_CORE_DEVID_SIGNED_CERT_LEN);
+
+	testing.cert_buffer_len += RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+
+	memcpy (&cert_buffer[testing.cert_buffer_len], RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN);
+
+	testing.cert_buffer_len += RIOT_CORE_ALIAS_CERT_LEN;
+
+	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 1, 0xAA, 0xBB,
+		0xCC, 0xDD,	1, component_id, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 1,
+		DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, (intptr_t) &testing.cfm.base);
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR_CONTAINS ((intptr_t) &testing.cfm.base,
+			sizeof (struct cfm*)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_system_add_cerberus_protocol_observer (&testing.cmd_cerberus,
+		&testing.test.cerberus_rsp_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_spdm_add_spdm_protocol_observer (&testing.cmd_spdm,
+		&testing.test.spdm_rsp_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_mctp_control_add_mctp_control_protocol_observer (&testing.cmd_mctp,
+		&testing.test.mctp_rsp_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_add_observer (&testing.cfm_manager.base, &testing.test.cfm_observer);
+	CuAssertIntEquals (test, 0, status);
 
 	req.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
 	req.header.spdm_minor_version = testing.spdm_version;
@@ -19636,11 +20632,59 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_ready_too_many_retries (
+	CuTest *test)
+{
+	uint32_t component_id = 101;
+	struct attestation_requester_testing testing;
+	struct spdm_get_digests_request req;
+	int status;
+
+	memset (&req, 0, sizeof (struct spdm_get_digests_request));
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	req.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
+	req.header.spdm_minor_version = testing.spdm_version;
+	req.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	req.header.req_rsp_code = SPDM_REQUEST_GET_DIGESTS;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.rsp_not_ready_request = SPDM_REQUEST_GET_DIGESTS;
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests (test, true, true, false, 3,
+		&testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (((uint8_t*) &req) + 1, sizeof (req) - 1),
+		MOCK_ARG (sizeof (req) - 1));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_TOO_MANY_RETRIES_REQUESTED, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -19684,7 +20728,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_req_ha
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19729,7 +20773,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_fail (
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19774,7 +20818,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_unexpe
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19819,7 +20863,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19867,7 +20911,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_un
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19895,7 +20939,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_ha
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, true,
 		&testing, 4, testing.cert_buffer_len, 0);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19948,7 +20992,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_rs
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -19983,7 +21027,7 @@ static void attestation_requester_test_attest_device_spdm_init_ca_cert_store_fai
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20032,7 +21076,7 @@ static void attestation_requester_test_attest_device_spdm_add_root_ca_fail (CuTe
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20082,7 +21126,7 @@ static void attestation_requester_test_attest_device_spdm_no_riot_ca_add_root_ca
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20127,7 +21171,7 @@ static void attestation_requester_test_attest_device_spdm_get_vendor_root_ca_fai
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, CFM_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20136,7 +21180,7 @@ static void attestation_requester_test_attest_device_spdm_get_vendor_root_ca_fai
 static void attestation_requester_test_attest_device_spdm_vendor_root_ca_hash_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_root_ca_digests root_ca_digests;
+	struct cfm_root_ca_digests root_ca_digests = {0};
 	uint32_t component_id = 50;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
 	int i_digest;
@@ -20172,6 +21216,9 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_hash_fa
 		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
+		&testing.cfm, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.primary_hash.mock,
@@ -20192,7 +21239,7 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_hash_fa
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20202,7 +21249,7 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_not_sup
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_root_ca_digests root_ca_digests;
+	struct cfm_root_ca_digests root_ca_digests = {0};
 	uint32_t component_id = 50;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
 	uint8_t out_digest[SHA256_HASH_LENGTH] = {0};
@@ -20240,6 +21287,9 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_not_sup
 		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
+		&testing.cfm, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.primary_hash.mock,
@@ -20262,7 +21312,7 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_not_sup
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20272,7 +21322,7 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_add_roo
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_root_ca_digests root_ca_digests;
+	struct cfm_root_ca_digests root_ca_digests = {0};
 	uint32_t component_id = 50;
 	uint8_t ca_digests[SHA256_HASH_LENGTH * 2] = {0};
 	int i_digest;
@@ -20308,6 +21358,9 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_add_roo
 		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
+		&testing.cfm, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.primary_hash.mock,
@@ -20335,7 +21388,7 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_add_roo
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20389,7 +21442,7 @@ static void attestation_requester_test_attest_device_spdm_add_intermediate_ca_fa
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20447,7 +21500,7 @@ static void attestation_requester_test_attest_device_spdm_load_certificate_fail 
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20511,7 +21564,7 @@ static void attestation_requester_test_attest_device_spdm_authenticate_cert_chai
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20573,15 +21626,15 @@ static void attestation_requester_test_attest_device_spdm_sha256_hash_cert_chain
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha256,
 		&testing.primary_hash, HASH_ENGINE_NO_MEMORY, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN +	RIOT_CORE_DEVID_SIGNED_CERT_LEN +
-			RIOT_CORE_ALIAS_CERT_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (HASH_MAX_HASH_LEN));
+			RIOT_CORE_ALIAS_CERT_LEN + sizeof (struct spdm_certificate_chain) + SHA256_HASH_LENGTH),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20643,15 +21696,15 @@ static void attestation_requester_test_attest_device_spdm_sha384_hash_cert_chain
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha384,
 		&testing.primary_hash, HASH_ENGINE_NO_MEMORY, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN + RIOT_CORE_DEVID_SIGNED_CERT_LEN +
-			RIOT_CORE_ALIAS_CERT_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (HASH_MAX_HASH_LEN));
+			RIOT_CORE_ALIAS_CERT_LEN + sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20713,15 +21766,15 @@ static void attestation_requester_test_attest_device_spdm_sha512_hash_cert_chain
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha512,
 		&testing.primary_hash, HASH_ENGINE_NO_MEMORY, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN + RIOT_CORE_DEVID_SIGNED_CERT_LEN +
-			RIOT_CORE_ALIAS_CERT_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (HASH_MAX_HASH_LEN));
+			RIOT_CORE_ALIAS_CERT_LEN + sizeof (struct spdm_certificate_chain) + SHA512_HASH_LENGTH),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20784,8 +21837,9 @@ static void attestation_requester_test_attest_device_spdm_compare_cert_chain_dig
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha384,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN +
-			RIOT_CORE_DEVID_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (HASH_MAX_HASH_LEN));
+			RIOT_CORE_DEVID_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN +
+			sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect_output (&testing.primary_hash.mock, 2, out_digest, sizeof (out_digest),
 		-1);
 	CuAssertIntEquals (test, 0, status);
@@ -20794,7 +21848,7 @@ static void attestation_requester_test_attest_device_spdm_compare_cert_chain_dig
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_MISMATCH, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20863,8 +21917,9 @@ static void attestation_requester_test_attest_device_spdm_get_public_key_type_fa
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha384,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN +
-			RIOT_CORE_DEVID_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (HASH_MAX_HASH_LEN));
+			RIOT_CORE_DEVID_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN +
+			sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect_output (&testing.primary_hash.mock, 2, out_digest, sizeof (out_digest),
 		-1);
 	CuAssertIntEquals (test, 0, status);
@@ -20873,7 +21928,7 @@ static void attestation_requester_test_attest_device_spdm_get_public_key_type_fa
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20945,8 +22000,9 @@ static void attestation_requester_test_attest_device_spdm_get_public_key_fail (C
 
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha384,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN +
-			RIOT_CORE_DEVID_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (HASH_MAX_HASH_LEN));
+			RIOT_CORE_DEVID_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN +
+			sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect_output (&testing.primary_hash.mock, 2, out_digest, sizeof (out_digest),
 		-1);
 	CuAssertIntEquals (test, 0, status);
@@ -20955,7 +22011,7 @@ static void attestation_requester_test_attest_device_spdm_get_public_key_fail (C
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, X509_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -20992,7 +22048,7 @@ static void attestation_requester_test_attest_device_spdm_generate_random_buffer
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21051,7 +22107,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_req_hash_upd
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21111,7 +22167,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_fail (Cu
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, true, false, 5,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21171,7 +22227,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_unexpected_r
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, true, 5,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21231,7 +22287,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp (CuTe
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, false, false, false, 5,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21294,7 +22350,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unexpect
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, 5,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21357,7 +22413,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unsuppor
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, 5,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21419,7 +22475,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_req_slot
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, 5,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21481,7 +22537,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_invalid_rsp_
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, 5,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21544,7 +22600,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_compare_cert
 	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, 5,
 		&testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21576,7 +22632,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_hash_upd
 	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, true, &testing,
 		5);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21614,7 +22670,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_hash_finish_
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21659,7 +22715,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21704,7 +22760,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21749,7 +22805,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21806,7 +22862,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21866,7 +22922,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21929,7 +22985,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -21998,7 +23054,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_init_pub
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -22078,7 +23134,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 		&testing.ecc, 0, MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -22164,7 +23220,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 		&testing.cfm, MANIFEST_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MANIFEST_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -22265,7 +23321,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -22365,7 +23421,7 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -22412,7 +23468,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_get_pmr_dige
 		&testing.cfm, CFM_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, CFM_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -22478,7 +23534,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_start_hash_f
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -22558,7 +23614,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_1_2_setup_de
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -22630,7 +23686,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_generate_ran
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -22731,7 +23787,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_req_hash_upd
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -22897,7 +23953,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_fail (Cu
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -23063,7 +24119,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -23230,7 +24286,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -23398,7 +24454,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -23467,7 +24523,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_hash_upd
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -23543,7 +24599,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_hash_finish_
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -23622,7 +24678,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -23701,7 +24757,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -23780,7 +24836,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA512);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -23870,7 +24926,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -23963,7 +25019,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24059,7 +25115,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24141,7 +25197,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ini
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24235,7 +25291,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ver
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24339,7 +25395,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_raw_rsp
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24442,7 +25498,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_co
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24545,7 +25601,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24593,7 +25649,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_next_m
 		CFM_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, CFM_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24661,7 +25717,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 		MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24777,7 +25833,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_no_digest_
 		MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24827,7 +25883,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_n
 		&testing.cfm, CFM_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, CFM_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24846,12 +25902,12 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 	uint8_t measurement[SHA256_HASH_LENGTH];
 	int status;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement);
 	data.allowable_data = measurement;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -24898,7 +25954,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -24924,12 +25980,12 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -25027,7 +26083,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -25072,12 +26128,12 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 		nonce[i] = SPDM_NONCE_LEN - i;
 	}
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -25153,7 +26209,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -25179,12 +26235,12 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 	int status;
 	size_t i;
 
-
 	data.bitmask = NULL;
 	data.check = CFM_CHECK_EQUAL;
 	data.data_count = 1;
 	data.data_len = sizeof (measurement2);
 	data.allowable_data = measurement2;
+	data.big_endian = false;
 
 	cfm_measurement_data.pmr_id = 0;
 	cfm_measurement_data.measurement_id = 0;
@@ -25282,7 +26338,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -25302,7 +26358,7 @@ static void attestation_requester_test_attest_device_update_routing_table (CuTes
 
 	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -25320,7 +26376,7 @@ static void attestation_requester_test_attest_device_update_routing_table_bridge
 
 	attestation_requester_refresh_routing_table (&testing.test);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -25421,7 +26477,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&testing.device_mgr, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
-		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 1000, 1000);
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 0,
@@ -25472,7 +26528,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 		&testing.test.spdm_rsp_observer);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0xCC, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0xCC);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -25488,7 +26544,7 @@ static void attestation_requester_test_attest_device_unsupported_attestation_pro
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
 		HASH_TYPE_SHA256, (enum cfm_attestation_type) 2, ATTESTATION_RIOT_SLOT_NUM, 0);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_PROTOCOL, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -25527,8 +26583,81 @@ static void attestation_requester_test_attest_device_spdm_response_not_ready_une
 	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, true, false, false,
 		0, &testing);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA384);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_cfm_contains_unsupported_hash_alg (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint32_t component_id = 101;
+	struct cfm_component_device component_device;
+	int status;
+
+
+	component_device.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
+	component_device.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
+	component_device.component_id = component_id;
+	component_device.num_pmr_ids = 1;
+	component_device.pmr_id_list = pmr_id_list;
+	component_device.measurement_hash_type = (enum hash_type) 4;
+	component_device.transcript_hash_type = 0;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, false, false, true, true,
+		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, (intptr_t) &testing.cfm.base);
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR_CONTAINS ((intptr_t) &testing.cfm.base,
+			sizeof (struct cfm*)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
+
+	component_device.measurement_hash_type = 0;
+	component_device.transcript_hash_type = (enum hash_type) 4;
+
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, (intptr_t) &testing.cfm.base);
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR_CONTAINS ((intptr_t) &testing.cfm.base,
+			sizeof (struct cfm*)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -25539,7 +26668,7 @@ static void attestation_requester_test_attest_device_invalid_arg (CuTest *test)
 
 	TEST_START;
 
-	status = attestation_requester_attest_device (NULL, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (NULL, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 }
 
@@ -25565,8 +26694,9 @@ static void attestation_requester_test_discover_device_spdm (CuTest *test)
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -25608,8 +26738,9 @@ static void attestation_requester_test_discover_device_spdm_1_1 (CuTest *test)
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -25779,7 +26910,7 @@ static void attestation_requester_test_discover_device_spdm_setup_device_fail (C
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
 	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
@@ -25788,7 +26919,7 @@ static void attestation_requester_test_discover_device_spdm_setup_device_fail (C
 		1, &testing);
 
 	status = attestation_requester_discover_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
@@ -25808,8 +26939,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_fail
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -25823,7 +26955,7 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_fail
 		4, 0xEF, true, &testing);
 
 	status = attestation_requester_discover_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
@@ -25846,8 +26978,9 @@ static void attestation_requester_test_discover_device_spdm_1_1_get_measurement_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -25861,7 +26994,7 @@ static void attestation_requester_test_discover_device_spdm_1_1_get_measurement_
 		4, 0, true, &testing);
 
 	status = attestation_requester_discover_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
@@ -25883,8 +27016,9 @@ static void attestation_requester_test_discover_device_spdm_1_1_get_measurement_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -25900,7 +27034,7 @@ static void attestation_requester_test_discover_device_spdm_1_1_get_measurement_
 		5, 5, true, &testing);
 
 	status = attestation_requester_discover_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
@@ -25921,8 +27055,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_devi
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 	testing.device_id_fail = true;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
@@ -25937,7 +27072,7 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_devi
 		4, 0xEF, true, &testing);
 
 	status = attestation_requester_discover_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ATTESTATION_GET_DEVICE_ID_FAIL, status);
 
 	status = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
 	CuAssertIntEquals (test, DEVICE_MGR_NO_DEVICES_AVAILABLE, status);
@@ -25958,8 +27093,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 	testing.device_id_block_short = true;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
@@ -25995,8 +27131,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -26037,8 +27174,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -26079,8 +27217,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -26121,8 +27260,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -26163,8 +27303,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 	testing.discovery_id_missing = true;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
@@ -26206,8 +27347,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 	testing.discovery_id_missing = 1;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
@@ -26249,8 +27391,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 	testing.discovery_id_missing = 2;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
@@ -26292,8 +27435,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 	testing.discovery_id_missing = 3;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
@@ -26335,8 +27479,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 	testing.discovery_id_missing = 4;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
@@ -26632,8 +27777,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	testing.spdm_discovery = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -26652,6 +27798,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
+
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
 		false, &testing);
@@ -26794,12 +27942,16 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	component_device.component_id = component_id;
 	component_device.num_pmr_ids = 1;
 	component_device.pmr_id_list = pmr_id_list;
+	component_device.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device.measurement_hash_type = HASH_TYPE_SHA256;
 
 	component_device2.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
 	component_device2.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
 	component_device2.component_id = component_id2;
 	component_device2.num_pmr_ids = 1;
 	component_device2.pmr_id_list = pmr_id_list;
+	component_device2.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device2.measurement_hash_type = HASH_TYPE_SHA256;
 
 	memset (&testing, 0, sizeof (struct attestation_requester_testing));
 
@@ -26875,7 +28027,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&testing.device_mgr, 1, 2,
-		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10000, 10000, 10000);
+		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10000, 10000, 10000,
+		0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 0,
@@ -26918,8 +28071,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	memset (testing.hash_len, SHA256_HASH_LENGTH, sizeof (testing.hash_len));
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 	testing.cert_buffer_len += SHA256_HASH_LENGTH;
 
 	memcpy (&cert_buffer[testing.cert_buffer_len], X509_CERTSS_ECC_CA_NOPL_DER,
@@ -26969,8 +28123,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	testing.multiple_devices = true;
 	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
-	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
 
 	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
 		&testing);
@@ -27023,6 +28178,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device,
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
+
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 10,
 		false, &testing);
@@ -27327,7 +28484,7 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
@@ -27338,7 +28495,7 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 
 	attestation_requester_refresh_routing_table (&testing.test);
 
-	status = attestation_requester_attest_device (&testing.test, 0x0A, HASH_TYPE_SHA256);
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REFRESH_ROUTING_TABLE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -27484,29 +28641,35 @@ TEST (attestation_requester_test_attest_device_spdm_sha512_only_measurement_rsp_
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_multiple_measurement_options);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_2_measurement_blocks);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_equal);
+TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_equal_big_endian);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_equal_with_bitmask);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_equal_fail);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_equal_with_bitmask_fail);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal);
+TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_big_endian);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_with_bitmask);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_fail);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_fail_second_check);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_with_bitmask_fail);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than);
+TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_big_endian);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_with_bitmask);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_fail);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_with_bitmask_fail);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal);
+TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_big_endian);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_equal);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_with_bitmask);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_with_bitmask_equal);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_fail);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_with_bitmask_fail);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than);
+TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_big_endian);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_with_bitmask);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_fail);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_with_bitmask_fail);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal);
+TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_big_endian);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_equal);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_with_bitmask);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_with_bitmask_equal);
@@ -27581,6 +28744,7 @@ TEST (attestation_requester_test_attest_device_spdm_get_digests_req_slot_empty);
 TEST (attestation_requester_test_attest_device_spdm_get_digests_rsp_hash_update_fail);
 TEST (attestation_requester_test_attest_device_spdm_get_digests_digest_not_unique);
 TEST (attestation_requester_test_attest_device_spdm_get_digests_rsp_not_ready);
+TEST (attestation_requester_test_attest_device_spdm_get_digests_rsp_not_ready_too_many_retries);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_req_hash_update_fail);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_fail);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_unexpected_rsp);
@@ -27663,6 +28827,7 @@ TEST (attestation_requester_test_attest_device_update_routing_table_bridge_refre
 TEST (attestation_requester_test_attest_device_unknown_device);
 TEST (attestation_requester_test_attest_device_unsupported_attestation_protocol);
 TEST (attestation_requester_test_attest_device_spdm_response_not_ready_unexpected_requested_command);
+TEST (attestation_requester_test_attest_device_cfm_contains_unsupported_hash_alg);
 TEST (attestation_requester_test_attest_device_invalid_arg);
 TEST (attestation_requester_test_discover_device_spdm);
 TEST (attestation_requester_test_discover_device_spdm_1_1);

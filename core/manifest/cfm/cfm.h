@@ -76,7 +76,7 @@ struct cfm_measurement {
  * A list of allowable data for a single PMR measurement check.
  */
 struct cfm_allowable_data {
-	uint8_t endianness;											/**< Endianness of multi-byte data values. */
+	bool big_endian;											/**< Flag indicating if multi-byte data values are in big endian. */
 	enum cfm_check check;										/**< Checking method. */
 	size_t data_count;											/**< Number of allowable data. */
 	size_t data_len;											/**< Length of data to use for comparison. */

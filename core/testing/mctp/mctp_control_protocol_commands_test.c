@@ -512,7 +512,7 @@ static void mctp_control_protocol_commands_test_process_set_eid (CuTest *test)
 	request.source_addr = 0x20;
 	request.target_eid = MCTP_BASE_PROTOCOL_NULL_EID;
 
-	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
+	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&device_manager,
@@ -574,7 +574,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_force (CuTest *t
 	request.source_addr = 0x20;
 	request.target_eid = MCTP_BASE_PROTOCOL_NULL_EID;
 
-	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
+	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&device_manager,
@@ -634,7 +634,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_null (CuTest *te
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_NULL_EID;
 
-	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
+	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&device_manager,
@@ -680,7 +680,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_len (CuT
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
+	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&device_manager,
@@ -742,7 +742,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
+	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&device_manager,
@@ -828,7 +828,7 @@ static void mctp_control_protocol_commands_test_process_get_eid (CuTest *test)
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = device_manager_init (&device_manager, 1, 0, 0, 0, 1000, 1000, 1000);
+	status = device_manager_init (&device_manager, 1, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&device_manager,
@@ -874,7 +874,7 @@ static void mctp_control_protocol_commands_test_process_get_eid_null (CuTest *te
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = device_manager_init (&device_manager, 1, 0, 0, 0, 1000, 1000, 1000);
+	status = device_manager_init (&device_manager, 1, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&device_manager,
@@ -915,7 +915,7 @@ static void mctp_control_protocol_commands_test_process_get_eid_invalid_len (CuT
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000);
+	status = device_manager_init (&device_manager, 2, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&device_manager,

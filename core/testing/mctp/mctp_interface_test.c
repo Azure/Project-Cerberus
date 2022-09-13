@@ -109,7 +109,7 @@ static void setup_mctp_interface_with_interface_mock_test (CuTest *test,
 	int status;
 
 	status = device_manager_init (&mctp->device_mgr, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&mctp->device_mgr, 0,
@@ -143,7 +143,7 @@ static void setup_mctp_interface_with_interface_mock_test_no_mctp_bridge (CuTest
 	int status;
 
 	status = device_manager_init (&mctp->device_mgr, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&mctp->device_mgr, 0,
@@ -283,7 +283,7 @@ static void mctp_interface_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&mctp.device_mgr, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp.mctp, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base,
@@ -317,7 +317,7 @@ static void mctp_interface_test_init_spdm_not_supported (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&mctp.device_mgr, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&mctp.mctp, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, NULL,
@@ -345,7 +345,7 @@ static void mctp_interface_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&mctp.device_mgr, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (NULL, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, NULL,

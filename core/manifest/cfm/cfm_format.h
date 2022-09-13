@@ -44,6 +44,14 @@ enum cfm_attestation_protocol {
 	CFM_DMTF_SPDM = 0x01,										/**< DMTF SPDM protocol. */
 };
 
+/**
+ * CFM multi-byte endianness.
+ */
+enum cfm_endianness {
+	CFM_MULTIBYTE_LITTLE_ENDIAN = 0x00,							/**< Multi-bytes in little endian. */
+	CFM_MULTIBYTE_BIG_ENDIAN = 0x01,							/**< Multi-bytes in big endian. */
+};
+
 
 #pragma pack(push, 1)
 /**

@@ -23,10 +23,11 @@
 // Maximum key length
 #define DEVICE_MANAGER_MAX_KEY_LEN								RSA_MAX_KEY_LENGTH
 
-// Attestation cadences
-#define DEVICE_MANAGER_UNAUTHENTICATED_CADENCE_MS				30000
-#define DEVICE_MANAGER_AUTHENTICATED_CADENCE_MS					3600000
-#define DEVICE_MANAGER_UNIDENTIFIED_TIMEOUT_CADENCE_MS			30000
+// Default minimum activity check
+#define DEVICE_MANAGER_MIN_ACTIVITY_CHECK						300000
+
+// MCTP control protocol default timeout
+#define DEVICE_MANAGER_MCTP_CTRL_PROTOCOL_TIMEOUT_MS			1000
 
 /**
  * Convert response timeout in milliseconds to timeout in 10ms multiples
@@ -48,7 +49,8 @@
  * @param state Device state
  */
 #define device_manager_can_device_be_attested(state)			\
-	((state != DEVICE_MANAGER_NOT_ATTESTABLE) || (state == DEVICE_MANAGER_UNIDENTIFIED))
+	((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) || (state == DEVICE_MANAGER_AUTHENTICATED) ||\
+	 (state == DEVICE_MANAGER_NEVER_ATTESTED))
 
 
 /**
@@ -212,6 +214,10 @@ struct device_manager {
 	uint32_t unauthenticated_cadence_ms; 						/**< Period to wait before reauthenticating unauthenticated device. */
  	uint32_t authenticated_cadence_ms; 							/**< Period to wait before reauthenticating authenticated device. */
  	uint32_t unidentified_timeout_ms;							/**< Timeout period to wait before reidentifying unidentified device. */
+	uint32_t mctp_ctrl_timeout_ms;								/**< Timeout duration for MCTP control requests. */
+ 	uint32_t mctp_bridge_additional_timeout_ms;					/**< Timeout adjustment to MCTP bridge communication. */
+  	uint32_t attestation_rsp_not_ready_max_duration_ms; 		/**< Maximum SPDM ResponseNotReady duration. */
+ 	uint8_t attestation_rsp_not_ready_max_retry;				/**< Maximum SPDM ResponseNotReady retries. */
 	bool attestable_components_list_invalid;					/**< Flag indicating we failed to correctly load components from PCD. */
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 	struct device_manager_unidentified_entry *unidentified;		/**< Unidentified device circular linked list. */
@@ -222,7 +228,11 @@ struct device_manager {
 int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	int num_responder_devices, uint8_t hierarchy, uint8_t bus_role,
 	uint32_t unauthenticated_cadence_ms, uint32_t authenticated_cadence_ms,
-	uint32_t unidentified_timeout_ms);
+	uint32_t unidentified_timeout_ms, uint32_t mctp_ctrl_timeout_ms,
+	uint32_t mctp_bridge_additional_timeout_ms, uint32_t attestation_rsp_not_ready_max_duration_ms,
+	uint8_t attestation_rsp_not_ready_max_retry);
+int device_manager_init_ac_rot (struct device_manager *mgr, int num_requester_devices,
+	uint8_t bus_role);
 void device_manager_release (struct device_manager *mgr);
 
 int device_manager_get_device_num (struct device_manager *mgr, uint8_t eid);
@@ -258,8 +268,14 @@ uint32_t device_manager_get_reponse_timeout_by_eid (struct device_manager *mgr, 
 uint32_t device_manager_get_crypto_timeout (struct device_manager *mgr, int device_num);
 uint32_t device_manager_get_crypto_timeout_by_eid (struct device_manager *mgr, uint8_t eid);
 
+int device_manager_get_rsp_not_ready_limits (struct device_manager *mgr, uint32_t *max_timeout_ms,
+	uint8_t *max_retries);
+
+uint32_t device_manager_get_mctp_ctrl_timeout (struct device_manager *mgr);
+
 int device_manager_update_cert_chain_digest (struct device_manager *mgr, uint8_t eid,
 	uint8_t slot_num, const uint8_t *buf, size_t buf_len);
+int device_manager_clear_cert_chain_digest (struct device_manager *mgr, uint8_t eid);
 int device_manager_compare_cert_chain_digest (struct device_manager *mgr, uint8_t eid,
 	uint8_t *digest, size_t digest_len);
 

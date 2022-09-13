@@ -1265,7 +1265,7 @@ static void spdm_test_get_capabilities (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
@@ -1351,7 +1351,7 @@ static void spdm_test_get_capabilities_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_capabilities (NULL, &manager, &hash.base);
@@ -1441,7 +1441,7 @@ static void spdm_test_get_capabilities_ct_too_large (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
@@ -1583,7 +1583,7 @@ static void spdm_test_get_capabilities_1_1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
@@ -1706,7 +1706,7 @@ static void spdm_test_get_capabilities_unknown_device (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
@@ -1793,7 +1793,7 @@ static void spdm_test_get_capabilities_hash_update_rq_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
@@ -1918,7 +1918,7 @@ static void spdm_test_get_capabilities_hash_update_rsp_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0);
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);

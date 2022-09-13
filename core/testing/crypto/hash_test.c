@@ -3075,6 +3075,40 @@ static void hash_test_get_hash_len_unsupported (CuTest *test)
 	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
 }
 
+static void hash_test_is_alg_supported (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = hash_is_alg_supported (HASH_TYPE_SHA1);
+#ifdef HASH_ENABLE_SHA1
+	CuAssertIntEquals (test, 1, status);
+#else
+	CuAssertIntEquals (test, 0, status);
+#endif
+
+	status = hash_is_alg_supported (HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, 1, status);
+
+	status = hash_is_alg_supported (HASH_TYPE_SHA384);
+#ifdef HASH_ENABLE_SHA384
+	CuAssertIntEquals (test, 1, status);
+#else
+	CuAssertIntEquals (test, 0, status);
+#endif
+
+	status = hash_is_alg_supported (HASH_TYPE_SHA512);
+#ifdef HASH_ENABLE_SHA512
+	CuAssertIntEquals (test, 1, status);
+#else
+	CuAssertIntEquals (test, 0, status);
+#endif
+
+	status = hash_is_alg_supported ((enum hash_type) (HASH_TYPE_SHA512 + 1));
+	CuAssertIntEquals (test, 0, status);
+}
+
 
 TEST_SUITE_START (hash);
 
@@ -3192,5 +3226,6 @@ TEST (hash_test_calculate_sha512_small_buffer);
 #endif
 TEST (hash_test_get_hash_len);
 TEST (hash_test_get_hash_len_unsupported);
+TEST (hash_test_is_alg_supported);
 
 TEST_SUITE_END;
