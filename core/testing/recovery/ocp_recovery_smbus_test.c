@@ -88,7 +88,7 @@ static void ocp_recovery_smbus_testing_release_dependencies (CuTest *test,
 }
 
 /**
- * Initialize on OCP Recovery SMBus handler for testing.
+ * Initialize an OCP Recovery SMBus handler for testing.
  *
  * @param test The test framework.
  * @param smbus Testing components to initialize.

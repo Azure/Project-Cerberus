@@ -174,7 +174,7 @@ static int attestation_requester_verify_digest_in_allowable_list (
 		status = ATTESTATION_CFM_INVALID_ATTESTATION;
 	}
 	else {
-		digest_len = hash_get_hash_len (digest_type);
+		digest_len = hash_get_hash_length (digest_type);
 
 		for (i_digest = 0; i_digest < allowable_digests->digest_count; ++i_digest) {
 			status = memcmp (digest, &allowable_digests->digests[offset], digest_len);
@@ -319,7 +319,8 @@ static int attestation_requester_verify_and_load_leaf_key (
 	size_t leaf_key_len;
 	int leaf_key_type;
 	size_t cert_offset = 0;
-	size_t transcript_hash_len = hash_get_hash_len (attestation->state->txn.transcript_hash_type);
+	size_t transcript_hash_len =
+		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
 	size_t cert_len;
 	int status;
 
@@ -487,7 +488,8 @@ static void attestation_requester_verify_signature (const struct attestation_req
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	const struct device_manager_key *alias_key;
-	size_t transcript_hash_len = hash_get_hash_len (attestation->state->txn.transcript_hash_type);
+	size_t transcript_hash_len =
+		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
 	int status;
 
 	status = hash->finish (hash, digest, sizeof (digest));
@@ -832,7 +834,7 @@ void attestation_requester_on_spdm_get_digests_response (
 		goto fail;
 	}
 
-	transcript_hash_len = hash_get_hash_len (attestation->state->txn.transcript_hash_type);
+	transcript_hash_len = hash_get_hash_length (attestation->state->txn.transcript_hash_type);
 
 	rsp_len = spdm_get_digests_resp_length (rsp, transcript_hash_len);
 	digest = spdm_get_digests_resp_digest (rsp, attestation->state->txn.slot_num, transcript_hash_len);
@@ -962,8 +964,10 @@ void attestation_requester_on_spdm_challenge_response (
 	struct attestation_requester *attestation =
 		TO_DERIVED_TYPE (observer, struct attestation_requester, spdm_rsp_observer);
 	struct spdm_challenge_response *rsp = (struct spdm_challenge_response*) response->data;
-	size_t transcript_hash_len = hash_get_hash_len (attestation->state->txn.transcript_hash_type);
-	size_t measurement_hash_len = hash_get_hash_len (attestation->state->txn.measurement_hash_type);
+	size_t transcript_hash_len =
+		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
+	size_t measurement_hash_len =
+		hash_get_hash_length (attestation->state->txn.measurement_hash_type);
 	int status;
 
 	if (attestation_requester_check_spdm_unexpected_rsp (attestation, SPDM_REQUEST_CHALLENGE)) {
@@ -1054,7 +1058,8 @@ void attestation_requester_on_spdm_get_measurements_response (
 	struct spdm_get_measurements_response *rsp =
 		(struct spdm_get_measurements_response*) response->data;
 	struct spdm_measurements_block_header *block;
-	size_t measurement_hash_len = hash_get_hash_len (attestation->state->txn.measurement_hash_type);
+	size_t measurement_hash_len =
+		hash_get_hash_length (attestation->state->txn.measurement_hash_type);
 	size_t offset;
 	uint8_t number_of_blocks = 1;
 	uint8_t i_block;

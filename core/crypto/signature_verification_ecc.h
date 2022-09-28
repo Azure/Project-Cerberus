@@ -6,23 +6,35 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "common/signature_verification.h"
+#include <stdbool.h>
 #include "ecc.h"
+#include "signature_verification.h"
 
 
 /**
- * Verification implementation to verify RSA signatures.
+ * Variable context for verifying ECDSA signatures.
+ */
+struct signature_verification_ecc_state {
+	struct ecc_public_key key;				/**< Public key for signature verification. */
+	bool key_valid;							/**< Indication that there is a key for verification. */
+};
+
+/**
+ * Verification implementation to verify ECDSA signatures.
  */
 struct signature_verification_ecc {
-	struct signature_verification base;		/**< Base verification instance. */
-	struct ecc_engine *ecc;					/**< ECC engine to use for verification. */
-	struct ecc_public_key key;				/**< Public key for signature verification. */
+	struct signature_verification base;				/**< Base verification instance. */
+	struct signature_verification_ecc_state *state;	/**< Variable context for verification. */
+	struct ecc_engine *ecc;							/**< ECC engine to use for verification. */
 };
 
 
 int signature_verification_ecc_init (struct signature_verification_ecc *verification,
-	struct ecc_engine *ecc, const uint8_t *key, size_t length);
-void signature_verification_ecc_release (struct signature_verification_ecc *verification);
+	struct signature_verification_ecc_state *state, struct ecc_engine *ecc, const uint8_t *key,
+	size_t length);
+int signature_verification_ecc_init_state (const struct signature_verification_ecc *verification,
+	const uint8_t *key, size_t length);
+void signature_verification_ecc_release (const struct signature_verification_ecc *verification);
 
 
 #endif /* SIGNATURE_VERIFICATION_ECC_H_ */

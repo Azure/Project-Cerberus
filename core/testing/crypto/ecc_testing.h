@@ -108,6 +108,34 @@ extern const size_t ECC_PRIVKEY2_DER_LEN;
 extern const uint8_t ECC_PRIVKEY2_NO_PUBKEY_DER[];
 extern const size_t ECC_PRIVKEY2_NO_PUBKEY_DER_LEN;
 
+extern const uint8_t ECC_PRIVKEY3[];
+extern const size_t ECC_PRIVKEY3_LEN;
+
+extern const uint8_t ECC_PUBKEY3[];
+extern const size_t ECC_PUBEY3_LEN;
+
+extern const uint8_t ECC_PUBKEY3_SHA1[];
+extern const uint8_t ECC_PUBKEY3_SHA256[];
+extern const uint8_t ECC_PUBKEY3_SHA384[];
+extern const uint8_t ECC_PUBKEY3_SHA512[];
+
+extern const struct ecc_point_public_key ECC_PUBKEY3_POINT;
+
+extern const char ECC_PUBKEY3_PEM[];
+extern const size_t ECC_PUBKEY3_PEM_LEN;
+
+extern const uint8_t ECC_PUBKEY3_DER[];
+extern const size_t ECC_PUBKEY3_DER_LEN;
+
+extern const char ECC_PRIVKEY3_PEM[];
+extern const size_t ECC_PRIVKEY3_PEM_LEN;
+
+extern const uint8_t ECC_PRIVKEY3_DER[];
+extern const size_t ECC_PRIVKEY3_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY3_NO_PUBKEY_DER[];
+extern const size_t ECC_PRIVKEY3_NO_PUBKEY_DER_LEN;
+
 
 extern const uint8_t ECC384_PRIVKEY[];
 extern const size_t ECC384_PRIVKEY_LEN;

@@ -427,7 +427,7 @@ static int cfm_flash_get_component_pmr (struct cfm *cfm, uint32_t component_id, 
 		}
 
 		if (buffer.pmr_element.pmr_id == pmr_id) {
-			hash_len = hash_get_hash_len (hash_type);
+			hash_len = hash_get_hash_length (hash_type);
 			if (ROT_IS_ERROR (hash_len)) {
 				return hash_len;
 			}
@@ -475,7 +475,7 @@ static int cfm_flash_populate_digests (struct cfm_flash *cfm_flash, struct cfm_d
 	int hash_len;
 	int status;
 
-	hash_len = hash_get_hash_len (hash_type);
+	hash_len = hash_get_hash_length (hash_type);
 	if (ROT_IS_ERROR (hash_len)) {
 		return hash_len;
 	}

@@ -86,7 +86,7 @@ void manifest_flash_testing_validate_and_release_dependencies (CuTest *test,
 /**
  * Set expectations for common initialization flows.
  *
- * @param test The testing framawork.
+ * @param test The testing framework.
  * @param manifest The components for the test.
  * @param block_size The flash block size to report.
  */
@@ -514,11 +514,11 @@ static void manifest_flash_test_verify_bad_signature (CuTest *test)
 	manifest_flash_testing_init (test, &manifest, 0x10000, PFM_MAGIC_NUM);
 
 	manifest_flash_testing_verify_manifest (test, &manifest, PFM_DATA, PFM_DATA_LEN, PFM_SIGNATURE,
-		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, RSA_ENGINE_BAD_SIGNATURE);
+		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	manifest_flash_testing_validate_and_release (test, &manifest);
 }
@@ -534,38 +534,13 @@ static void manifest_flash_test_verify_bad_signature_with_hash_out (CuTest *test
 	manifest_flash_testing_init (test, &manifest, 0x10000, PFM_MAGIC_NUM);
 
 	manifest_flash_testing_verify_manifest (test, &manifest, PFM_DATA, PFM_DATA_LEN, PFM_SIGNATURE,
-		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, RSA_ENGINE_BAD_SIGNATURE);
+		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, SIG_VERIFICATION_BAD_SIGNATURE);
 
 	memset (hash_out, 0, sizeof (hash_out));
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, hash_out, sizeof (hash_out));
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
-
-	status = testing_validate_array (PFM_HASH, hash_out, PFM_HASH_LEN);
-	CuAssertIntEquals (test, 0, status);
-
-	manifest_flash_testing_validate_and_release (test, &manifest);
-}
-
-static void manifest_flash_test_verify_bad_signature_ecc_with_hash_out (CuTest *test)
-{
-	struct manifest_flash_testing manifest;
-	uint8_t hash_out[SHA256_HASH_LENGTH];
-	int status;
-
-	TEST_START;
-
-	manifest_flash_testing_init (test, &manifest, 0x10000, PFM_MAGIC_NUM);
-
-	manifest_flash_testing_verify_manifest (test, &manifest, PFM_DATA, PFM_DATA_LEN, PFM_SIGNATURE,
-		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, ECC_ENGINE_BAD_SIGNATURE);
-
-	memset (hash_out, 0, sizeof (hash_out));
-
-	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
-		&manifest.verification.base, hash_out, sizeof (hash_out));
-	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = testing_validate_array (PFM_HASH, hash_out, PFM_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
@@ -735,11 +710,11 @@ static void manifest_flash_test_get_id_after_verify_bad_signature (CuTest *test)
 		PFM_DATA_LEN, PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, 0);
 
 	manifest_flash_testing_verify_manifest (test, &manifest, PFM_DATA, PFM_DATA_LEN, PFM_SIGNATURE,
-		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, RSA_ENGINE_BAD_SIGNATURE);
+		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = manifest_flash_get_id (&manifest.test, &id);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
@@ -867,11 +842,11 @@ static void manifest_flash_test_get_hash_after_verify_bad_signature (CuTest *tes
 		PFM_DATA_LEN, PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, 0);
 
 	manifest_flash_testing_verify_manifest (test, &manifest, PFM_DATA, PFM_DATA_LEN, PFM_SIGNATURE,
-		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH ,RSA_ENGINE_BAD_SIGNATURE);
+		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = mock_validate (&manifest.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
@@ -1392,11 +1367,11 @@ static void manifest_flash_test_get_signature_after_verify_bad_signature (CuTest
 		PFM_DATA_LEN, PFM_SIGNATURE, PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, 0);
 
 	manifest_flash_testing_verify_manifest (test, &manifest, PFM_DATA, PFM_DATA_LEN, PFM_SIGNATURE,
-		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, RSA_ENGINE_BAD_SIGNATURE);
+		PFM_SIGNATURE_OFFSET, PFM_SIGNATURE_LEN, PFM_HASH, SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = mock_validate (&manifest.flash_mock.mock);
 	CuAssertIntEquals (test, 0, status);
@@ -2172,7 +2147,6 @@ TEST (manifest_flash_test_verify_sig_length_into_header);
 TEST (manifest_flash_test_verify_sig_read_error);
 TEST (manifest_flash_test_verify_bad_signature);
 TEST (manifest_flash_test_verify_bad_signature_with_hash_out);
-TEST (manifest_flash_test_verify_bad_signature_ecc_with_hash_out);
 TEST (manifest_flash_test_verify_read_error);
 TEST (manifest_flash_test_verify_read_error_with_hash_out);
 TEST (manifest_flash_test_get_id);

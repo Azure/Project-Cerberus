@@ -187,7 +187,7 @@ int firmware_update_validate_recovery_image (struct firmware_update *updater)
 	 * We already log it and mark the recovery as bad in all error cases.  It's not clear what
 	 * benefit there is from the distinction of errors here. */
 	if ((status == FIRMWARE_IMAGE_INVALID_FORMAT) || (status == FIRMWARE_IMAGE_BAD_CHECKSUM) ||
-		(status == KEY_MANIFEST_INVALID_FORMAT) || (status == RSA_ENGINE_BAD_SIGNATURE) ||
+		(status == KEY_MANIFEST_INVALID_FORMAT) || (status == FIRMWARE_IMAGE_BAD_SIGNATURE) ||
 		(status == FIRMWARE_HEADER_BAD_FORMAT_LENGTH) ||
 		((status >= IMAGE_HEADER_NOT_MINIMUM_SIZE) && (status <= IMAGE_HEADER_TOO_LONG))) {
 		status = 0;
@@ -590,7 +590,8 @@ int firmware_update_run_update (struct firmware_update *updater,
 
 	status = updater->fw->verify (updater->fw, updater->hash);
 	if (status != 0) {
-		if ((status == RSA_ENGINE_BAD_SIGNATURE) || (status == FIRMWARE_IMAGE_MANIFEST_REVOKED)) {
+		if ((status == FIRMWARE_IMAGE_BAD_SIGNATURE) ||
+			(status == FIRMWARE_IMAGE_MANIFEST_REVOKED)) {
 			firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
 		}
 		else {

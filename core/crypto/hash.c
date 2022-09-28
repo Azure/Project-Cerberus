@@ -130,13 +130,13 @@ int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8
 }
 
 /**
- * Get hash length for indicated hash type.
+ * Get the length of the output digest for the indicated hash type.
  *
- * @param hash_type The type of hashing algorithm to use.
+ * @param hash_type The hashing algorithm to check.
  *
- * @return Hash length if hash type is supported or an error code.
+ * @return Digest length if the hash type is known or HASH_ENGINE_UNKNOWN_HASH.
  */
-int hash_get_hash_len (enum hash_type hash_type)
+int hash_get_hash_length (enum hash_type hash_type)
 {
 	switch (hash_type) {
 		case HASH_TYPE_SHA1:

@@ -30,9 +30,8 @@ static int manifest_manager_flash_verify_manifest (struct manifest_manager_flash
 	if (status == 0) {
 		region->is_valid = true;
 	}
-	else if ((status == RSA_ENGINE_BAD_SIGNATURE) || (status == ECC_ENGINE_BAD_SIGNATURE) ||
-		(status == MANIFEST_BAD_MAGIC_NUMBER) || (status == MANIFEST_BAD_LENGTH) ||
-		(status == MANIFEST_MALFORMED)) {
+	else if ((status == SIG_VERIFICATION_BAD_SIGNATURE) || (status == MANIFEST_BAD_MAGIC_NUMBER) ||
+		(status == MANIFEST_BAD_LENGTH) || (status == MANIFEST_MALFORMED)) {
 		region->is_valid = false;
 		status = 0;
 	}

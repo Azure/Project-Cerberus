@@ -127,4 +127,4 @@ void attestation_requester_refresh_routing_table (struct attestation_requester *
 void attestation_requestor_wait_for_next_action (struct attestation_requester *attestation);
 
 
-#endif //ATTESTATION_REQUESTER_H_
+#endif /* ATTESTATION_REQUESTER_H_ */

@@ -47,7 +47,9 @@ struct firmware_image {
 	 * @param fw The firmware image to validate.
 	 * @param hash The hash engine to use for validation.
 	 *
-	 * @return 0 if the firmware image is valid or an error code.
+	 * @return 0 if the firmware image is valid or an error code.  If verification failed due to an
+	 * incorrect signature, FIRMWARE_IMAGE_BAD_SIGNATURE will be returned, regardless of the
+	 * underlying signature verification algorithm.
 	 */
 	int (*verify) (struct firmware_image *fw, struct hash_engine *hash);
 
@@ -105,6 +107,7 @@ enum {
 	FIRMWARE_IMAGE_NOT_AVAILABLE = FIRMWARE_IMAGE_ERROR (0x0b),			/**< A firmware component is not available in the image. */
 	FIRMWARE_IMAGE_INVALID_SIGNATURE = FIRMWARE_IMAGE_ERROR (0x0c),		/**< An image signature is malformed. */
 	FIRMWARE_IMAGE_FORCE_RECOVERY = FIRMWARE_IMAGE_ERROR (0x0d),		/**< Force loading the recovery firmware image. */
+	FIRMWARE_IMAGE_BAD_SIGNATURE = FIRMWARE_IMAGE_ERROR (0x0e),			/**< Signature verification of the image failed. */
 };
 
 

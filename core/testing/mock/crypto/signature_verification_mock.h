@@ -4,7 +4,7 @@
 #ifndef SIGNATURE_VERIFICATION_MOCK_H_
 #define SIGNATURE_VERIFICATION_MOCK_H_
 
-#include "common/signature_verification.h"
+#include "crypto/signature_verification.h"
 #include "mock.h"
 
 

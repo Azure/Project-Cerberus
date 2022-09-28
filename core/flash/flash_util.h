@@ -10,7 +10,7 @@
 #include "flash.h"
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
-#include "common/signature_verification.h"
+#include "crypto/signature_verification.h"
 
 
 /**

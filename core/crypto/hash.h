@@ -211,7 +211,7 @@ int hash_start_new_hash (struct hash_engine *engine, enum hash_type type);
 int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length);
 
-int hash_get_hash_len (enum hash_type hash_type);
+int hash_get_hash_length (enum hash_type hash_type);
 
 bool hash_is_alg_supported (enum hash_type type);
 

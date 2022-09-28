@@ -1338,53 +1338,8 @@ static void pfm_manager_flash_test_init_pfm_bad_signature (CuTest *test)
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
 	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
-
-	/* Use blank check to simulate empty PFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
-		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
-
-	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
-	CuAssertIntEquals (test, true, status);
-
-	pfm_manager_flash_testing_validate_and_release (test, &manager);
-}
-
-static void pfm_manager_flash_test_init_pfm_bad_signature_ecc (CuTest *test)
-{
-	struct pfm_manager_flash_testing manager;
-	int status;
-
-	TEST_START;
-
-	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
-
-	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_SIGNATURE,
-		PFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, PFM_DATA,
-		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
+		&manager.verification, SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	/* Use blank check to simulate empty PFM regions. */
 	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
@@ -4028,15 +3983,15 @@ static void pfm_manager_flash_test_verify_pending_pfm_verify_fail_region2 (CuTes
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
 	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
+		&manager.verification, SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
@@ -4077,113 +4032,15 @@ static void pfm_manager_flash_test_verify_pending_pfm_verify_fail_region1 (CuTes
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
 	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
+		&manager.verification, SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
-
-	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
-	CuAssertIntEquals (test, false, status);
-
-	pfm_manager_flash_testing_validate_and_release (test, &manager);
-}
-
-static void pfm_manager_flash_test_verify_pending_pfm_verify_fail_ecc_region2 (CuTest *test)
-{
-	struct pfm_manager_flash_testing manager;
-	int status;
-
-	TEST_START;
-
-	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
-		NULL, NULL, true);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x20000);
-
-	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM2_SIGNATURE,
-		PFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x20000, PFM_DATA,
-		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
-
-	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
-
-	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
-	CuAssertIntEquals (test, false, status);
-
-	pfm_manager_flash_testing_validate_and_release (test, &manager);
-}
-
-static void pfm_manager_flash_test_verify_pending_pfm_verify_fail_ecc_region1 (CuTest *test)
-{
-	struct pfm_manager_flash_testing manager;
-	int status;
-
-	TEST_START;
-
-	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, 0, NULL, NULL, NULL, 0,
-		NULL, NULL, false);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
-
-	pfm_manager_flash_testing_write_new_pfm (test, &manager, 0x10000);
-
-	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
-
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM2_SIGNATURE,
-		PFM_SIGNATURE_LEN,
-		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
-
-	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x10000, PFM_DATA,
-		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
-
-	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
-
-	CuAssertIntEquals (test, 0, status);
-
-	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
-
-	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
@@ -4263,15 +4120,15 @@ static void pfm_manager_flash_test_verify_pending_pfm_verify_after_verify_fail (
 		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
 
 	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
-		&manager.verification, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_HASH_LEN),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
+		&manager.verification, SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_set_pfm_dirty (&manager.state_mgr, false);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
@@ -5031,7 +4888,6 @@ TEST (pfm_manager_flash_test_init_null);
 TEST (pfm_manager_flash_test_init_region1_flash_error);
 TEST (pfm_manager_flash_test_init_region2_flash_error);
 TEST (pfm_manager_flash_test_init_pfm_bad_signature);
-TEST (pfm_manager_flash_test_init_pfm_bad_signature_ecc);
 TEST (pfm_manager_flash_test_init_bad_length);
 TEST (pfm_manager_flash_test_init_bad_magic_number);
 TEST (pfm_manager_flash_test_init_malformed);
@@ -5108,8 +4964,6 @@ TEST (pfm_manager_flash_test_verify_pending_pfm_verify_error_region1);
 TEST (pfm_manager_flash_test_verify_pending_pfm_verify_error_notify_observers);
 TEST (pfm_manager_flash_test_verify_pending_pfm_verify_fail_region2);
 TEST (pfm_manager_flash_test_verify_pending_pfm_verify_fail_region1);
-TEST (pfm_manager_flash_test_verify_pending_pfm_verify_fail_ecc_region2);
-TEST (pfm_manager_flash_test_verify_pending_pfm_verify_fail_ecc_region1);
 TEST (pfm_manager_flash_test_verify_pending_pfm_verify_after_verify_error);
 TEST (pfm_manager_flash_test_verify_pending_pfm_verify_after_verify_fail);
 TEST (pfm_manager_flash_test_verify_pending_pfm_write_after_verify);

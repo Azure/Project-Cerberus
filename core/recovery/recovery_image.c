@@ -104,8 +104,7 @@ static int recovery_image_verify (struct recovery_image *image, struct hash_engi
 		img_len - sig_len, hash, HASH_TYPE_SHA256, verification, signature, sig_len,
 		image->hash_cache, sizeof (image->hash_cache));
 
-	if ((status == 0) || (status == RSA_ENGINE_BAD_SIGNATURE) ||
-		(status == ECC_ENGINE_BAD_SIGNATURE)) {
+	if ((status == 0) || (status == SIG_VERIFICATION_BAD_SIGNATURE)) {
 		image->cache_valid = true;
 		if (hash_out) {
 			memcpy (hash_out, image->hash_cache, sizeof (image->hash_cache));

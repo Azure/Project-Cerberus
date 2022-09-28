@@ -121,7 +121,7 @@ static void manifest_flash_v2_testing_validate_and_release (CuTest *test,
 /**
  * Set expectations for common initialization flows.
  *
- * @param test The testing framawork.
+ * @param test The testing framework.
  * @param manifest The components for the test.
  * @param block_size The flash block size to report.
  */
@@ -2115,11 +2115,11 @@ static void manifest_flash_v2_test_verify_bad_signature (CuTest *test)
 	manifest_flash_v2_testing_init (test, &manifest, 0x10000, PFM_MAGIC_NUM, PFM_V2_MAGIC_NUM);
 
 	manifest_flash_v2_testing_verify_manifest (test, &manifest, &PFM_V2.manifest,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
@@ -2135,37 +2135,13 @@ static void manifest_flash_v2_test_verify_bad_signature_with_hash_out (CuTest *t
 	manifest_flash_v2_testing_init (test, &manifest, 0x10000, PFM_MAGIC_NUM, PFM_V2_MAGIC_NUM);
 
 	manifest_flash_v2_testing_verify_manifest (test, &manifest, &PFM_V2.manifest,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, hash_out, sizeof (hash_out));
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = testing_validate_array (PFM_V2.manifest.hash, hash_out, PFM_V2.manifest.hash_len);
-	CuAssertIntEquals (test, 0, status);
-
-	manifest_flash_v2_testing_validate_and_release (test, &manifest);
-}
-
-static void manifest_flash_v2_test_verify_bad_signature_ecc_with_hash_out (CuTest *test)
-{
-	struct manifest_flash_v2_testing manifest;
-	int status;
-	uint8_t hash_out[SHA256_HASH_LENGTH];
-
-	TEST_START;
-
-	manifest_flash_v2_testing_init (test, &manifest, 0x10000, PFM_MAGIC_NUM, PFM_V2_MAGIC_NUM);
-
-	manifest_flash_v2_testing_verify_manifest (test, &manifest, &PFM_V2_TWO_FW.manifest,
-		ECC_ENGINE_BAD_SIGNATURE);
-
-	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
-		&manifest.verification.base, hash_out, sizeof (hash_out));
-	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
-
-	status = testing_validate_array (PFM_V2_TWO_FW.manifest.hash, hash_out,
-		PFM_V2_TWO_FW.manifest.hash_len);
 	CuAssertIntEquals (test, 0, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
@@ -3601,11 +3577,11 @@ static void manifest_flash_v2_test_get_id_after_verify_bad_signature (CuTest *te
 		PFM_V2_MAGIC_NUM, &PFM_V2.manifest, 0, false, 0);
 
 	manifest_flash_v2_testing_verify_manifest (test, &manifest, &PFM_V2_PLAT_FIRST.manifest,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = manifest_flash_get_id (&manifest.test, &id);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
@@ -3747,11 +3723,11 @@ static void manifest_flash_v2_test_get_platform_id_after_verify_bad_signature (C
 		PFM_V2_MAGIC_NUM, &PFM_V2.manifest, 0, false, 0);
 
 	manifest_flash_v2_testing_verify_manifest (test, &manifest, &PFM_V2_PLAT_FIRST.manifest,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = manifest_flash_get_platform_id (&manifest.test, &id, sizeof (buffer));
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
@@ -3942,11 +3918,11 @@ static void manifest_flash_v2_test_get_hash_after_verify_bad_signature (CuTest *
 		PFM_V2_MAGIC_NUM, &PFM_V2.manifest, 0, false, 0);
 
 	manifest_flash_v2_testing_verify_manifest (test, &manifest, &PFM_V2_SHA512.manifest,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = manifest_flash_get_hash (&manifest.test, &manifest.hash.base, hash_out,
 		sizeof (hash_out));
@@ -4490,11 +4466,11 @@ static void manifest_flash_v2_test_get_signature_after_verify_bad_signature (CuT
 		PFM_V2_MAGIC_NUM, &PFM_V2.manifest, 0, false, 0);
 
 	manifest_flash_v2_testing_verify_manifest (test, &manifest, &PFM_V2_TWO_FW.manifest,
-		ECC_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
 		MOCK_ARG (manifest.addr), MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
@@ -5525,7 +5501,7 @@ static void manifest_flash_v2_test_read_element_data_max_entry_and_hash (CuTest 
 	/* For some reason valgrind throws an uninitialized memory warning if &toc.raw[hash_offset] is
 	 * used as the output data here.  There is no such error if it is used later on with
 	 * hash_mock.finish, and it is not clear what exactly is left uninitialized.  Since the actual
-	 * value is irrelevent, just use a static hash value that avoids the error. */
+	 * value is irrelevant, just use a static hash value that avoids the error. */
 	status |= mock_expect_output (&manifest.flash.mock, 1, PFM_V2.manifest.hash, SHA256_HASH_LENGTH,
 		2);
 
@@ -5996,11 +5972,11 @@ static void manifest_flash_v2_test_read_element_data_after_verify_bad_signature 
 		PFM_V2_MAGIC_NUM, &PFM_V2.manifest, 0, false, 0);
 
 	manifest_flash_v2_testing_verify_manifest (test, &manifest, &PFM_V2_PLAT_FIRST.manifest,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 
 	status = manifest_flash_verify (&manifest.test, &manifest.hash.base,
 		&manifest.verification.base, NULL, 0);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = mock_validate (&manifest.flash.mock);
 	CuAssertIntEquals (test, 0, status);
@@ -8699,7 +8675,6 @@ TEST (manifest_flash_v2_test_verify_sig_too_long);
 TEST (manifest_flash_v2_test_verify_sig_read_error);
 TEST (manifest_flash_v2_test_verify_bad_signature);
 TEST (manifest_flash_v2_test_verify_bad_signature_with_hash_out);
-TEST (manifest_flash_v2_test_verify_bad_signature_ecc_with_hash_out);
 TEST (manifest_flash_v2_test_verify_start_hash_error);
 TEST (manifest_flash_v2_test_verify_header_hash_error);
 TEST (manifest_flash_v2_test_verify_toc_unknown_hash_type);

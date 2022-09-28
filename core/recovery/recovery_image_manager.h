@@ -7,7 +7,7 @@
 #include "platform.h"
 #include "recovery_image.h"
 #include "common/observable.h"
-#include "common/signature_verification.h"
+#include "crypto/signature_verification.h"
 #include "recovery_image_observer.h"
 #include "flash/flash.h"
 #include "flash/flash_updater.h"

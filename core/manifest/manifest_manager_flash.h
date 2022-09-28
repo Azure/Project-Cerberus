@@ -12,7 +12,7 @@
 #include "manifest_manager.h"
 #include "state_manager/state_manager.h"
 #include "crypto/hash.h"
-#include "common/signature_verification.h"
+#include "crypto/signature_verification.h"
 #include "flash/flash.h"
 #include "flash/flash_updater.h"
 

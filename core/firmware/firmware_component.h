@@ -9,8 +9,8 @@
 #include "status/rot_status.h"
 #include "flash/flash.h"
 #include "common/image_header.h"
-#include "common/signature_verification.h"
 #include "crypto/hash.h"
+#include "crypto/signature_verification.h"
 
 
 /**

@@ -253,67 +253,9 @@ static void recovery_image_manager_test_init_bad_signature (CuTest *test)
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
-	CuAssertIntEquals (test, 0, status);
-
-	image.base.flash = &flash.base;
-	image.base.addr = 0x10000;
-
-	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
-		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.get_active_recovery_image (&manager));
-
-	status = pfm_manager_mock_validate_and_release (&pfm_manager);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_validate_and_release (&image);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	recovery_image_manager_release (&manager);
-
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void recovery_image_manager_test_init_bad_signature_ecc (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct recovery_image_mock image;
-	struct recovery_image_manager manager;
-	struct signature_verification_mock verification;
-	struct pfm_manager_mock pfm_manager;
-	struct flash_mock flash;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_mock_init (&pfm_manager);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_init (&image);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&image.mock, image.base.verify, &image, ECC_ENGINE_BAD_SIGNATURE,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
-		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	image.base.flash = &flash.base;
@@ -2106,13 +2048,13 @@ static void recovery_image_manager_test_clear_recovery_image_region_with_invalid
 	status = recovery_image_manager_add_observer (&manager, &observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.activate_recovery_image (&manager);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = flash_mock_expect_erase_flash_verify (&flash, 0x10000,
 		sizeof (data));
@@ -3390,7 +3332,7 @@ static void recovery_image_manager_test_activate_recovery_image_no_pending_image
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -3458,7 +3400,7 @@ static void recovery_image_manager_test_activate_recovery_image_no_pending_notif
 	status = recovery_image_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -3724,7 +3666,7 @@ static void recovery_image_manager_test_activate_recovery_image_recovery_image_m
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -3796,7 +3738,7 @@ static void recovery_image_manager_test_activate_recovery_image_extra_data_writt
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -3885,7 +3827,7 @@ static void recovery_image_manager_test_activate_recovery_image_verify_error (
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -3960,7 +3902,7 @@ static void recovery_image_manager_test_activate_recovery_image_verify_error_not
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -4037,7 +3979,7 @@ static void recovery_image_manager_test_activate_recovery_image_verify_fail (
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -4057,86 +3999,13 @@ static void recovery_image_manager_test_activate_recovery_image_verify_fail (
 	recovery_image_manager_testing_write_new_image (test, &manager, &flash, 0x10000, data,
 		sizeof (data));
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.activate_recovery_image (&manager);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
-
-	CuAssertPtrEquals (test, NULL, manager.get_active_recovery_image (&manager));
-
-	status = pfm_manager_mock_validate_and_release (&pfm_manager);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_validate_and_release (&image);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	recovery_image_manager_release (&manager);
-
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void recovery_image_manager_test_activate_recovery_image_verify_fail_ecc (
-	CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct recovery_image_mock image;
-	struct recovery_image_manager manager;
-	struct signature_verification_mock verification;
-	struct pfm_manager_mock pfm_manager;
-	struct flash_mock flash;
-	uint8_t data[] = {0x01, 0x02, 0x03, 0x04};
-	int status;
-
-	TEST_START;
-
-	status = recovery_image_mock_init (&image);
-	CuAssertIntEquals (test, 0, status);
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_mock_init (&pfm_manager);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
-		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
-		MOCK_ARG (&pfm_manager));
-	CuAssertIntEquals (test, 0, status);
-
-	image.base.flash = &flash.base;
-	image.base.addr = 0x10000;
-
-	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
-		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.get_active_recovery_image (&manager));
-
-	recovery_image_manager_testing_write_new_image (test, &manager, &flash, 0x10000, data,
-		sizeof (data));
-
-	status = mock_expect (&image.mock, image.base.verify, &image, ECC_ENGINE_BAD_SIGNATURE,
-		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
-		MOCK_ARG (&pfm_manager));
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.activate_recovery_image (&manager);
-	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.get_active_recovery_image (&manager));
 
@@ -4186,7 +4055,7 @@ static void recovery_image_manager_test_activate_recovery_image_activate_after_v
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -4262,7 +4131,7 @@ static void recovery_image_manager_test_activate_recovery_image_activate_after_v
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -4279,13 +4148,13 @@ static void recovery_image_manager_test_activate_recovery_image_activate_after_v
 	recovery_image_manager_testing_write_new_image (test, &manager, &flash, 0x10000, data,
 		sizeof (data));
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.activate_recovery_image (&manager);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.get_active_recovery_image (&manager));
 
@@ -4338,7 +4207,7 @@ static void recovery_image_manager_test_activate_recovery_image_write_after_acti
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -4416,7 +4285,7 @@ static void recovery_image_manager_test_activate_recovery_image_write_after_acti
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -4433,13 +4302,13 @@ static void recovery_image_manager_test_activate_recovery_image_write_after_acti
 	recovery_image_manager_testing_write_new_image (test, &manager, &flash, 0x10000, data,
 		sizeof (data));
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.activate_recovery_image (&manager);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.get_active_recovery_image (&manager));
 
@@ -4494,7 +4363,7 @@ static void recovery_image_manager_test_activate_recovery_image_with_active (
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -5086,7 +4955,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	status = recovery_image_observer_mock_init (&observer);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
@@ -5794,7 +5663,7 @@ static void recovery_image_manager_test_init_two_region_region1_bad_signature (C
 
 	recovery_image_manager_testing_init_host_state (test, &state, &flash);
 
-	status = mock_expect (&image1.mock, image1.base.verify, &image1, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image1.mock, image1.base.verify, &image1, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -5874,164 +5743,7 @@ static void recovery_image_manager_test_init_two_region_region2_bad_signature (C
 	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image2.mock, image2.base.verify, &image2, RSA_ENGINE_BAD_SIGNATURE,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
-		MOCK_ARG_NOT_NULL);
-	CuAssertIntEquals (test, 0, status);
-
-	image1.base.flash = &flash_image.base;
-	image1.base.addr = 0x10000;
-
-	image2.base.flash = &flash_image.base;
-	image2.base.addr = 0x20000;
-
-	status = recovery_image_manager_init_two_region (&manager, &image1.base, &image2.base, &state,
-		&hash.base, &verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.get_active_recovery_image (&manager));
-
-	status = pfm_manager_mock_validate_and_release (&pfm_manager);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_validate_and_release (&image1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_validate_and_release (&image2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	recovery_image_manager_release (&manager);
-
-	host_state_manager_release (&state);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_validate_and_release (&flash_image);
-	CuAssertIntEquals (test, 0, status);
-
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void recovery_image_manager_test_init_two_region_region1_bad_signature_ecc (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct recovery_image_mock image1;
-	struct recovery_image_mock image2;
-	struct recovery_image_manager manager;
-	struct signature_verification_mock verification;
-	struct pfm_manager_mock pfm_manager;
-	struct flash_mock flash;
-	struct flash_mock flash_image;
-	struct host_state_manager state;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_mock_init (&pfm_manager);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_init (&image1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_init (&image2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_init (&flash_image);
-	CuAssertIntEquals (test, 0, status);
-
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
-
-	status = mock_expect (&image1.mock, image1.base.verify, &image1, ECC_ENGINE_BAD_SIGNATURE,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
-		MOCK_ARG_NOT_NULL);
-	CuAssertIntEquals (test, 0, status);
-
-	image1.base.flash = &flash_image.base;
-	image1.base.addr = 0x10000;
-
-	image2.base.flash = &flash_image.base;
-	image2.base.addr = 0x20000;
-
-	status = recovery_image_manager_init_two_region (&manager, &image1.base, &image2.base, &state,
-		&hash.base, &verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.get_active_recovery_image (&manager));
-
-	status = pfm_manager_mock_validate_and_release (&pfm_manager);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_validate_and_release (&image1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_validate_and_release (&image2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	recovery_image_manager_release (&manager);
-
-	host_state_manager_release (&state);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_validate_and_release (&flash_image);
-	CuAssertIntEquals (test, 0, status);
-
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-}
-
-static void recovery_image_manager_test_init_two_region_region2_bad_signature_ecc (CuTest *test)
-{
-	HASH_TESTING_ENGINE hash;
-	struct recovery_image_mock image1;
-	struct recovery_image_mock image2;
-	struct recovery_image_manager manager;
-	struct signature_verification_mock verification;
-	struct pfm_manager_mock pfm_manager;
-	struct flash_mock flash;
-	struct flash_mock flash_image;
-	struct host_state_manager state;
-	int status;
-
-	TEST_START;
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_mock_init (&pfm_manager);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_init (&image1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = recovery_image_mock_init (&image2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_init (&flash_image);
-	CuAssertIntEquals (test, 0, status);
-
-	recovery_image_manager_testing_init_host_state (test, &state, &flash);
-
-	status = host_state_manager_save_active_recovery_image (&state, RECOVERY_IMAGE_REGION_2);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&image2.mock, image2.base.verify, &image2, ECC_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image2.mock, image2.base.verify, &image2, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -13923,13 +13635,13 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	recovery_image_manager_testing_write_new_image (test, &manager, &flash_image, 0x10000, data,
 		sizeof (data));
 
-	status = mock_expect (&image1.mock, image1.base.verify, &image1, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image1.mock, image1.base.verify, &image1, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.activate_recovery_image (&manager);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = manager.write_recovery_image_data (&manager, data, sizeof (data));
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_NOT_CLEARED, status);
@@ -14019,13 +13731,13 @@ static void recovery_image_manager_test_activate_recovery_image_two_region_write
 	recovery_image_manager_testing_write_new_image (test, &manager, &flash_image, 0x20000, data,
 		sizeof (data));
 
-	status = mock_expect (&image2.mock, image2.base.verify, &image2, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image2.mock, image2.base.verify, &image2, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG (&hash), MOCK_ARG (&verification), MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG (&pfm_manager));
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.activate_recovery_image (&manager);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	status = manager.write_recovery_image_data (&manager, data, sizeof (data));
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_NOT_CLEARED, status);
@@ -15403,7 +15115,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	image2.base.flash = &flash.base;
 	image2.base.addr = 0x20000;
 
-	status = mock_expect (&image1.mock, image1.base.verify, &image1, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image1.mock, image1.base.verify, &image1, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -15614,7 +15326,7 @@ static void recovery_image_manager_test_erase_all_recovery_regions_invalid_image
 	image2.base.flash = &flash.base;
 	image2.base.addr = 0x20000;
 
-	status = mock_expect (&image2.mock, image2.base.verify, &image2, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image2.mock, image2.base.verify, &image2, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG ((uintptr_t) NULL), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -16342,7 +16054,7 @@ static void recovery_image_manager_test_get_measured_data_no_active (CuTest *tes
 	image.base.flash = &flash.base;
 	image.base.addr = 0x10000;
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -16409,7 +16121,7 @@ static void recovery_image_manager_test_get_measured_data_no_active_with_offset 
 	image.base.flash = &flash.base;
 	image.base.addr = 0x10000;
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -16476,7 +16188,7 @@ static void recovery_image_manager_test_get_measured_data_no_active_small_buffer
 	image.base.flash = &flash.base;
 	image.base.addr = 0x10000;
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -16544,7 +16256,7 @@ static void recovery_image_manager_test_get_measured_data_no_active_small_buffer
 	image.base.flash = &flash.base;
 	image.base.addr = 0x10000;
 
-	status = mock_expect (&image.mock, image.base.verify, &image, RSA_ENGINE_BAD_SIGNATURE,
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -16814,7 +16526,6 @@ TEST_SUITE_START (recovery_image_manager);
 TEST (recovery_image_manager_test_init);
 TEST (recovery_image_manager_test_init_null);
 TEST (recovery_image_manager_test_init_bad_signature);
-TEST (recovery_image_manager_test_init_bad_signature_ecc);
 TEST (recovery_image_manager_test_init_malformed);
 TEST (recovery_image_manager_test_init_bad_platform_id);
 TEST (recovery_image_manager_test_init_flash_error);
@@ -16871,7 +16582,6 @@ TEST (recovery_image_manager_test_activate_recovery_image_extra_data_written);
 TEST (recovery_image_manager_test_activate_recovery_image_verify_error);
 TEST (recovery_image_manager_test_activate_recovery_image_verify_error_notify_observers);
 TEST (recovery_image_manager_test_activate_recovery_image_verify_fail);
-TEST (recovery_image_manager_test_activate_recovery_image_verify_fail_ecc);
 TEST (recovery_image_manager_test_activate_recovery_image_activate_after_verify_error);
 TEST (recovery_image_manager_test_activate_recovery_image_activate_after_verify_fail);
 TEST (recovery_image_manager_test_activate_recovery_image_write_after_activate);
@@ -16895,8 +16605,6 @@ TEST (recovery_image_manager_test_init_two_region_region1_flash_error);
 TEST (recovery_image_manager_test_init_two_region_region2_flash_error);
 TEST (recovery_image_manager_test_init_two_region_region1_bad_signature);
 TEST (recovery_image_manager_test_init_two_region_region2_bad_signature);
-TEST (recovery_image_manager_test_init_two_region_region1_bad_signature_ecc);
-TEST (recovery_image_manager_test_init_two_region_region2_bad_signature_ecc);
 TEST (recovery_image_manager_test_init_two_region_region1_malformed);
 TEST (recovery_image_manager_test_init_two_region_region2_malformed);
 TEST (recovery_image_manager_test_init_two_region_region1_image_header_too_small);

@@ -20,6 +20,20 @@
 #define	ECC_DER_P384_PRIVATE_NO_PUB_LENGTH		(ECC_KEY_LENGTH_384 + (16))
 #define	ECC_DER_P521_PRIVATE_NO_PUB_LENGTH		(ECC_KEY_LENGTH_521 + (16))
 
+/* Maximum possible length for any supported ASN.1/DER encoded private key. */
+#if (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_521)
+#define	ECC_DER_MAX_PRIVATE_LENGTH				ECC_DER_P521_PRIVATE_LENGTH
+#define	ECC_DER_MAX_PRIVATE_NO_PUB_LENGTH		ECC_DER_P521_PRIVATE_NO_PUB_LENGTH
+#elif (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_384)
+#define	ECC_DER_MAX_PRIVATE_LENGTH				ECC_DER_P384_PRIVATE_LENGTH
+#define	ECC_DER_MAX_PRIVATE_NO_PUB_LENGTH		ECC_DER_P384_PRIVATE_NO_PUB_LENGTH
+#elif (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_256)
+#define	ECC_DER_MAX_PRIVATE_LENGTH				ECC_DER_P256_PRIVATE_LENGTH
+#define	ECC_DER_MAX_PRIVATE_NO_PUB_LENGTH		ECC_DER_P256_PRIVATE_NO_PUB_LENGTH
+#else
+#error "Invalid max ECC key length."
+#endif
+
 int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv_key,
 	size_t key_length);
 int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_x,
@@ -31,6 +45,17 @@ int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_
 #define	ECC_DER_P384_PUBLIC_LENGTH				((ECC_KEY_LENGTH_384 * 2) + (24))
 #define	ECC_DER_P521_PUBLIC_LENGTH				((ECC_KEY_LENGTH_521 * 2) + (26))
 
+/* Maximum possible length for any supported ASN.1/DER encoded public key. */
+#if (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_521)
+#define	ECC_DER_MAX_PUBLIC_LENGTH				ECC_DER_P521_PUBLIC_LENGTH
+#elif (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_384)
+#define	ECC_DER_MAX_PUBLIC_LENGTH				ECC_DER_P384_PUBLIC_LENGTH
+#elif (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_256)
+#define	ECC_DER_MAX_PUBLIC_LENGTH				ECC_DER_P256_PUBLIC_LENGTH
+#else
+#error "Invalid max ECC key length."
+#endif
+
 int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_key_x,
 	uint8_t *pub_key_y, size_t key_length);
 int ecc_der_encode_public_key (const uint8_t *pub_key_x, const uint8_t *pub_key_y,
@@ -41,6 +66,17 @@ int ecc_der_encode_public_key (const uint8_t *pub_key_x, const uint8_t *pub_key_
 #define	ECC_DER_P256_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_256 * 2) + (8))
 #define	ECC_DER_P384_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_384 * 2) + (8))
 #define	ECC_DER_P521_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_521 * 2) + (9))
+
+/* Maximum possible length for any supported ASN.1/DER encoded ECDSA signature. */
+#if (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_521)
+#define	ECC_DER_ECDSA_MAX_LENGTH				ECC_DER_P521_ECDSA_MAX_LENGTH
+#elif (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_384)
+#define	ECC_DER_ECDSA_MAX_LENGTH				ECC_DER_P384_ECDSA_MAX_LENGTH
+#elif (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_256)
+#define	ECC_DER_ECDSA_MAX_LENGTH				ECC_DER_P256_ECDSA_MAX_LENGTH
+#else
+#error "Invalid max ECC key length."
+#endif
 
 int ecc_der_decode_ecdsa_signature (const uint8_t *der, size_t length, uint8_t *sig_r,
 	uint8_t *sig_s, size_t key_length);

@@ -86,10 +86,10 @@ static int recovery_image_manager_verify_recovery_image (struct recovery_image_m
 	if (status == 0) {
 		region->is_valid = true;
 	}
-	else if ((status == RSA_ENGINE_BAD_SIGNATURE) || (status == ECC_ENGINE_BAD_SIGNATURE) ||
-		(status == RECOVERY_IMAGE_MALFORMED) || (status == RECOVERY_IMAGE_INCOMPATIBLE) ||
-		(status == IMAGE_HEADER_NOT_MINIMUM_SIZE) || (status == IMAGE_HEADER_BAD_MARKER) ||
-		(status == IMAGE_HEADER_TOO_LONG) || (status == RECOVERY_IMAGE_HEADER_BAD_FORMAT_LENGTH) ||
+	else if ((status == SIG_VERIFICATION_BAD_SIGNATURE) || (status == RECOVERY_IMAGE_MALFORMED) ||
+		(status == RECOVERY_IMAGE_INCOMPATIBLE) || (status == IMAGE_HEADER_NOT_MINIMUM_SIZE) ||
+		(status == IMAGE_HEADER_BAD_MARKER) || (status == IMAGE_HEADER_TOO_LONG) ||
+		(status == RECOVERY_IMAGE_HEADER_BAD_FORMAT_LENGTH) ||
 		(status == RECOVERY_IMAGE_HEADER_BAD_PLATFORM_ID) ||
 		(status == RECOVERY_IMAGE_HEADER_BAD_VERSION_ID) ||
 		(status == RECOVERY_IMAGE_HEADER_BAD_IMAGE_LENGTH) ||

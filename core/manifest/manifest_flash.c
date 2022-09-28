@@ -171,8 +171,7 @@ static int manifest_flash_verify_v1 (struct manifest_flash *manifest, struct has
 		manifest->signature, manifest->header.sig_length, manifest->hash_cache,
 		sizeof (manifest->hash_cache));
 
-	if ((status == 0) || (status == RSA_ENGINE_BAD_SIGNATURE) ||
-		(status == ECC_ENGINE_BAD_SIGNATURE)) {
+	if ((status == 0) || (status == SIG_VERIFICATION_BAD_SIGNATURE)) {
 		manifest->cache_valid = true;
 		if (hash_out) {
 			memcpy (hash_out, manifest->hash_cache, manifest->hash_length);

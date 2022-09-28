@@ -773,38 +773,11 @@ static void pcd_manager_flash_test_init_pcd_bad_signature (CuTest *test)
 	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x10000, &PCD_TESTING,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty PCD regions. */
 	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
-		MANIFEST_V2_HEADER_SIZE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
-		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
-
-	pcd_manager_flash_testing_validate_and_release (test, &manager);
-}
-
-static void pcd_manager_flash_test_init_pcd_bad_signature_ecc (CuTest *test)
-{
-	struct pcd_manager_flash_testing manager;
-	int status;
-
-	TEST_START;
-
-	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
-
-	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x10000, &PCD_TESTING,
-		ECC_ENGINE_BAD_SIGNATURE);
-	CuAssertIntEquals (test, 0, status);
-
-	/* Use blank check to simulate empty PCD regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
 		MANIFEST_V2_HEADER_SIZE);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2392,11 +2365,11 @@ static void pcd_manager_flash_test_verify_pending_pcd_verify_fail_region2 (CuTes
 	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
 
 	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_TESTING,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
 
@@ -2417,61 +2390,11 @@ static void pcd_manager_flash_test_verify_pending_pcd_verify_fail_region1 (CuTes
 	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x10000);
 
 	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x10000, &PCD_TESTING,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
-
-	pcd_manager_flash_testing_validate_and_release (test, &manager);
-}
-
-static void pcd_manager_flash_test_verify_pending_pcd_verify_fail_ecc_region2 (CuTest *test)
-{
-	struct pcd_manager_flash_testing manager;
-	int status;
-
-	TEST_START;
-
-	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, NULL, true);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
-
-	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
-
-	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_TESTING,
-		ECC_ENGINE_BAD_SIGNATURE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
-
-	pcd_manager_flash_testing_validate_and_release (test, &manager);
-}
-
-static void pcd_manager_flash_test_verify_pending_pcd_verify_fail_ecc_region1 (CuTest *test)
-{
-	struct pcd_manager_flash_testing manager;
-	int status;
-
-	TEST_START;
-
-	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, NULL, false);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
-
-	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x10000);
-
-	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x10000, &PCD_TESTING,
-		ECC_ENGINE_BAD_SIGNATURE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
 
@@ -2520,13 +2443,13 @@ static void pcd_manager_flash_test_verify_pending_pcd_verify_after_verify_fail (
 	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
 
 	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_TESTING,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
 
@@ -3049,7 +2972,6 @@ TEST (pcd_manager_flash_test_init_null);
 TEST (pcd_manager_flash_test_init_region1_flash_error);
 TEST (pcd_manager_flash_test_init_region2_flash_error);
 TEST (pcd_manager_flash_test_init_pcd_bad_signature);
-TEST (pcd_manager_flash_test_init_pcd_bad_signature_ecc);
 TEST (pcd_manager_flash_test_init_bad_length);
 TEST (pcd_manager_flash_test_init_bad_magic_number);
 TEST (pcd_manager_flash_test_init_region1_pending_same_id);
@@ -3109,8 +3031,6 @@ TEST (pcd_manager_flash_test_verify_pending_pcd_verify_error_region1);
 TEST (pcd_manager_flash_test_verify_pending_pcd_verify_error_notify_observers);
 TEST (pcd_manager_flash_test_verify_pending_pcd_verify_fail_region2);
 TEST (pcd_manager_flash_test_verify_pending_pcd_verify_fail_region1);
-TEST (pcd_manager_flash_test_verify_pending_pcd_verify_fail_ecc_region2);
-TEST (pcd_manager_flash_test_verify_pending_pcd_verify_fail_ecc_region1);
 TEST (pcd_manager_flash_test_verify_pending_pcd_verify_after_verify_error);
 TEST (pcd_manager_flash_test_verify_pending_pcd_verify_after_verify_fail);
 TEST (pcd_manager_flash_test_verify_pending_pcd_write_after_verify);

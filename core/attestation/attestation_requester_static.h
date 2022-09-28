@@ -135,4 +135,4 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
 	}
 
 
-#endif //ATTESTATION_REQUESTER_STATIC_H_
+#endif /* ATTESTATION_REQUESTER_STATIC_H_ */

@@ -1345,7 +1345,7 @@ static void firmware_update_test_run_update_verify_invalid_image (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&updater.hash));
+		FIRMWARE_IMAGE_BAD_SIGNATURE, MOCK_ARG (&updater.hash));
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_INVALID_IMAGE));
@@ -1353,7 +1353,7 @@ static void firmware_update_test_run_update_verify_invalid_image (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = firmware_update_run_update (&updater.test, &updater.handler.base);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, FIRMWARE_IMAGE_BAD_SIGNATURE, status);
 
 	firmware_update_testing_validate_and_release (test, &updater);
 }
@@ -10425,7 +10425,7 @@ static void firmware_update_test_validate_recovery_image_bad (CuTest *test)
 	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&updater.hash));
+		FIRMWARE_IMAGE_BAD_SIGNATURE, MOCK_ARG (&updater.hash));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -12304,12 +12304,12 @@ static void firmware_update_test_restore_recovery_image_invalid_image (CuTest *t
 	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&updater.hash));
+		FIRMWARE_IMAGE_BAD_SIGNATURE, MOCK_ARG (&updater.hash));
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = firmware_update_restore_recovery_image (&updater.test);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, FIRMWARE_IMAGE_BAD_SIGNATURE, status);
 
 	firmware_update_testing_validate_and_release (test, &updater);
 }
@@ -12742,12 +12742,12 @@ static void firmware_update_test_restore_active_image_invalid_image (CuTest *tes
 	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&updater.hash));
+		FIRMWARE_IMAGE_BAD_SIGNATURE, MOCK_ARG (&updater.hash));
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = firmware_update_restore_active_image (&updater.test);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, FIRMWARE_IMAGE_BAD_SIGNATURE, status);
 
 	firmware_update_testing_validate_and_release (test, &updater);
 }

@@ -7,8 +7,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
-#include "common/signature_verification.h"
 #include "crypto/hash.h"
+#include "crypto/signature_verification.h"
 #include "flash/flash.h"
 #include "manifest/pfm/pfm_manager.h"
 #include "flash/spi_flash.h"

@@ -821,38 +821,11 @@ static void cfm_manager_flash_test_init_cfm_bad_signature (CuTest *test)
 	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
 	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Use blank check to simulate empty CFM regions. */
 	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
-		MANIFEST_V2_HEADER_SIZE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cfm_manager_flash_init (&manager.test, &manager.cfm1, &manager.cfm2,
-		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-
-	cfm_manager_flash_testing_validate_and_release (test, &manager);
-}
-
-static void cfm_manager_flash_test_init_cfm_bad_signature_ecc (CuTest *test)
-{
-	struct cfm_manager_flash_testing manager;
-	int status;
-
-	TEST_START;
-
-	cfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
-
-	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING,
-		ECC_ENGINE_BAD_SIGNATURE);
-	CuAssertIntEquals (test, 0, status);
-
-	/* Use blank check to simulate empty CFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
 		MANIFEST_V2_HEADER_SIZE);
 	CuAssertIntEquals (test, 0, status);
 
@@ -3449,11 +3422,11 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_fail_region2 (CuTes
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
 
 	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
 
@@ -3474,61 +3447,11 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_fail_region1 (CuTes
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x10000);
 
 	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-
-	cfm_manager_flash_testing_validate_and_release (test, &manager);
-}
-
-static void cfm_manager_flash_test_verify_pending_cfm_verify_fail_ecc_region2 (CuTest *test)
-{
-	struct cfm_manager_flash_testing manager;
-	int status;
-
-	TEST_START;
-
-	cfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, NULL, true);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-
-	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
-
-	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING,
-		ECC_ENGINE_BAD_SIGNATURE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-
-	cfm_manager_flash_testing_validate_and_release (test, &manager);
-}
-
-static void cfm_manager_flash_test_verify_pending_cfm_verify_fail_ecc_region1 (CuTest *test)
-{
-	struct cfm_manager_flash_testing manager;
-	int status;
-
-	TEST_START;
-
-	cfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, NULL, NULL, false);
-
-	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
-
-	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x10000);
-
-	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x10000, &CFM_TESTING,
-		ECC_ENGINE_BAD_SIGNATURE);
-	CuAssertIntEquals (test, 0, status);
-
-	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, ECC_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
 
@@ -3591,13 +3514,13 @@ static void cfm_manager_flash_test_verify_pending_cfm_verify_after_verify_fail (
 	cfm_manager_flash_testing_write_new_cfm (test, &manager, 0x20000);
 
 	status = cfm_manager_flash_testing_verify_cfm (&manager, 0x20000, &CFM_TESTING,
-		RSA_ENGINE_BAD_SIGNATURE);
+		SIG_VERIFICATION_BAD_SIGNATURE);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
-	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+	CuAssertIntEquals (test, SIG_VERIFICATION_BAD_SIGNATURE, status);
 
 	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_cfm (&manager.test.base));
 
@@ -4441,7 +4364,6 @@ TEST (cfm_manager_flash_test_init_null);
 TEST (cfm_manager_flash_test_init_region1_flash_error);
 TEST (cfm_manager_flash_test_init_region2_flash_error);
 TEST (cfm_manager_flash_test_init_cfm_bad_signature);
-TEST (cfm_manager_flash_test_init_cfm_bad_signature_ecc);
 TEST (cfm_manager_flash_test_init_bad_length);
 TEST (cfm_manager_flash_test_init_bad_magic_number);
 TEST (cfm_manager_flash_test_init_empty_manifest_pending_erase_error);
@@ -4510,8 +4432,6 @@ TEST (cfm_manager_flash_test_verify_pending_cfm_verify_error_region1);
 TEST (cfm_manager_flash_test_verify_pending_cfm_verify_error_notify_observers);
 TEST (cfm_manager_flash_test_verify_pending_cfm_verify_fail_region2);
 TEST (cfm_manager_flash_test_verify_pending_cfm_verify_fail_region1);
-TEST (cfm_manager_flash_test_verify_pending_cfm_verify_fail_ecc_region2);
-TEST (cfm_manager_flash_test_verify_pending_cfm_verify_fail_ecc_region1);
 TEST (cfm_manager_flash_test_verify_pending_cfm_verify_after_verify_error);
 TEST (cfm_manager_flash_test_verify_pending_cfm_verify_after_verify_fail);
 TEST (cfm_manager_flash_test_verify_pending_cfm_write_after_verify);

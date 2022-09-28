@@ -862,7 +862,7 @@ static void authorization_challenge_test_authorize_short_nonce_with_tag (CuTest 
 	ECC_TESTING_ENGINE_RELEASE (&ecc);
 }
 
-static void authorization_challenge_test_authorize_bad_rsa_signature (CuTest *test)
+static void authorization_challenge_test_authorize_bad_signature (CuTest *test)
 {
 	RNG_TESTING_ENGINE rng;
 	HASH_TESTING_ENGINE hash;
@@ -907,78 +907,13 @@ static void authorization_challenge_test_authorize_bad_rsa_signature (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (nonce_hash, SHA256_HASH_LENGTH),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (nonce_hash, SHA256_HASH_LENGTH),
 		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	nonce = nonce_signed;
 	length += RSA_ENCRYPT_LEN;
-	status = auth.base.authorize (&auth.base, &nonce, &length);
-	CuAssertIntEquals (test, AUTHORIZATION_NOT_AUTHORIZED, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	authorization_challenge_release (&auth);
-
-	RNG_TESTING_ENGINE_RELEASE (&rng);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	ECC_TESTING_ENGINE_RELEASE (&ecc);
-}
-
-static void authorization_challenge_test_authorize_bad_ecc_signature (CuTest *test)
-{
-	RNG_TESTING_ENGINE rng;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
-	struct signature_verification_mock verification;
-	struct authorization_challenge auth;
-	int status;
-	uint8_t *nonce;
-	uint8_t nonce_signed[AUTH_CHALLENGE_NONCE_LENGTH + ECC_SIG_TEST_LEN + ECC_SIG_BAD_LEN + 32];
-	size_t length;
-	uint8_t nonce_hash[SHA256_HASH_LENGTH];
-
-	TEST_START;
-
-	status = RNG_TESTING_ENGINE_INIT (&rng);
-	CuAssertIntEquals (test, 0, status);
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = ECC_TESTING_ENGINE_INIT (&ecc);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = authorization_challenge_init (&auth, &rng.base, &hash.base, &ecc.base, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, &verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	nonce = NULL;
-	status = auth.base.authorize (&auth.base, &nonce, &length);
-	CuAssertIntEquals (test, AUTHORIZATION_CHALLENGE, status);
-	CuAssertPtrNotNull (test, nonce);
-
-	/* Sign the nonce.  We mock verification, so the actual signature doesn't matter. */
-	memcpy (nonce_signed, nonce, length);
-	memcpy (&nonce_signed[length], ECC_SIGNATURE_BAD, ECC_SIG_BAD_LEN);
-
-	status = hash.base.calculate_sha256 (&hash.base, nonce_signed, length, nonce_hash,
-		sizeof (nonce_hash));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (nonce_hash, SHA256_HASH_LENGTH),
-		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_BAD, ECC_SIG_BAD_LEN),
-		MOCK_ARG (ECC_SIG_BAD_LEN));
-	CuAssertIntEquals (test, 0, status);
-
-	nonce = nonce_signed;
-	length += ECC_SIG_BAD_LEN;
 	status = auth.base.authorize (&auth.base, &nonce, &length);
 	CuAssertIntEquals (test, AUTHORIZATION_NOT_AUTHORIZED, status);
 
@@ -1373,7 +1308,7 @@ static void authorization_challenge_test_authorize_regenerate_nonce_with_tag (Cu
 	ECC_TESTING_ENGINE_RELEASE (&ecc);
 }
 
-static void authorization_challenge_test_authorize_use_nonce_after_bad_rsa_signature (
+static void authorization_challenge_test_authorize_use_nonce_after_bad_signature (
 	CuTest *test)
 {
 	RNG_TESTING_ENGINE rng;
@@ -1419,7 +1354,7 @@ static void authorization_challenge_test_authorize_use_nonce_after_bad_rsa_signa
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (nonce_hash, SHA256_HASH_LENGTH),
+		SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (nonce_hash, SHA256_HASH_LENGTH),
 		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN),
 		MOCK_ARG (RSA_ENCRYPT_LEN));
 	CuAssertIntEquals (test, 0, status);
@@ -1432,80 +1367,6 @@ static void authorization_challenge_test_authorize_use_nonce_after_bad_rsa_signa
 	status = mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
 		MOCK_ARG_PTR_CONTAINS (nonce_hash, SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LEN));
-	CuAssertIntEquals (test, 0, status);
-
-	status = auth.base.authorize (&auth.base, &nonce, &length);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_validate_and_release (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	authorization_challenge_release (&auth);
-
-	RNG_TESTING_ENGINE_RELEASE (&rng);
-	HASH_TESTING_ENGINE_RELEASE (&hash);
-	ECC_TESTING_ENGINE_RELEASE (&ecc);
-}
-
-static void authorization_challenge_test_authorize_use_nonce_after_bad_ecc_signature (
-	CuTest *test)
-{
-	RNG_TESTING_ENGINE rng;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
-	struct signature_verification_mock verification;
-	struct authorization_challenge auth;
-	int status;
-	uint8_t *nonce;
-	uint8_t nonce_signed[AUTH_CHALLENGE_NONCE_LENGTH + ECC_SIG_TEST_LEN + ECC_SIG_BAD_LEN + 32];
-	size_t length;
-	uint8_t nonce_hash[SHA256_HASH_LENGTH];
-
-	TEST_START;
-
-	status = RNG_TESTING_ENGINE_INIT (&rng);
-	CuAssertIntEquals (test, 0, status);
-
-	status = HASH_TESTING_ENGINE_INIT (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = ECC_TESTING_ENGINE_INIT (&ecc);
-	CuAssertIntEquals (test, 0, status);
-
-	status = signature_verification_mock_init (&verification);
-	CuAssertIntEquals (test, 0, status);
-
-	status = authorization_challenge_init (&auth, &rng.base, &hash.base, &ecc.base, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, &verification.base);
-	CuAssertIntEquals (test, 0, status);
-
-	nonce = NULL;
-	status = auth.base.authorize (&auth.base, &nonce, &length);
-	CuAssertIntEquals (test, AUTHORIZATION_CHALLENGE, status);
-	CuAssertPtrNotNull (test, nonce);
-
-	/* Sign the nonce.  We mock verification, so the actual signature doesn't matter. */
-	memcpy (nonce_signed, nonce, length);
-	memcpy (&nonce_signed[length], ECC_SIGNATURE_BAD, ECC_SIG_BAD_LEN);
-
-	status = hash.base.calculate_sha256 (&hash.base, nonce_signed, length, nonce_hash,
-		sizeof (nonce_hash));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&verification.mock, verification.base.verify_signature, &verification,
-		ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR_CONTAINS (nonce_hash, SHA256_HASH_LENGTH),
-		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_BAD, ECC_SIG_BAD_LEN),
-		MOCK_ARG (ECC_SIG_BAD_LEN));
-	CuAssertIntEquals (test, 0, status);
-
-	nonce = nonce_signed;
-	length += ECC_SIG_BAD_LEN;
-	status = auth.base.authorize (&auth.base, &nonce, &length);
-	CuAssertIntEquals (test, AUTHORIZATION_NOT_AUTHORIZED, status);
-
-	status = mock_expect (&verification.mock, verification.base.verify_signature, &verification, 0,
-		MOCK_ARG_PTR_CONTAINS (nonce_hash, SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH),
-		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_BAD, ECC_SIG_BAD_LEN), MOCK_ARG (ECC_SIG_BAD_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.base.authorize (&auth.base, &nonce, &length);
@@ -2381,16 +2242,14 @@ TEST (authorization_challenge_test_authorize_no_signature);
 TEST (authorization_challenge_test_authorize_no_signature_with_tag);
 TEST (authorization_challenge_test_authorize_short_nonce);
 TEST (authorization_challenge_test_authorize_short_nonce_with_tag);
-TEST (authorization_challenge_test_authorize_bad_rsa_signature);
-TEST (authorization_challenge_test_authorize_bad_ecc_signature);
+TEST (authorization_challenge_test_authorize_bad_signature);
 TEST (authorization_challenge_test_authorize_signed_wrong_nonce);
 TEST (authorization_challenge_test_authorize_signed_wrong_nonce_with_tag);
 TEST (authorization_challenge_test_authorize_no_nonce_generated);
 TEST (authorization_challenge_test_authorize_use_signed_nonce_twice);
 TEST (authorization_challenge_test_authorize_regenerate_nonce);
 TEST (authorization_challenge_test_authorize_regenerate_nonce_with_tag);
-TEST (authorization_challenge_test_authorize_use_nonce_after_bad_rsa_signature);
-TEST (authorization_challenge_test_authorize_use_nonce_after_bad_ecc_signature);
+TEST (authorization_challenge_test_authorize_use_nonce_after_bad_signature);
 TEST (authorization_challenge_test_authorize_use_nonce_after_signed_wrong_nonce);
 TEST (authorization_challenge_test_authorize_null);
 TEST (authorization_challenge_test_authorize_no_nonce_rng_error);

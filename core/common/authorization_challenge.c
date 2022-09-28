@@ -67,7 +67,7 @@ static int authorization_challenge_authorize (struct authorization *auth, uint8_
 				status = AUTHORIZATION_NOT_AUTHORIZED;
 			}
 		}
-		else if ((status == RSA_ENGINE_BAD_SIGNATURE) || (status == ECC_ENGINE_BAD_SIGNATURE)) {
+		else if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
 			status = AUTHORIZATION_NOT_AUTHORIZED;
 		}
 	}

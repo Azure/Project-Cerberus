@@ -43,6 +43,8 @@ enum {
 	MANIFEST_LOGGING_PFM_ACTIVATION_REQUEST_FAIL, 	/**< PFM activation request notification failure. */
 	MANIFEST_LOGGING_CFM_ACTIVATION_REQUEST_FAIL, 	/**< CFM activation request notification failure. */
 	MANIFEST_LOGGING_PCD_ACTIVATION_REQUEST_FAIL, 	/**< PCD activation request notification failure. */
+	MANIFEST_LOGGING_NO_STORED_MANIFEST_KEY,		/**< There is no valid manifest key available in the keystore. */
+	MANIFEST_LOGGING_MANIFEST_KEY_REVOKED,			/**< The manifest key in the keystore has revoked the default key. */
 };
 
 

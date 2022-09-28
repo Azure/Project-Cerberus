@@ -750,7 +750,7 @@ int spdm_format_signature_digest (struct hash_engine *hash, enum hash_type hash_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.x.*";
 	size_t spdm_prefix_len = strlen (spdm_prefix);
-	size_t hash_len = hash_get_hash_len (hash_type);
+	size_t hash_len = hash_get_hash_length (hash_type);
 	int status;
 
 	spdm_prefix[13] = spdm_minor_version + '0';
