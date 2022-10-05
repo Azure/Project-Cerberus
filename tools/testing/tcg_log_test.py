@@ -9,9 +9,9 @@ Licensed under the MIT license.
 import os
 import sys
 import ctypes
+import hashlib
 
 from enum import Enum
-from Crypto.Hash import SHA256
 
 
 TCG_EFI_NO_ACTION_EVENT_TYPE = 0x03
@@ -88,13 +88,13 @@ def process_tcg_event (max_len, event):
 		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, LOG_LENGTH_ERROR_STR)
 
 	old_event = ctypes.cast (event, ctypes.POINTER (tcg_event))
-	
+
 	if old_event.contents.event_type != TCG_EFI_NO_ACTION_EVENT_TYPE:
 		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, "First event not no action")
 
-	if old_event.contents.event_size < (ctypes.sizeof (tcg_log_header) + 
+	if old_event.contents.event_size < (ctypes.sizeof (tcg_log_header) +
 		ctypes.sizeof (tcg_algorithm) + ctypes.sizeof (ctypes.c_uint8)):
-		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, 
+		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			"TCG log header size unexpected: {}".format (old_event.contents.event_size))
 
 	return ctypes.sizeof (tcg_event)
@@ -115,32 +115,32 @@ def process_tcg_log_header (max_len, header):
 	log_header = ctypes.cast (header, ctypes.POINTER (tcg_log_header))
 
 	if log_header.contents.signature.decode ("utf-8") != TCG_LOG_SIGNATURE:
-		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, 
+		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			"Unexpected TCG log header signature: {}".format (
 				log_header.contents.signature.decode ("utf-8")))
-	
+
 	if log_header.contents.platform_class != TCG_SERVER_PLATFORM_CLASS:
-		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, 
+		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			"Unexpected TCG log header platform class: {}".format (
 				log_header.contents.platform_class))
 
 	if log_header.contents.spec_version_minor != 0:
-		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, 
+		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			"Spec version 2.00 not supported: Minor version {}".format (
 				log_header.contents.spec_version_minor))
 
 	if log_header.contents.spec_version_major != 2:
-		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, 
+		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			"Spec version 2.00 not supported: Major version {}".format (
 				log_header.contents.spec_version_major))
 
 	if log_header.contents.spec_errata != 0:
-		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, 
+		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			"Spec version 2.00 not supported: Errata {}".format (
 				log_header.contents.spec_version_major))
 
 	if log_header.contents.uintn_size != TCG_UINT_SIZE_32:
-		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, 
+		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			"Unsupported integer length {}".format (log_header.contents.uintn_size))
 
 	offset = ctypes.sizeof (tcg_log_header)
@@ -151,13 +151,13 @@ def process_tcg_log_header (max_len, header):
 			print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, LOG_LENGTH_ERROR_STR)
 
 		algorithm = ctypes.cast (header + offset, ctypes.POINTER (tcg_algorithm))
-		algorithms.update ({algorithm.contents.digest_algorithm_id : 
+		algorithms.update ({algorithm.contents.digest_algorithm_id :
 			algorithm.contents.digest_size})
 		offset += ctypes.sizeof (tcg_algorithm)
 
 	if max_len < (offset + ctypes.sizeof (ctypes.c_uint8)):
 		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, LOG_LENGTH_ERROR_STR)
-	
+
 	vendor_info_len = (ctypes.c_uint8).from_address(header + offset).value
 	log_header_len = offset + ctypes.sizeof (ctypes.c_uint8) + vendor_info_len
 
@@ -182,28 +182,30 @@ def process_tcg_event2 (max_len, event, algorithms, pcr_banks, entries_with_even
 	curr_event = ctypes.cast (event, ctypes.POINTER (tcg_event2))
 
 	if curr_event.contents.digest_count != 1:
-		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, 
+		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			UNSUPPORTED_DIGEST_COUNT_ERROR_STR.format (curr_event.contents.digest_count))
-	
+
 	if curr_event.contents.digest_algorithm_id not in algorithms:
-		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, 
+		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			UNSUPPORTED_HASHING_ALGO_ERROR_STR.format (curr_event.contents.digest_algorithm_id))
 
 	# Currently on SHA256 is supported by this test tool
 	if curr_event.contents.digest_algorithm_id != TCG_SHA256_ALG_ID:
-		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR, 
+		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			UNSUPPORTED_HASHING_ALGO_ERROR_STR.format (curr_event.contents.digest_algorithm_id))
 
 	hash_len = algorithms[curr_event.contents.digest_algorithm_id]
 	digest = (ctypes.c_uint8 * hash_len).from_address(event + ctypes.sizeof (tcg_event2))
 
-	if curr_event.contents.pcr_bank not in pcr_banks:
-		hash_1 = SHA256.new (bytes ([0 for _ in range (hash_len)]))
-	else:
-		hash_1 = SHA256.new (pcr_banks[curr_event.contents.pcr_bank].digest ())
+	hash_1 = hashlib.sha256 ()
 
-	hash_1.update (digest)
-	pcr_banks[curr_event.contents.pcr_bank] = hash_1
+	if curr_event.contents.pcr_bank not in pcr_banks:
+		hash_1.update (bytes ([0 for _ in range (hash_len)]))
+	else:
+		hash_1.update (pcr_banks[curr_event.contents.pcr_bank])
+
+	hash_1.update (bytes(digest))
+	pcr_banks[curr_event.contents.pcr_bank] = hash_1.digest ()
 
 	event_size = (ctypes.c_uint32).from_address (
 		event + ctypes.sizeof (tcg_event2) + hash_len).value
@@ -213,22 +215,23 @@ def process_tcg_event2 (max_len, event, algorithms, pcr_banks, entries_with_even
 	# If digest is unset, then event should be unset as well
 	if all (v == 0 for v in bytes (digest)):
 		if not all (v == 0 for v in bytes (event)):
-			print_error (Error_Types.INVALID_EVENT_ERROR_TYPE_STR, 
-				EVENT_NON_ZERO_ERROR_STR.format (curr_event.contents.pcr_bank, 
+			print_error (Error_Types.INVALID_EVENT_ERROR_TYPE_STR,
+				EVENT_NON_ZERO_ERROR_STR.format (curr_event.contents.pcr_bank,
 					hex (curr_event.contents.event_type)))
-	
+
 	# If event is not the same as digest, then event hash should be same as digest
 	if bytes (digest) != bytes (event):
 		entries_with_events_list.append (curr_event.contents.event_type)
-		hash_2 = SHA256.new (event)
+		hash_2 = hashlib.sha256 ()
+		hash_2.update (event)
 		computed_hash = hash_2.digest ()
 
 		if bytes (digest) != computed_hash:
-			print_error (Error_Types.INVALID_EVENT_ERROR_TYPE_STR, 
-				EVENT_HASH_INCORRECT_ERROR_STR.format (curr_event.contents.pcr_bank, 
+			print_error (Error_Types.INVALID_EVENT_ERROR_TYPE_STR,
+				EVENT_HASH_INCORRECT_ERROR_STR.format (curr_event.contents.pcr_bank,
 					hex (curr_event.contents.event_type)))
 
-	return (ctypes.sizeof (tcg_event2) + hash_len + ctypes.sizeof (ctypes.c_uint32) + event_size, 
+	return (ctypes.sizeof (tcg_event2) + hash_len + ctypes.sizeof (ctypes.c_uint32) + event_size,
 		pcr_banks, entries_with_events_list)
 
 def process_all_tcg_event2 (max_len, events_list, algorithms):
@@ -239,7 +242,7 @@ def process_all_tcg_event2 (max_len, events_list, algorithms):
     :param events_list: Address of first event data
     :param algorithms: List of algorithms utilized in log as per log header
 
-    :return Dictionary of hashing objects used to compute PCR measurements keyed by PCR numbers, 
+    :return Dictionary of hashing objects used to compute PCR measurements keyed by PCR numbers,
     	list of event types which include event data
     """
 
@@ -248,7 +251,7 @@ def process_all_tcg_event2 (max_len, events_list, algorithms):
 	entries_with_events_list = []
 
 	while (offset < max_len):
-		event_len, pcr_banks, entries_with_events_list = process_tcg_event2 (max_len - offset, 
+		event_len, pcr_banks, entries_with_events_list = process_tcg_event2 (max_len - offset,
 			events_list + offset, algorithms, pcr_banks, entries_with_events_list)
 		offset += event_len
 
@@ -268,7 +271,7 @@ def load_log (path):
 	with open (path, mode='rb') as file:
 		log_buf = (ctypes.c_ubyte * log_size) ()
 		file.readinto (log_buf)
-		
+
 		return log_size, log_buf
 
 	return 0, None
@@ -289,16 +292,16 @@ log_size, log_bin = load_log (str (sys.argv[1]))
 print ("\nParsing log....\n")
 
 old_event_size = process_tcg_event (log_size, ctypes.addressof (log_bin))
-header_size, algorithms = process_tcg_log_header (log_size - old_event_size, 
+header_size, algorithms = process_tcg_log_header (log_size - old_event_size,
 	ctypes.addressof (log_bin) + old_event_size)
-pcrs, entries_with_events_list = process_all_tcg_event2 (log_size - old_event_size - header_size, 
+pcrs, entries_with_events_list = process_all_tcg_event2 (log_size - old_event_size - header_size,
 	ctypes.addressof (log_bin) + old_event_size + header_size, algorithms)
 
 print ("\nPCR Measurements:")
 for pcr, digest in pcrs.items ():
-	print ("{}:{}".format (pcr, digest.hexdigest ()))	
+	print ("{}:{}".format (pcr, digest.hex ()))
 
 print ("\nTCG event types with event data:")
 for entry in entries_with_events_list:
 	print ("{}".format (hex (entry)))
-	
+
