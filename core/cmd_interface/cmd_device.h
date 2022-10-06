@@ -9,6 +9,7 @@
 #include "status/rot_status.h"
 
 
+#pragma pack(push, 1)
 /**
  * Heap statistics being reported.
  *
@@ -22,6 +23,7 @@ struct cmd_device_heap_stats {
 	uint32_t max_block;			/**< Size of the largest free block. */
 	uint32_t min_block;			/**< Size of the smallest free block. */
 };
+#pragma pack(pop)
 
 /**
  * A hardware-independent API to handle operations that require device-specific workflows.
