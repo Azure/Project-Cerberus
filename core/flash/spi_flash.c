@@ -192,7 +192,7 @@ static int spi_flash_configure_device (const struct spi_flash *flash, bool wake_
 
 	if (reset_device) {
 		status = spi_flash_reset_device (flash);
-		if (status != 0) {
+		if ((status != 0) && (status != SPI_FLASH_RESET_NOT_SUPPORTED)) {
 			goto exit;
 		}
 	}
