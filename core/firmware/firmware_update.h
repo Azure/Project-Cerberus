@@ -101,13 +101,14 @@ struct firmware_update_hooks {
 	 * Run additional verification on a boot image stored on flash.  This will be called after
 	 * running typical verification on a firmware image.
 	 *
-	 * This verification will not be called for the image in staging flash.
+	 * This verification will not be called for an image in staging flash.
 	 *
 	 * @param updater The firmware updater to run the verification.
 	 * @param flash The flash device that contains the boot image to verify.
 	 * @param address The base address of the boot image.
 	 *
-	 * @return 0 if the image is valid, 1 if it is not, or an error code.
+	 * @return 0 if the image is valid or an error code.  If the boot image is not valid,
+	 * FIRMWARE_UPDATE_INVALID_BOOT_IMAGE will be returned.
 	 */
 	int (*verify_boot_image) (struct firmware_update *updater, struct flash *flash,
 		uint32_t address);
@@ -123,6 +124,7 @@ struct firmware_update {
 	struct hash_engine *hash;				/**< The hash engine to use during update .*/
 	struct app_context *context;			/**< The platform application context API. */
 	struct flash_updater update_mgr;		/**< Update manager for writing data to flash. */
+	bool no_fw_header;						/**< Indication that a firmware header is not required. */
 	bool recovery_bad;						/**< Indication if the recovery image on flash is bad. */
 	int recovery_rev;						/**< Revision ID of the current recovery image. */
 	int min_rev;							/**< Minimum revision ID allowed for update. */
@@ -151,13 +153,15 @@ int firmware_update_init (struct firmware_update *updater, const struct firmware
 void firmware_update_release (struct firmware_update *updater);
 
 void firmware_update_set_image_offset (struct firmware_update *updater, int offset);
+void firmware_update_require_firmware_header (struct firmware_update *updater, bool has_fw_header);
 
-void firmware_update_set_recovery_good (struct firmware_update *updater, bool img_good);
 void firmware_update_set_recovery_revision (struct firmware_update *updater, int revision);
-int firmware_update_validate_recovery_image (struct firmware_update *updater);
+void firmware_update_set_recovery_good (struct firmware_update *updater, bool img_good);
+void firmware_update_validate_recovery_image (struct firmware_update *updater);
+int firmware_update_is_recovery_good (struct firmware_update *updater);
+
 int firmware_update_restore_recovery_image (struct firmware_update *updater);
 int firmware_update_restore_active_image (struct firmware_update *updater);
-int firmware_update_is_recovery_good (struct firmware_update *updater);
 
 int firmware_update_add_observer (struct firmware_update *updater,
 	struct firmware_update_observer *observer);
@@ -198,6 +202,7 @@ enum {
 	FIRMWARE_UPDATE_REJECTED_ROLLBACK = FIRMWARE_UPDATE_ERROR (0x0e),	/**< The new image revision ID is a disallowed version. */
 	FIRMWARE_UPDATE_NO_RECOVERY_IMAGE = FIRMWARE_UPDATE_ERROR (0x0f),	/**< There is no recovery image available for the operation. */
 	FIRMWARE_UPDATE_RESTORE_NOT_NEEDED = FIRMWARE_UPDATE_ERROR (0x10),	/**< An image restore operation was not necessary. */
+	FIRMWARE_UPDATE_INVALID_BOOT_IMAGE = FIRMWARE_UPDATE_ERROR (0x11),	/**< The boot image is not valid based on additional verification. */
 };
 
 

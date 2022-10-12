@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "firmware/firmware_logging.h"
 #include "firmware/firmware_update.h"
 #include "flash/flash_common.h"
 #include "testing/mock/flash/flash_mock.h"
@@ -14,10 +15,12 @@
 #include "testing/mock/firmware/key_manifest_mock.h"
 #include "testing/mock/firmware/firmware_update_mock.h"
 #include "testing/mock/firmware/firmware_update_observer_mock.h"
+#include "testing/mock/logging/logging_mock.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/common/image_header_testing.h"
 #include "testing/crypto/rsa_testing.h"
 #include "testing/firmware/firmware_header_testing.h"
+#include "testing/logging/debug_log_testing.h"
 
 
 TEST_SUITE_LABEL ("firmware_update");
@@ -33,6 +36,7 @@ struct firmware_update_testing {
 	struct key_manifest_mock manifest;						/**< Mock for the key updater.manifest. */
 	struct firmware_header header;							/**< Header on the firmware image. */
 	struct flash_mock flash;								/**< Mock for the updater.flash device. */
+	struct logging_mock log;								/**< Mock for debug logging. */
 	struct firmware_flash_map map;							/**< Map of firmware images on updater.flash. */
 	struct firmware_update_notification_mock handler;		/**< Mock for update notifications. */
 	struct firmware_update_observer_mock observer;			/**< Mock for an update observer. */
@@ -130,6 +134,9 @@ static void firmware_update_testing_init_dependencies (CuTest *test,
 	status = firmware_update_observer_mock_init (&updater->observer);
 	CuAssertIntEquals (test, 0, status);
 
+	status = logging_mock_init (&updater->log);
+	CuAssertIntEquals (test, 0, status);
+
 	firmware_update_testing_init_firmware_header (test, &updater->header, &updater->flash, header);
 
 	updater->map.active_addr = 0x10000;
@@ -148,6 +155,8 @@ static void firmware_update_testing_init_dependencies (CuTest *test,
 	updater->map.staging_flash = &updater->flash.base;
 	updater->map.recovery_flash = &updater->flash.base;
 	updater->map.rec_backup_flash = &updater->flash.base;
+
+	debug_log = &updater->log.base;
 }
 
 /**
@@ -237,27 +246,18 @@ static void firmware_update_testing_validate (CuTest *test, struct firmware_upda
 	int status;
 
 	status = mock_validate (&updater->handler.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&updater->flash.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&updater->fw.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&updater->app.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&updater->manifest.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&updater->observer.mock);
-	CuAssertIntEquals (test, 0, status);
+	status |= mock_validate (&updater->flash.mock);
+	status |= mock_validate (&updater->fw.mock);
+	status |= mock_validate (&updater->app.mock);
+	status |= mock_validate (&updater->manifest.mock);
+	status |= mock_validate (&updater->observer.mock);
+	status |= mock_validate (&updater->log.mock);
 
 	if (updater->is_mock) {
-		status = mock_validate (&updater->test_mock.mock);
-		CuAssertIntEquals (test, 0, status);
+		status |= mock_validate (&updater->test_mock.mock);
 	}
+
+	CuAssertIntEquals (test, 0, status);
 }
 
 /**
@@ -271,22 +271,16 @@ static void firmware_update_testing_release_dependencies (CuTest *test,
 {
 	int status;
 
+	debug_log = NULL;
+
 	status = firmware_update_notification_mock_validate_and_release (&updater->handler);
-	CuAssertIntEquals (test, 0, status);
+	status |= flash_mock_validate_and_release (&updater->flash);
+	status |= firmware_image_mock_validate_and_release (&updater->fw);
+	status |= app_context_mock_validate_and_release (&updater->app);
+	status |= key_manifest_mock_validate_and_release (&updater->manifest);
+	status |= firmware_update_observer_mock_validate_and_release (&updater->observer);
+	status |= logging_mock_validate_and_release (&updater->log);
 
-	status = flash_mock_validate_and_release (&updater->flash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_image_mock_validate_and_release (&updater->fw);
-	CuAssertIntEquals (test, 0, status);
-
-	status = app_context_mock_validate_and_release (&updater->app);
-	CuAssertIntEquals (test, 0, status);
-
-	status = key_manifest_mock_validate_and_release (&updater->manifest);
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_observer_mock_validate_and_release (&updater->observer);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_header_release (&updater->header);
@@ -491,6 +485,13 @@ static void firmware_update_test_set_image_offset_null (CuTest *test)
 	TEST_START;
 
 	firmware_update_set_image_offset (NULL, 0x100);
+}
+
+static void firmware_update_test_require_firmware_header_null (CuTest *test)
+{
+	TEST_START;
+
+	firmware_update_require_firmware_header (NULL, false);
 }
 
 static void firmware_update_test_add_observer_null (CuTest *test)
@@ -1243,6 +1244,132 @@ static void firmware_update_test_run_update_extra_data_received (CuTest *test)
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
+static void firmware_update_test_run_update_no_firmware_header_not_required (CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+
+	TEST_START;
+
+	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	firmware_update_require_firmware_header (&updater.test, false);
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) NULL);
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
+		(intptr_t) &updater.manifest);
+	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
+		 &updater.manifest, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
+static void firmware_update_test_run_update_with_firmware_header_not_required (CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+
+	TEST_START;
+
+	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	firmware_update_require_firmware_header (&updater.test, false);
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) &updater.header);
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
+		(intptr_t) &updater.manifest);
+	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
+		 &updater.manifest, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
 static void firmware_update_test_run_update_null (CuTest *test)
 {
 	struct firmware_update_testing updater;
@@ -1428,6 +1555,40 @@ static void firmware_update_test_run_update_verify_rollback_disallowed (CuTest *
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 1, 1, 0);
+
+	status = firmware_update_add_observer (&updater.test, &updater.observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) &updater.header);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_INVALID_IMAGE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, FIRMWARE_UPDATE_REJECTED_ROLLBACK, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
+static void firmware_update_test_run_update_verify_rollback_disallowed_firmware_header_not_required (
+	CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+
+	TEST_START;
+
+	firmware_update_testing_init (test, &updater, 1, 1, 0);
+	firmware_update_require_firmware_header (&updater.test, false);
 
 	status = firmware_update_add_observer (&updater.test, &updater.observer.base);
 	CuAssertIntEquals (test, 0, status);
@@ -2596,7 +2757,7 @@ static void firmware_update_test_run_update_finalize_image_error_fail_recovery_f
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_check_load_fail (CuTest *test)
+static void firmware_update_test_run_update_manifest_check_load_fail (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
@@ -2654,7 +2815,7 @@ static void firmware_update_test_run_update_cert_check_load_fail (CuTest *test)
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_check_manifest_fail (CuTest *test)
+static void firmware_update_test_run_update_manifest_check_manifest_fail (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
@@ -2714,7 +2875,7 @@ static void firmware_update_test_run_update_cert_check_manifest_fail (CuTest *te
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_check_fail (CuTest *test)
+static void firmware_update_test_run_update_manifest_check_fail (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
@@ -2776,13 +2937,21 @@ static void firmware_update_test_run_update_cert_check_fail (CuTest *test)
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_revocation (CuTest *test)
+static void firmware_update_test_run_update_manifest_revocation (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -2831,6 +3000,11 @@ static void firmware_update_test_run_update_cert_revocation (CuTest *test)
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
@@ -2860,7 +3034,7 @@ static void firmware_update_test_run_update_cert_revocation (CuTest *test)
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_revocation_header_last (CuTest *test)
+static void firmware_update_test_run_update_manifest_revocation_header_last (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
@@ -2876,6 +3050,7 @@ static void firmware_update_test_run_update_cert_revocation_header_last (CuTest 
 	}
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -2955,7 +3130,8 @@ static void firmware_update_test_run_update_cert_revocation_header_last (CuTest 
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_revocation_header_last_small_page (CuTest *test)
+static void firmware_update_test_run_update_manifest_revocation_header_last_small_page (
+	CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
@@ -2971,6 +3147,7 @@ static void firmware_update_test_run_update_cert_revocation_header_last_small_pa
 	}
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -3048,7 +3225,7 @@ static void firmware_update_test_run_update_cert_revocation_header_last_small_pa
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_revocation_image_offset (CuTest *test)
+static void firmware_update_test_run_update_manifest_revocation_image_offset (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
@@ -3059,6 +3236,7 @@ static void firmware_update_test_run_update_cert_revocation_image_offset (CuTest
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_image_offset (&updater.test, 0x100);
 
@@ -3136,7 +3314,7 @@ static void firmware_update_test_run_update_cert_revocation_image_offset (CuTest
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_revocation_finalize_image (CuTest *test)
+static void firmware_update_test_run_update_manifest_revocation_finalize_image (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
@@ -3147,6 +3325,7 @@ static void firmware_update_test_run_update_cert_revocation_finalize_image (CuTe
 	TEST_START;
 
 	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_mock_enable_finalize_image (&updater.test_mock);
 
@@ -3226,7 +3405,7 @@ static void firmware_update_test_run_update_cert_revocation_finalize_image (CuTe
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_revocation_finalize_image_with_offset (
+static void firmware_update_test_run_update_manifest_revocation_finalize_image_with_offset (
 	CuTest *test)
 {
 	struct firmware_update_testing updater;
@@ -3238,6 +3417,7 @@ static void firmware_update_test_run_update_cert_revocation_finalize_image_with_
 	TEST_START;
 
 	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_image_offset (&updater.test_mock.base, 0x100);
 	firmware_update_mock_enable_finalize_image (&updater.test_mock);
@@ -3320,12 +3500,20 @@ static void firmware_update_test_run_update_cert_revocation_finalize_image_with_
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_backup_load_fail (CuTest *test)
+static void firmware_update_test_run_update_manifest_backup_load_fail (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -3373,6 +3561,11 @@ static void firmware_update_test_run_update_cert_backup_load_fail (CuTest *test)
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -3390,12 +3583,20 @@ static void firmware_update_test_run_update_cert_backup_load_fail (CuTest *test)
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_backup_img_size_error (CuTest *test)
+static void firmware_update_test_run_update_manifest_backup_img_size_error (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -3443,6 +3644,11 @@ static void firmware_update_test_run_update_cert_backup_img_size_error (CuTest *
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -3462,12 +3668,20 @@ static void firmware_update_test_run_update_cert_backup_img_size_error (CuTest *
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_backup_recovery_fail (CuTest *test)
+static void firmware_update_test_run_update_manifest_backup_recovery_fail (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -3515,6 +3729,11 @@ static void firmware_update_test_run_update_cert_backup_recovery_fail (CuTest *t
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -3542,6 +3761,14 @@ static void firmware_update_test_run_update_recovery_page_size_fail (CuTest *tes
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -3589,6 +3816,11 @@ static void firmware_update_test_run_update_recovery_page_size_fail (CuTest *tes
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -3622,6 +3854,14 @@ static void firmware_update_test_run_update_recovery_erase_fail (CuTest *test)
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -3669,6 +3909,11 @@ static void firmware_update_test_run_update_recovery_erase_fail (CuTest *test)
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -3703,6 +3948,14 @@ static void firmware_update_test_run_update_recovery_fail (CuTest *test)
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -3750,6 +4003,11 @@ static void firmware_update_test_run_update_recovery_fail (CuTest *test)
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -3790,6 +4048,14 @@ static void firmware_update_test_run_update_recovery_fail_header_last (CuTest *t
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[RSA_ENCRYPT_LEN * 4];
 	int i;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -3841,6 +4107,11 @@ static void firmware_update_test_run_update_recovery_fail_header_last (CuTest *t
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -3892,6 +4163,7 @@ static void firmware_update_test_run_update_recovery_fail_header_last_small_page
 	}
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -3976,6 +4248,14 @@ static void firmware_update_test_run_update_recovery_fail_finalize (CuTest *test
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -4027,6 +4307,11 @@ static void firmware_update_test_run_update_recovery_fail_finalize (CuTest *test
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -4071,6 +4356,14 @@ static void firmware_update_test_run_update_recovery_restore_erase_fail (CuTest 
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -4118,6 +4411,11 @@ static void firmware_update_test_run_update_recovery_restore_erase_fail (CuTest 
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -4156,6 +4454,14 @@ static void firmware_update_test_run_update_recovery_restore_fail (CuTest *test)
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -4203,6 +4509,11 @@ static void firmware_update_test_run_update_recovery_restore_fail (CuTest *test)
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -4242,6 +4553,14 @@ static void firmware_update_test_run_update_recovery_restore_fail_finalize (CuTe
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -4294,6 +4613,11 @@ static void firmware_update_test_run_update_recovery_restore_fail_finalize (CuTe
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
@@ -4331,13 +4655,21 @@ static void firmware_update_test_run_update_recovery_restore_fail_finalize (CuTe
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_revocation_fail (CuTest *test)
+static void firmware_update_test_run_update_manifest_revocation_fail (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -4386,6 +4718,11 @@ static void firmware_update_test_run_update_cert_revocation_fail (CuTest *test)
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
@@ -4425,6 +4762,14 @@ static void firmware_update_test_run_update_no_recovery_backup (CuTest *test)
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -4474,6 +4819,11 @@ static void firmware_update_test_run_update_no_recovery_backup (CuTest *test)
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -4510,6 +4860,14 @@ static void firmware_update_test_run_update_no_recovery_backup_fail (CuTest *tes
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -4559,6 +4917,11 @@ static void firmware_update_test_run_update_no_recovery_backup_fail (CuTest *tes
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -4586,6 +4949,14 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup 
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -4635,6 +5006,11 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup 
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -4685,6 +5061,7 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup_
 
 	firmware_update_testing_init_dependencies (test, &updater, 0);
 	updater.map.rec_backup_flash = NULL;
+	debug_log = NULL;
 	firmware_update_testing_init_updater (test, &updater, 0, 0);
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
@@ -4772,6 +5149,14 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup_
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -4821,6 +5206,11 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup_
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -4859,6 +5249,14 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup_
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -4909,6 +5307,11 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup_
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
@@ -4940,7 +5343,7 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup_
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_cert_revocation_no_recovery (CuTest *test)
+static void firmware_update_test_run_update_manifest_revocation_no_recovery (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
@@ -5492,11 +5895,19 @@ static void firmware_update_test_run_update_no_backup_finalize_image_error (CuTe
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_no_backup_cert_revocation (CuTest *test)
+static void firmware_update_test_run_update_no_backup_manifest_revocation (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -5538,6 +5949,11 @@ static void firmware_update_test_run_update_no_backup_cert_revocation (CuTest *t
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
@@ -5564,6 +5980,14 @@ static void firmware_update_test_run_update_no_backup_recovery_erase_fail (CuTes
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -5605,6 +6029,11 @@ static void firmware_update_test_run_update_no_backup_recovery_erase_fail (CuTes
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
@@ -5629,6 +6058,14 @@ static void firmware_update_test_run_update_no_backup_recovery_fail (CuTest *tes
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -5671,6 +6108,11 @@ static void firmware_update_test_run_update_no_backup_recovery_fail (CuTest *tes
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
@@ -5694,6 +6136,14 @@ static void firmware_update_test_run_update_no_backup_recovery_finalize_fail (Cu
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -5740,6 +6190,11 @@ static void firmware_update_test_run_update_no_backup_recovery_finalize_fail (Cu
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
@@ -5767,6 +6222,14 @@ static void firmware_update_test_run_update_recovery_bad (CuTest *test)
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -5788,6 +6251,11 @@ static void firmware_update_test_run_update_recovery_bad (CuTest *test)
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
@@ -5842,6 +6310,7 @@ static void firmware_update_test_run_update_recovery_bad_finalize_image (CuTest 
 	TEST_START;
 
 	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test_mock.base, false);
 	firmware_update_mock_enable_finalize_image (&updater.test_mock);
@@ -5912,6 +6381,14 @@ static void firmware_update_test_run_update_recovery_bad_page_size_fail (CuTest 
 {
 	struct firmware_update_testing updater;
 	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -5932,6 +6409,11 @@ static void firmware_update_test_run_update_recovery_bad_page_size_fail (CuTest 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
@@ -5953,6 +6435,14 @@ static void firmware_update_test_run_update_recovery_bad_erase_fail (CuTest *tes
 {
 	struct firmware_update_testing updater;
 	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -5973,6 +6463,11 @@ static void firmware_update_test_run_update_recovery_bad_erase_fail (CuTest *tes
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
@@ -5995,6 +6490,14 @@ static void firmware_update_test_run_update_recovery_bad_update_fail (CuTest *te
 {
 	struct firmware_update_testing updater;
 	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -6015,6 +6518,11 @@ static void firmware_update_test_run_update_recovery_bad_update_fail (CuTest *te
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
@@ -6039,6 +6547,14 @@ static void firmware_update_test_run_update_recovery_bad_finalize_fail (CuTest *
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -6061,6 +6577,11 @@ static void firmware_update_test_run_update_recovery_bad_finalize_fail (CuTest *
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
@@ -6149,12 +6670,20 @@ static void firmware_update_test_run_update_recovery_bad_no_recovery (CuTest *te
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_recovery_bad_cert_revocation (CuTest *test)
+static void firmware_update_test_run_update_recovery_bad_manifest_revocation (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -6176,6 +6705,11 @@ static void firmware_update_test_run_update_recovery_bad_cert_revocation (CuTest
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
@@ -6236,6 +6770,7 @@ static void firmware_update_test_run_update_after_recovery_page_size_fail (CuTes
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -6366,6 +6901,7 @@ static void firmware_update_test_run_update_after_recovery_erase_fail (CuTest *t
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -6504,6 +7040,7 @@ static void firmware_update_test_run_update_after_recovery_fail (CuTest *test)
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -6640,6 +7177,7 @@ static void firmware_update_test_run_update_after_recovery_finalize_fail (CuTest
 	TEST_START;
 
 	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_mock_enable_finalize_image (&updater.test_mock);
 
@@ -6787,6 +7325,7 @@ static void firmware_update_test_run_update_after_recovery_restore_erase_fail (C
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -6928,6 +7467,7 @@ static void firmware_update_test_run_update_after_recovery_restore_fail (CuTest 
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -7071,6 +7611,7 @@ static void firmware_update_test_run_update_after_recovery_restore_finalize_fail
 	TEST_START;
 
 	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_mock_enable_finalize_image (&updater.test_mock);
 
@@ -7227,6 +7768,7 @@ static void firmware_update_test_run_update_no_recovery_backup_after_recovery_re
 
 	firmware_update_testing_init_dependencies (test, &updater, 0);
 	updater.map.rec_backup_flash = NULL;
+	debug_log = NULL;
 	firmware_update_testing_init_updater (test, &updater, 0, 0);
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
@@ -7371,6 +7913,7 @@ static void firmware_update_test_run_update_no_recovery_backup_after_recovery_re
 
 	firmware_update_testing_init_dependencies (test, &updater, 0);
 	updater.map.rec_backup_flash = NULL;
+	debug_log = NULL;
 	firmware_update_testing_init_updater (test, &updater, 0, 0);
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
@@ -7514,6 +8057,7 @@ static void firmware_update_test_run_update_after_recovery_backup_load_fail (CuT
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -7634,6 +8178,7 @@ static void firmware_update_test_run_update_after_recovery_backup_img_size_error
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -7756,6 +8301,7 @@ static void firmware_update_test_run_update_after_recovery_backup_fail (CuTest *
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -7881,6 +8427,7 @@ static void firmware_update_test_run_update_no_recovery_backup_after_recovery_ba
 
 	firmware_update_testing_init_dependencies (test, &updater, 0);
 	updater.map.rec_backup_flash = NULL;
+	debug_log = NULL;
 	firmware_update_testing_init_updater (test, &updater, 0, 0);
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
@@ -8006,6 +8553,7 @@ static void firmware_update_test_run_update_no_backup_after_recovery_erase_fail 
 	firmware_update_testing_init_dependencies (test, &updater, 0);
 	updater.map.backup_flash = NULL;
 	updater.map.rec_backup_flash = NULL;
+	debug_log = NULL;
 	firmware_update_testing_init_updater (test, &updater, 0, 0);
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
@@ -8119,6 +8667,7 @@ static void firmware_update_test_run_update_no_backup_after_recovery_fail (CuTes
 	firmware_update_testing_init_dependencies (test, &updater, 0);
 	updater.map.backup_flash = NULL;
 	updater.map.rec_backup_flash = NULL;
+	debug_log = NULL;
 	firmware_update_testing_init_updater (test, &updater, 0, 0);
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
@@ -8232,6 +8781,7 @@ static void firmware_update_test_run_update_no_backup_after_recovery_finalize_fa
 	firmware_update_testing_init_dependencies (test, &updater, 0);
 	updater.map.backup_flash = NULL;
 	updater.map.rec_backup_flash = NULL;
+	debug_log = NULL;
 	firmware_update_testing_init_updater_mock (test, &updater, 0, 0);
 
 	firmware_update_mock_enable_finalize_image (&updater.test_mock);
@@ -8355,6 +8905,7 @@ static void firmware_update_test_run_update_after_recovery_bad (CuTest *test)
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -8476,6 +9027,7 @@ static void firmware_update_test_run_update_after_recovery_bad_page_size_fail (C
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -8577,6 +9129,7 @@ static void firmware_update_test_run_update_after_recovery_bad_erase_fail (CuTes
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -8679,6 +9232,7 @@ static void firmware_update_test_run_update_after_recovery_bad_update_fail (CuTe
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -8782,6 +9336,7 @@ static void firmware_update_test_run_update_after_recovery_bad_finalize_fail (Cu
 	TEST_START;
 
 	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test_mock.base, false);
 	firmware_update_mock_enable_finalize_image (&updater.test_mock);
@@ -8890,6 +9445,14 @@ static void firmware_update_test_run_update_new_recovery_revision_higher (CuTest
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -8938,6 +9501,11 @@ static void firmware_update_test_run_update_new_recovery_revision_higher (CuTest
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
@@ -8969,6 +9537,14 @@ static void firmware_update_test_run_update_new_recovery_revision_lower (CuTest 
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -9017,6 +9593,11 @@ static void firmware_update_test_run_update_new_recovery_revision_lower (CuTest 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
@@ -9048,6 +9629,14 @@ static void firmware_update_test_run_update_same_revision_after_recovery_update 
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -9095,6 +9684,11 @@ static void firmware_update_test_run_update_same_revision_after_recovery_update 
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -9170,13 +9764,21 @@ static void firmware_update_test_run_update_same_revision_after_recovery_update 
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
-static void firmware_update_test_run_update_same_revision_after_cert_revocation (CuTest *test)
+static void firmware_update_test_run_update_same_revision_after_manifest_revocation (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -9224,6 +9826,11 @@ static void firmware_update_test_run_update_same_revision_after_cert_revocation 
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
@@ -9310,6 +9917,14 @@ static void firmware_update_test_run_update_recovery_bad_different_revision (CuT
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -9331,6 +9946,11 @@ static void firmware_update_test_run_update_recovery_bad_different_revision (CuT
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
@@ -9385,6 +10005,7 @@ static void firmware_update_test_run_update_same_revision_after_recovery_bad (Cu
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 1);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -9487,6 +10108,99 @@ static void firmware_update_test_run_update_same_revision_after_recovery_bad (Cu
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
+static void firmware_update_test_run_update_new_recovery_firmware_header_not_required (CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	firmware_update_testing_init (test, &updater, 0, 0, 1);
+	firmware_update_require_firmware_header (&updater.test, false);
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) &updater.header);
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
+		(intptr_t) &updater.manifest);
+	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
+		&updater.manifest, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (recovery_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x50000, 0x40000,
+		recovery_data, sizeof (recovery_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x30000,
+		staging_data, sizeof (staging_data));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -10077,6 +10791,14 @@ static void firmware_update_test_validate_recovery_image (CuTest *test)
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_IMAGE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -10092,12 +10814,17 @@ static void firmware_update_test_validate_recovery_image (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		(intptr_t) &updater.header);
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test);
-	CuAssertIntEquals (test, 0, status);
+	firmware_update_validate_recovery_image (&updater.test);
+	CuAssertIntEquals (test, 1, firmware_update_is_recovery_good (&updater.test));
 
 	firmware_update_testing_validate (test, &updater);
+	debug_log = NULL;
 
 	/* The recovery image validated as good, so the update should proceed normally. */
 
@@ -10160,6 +10887,7 @@ static void firmware_update_test_validate_recovery_image_offset (CuTest *test)
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_image_offset (&updater.test, 0x100);
 
@@ -10173,8 +10901,8 @@ static void firmware_update_test_validate_recovery_image_offset (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test);
-	CuAssertIntEquals (test, 0, status);
+	firmware_update_validate_recovery_image (&updater.test);
+	CuAssertIntEquals (test, 1, firmware_update_is_recovery_good (&updater.test));
 
 	firmware_update_testing_validate_and_release (test, &updater);
 }
@@ -10189,6 +10917,7 @@ static void firmware_update_test_validate_recovery_image_extra_verify (CuTest *t
 	TEST_START;
 
 	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_mock_enable_verify_boot_image (&updater.test_mock);
 
@@ -10207,8 +10936,8 @@ static void firmware_update_test_validate_recovery_image_extra_verify (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	firmware_update_validate_recovery_image (&updater.test_mock.base);
+	CuAssertIntEquals (test, 1, firmware_update_is_recovery_good (&updater.test_mock.base));
 
 	firmware_update_testing_validate (test, &updater);
 
@@ -10273,6 +11002,7 @@ static void firmware_update_test_validate_recovery_image_extra_verify_offset (Cu
 	TEST_START;
 
 	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_mock_enable_verify_boot_image (&updater.test_mock);
 
@@ -10291,8 +11021,8 @@ static void firmware_update_test_validate_recovery_image_extra_verify_offset (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	firmware_update_validate_recovery_image (&updater.test_mock.base);
+	CuAssertIntEquals (test, 1, firmware_update_is_recovery_good (&updater.test_mock.base));
 
 	firmware_update_testing_validate_and_release (test, &updater);
 }
@@ -10300,7 +11030,6 @@ static void firmware_update_test_validate_recovery_image_extra_verify_offset (Cu
 static void firmware_update_test_validate_recovery_image_no_recovery (CuTest *test)
 {
 	struct firmware_update_testing updater;
-	int status;
 
 	TEST_START;
 
@@ -10309,8 +11038,8 @@ static void firmware_update_test_validate_recovery_image_no_recovery (CuTest *te
 	updater.map.rec_backup_flash = NULL;
 	firmware_update_testing_init_updater (test, &updater, 0, 0);
 
-	status = firmware_update_validate_recovery_image (&updater.test);
-	CuAssertIntEquals (test, 0, status);
+	firmware_update_validate_recovery_image (&updater.test);
+	CuAssertIntEquals (test, 1, firmware_update_is_recovery_good (&updater.test));
 
 	firmware_update_testing_validate_and_release (test, &updater);
 }
@@ -10327,6 +11056,7 @@ static void firmware_update_test_validate_recovery_image_set_recovery_revision (
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 1);
+	debug_log = NULL;
 
 	firmware_update_testing_init_firmware_header (test, &header2, &updater.flash, 0);
 	firmware_update_set_recovery_good (&updater.test, false);
@@ -10341,12 +11071,13 @@ static void firmware_update_test_validate_recovery_image_set_recovery_revision (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test);
-	CuAssertIntEquals (test, 0, status);
+	firmware_update_validate_recovery_image (&updater.test);
+	CuAssertIntEquals (test, 1, firmware_update_is_recovery_good (&updater.test));
 
 	firmware_update_testing_validate (test, &updater);
 
-	/* The recovery image validated as good, so the update should proceed normally. */
+	/* The recovery image validated as good, so the update should proceed normally. The recovery
+	 * image is changed to ID 1 during validation, so recovery updates with ID 0. */
 
 	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
@@ -10416,12 +11147,200 @@ static void firmware_update_test_validate_recovery_image_set_recovery_revision (
 	firmware_header_release (&header2);
 }
 
+static void firmware_update_test_validate_recovery_image_no_firmware_header_not_required (
+	CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_IMAGE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	firmware_update_require_firmware_header (&updater.test, false);
+
+	firmware_update_set_recovery_good (&updater.test, false);
+
+	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) NULL);
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_validate_recovery_image (&updater.test);
+	CuAssertIntEquals (test, 1, firmware_update_is_recovery_good (&updater.test));
+
+	firmware_update_testing_validate (test, &updater);
+	debug_log = NULL;
+
+	/* The recovery image validated as good, so the update should proceed normally. */
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) NULL);
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
+		(intptr_t) &updater.manifest);
+	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
+		&updater.manifest, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
+static void firmware_update_test_validate_recovery_image_with_firmware_header_not_required (
+	CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+
+	TEST_START;
+
+	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	firmware_update_require_firmware_header (&updater.test, false);
+	debug_log = NULL;
+
+	firmware_update_set_recovery_good (&updater.test, false);
+
+	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) &updater.header);
+
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_validate_recovery_image (&updater.test);
+	CuAssertIntEquals (test, 1, firmware_update_is_recovery_good (&updater.test));
+
+	firmware_update_testing_validate (test, &updater);
+
+	/* The recovery image validated as good, so the update should proceed normally. */
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) &updater.header);
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
+		(intptr_t) &updater.manifest);
+	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
+		&updater.manifest, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
 static void firmware_update_test_validate_recovery_image_bad (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_IMAGE,
+		.arg1 = 1,
+		.arg2 = FIRMWARE_IMAGE_BAD_SIGNATURE
+	};
 
 	TEST_START;
 
@@ -10436,12 +11355,17 @@ static void firmware_update_test_validate_recovery_image_bad (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw,
 		FIRMWARE_IMAGE_BAD_SIGNATURE, MOCK_ARG (&updater.hash));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	firmware_update_validate_recovery_image (&updater.test_mock.base);
+	CuAssertIntEquals (test, 0, firmware_update_is_recovery_good (&updater.test_mock.base));
 
 	firmware_update_testing_validate (test, &updater);
+	debug_log = NULL;
 
 	/* The recovery image validated as bad, so the update should update recovery first. */
 
@@ -10509,6 +11433,14 @@ static void firmware_update_test_validate_recovery_image_bad_extra_verify (CuTes
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_IMAGE,
+		.arg1 = 1,
+		.arg2 = FIRMWARE_UPDATE_INVALID_BOOT_IMAGE
+	};
 
 	TEST_START;
 
@@ -10516,7 +11448,7 @@ static void firmware_update_test_validate_recovery_image_bad_extra_verify (CuTes
 
 	firmware_update_mock_enable_verify_boot_image (&updater.test_mock);
 
-	firmware_update_set_recovery_good (&updater.test_mock.base, false);
+	firmware_update_set_recovery_good (&updater.test_mock.base, true);
 
 	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
@@ -10524,14 +11456,20 @@ static void firmware_update_test_validate_recovery_image_bad_extra_verify (CuTes
 		MOCK_ARG (&updater.hash));
 
 	status |= mock_expect (&updater.test_mock.mock, firmware_update_mock_verify_boot_image,
-		&updater.test_mock, 1, MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
+		&updater.test_mock, FIRMWARE_UPDATE_INVALID_BOOT_IMAGE, MOCK_ARG (&updater.flash),
+		MOCK_ARG (0x40000));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	firmware_update_validate_recovery_image (&updater.test_mock.base);
+	CuAssertIntEquals (test, 0, firmware_update_is_recovery_good (&updater.test_mock.base));
 
 	firmware_update_testing_validate (test, &updater);
+	debug_log = NULL;
 
 	/* The recovery image validated as bad, so the update should update recovery first. */
 
@@ -10599,6 +11537,14 @@ static void firmware_update_test_validate_recovery_image_load_verify_bad_format 
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_IMAGE,
+		.arg1 = 1,
+		.arg2 = FIRMWARE_IMAGE_INVALID_FORMAT
+	};
 
 	TEST_START;
 
@@ -10611,526 +11557,17 @@ static void firmware_update_test_validate_recovery_image_load_verify_bad_format 
 	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
 		FIRMWARE_IMAGE_INVALID_FORMAT, MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
+	firmware_update_validate_recovery_image (&updater.test_mock.base);
+	CuAssertIntEquals (test, 0, firmware_update_is_recovery_good (&updater.test_mock.base));
 
 	firmware_update_testing_validate (test, &updater);
-
-	/* The recovery image validated as bad, so the update should update recovery first. */
-
-	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
-		MOCK_ARG (&updater.hash));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
-		(intptr_t) &updater.header);
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
-	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (active_data));
-	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
-		active_data, sizeof (active_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
-		(intptr_t) &updater.manifest);
-	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
-		&updater.manifest, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_run_update (&updater.test_mock.base, &updater.handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate_and_release (test, &updater);
-}
-
-static void firmware_update_test_validate_recovery_image_load_verify_bad_checksum (CuTest *test)
-{
-	struct firmware_update_testing updater;
-	int status;
-	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
-	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
-
-	TEST_START;
-
-	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
-
-	firmware_update_mock_enable_verify_boot_image (&updater.test_mock);
-
-	firmware_update_set_recovery_good (&updater.test_mock.base, true);
-
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
-		FIRMWARE_IMAGE_BAD_CHECKSUM, MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate (test, &updater);
-
-	/* The recovery image validated as bad, so the update should update recovery first. */
-
-	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
-		MOCK_ARG (&updater.hash));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
-		(intptr_t) &updater.header);
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
-	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (active_data));
-	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
-		active_data, sizeof (active_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
-		(intptr_t) &updater.manifest);
-	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
-		&updater.manifest, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_run_update (&updater.test_mock.base, &updater.handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate_and_release (test, &updater);
-}
-
-static void firmware_update_test_validate_recovery_image_load_verify_manifest_format (CuTest *test)
-{
-	struct firmware_update_testing updater;
-	int status;
-	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
-	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
-
-	TEST_START;
-
-	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
-
-	firmware_update_mock_enable_verify_boot_image (&updater.test_mock);
-
-	firmware_update_set_recovery_good (&updater.test_mock.base, true);
-
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
-		KEY_MANIFEST_INVALID_FORMAT, MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate (test, &updater);
-
-	/* The recovery image validated as bad, so the update should update recovery first. */
-
-	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
-		MOCK_ARG (&updater.hash));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
-		(intptr_t) &updater.header);
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
-	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (active_data));
-	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
-		active_data, sizeof (active_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
-		(intptr_t) &updater.manifest);
-	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
-		&updater.manifest, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_run_update (&updater.test_mock.base, &updater.handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate_and_release (test, &updater);
-}
-
-static void firmware_update_test_validate_recovery_image_load_verify_fw_header_min_size (
-	CuTest *test)
-{
-	struct firmware_update_testing updater;
-	int status;
-	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
-	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
-
-	TEST_START;
-
-	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
-
-	firmware_update_mock_enable_verify_boot_image (&updater.test_mock);
-
-	firmware_update_set_recovery_good (&updater.test_mock.base, true);
-
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
-		IMAGE_HEADER_NOT_MINIMUM_SIZE, MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate (test, &updater);
-
-	/* The recovery image validated as bad, so the update should update recovery first. */
-
-	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
-		MOCK_ARG (&updater.hash));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
-		(intptr_t) &updater.header);
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
-	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (active_data));
-	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
-		active_data, sizeof (active_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
-		(intptr_t) &updater.manifest);
-	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
-		&updater.manifest, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_run_update (&updater.test_mock.base, &updater.handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate_and_release (test, &updater);
-}
-
-static void firmware_update_test_validate_recovery_image_load_verify_fw_header_too_long (
-	CuTest *test)
-{
-	struct firmware_update_testing updater;
-	int status;
-	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
-	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
-
-	TEST_START;
-
-	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
-
-	firmware_update_mock_enable_verify_boot_image (&updater.test_mock);
-
-	firmware_update_set_recovery_good (&updater.test_mock.base, true);
-
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
-		IMAGE_HEADER_TOO_LONG, MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate (test, &updater);
-
-	/* The recovery image validated as bad, so the update should update recovery first. */
-
-	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
-		MOCK_ARG (&updater.hash));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
-		(intptr_t) &updater.header);
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
-	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (active_data));
-	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
-		active_data, sizeof (active_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
-		(intptr_t) &updater.manifest);
-	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
-		&updater.manifest, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_run_update (&updater.test_mock.base, &updater.handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate_and_release (test, &updater);
-}
-
-static void firmware_update_test_validate_recovery_image_load_verify_fw_header_bad_marker (
-	CuTest *test)
-{
-	struct firmware_update_testing updater;
-	int status;
-	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
-	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
-
-	TEST_START;
-
-	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
-
-	firmware_update_mock_enable_verify_boot_image (&updater.test_mock);
-
-	firmware_update_set_recovery_good (&updater.test_mock.base, true);
-
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
-		IMAGE_HEADER_BAD_MARKER, MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate (test, &updater);
-
-	/* The recovery image validated as bad, so the update should update recovery first. */
-
-	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
-		MOCK_ARG (&updater.hash));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
-		(intptr_t) &updater.header);
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
-	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (active_data));
-	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
-		active_data, sizeof (active_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
-		(intptr_t) &updater.manifest);
-	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
-		&updater.manifest, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_run_update (&updater.test_mock.base, &updater.handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate_and_release (test, &updater);
-}
-
-static void firmware_update_test_validate_recovery_image_load_verify_fw_header_bad_fmt_length (
-	CuTest *test)
-{
-	struct firmware_update_testing updater;
-	int status;
-	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
-	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
-
-	TEST_START;
-
-	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
-
-	firmware_update_mock_enable_verify_boot_image (&updater.test_mock);
-
-	firmware_update_set_recovery_good (&updater.test_mock.base, true);
-
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
-		FIRMWARE_HEADER_BAD_FORMAT_LENGTH, MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate (test, &updater);
+	debug_log = NULL;
 
 	/* The recovery image validated as bad, so the update should update recovery first. */
 
@@ -11194,12 +11631,9 @@ static void firmware_update_test_validate_recovery_image_load_verify_fw_header_b
 
 static void firmware_update_test_validate_recovery_image_offset_null (CuTest *test)
 {
-	int status;
-
 	TEST_START;
 
-	status = firmware_update_validate_recovery_image (NULL);
-	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
+	firmware_update_validate_recovery_image (NULL);
 }
 
 static void firmware_update_test_validate_recovery_image_load_failure (CuTest *test)
@@ -11208,6 +11642,14 @@ static void firmware_update_test_validate_recovery_image_load_failure (CuTest *t
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_IMAGE,
+		.arg1 = 1,
+		.arg2 = FIRMWARE_IMAGE_LOAD_FAILED
+	};
 
 	TEST_START;
 
@@ -11220,12 +11662,17 @@ static void firmware_update_test_validate_recovery_image_load_failure (CuTest *t
 	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
 		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, FIRMWARE_IMAGE_LOAD_FAILED, status);
+	firmware_update_validate_recovery_image (&updater.test_mock.base);
+	CuAssertIntEquals (test, 0, firmware_update_is_recovery_good (&updater.test_mock.base));
 
 	firmware_update_testing_validate (test, &updater);
+	debug_log = NULL;
 
 	/* The recovery image state is unknown, so the update should update recovery first. */
 
@@ -11293,6 +11740,14 @@ static void firmware_update_test_validate_recovery_image_verify_failure (CuTest 
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_IMAGE,
+		.arg1 = 1,
+		.arg2 = FIRMWARE_IMAGE_VERIFY_FAILED
+	};
 
 	TEST_START;
 
@@ -11307,12 +11762,17 @@ static void firmware_update_test_validate_recovery_image_verify_failure (CuTest 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw,
 		FIRMWARE_IMAGE_VERIFY_FAILED, MOCK_ARG (&updater.hash));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, FIRMWARE_IMAGE_VERIFY_FAILED, status);
+	firmware_update_validate_recovery_image (&updater.test_mock.base);
+	CuAssertIntEquals (test, 0, firmware_update_is_recovery_good (&updater.test_mock.base));
 
 	firmware_update_testing_validate (test, &updater);
+	debug_log = NULL;
 
 	/* The recovery image state is unknown, so the update should update recovery first. */
 
@@ -11380,6 +11840,14 @@ static void firmware_update_test_validate_recovery_image_extra_verify_failure (C
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_IMAGE,
+		.arg1 = 1,
+		.arg2 = FIRMWARE_UPDATE_VERIFY_BOOT_FAILED
+	};
 
 	TEST_START;
 
@@ -11398,98 +11866,17 @@ static void firmware_update_test_validate_recovery_image_extra_verify_failure (C
 		&updater.test_mock, FIRMWARE_UPDATE_VERIFY_BOOT_FAILED, MOCK_ARG (&updater.flash),
 		MOCK_ARG (0x40000));
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, FIRMWARE_UPDATE_VERIFY_BOOT_FAILED, status);
+	firmware_update_validate_recovery_image (&updater.test_mock.base);
+	CuAssertIntEquals (test, 0, firmware_update_is_recovery_good (&updater.test_mock.base));
 
 	firmware_update_testing_validate (test, &updater);
-
-	/* The recovery image state is unknown, so the update should update recovery first. */
-
-	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
-		MOCK_ARG (&updater.hash));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
-		(intptr_t) &updater.header);
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
-	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
-		sizeof (active_data));
-	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
-		active_data, sizeof (active_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
-	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
-	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
-		staging_data, sizeof (staging_data));
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
-		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
-	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
-		(intptr_t) &updater.manifest);
-	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
-		&updater.manifest, 0);
-
-	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
-		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_run_update (&updater.test_mock.base, &updater.handler.base);
-	CuAssertIntEquals (test, 0, status);
-
-	firmware_update_testing_validate_and_release (test, &updater);
-}
-
-static void firmware_update_test_validate_recovery_image_load_verify_fw_header_no_memory (
-	CuTest *test)
-{
-	struct firmware_update_testing updater;
-	int status;
-	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
-	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
-
-	TEST_START;
-
-	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
-
-	firmware_update_mock_enable_verify_boot_image (&updater.test_mock);
-
-	firmware_update_set_recovery_good (&updater.test_mock.base, true);
-
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
-		FIRMWARE_HEADER_NO_MEMORY, MOCK_ARG (&updater.flash), MOCK_ARG (0x40000));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = firmware_update_validate_recovery_image (&updater.test_mock.base);
-	CuAssertIntEquals (test, FIRMWARE_HEADER_NO_MEMORY, status);
-
-	firmware_update_testing_validate (test, &updater);
+	debug_log = NULL;
 
 	/* The recovery image state is unknown, so the update should update recovery first. */
 
@@ -11557,6 +11944,14 @@ static void firmware_update_test_validate_recovery_null_firmware_header (CuTest 
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_IMAGE,
+		.arg1 = 1,
+		.arg2 = FIRMWARE_UPDATE_NO_FIRMWARE_HEADER
+	};
 
 	TEST_START;
 
@@ -11572,12 +11967,17 @@ static void firmware_update_test_validate_recovery_null_firmware_header (CuTest 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		(intptr_t) NULL);
 
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = firmware_update_validate_recovery_image (&updater.test);
-	CuAssertIntEquals (test, FIRMWARE_UPDATE_NO_FIRMWARE_HEADER, status);
+	firmware_update_validate_recovery_image (&updater.test);
+	CuAssertIntEquals (test, 0, firmware_update_is_recovery_good (&updater.test));
 
 	firmware_update_testing_validate (test, &updater);
+	debug_log = NULL;
 
 	/* The recovery image state is unknown, so the update should update recovery first. */
 
@@ -11644,6 +12044,14 @@ static void firmware_update_test_restore_recovery_image (CuTest *test)
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_RESTORE_START,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -11651,7 +12059,11 @@ static void firmware_update_test_restore_recovery_image (CuTest *test)
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+	status = mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
 		MOCK_ARG (&updater.hash));
@@ -11687,6 +12099,7 @@ static void firmware_update_test_restore_recovery_image_header_last (CuTest *tes
 	}
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -11729,6 +12142,7 @@ static void firmware_update_test_restore_recovery_image_header_last_small_page (
 	}
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -11797,6 +12211,7 @@ static void firmware_update_test_restore_recovery_image_with_offset (CuTest *tes
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 	firmware_update_set_image_offset (&updater.test, 0x100);
@@ -11833,6 +12248,7 @@ static void firmware_update_test_restore_recovery_image_finalize_image (CuTest *
 	TEST_START;
 
 	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_mock_enable_finalize_image (&updater.test_mock);
 
@@ -11871,6 +12287,7 @@ static void firmware_update_test_restore_recovery_image_finalize_image_with_offs
 	TEST_START;
 
 	firmware_update_testing_init_mock (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_mock_enable_finalize_image (&updater.test_mock);
 
@@ -11912,6 +12329,7 @@ static void firmware_update_test_restore_recovery_image_followed_by_update (CuTe
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -12000,6 +12418,7 @@ static void firmware_update_test_restore_recovery_image_followed_by_update_same_
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 1, 1);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -12088,6 +12507,7 @@ static void firmware_update_test_restore_recovery_image_followed_by_update_diffe
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 1);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -12177,6 +12597,7 @@ static void firmware_update_test_restore_recovery_image_followed_by_update_null_
 	TEST_START;
 
 	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	debug_log = NULL;
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
@@ -12270,6 +12691,186 @@ static void firmware_update_test_restore_recovery_image_followed_by_update_null_
 	firmware_update_testing_validate_and_release (test, &updater);
 }
 
+static void firmware_update_test_restore_recovery_image_followed_by_update_no_firmware_header_not_required (
+	CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+
+	TEST_START;
+
+	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	firmware_update_require_firmware_header (&updater.test, false);
+	debug_log = NULL;
+
+	firmware_update_set_recovery_good (&updater.test, false);
+
+	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) NULL);
+
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (active_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x10000,
+		active_data, sizeof (active_data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_restore_recovery_image (&updater.test);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate (test, &updater);
+
+	/* The recovery image will not be updated since it was previously restored to a good state. */
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) NULL);
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
+		(intptr_t) &updater.manifest);
+	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
+		 &updater.manifest, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
+static void firmware_update_test_restore_recovery_image_followed_by_update_with_firmware_header_not_required (
+	CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+
+	TEST_START;
+
+	firmware_update_testing_init (test, &updater, 0, 0, 0);
+	firmware_update_require_firmware_header (&updater.test, false);
+	debug_log = NULL;
+
+	firmware_update_set_recovery_good (&updater.test, false);
+
+	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) &updater.header);
+
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (active_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x10000,
+		active_data, sizeof (active_data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_restore_recovery_image (&updater.test);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate (test, &updater);
+
+	/* The recovery image will not be updated since it was previously restored to a good state. */
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		(intptr_t) &updater.header);
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
+		(intptr_t) &updater.manifest);
+	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
+		 &updater.manifest, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
 static void firmware_update_test_restore_recovery_image_null (CuTest *test)
 {
 	int status;
@@ -12284,6 +12885,14 @@ static void firmware_update_test_restore_recovery_image_fail_load (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_RESTORE_START,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -12291,8 +12900,13 @@ static void firmware_update_test_restore_recovery_image_fail_load (CuTest *test)
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
+	status = mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw,
 		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = firmware_update_restore_recovery_image (&updater.test);
@@ -12305,6 +12919,14 @@ static void firmware_update_test_restore_recovery_image_invalid_image (CuTest *t
 {
 	struct firmware_update_testing updater;
 	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_RESTORE_START,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -12312,7 +12934,11 @@ static void firmware_update_test_restore_recovery_image_invalid_image (CuTest *t
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+	status = mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw,
 		FIRMWARE_IMAGE_BAD_SIGNATURE, MOCK_ARG (&updater.hash));
@@ -12329,6 +12955,14 @@ static void firmware_update_test_restore_recovery_image_img_size_error (CuTest *
 {
 	struct firmware_update_testing updater;
 	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_RESTORE_START,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -12336,7 +12970,11 @@ static void firmware_update_test_restore_recovery_image_img_size_error (CuTest *
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+	status = mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
 		MOCK_ARG (&updater.hash));
@@ -12355,6 +12993,14 @@ static void firmware_update_test_restore_recovery_image_page_size_fail (CuTest *
 {
 	struct firmware_update_testing updater;
 	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_RESTORE_START,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -12362,7 +13008,11 @@ static void firmware_update_test_restore_recovery_image_page_size_fail (CuTest *
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+	status = mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
 		MOCK_ARG (&updater.hash));
@@ -12383,6 +13033,14 @@ static void firmware_update_test_restore_recovery_image_erase_failure (CuTest *t
 {
 	struct firmware_update_testing updater;
 	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_RESTORE_START,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -12390,7 +13048,11 @@ static void firmware_update_test_restore_recovery_image_erase_failure (CuTest *t
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+	status = mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
 		MOCK_ARG (&updater.hash));
@@ -12412,6 +13074,14 @@ static void firmware_update_test_restore_recovery_image_write_active_error (CuTe
 {
 	struct firmware_update_testing updater;
 	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_RESTORE_START,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -12419,7 +13089,11 @@ static void firmware_update_test_restore_recovery_image_write_active_error (CuTe
 
 	firmware_update_set_recovery_good (&updater.test, false);
 
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+	status = mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
 		MOCK_ARG (&updater.hash));
@@ -12443,6 +13117,14 @@ static void firmware_update_test_restore_recovery_image_finalize_image_error (Cu
 	struct firmware_update_testing updater;
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_RESTORE_START,
+		.arg1 = 0,
+		.arg2 = 0
+	};
 
 	TEST_START;
 
@@ -12452,7 +13134,11 @@ static void firmware_update_test_restore_recovery_image_finalize_image_error (Cu
 
 	firmware_update_set_recovery_good (&updater.test_mock.base, false);
 
-	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+	status = mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
 		MOCK_ARG (&updater.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
 		MOCK_ARG (&updater.hash));
@@ -12954,6 +13640,7 @@ TEST (firmware_update_test_release_null);
 TEST (firmware_update_test_set_recovery_good_null);
 TEST (firmware_update_test_set_recovery_revision_null);
 TEST (firmware_update_test_set_image_offset_null);
+TEST (firmware_update_test_require_firmware_header_null);
 TEST (firmware_update_test_add_observer_null);
 TEST (firmware_update_test_remove_observer_null);
 TEST (firmware_update_test_run_update);
@@ -12967,6 +13654,8 @@ TEST (firmware_update_test_run_update_finalize_image_with_offset);
 TEST (firmware_update_test_run_update_with_observer);
 TEST (firmware_update_test_run_update_observer_removed);
 TEST (firmware_update_test_run_update_extra_data_received);
+TEST (firmware_update_test_run_update_no_firmware_header_not_required);
+TEST (firmware_update_test_run_update_with_firmware_header_not_required);
 TEST (firmware_update_test_run_update_null);
 TEST (firmware_update_test_run_update_verify_incomplete_image);
 TEST (firmware_update_test_run_update_verify_fail_load);
@@ -12974,6 +13663,7 @@ TEST (firmware_update_test_run_update_verify_invalid_image);
 TEST (firmware_update_test_run_update_verify_manifest_revoked);
 TEST (firmware_update_test_run_update_verify_error);
 TEST (firmware_update_test_run_update_verify_rollback_disallowed);
+TEST (firmware_update_test_run_update_verify_rollback_disallowed_firmware_header_not_required);
 TEST (firmware_update_test_run_update_verify_null_firmware_header);
 TEST (firmware_update_test_run_update_verify_img_size_error);
 TEST (firmware_update_test_run_update_blocked_by_observer);
@@ -12996,18 +13686,18 @@ TEST (firmware_update_test_run_update_finalize_image_error_with_offset);
 TEST (firmware_update_test_run_update_finalize_image_error_fail_recovery_erase);
 TEST (firmware_update_test_run_update_finalize_image_error_fail_recovery);
 TEST (firmware_update_test_run_update_finalize_image_error_fail_recovery_finalize);
-TEST (firmware_update_test_run_update_cert_check_load_fail);
-TEST (firmware_update_test_run_update_cert_check_manifest_fail);
-TEST (firmware_update_test_run_update_cert_check_fail);
-TEST (firmware_update_test_run_update_cert_revocation);
-TEST (firmware_update_test_run_update_cert_revocation_header_last);
-TEST (firmware_update_test_run_update_cert_revocation_header_last_small_page);
-TEST (firmware_update_test_run_update_cert_revocation_image_offset);
-TEST (firmware_update_test_run_update_cert_revocation_finalize_image);
-TEST (firmware_update_test_run_update_cert_revocation_finalize_image_with_offset);
-TEST (firmware_update_test_run_update_cert_backup_load_fail);
-TEST (firmware_update_test_run_update_cert_backup_img_size_error);
-TEST (firmware_update_test_run_update_cert_backup_recovery_fail);
+TEST (firmware_update_test_run_update_manifest_check_load_fail);
+TEST (firmware_update_test_run_update_manifest_check_manifest_fail);
+TEST (firmware_update_test_run_update_manifest_check_fail);
+TEST (firmware_update_test_run_update_manifest_revocation);
+TEST (firmware_update_test_run_update_manifest_revocation_header_last);
+TEST (firmware_update_test_run_update_manifest_revocation_header_last_small_page);
+TEST (firmware_update_test_run_update_manifest_revocation_image_offset);
+TEST (firmware_update_test_run_update_manifest_revocation_finalize_image);
+TEST (firmware_update_test_run_update_manifest_revocation_finalize_image_with_offset);
+TEST (firmware_update_test_run_update_manifest_backup_load_fail);
+TEST (firmware_update_test_run_update_manifest_backup_img_size_error);
+TEST (firmware_update_test_run_update_manifest_backup_recovery_fail);
 TEST (firmware_update_test_run_update_recovery_page_size_fail);
 TEST (firmware_update_test_run_update_recovery_erase_fail);
 TEST (firmware_update_test_run_update_recovery_fail);
@@ -13017,20 +13707,20 @@ TEST (firmware_update_test_run_update_recovery_fail_finalize);
 TEST (firmware_update_test_run_update_recovery_restore_erase_fail);
 TEST (firmware_update_test_run_update_recovery_restore_fail);
 TEST (firmware_update_test_run_update_recovery_restore_fail_finalize);
-TEST (firmware_update_test_run_update_cert_revocation_fail);
+TEST (firmware_update_test_run_update_manifest_revocation_fail);
 TEST (firmware_update_test_run_update_no_recovery_backup);
 TEST (firmware_update_test_run_update_no_recovery_backup_fail);
 TEST (firmware_update_test_run_update_recovery_restore_no_recovery_backup);
 TEST (firmware_update_test_run_update_recovery_restore_no_recovery_backup_header_last);
 TEST (firmware_update_test_run_update_recovery_restore_no_recovery_backup_erase_fail);
 TEST (firmware_update_test_run_update_recovery_restore_no_recovery_backup_fail);
-TEST (firmware_update_test_run_update_cert_revocation_no_recovery);
+TEST (firmware_update_test_run_update_manifest_revocation_no_recovery);
 TEST (firmware_update_test_run_update_different_flash_devices);
 TEST (firmware_update_test_run_update_different_flash_devices_finalize_image);
 TEST (firmware_update_test_run_update_no_backup);
 TEST (firmware_update_test_run_update_no_backup_write_staging_error);
 TEST (firmware_update_test_run_update_no_backup_finalize_image_error);
-TEST (firmware_update_test_run_update_no_backup_cert_revocation);
+TEST (firmware_update_test_run_update_no_backup_manifest_revocation);
 TEST (firmware_update_test_run_update_no_backup_recovery_erase_fail);
 TEST (firmware_update_test_run_update_no_backup_recovery_fail);
 TEST (firmware_update_test_run_update_no_backup_recovery_finalize_fail);
@@ -13041,7 +13731,7 @@ TEST (firmware_update_test_run_update_recovery_bad_erase_fail);
 TEST (firmware_update_test_run_update_recovery_bad_update_fail);
 TEST (firmware_update_test_run_update_recovery_bad_finalize_fail);
 TEST (firmware_update_test_run_update_recovery_bad_no_recovery);
-TEST (firmware_update_test_run_update_recovery_bad_cert_revocation);
+TEST (firmware_update_test_run_update_recovery_bad_manifest_revocation);
 TEST (firmware_update_test_run_update_after_recovery_page_size_fail);
 TEST (firmware_update_test_run_update_after_recovery_erase_fail);
 TEST (firmware_update_test_run_update_after_recovery_fail);
@@ -13066,9 +13756,10 @@ TEST (firmware_update_test_run_update_after_recovery_bad_finalize_fail);
 TEST (firmware_update_test_run_update_new_recovery_revision_higher);
 TEST (firmware_update_test_run_update_new_recovery_revision_lower);
 TEST (firmware_update_test_run_update_same_revision_after_recovery_update);
-TEST (firmware_update_test_run_update_same_revision_after_cert_revocation);
+TEST (firmware_update_test_run_update_same_revision_after_manifest_revocation);
 TEST (firmware_update_test_run_update_recovery_bad_different_revision);
 TEST (firmware_update_test_run_update_same_revision_after_recovery_bad);
+TEST (firmware_update_test_run_update_new_recovery_firmware_header_not_required);
 TEST (firmware_update_test_prepare_staging);
 TEST (firmware_update_test_prepare_staging_image_offset);
 TEST (firmware_update_test_prepare_staging_null_updater);
@@ -13093,20 +13784,15 @@ TEST (firmware_update_test_validate_recovery_image_extra_verify);
 TEST (firmware_update_test_validate_recovery_image_extra_verify_offset);
 TEST (firmware_update_test_validate_recovery_image_no_recovery);
 TEST (firmware_update_test_validate_recovery_image_set_recovery_revision);
+TEST (firmware_update_test_validate_recovery_image_no_firmware_header_not_required);
+TEST (firmware_update_test_validate_recovery_image_with_firmware_header_not_required);
 TEST (firmware_update_test_validate_recovery_image_bad);
 TEST (firmware_update_test_validate_recovery_image_bad_extra_verify);
 TEST (firmware_update_test_validate_recovery_image_load_verify_bad_format);
-TEST (firmware_update_test_validate_recovery_image_load_verify_bad_checksum);
-TEST (firmware_update_test_validate_recovery_image_load_verify_manifest_format);
-TEST (firmware_update_test_validate_recovery_image_load_verify_fw_header_min_size);
-TEST (firmware_update_test_validate_recovery_image_load_verify_fw_header_too_long);
-TEST (firmware_update_test_validate_recovery_image_load_verify_fw_header_bad_marker);
-TEST (firmware_update_test_validate_recovery_image_load_verify_fw_header_bad_fmt_length);
 TEST (firmware_update_test_validate_recovery_image_offset_null);
 TEST (firmware_update_test_validate_recovery_image_load_failure);
 TEST (firmware_update_test_validate_recovery_image_verify_failure);
 TEST (firmware_update_test_validate_recovery_image_extra_verify_failure);
-TEST (firmware_update_test_validate_recovery_image_load_verify_fw_header_no_memory);
 TEST (firmware_update_test_validate_recovery_null_firmware_header);
 TEST (firmware_update_test_restore_recovery_image);
 TEST (firmware_update_test_restore_recovery_image_header_last);
@@ -13120,6 +13806,8 @@ TEST (firmware_update_test_restore_recovery_image_followed_by_update);
 TEST (firmware_update_test_restore_recovery_image_followed_by_update_same_revision);
 TEST (firmware_update_test_restore_recovery_image_followed_by_update_different_revision);
 TEST (firmware_update_test_restore_recovery_image_followed_by_update_null_header);
+TEST (firmware_update_test_restore_recovery_image_followed_by_update_no_firmware_header_not_required);
+TEST (firmware_update_test_restore_recovery_image_followed_by_update_with_firmware_header_not_required);
 TEST (firmware_update_test_restore_recovery_image_null);
 TEST (firmware_update_test_restore_recovery_image_fail_load);
 TEST (firmware_update_test_restore_recovery_image_invalid_image);

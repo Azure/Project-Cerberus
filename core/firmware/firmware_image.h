@@ -27,12 +27,7 @@ struct firmware_image {
 	 * @param flash The flash device that contains the firmware image.
 	 * @param base_addr The starting address of the new firmware image.
 	 *
-	 * @return 0 if the image reference was updated successfully or an error code.  Load-time
-	 * validation errors will generate one of the following errors:
-	 * 		- FIRMWARE_IMAGE_INVALID_FORMAT
-	 * 		- FIRMWARE_IMAGE_BAD_CHECKSUM
-	 * 		- KEY_MANIFEST_INVALID_FORMAT
-	 * 		- FIRMWARE_HEADER or IMAGE_HEADER validation errors
+	 * @return 0 if the image reference was updated successfully or an error code.
 	 */
 	int (*load) (struct firmware_image *fw, struct flash *flash, uint32_t base_addr);
 

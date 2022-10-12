@@ -95,6 +95,26 @@ void firmware_update_set_image_offset (struct firmware_update *updater, int offs
 }
 
 /**
+ * Indicate to the updater if the firmware image is required to contain a firmware header or not.
+ * When a firmware header is required, images that fail to provide one will result in failure to
+ * apply that image.
+ *
+ * It is expected that this would be configured during initialization based on the firmware image
+ * expectations for a particular system.
+ *
+ * By default, the updater requires a firmware header on the image.
+ *
+ * @param updater The firmware updater to configure.
+ * @param has_fw_header Flag indicating if a firmware header is required for the update to succeed.
+ */
+void firmware_update_require_firmware_header (struct firmware_update *updater, bool has_fw_header)
+{
+	if (updater != NULL) {
+		updater->no_fw_header = !has_fw_header;
+	}
+}
+
+/**
  * Indicate to the firmware updater if the recovery image on flash is currently good.
  *
  * It is expected that this would be set once during initialization for a system that has a recovery
@@ -134,17 +154,13 @@ void firmware_update_set_recovery_revision (struct firmware_update *updater, int
  * only if it knows a good recovery image exists.
  *
  * @param updater The updater to configure.
- *
- * @return 0 if the operation completed successfully or an error code.  A successful return only
- * means that the updater was able to determine if the recovery was good or not.  It doesn't
- * indicate the validity of the image.
  */
-int firmware_update_validate_recovery_image (struct firmware_update *updater)
+void firmware_update_validate_recovery_image (struct firmware_update *updater)
 {
-	int status = 0;
+	int status;
 
 	if (updater == NULL) {
-		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
+		return;
 	}
 
 	if (updater->flash->recovery_flash) {
@@ -166,33 +182,18 @@ int firmware_update_validate_recovery_image (struct firmware_update *updater)
 				if (header != NULL) {
 					status = firmware_header_get_recovery_revision (header, &updater->recovery_rev);
 				}
-				else {
+				else if (!updater->no_fw_header) {
 					status = FIRMWARE_UPDATE_NO_FIRMWARE_HEADER;
 				}
 			}
 		}
-	}
 
-	updater->recovery_bad = (status != 0);
-	debug_log_create_entry (
-		(updater->recovery_bad) ? DEBUG_LOG_SEVERITY_WARNING : DEBUG_LOG_SEVERITY_INFO,
-		DEBUG_LOG_COMPONENT_CERBERUS_FW, FIRMWARE_LOGGING_RECOVERY_IMAGE, updater->recovery_bad,
-		status);
-
-	/* TODO:  What about ECC signature errors or revocation checks fails?  This seems generally
-	 * fragile.  Maybe we should get rid of it, along with the list of validation codes documented
-	 * on firmware_image.load.  That seems like it could become incomplete.
-	 *
-	 * A better approach is probably to just swallow all errors (maybe change this to return void?).
-	 * We already log it and mark the recovery as bad in all error cases.  It's not clear what
-	 * benefit there is from the distinction of errors here. */
-	if ((status == FIRMWARE_IMAGE_INVALID_FORMAT) || (status == FIRMWARE_IMAGE_BAD_CHECKSUM) ||
-		(status == KEY_MANIFEST_INVALID_FORMAT) || (status == FIRMWARE_IMAGE_BAD_SIGNATURE) ||
-		(status == FIRMWARE_HEADER_BAD_FORMAT_LENGTH) ||
-		((status >= IMAGE_HEADER_NOT_MINIMUM_SIZE) && (status <= IMAGE_HEADER_TOO_LONG))) {
-		status = 0;
+		updater->recovery_bad = (status != 0);
+		debug_log_create_entry (
+			(updater->recovery_bad) ? DEBUG_LOG_SEVERITY_WARNING : DEBUG_LOG_SEVERITY_INFO,
+			DEBUG_LOG_COMPONENT_CERBERUS_FW, FIRMWARE_LOGGING_RECOVERY_IMAGE, updater->recovery_bad,
+			status);
 	}
-	return ROT_IS_ERROR (status) ? status : 0;
 }
 
 /**
@@ -544,9 +545,9 @@ static int firmware_update_write_image (struct firmware_update *updater,
  * 		- Validate the data store in the staging flash region to ensure a good image.
  * 		- Save the application state that should be restored after the update.
  * 		- Copy the image in staging flash to active flash.
- * 		- Copy the image in staging flash to recovery flash, if the recovery certificate has been
+ * 		- Copy the image in staging flash to recovery flash, if the recovery manifest has been
  * 			revoked.
- * 		- Update certificate revocation information in the device.
+ * 		- Update manifest revocation information in the device.
  *
  * @param updater The updater that should run.
  * @param callback A set of notification handlers to use during the update process.  This can be
@@ -563,7 +564,7 @@ int firmware_update_run_update (struct firmware_update *updater,
 	struct firmware_header *header = NULL;
 	bool recovery_updated = false;
 	bool img_good;
-	int cert_revoked;
+	int manifest_revoked;
 	int new_revision;
 	int allow_update;
 	int status;
@@ -601,20 +602,27 @@ int firmware_update_run_update (struct firmware_update *updater,
 	}
 
 	header = updater->fw->get_firmware_header (updater->fw);
-	if (header == NULL) {
+	if (header != NULL) {
+		status = firmware_header_get_recovery_revision (header, &new_revision);
+		if (status != 0) {
+			firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
+			return status;
+		}
+
+		if (new_revision < updater->min_rev) {
+			firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
+			return FIRMWARE_UPDATE_REJECTED_ROLLBACK;
+		}
+	}
+	else if (!updater->no_fw_header) {
 		firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
 		return FIRMWARE_UPDATE_NO_FIRMWARE_HEADER;
 	}
-
-	status = firmware_header_get_recovery_revision (header, &new_revision);
-	if (status != 0) {
-		firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
-		return status;
-	}
-
-	if (new_revision < updater->min_rev) {
-		firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
-		return FIRMWARE_UPDATE_REJECTED_ROLLBACK;
+	else {
+		/* There is no FW header on the image, so just apply the updater's recovery revision to the
+		 * new image.  Without a FW header, the recovery image will only get updated during
+		 * manifest revocation flows. */
+		new_revision = updater->recovery_rev;
 	}
 
 	new_len = updater->fw->get_image_size (updater->fw);
@@ -667,7 +675,7 @@ int firmware_update_run_update (struct firmware_update *updater,
 		return status;
 	}
 
-	/* Check for certificate revocation. */
+	/* Check for manifest revocation. */
 	firmware_update_status_change (callback, UPDATE_STATUS_CHECK_REVOCATION);
 	status = updater->fw->load (updater->fw, updater->flash->active_flash,
 		updater->flash->active_addr + updater->img_offset);
@@ -682,15 +690,15 @@ int firmware_update_run_update (struct firmware_update *updater,
 		return FIRMWARE_UPDATE_NO_KEY_MANIFEST;
 	}
 
-	cert_revoked = manifest->revokes_old_manifest (manifest);
-	if (ROT_IS_ERROR (cert_revoked)) {
+	manifest_revoked = manifest->revokes_old_manifest (manifest);
+	if (ROT_IS_ERROR (manifest_revoked)) {
 		firmware_update_status_change (callback, UPDATE_STATUS_REVOKE_CHK_FAIL);
-		return cert_revoked;
+		return manifest_revoked;
 	}
 
 	/* Check if recovery update is necessary. */
 	firmware_update_status_change (callback, UPDATE_STATUS_CHECK_RECOVERY);
-	if (cert_revoked || (updater->recovery_rev != new_revision)) {
+	if (manifest_revoked || (updater->recovery_rev != new_revision)) {
 		if (updater->flash->recovery_flash && !recovery_updated) {
 			struct flash *backup;
 			uint32_t backup_addr;
@@ -722,8 +730,8 @@ int firmware_update_run_update (struct firmware_update *updater,
 
 		updater->recovery_rev = new_revision;
 
-		if (cert_revoked) {
-			/* Revoke the old certificate. */
+		if (manifest_revoked) {
+			/* Revoke the old manifest. */
 			firmware_update_status_change (callback, UPDATE_STATUS_REVOKE_CERT);
 			status = manifest->update_revocation (manifest);
 			if (status != 0) {
