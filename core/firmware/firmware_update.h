@@ -89,7 +89,9 @@ struct firmware_update_hooks {
 	 * @param updater The firmware updater that has written the image.
 	 * @param flash The flash device that was written with a new image.
 	 * @param address The base address of the firmware region that was written.  This may not be the
-	 * same as the start address of the firmware image, depending on if an image offset was used.
+	 * same as the start address of the firmware image, depending on whether an image offset was
+	 * used.  If there is an image offset, the updater will ensure the flash is erased starting from
+	 * the base address.
 	 *
 	 * @return 0 if the image was successfully finalized or an error code.
 	 */

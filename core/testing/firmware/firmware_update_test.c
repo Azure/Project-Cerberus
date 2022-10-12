@@ -870,7 +870,8 @@ static void firmware_update_test_run_update_image_offset (CuTest *test)
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10100, sizeof (staging_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000,
+		sizeof (staging_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10100, 0x30100,
 		staging_data, sizeof (staging_data));
 
@@ -1001,7 +1002,8 @@ static void firmware_update_test_run_update_finalize_image_with_offset (CuTest *
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10100, sizeof (staging_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000,
+		sizeof (staging_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10100, 0x30100,
 		staging_data, sizeof (staging_data));
 	status |= mock_expect (&updater.test_mock.mock, firmware_update_mock_finalize_image,
@@ -2141,13 +2143,14 @@ static void firmware_update_test_run_update_write_staging_error_image_offset (Cu
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10123, 5);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, 5 + 0x123);
 	status |= mock_expect (&updater.flash.mock, updater.flash.base.get_block_size, &updater.flash,
 		FLASH_BLOCK_SIZE_FAILED, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_FAILED));
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10123, sizeof (active_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000,
+		sizeof (active_data) + 0x123);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10123, 0x20123,
 		active_data, sizeof (active_data));
 
@@ -2382,7 +2385,8 @@ static void firmware_update_test_run_update_finalize_image_error_with_offset (Cu
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10100, sizeof (staging_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000,
+		sizeof (staging_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10100, 0x30100,
 		staging_data, sizeof (staging_data));
 	status |= mock_expect (&updater.test_mock.mock, firmware_update_mock_finalize_image,
@@ -2391,7 +2395,8 @@ static void firmware_update_test_run_update_finalize_image_error_with_offset (Cu
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_FAILED));
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10100, sizeof (active_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000,
+		sizeof (active_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10100, 0x20100,
 		active_data, sizeof (active_data));
 	status |= mock_expect (&updater.test_mock.mock, firmware_update_mock_finalize_image,
@@ -3084,7 +3089,8 @@ static void firmware_update_test_run_update_cert_revocation_image_offset (CuTest
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10100, sizeof (staging_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000,
+		sizeof (staging_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10100, 0x30100,
 		staging_data, sizeof (staging_data));
 
@@ -3112,7 +3118,8 @@ static void firmware_update_test_run_update_cert_revocation_image_offset (CuTest
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40100, sizeof (staging_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000,
+		sizeof (staging_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40100, 0x30100,
 		staging_data, sizeof (staging_data));
 
@@ -3262,7 +3269,8 @@ static void firmware_update_test_run_update_cert_revocation_finalize_image_with_
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10100, sizeof (staging_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000,
+		sizeof (staging_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10100, 0x30100,
 		staging_data, sizeof (staging_data));
 	status |= mock_expect (&updater.test_mock.mock, firmware_update_mock_finalize_image,
@@ -3292,7 +3300,8 @@ static void firmware_update_test_run_update_cert_revocation_finalize_image_with_
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40100, sizeof (staging_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000,
+		sizeof (staging_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40100, 0x30100,
 		staging_data, sizeof (staging_data));
 	status |= mock_expect (&updater.test_mock.mock, firmware_update_mock_finalize_image,
@@ -11802,7 +11811,8 @@ static void firmware_update_test_restore_recovery_image_with_offset (CuTest *tes
 		(intptr_t) &updater.header);
 
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40100, sizeof (active_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000,
+		sizeof (active_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40100, 0x10100,
 		active_data, sizeof (active_data));
 
@@ -11877,7 +11887,8 @@ static void firmware_update_test_restore_recovery_image_finalize_image_with_offs
 		(intptr_t) &updater.header);
 
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40100, sizeof (active_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000,
+		sizeof (active_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40100, 0x10100,
 		active_data, sizeof (active_data));
 	status |= mock_expect (&updater.test_mock.mock, firmware_update_mock_finalize_image,
@@ -12611,7 +12622,8 @@ static void firmware_update_test_restore_active_image_with_offset (CuTest *test)
 		sizeof (active_data));
 
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10100, sizeof (active_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000,
+		sizeof (active_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10100, 0x40100,
 		active_data, sizeof (active_data));
 
@@ -12682,7 +12694,8 @@ static void firmware_update_test_restore_active_image_finalize_image_with_offset
 		sizeof (active_data));
 
 	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
-	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10100, sizeof (active_data));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000,
+		sizeof (active_data) + 0x100);
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10100, 0x40100,
 		active_data, sizeof (active_data));
 	status |= mock_expect (&updater.test_mock.mock, firmware_update_mock_finalize_image,

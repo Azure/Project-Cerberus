@@ -284,7 +284,7 @@ static int firmware_update_restore_image (struct firmware_update *updater, struc
 		return status;
 	}
 
-	status = flash_erase_region_and_verify (dest, dest_addr + updater->img_offset, img_len);
+	status = flash_erase_region_and_verify (dest, dest_addr, img_len + updater->img_offset);
 	if (status != 0) {
 		return status;
 	}
@@ -503,7 +503,7 @@ static int firmware_update_write_image (struct firmware_update *updater,
 	}
 
 	*img_good = false;
-	status = flash_erase_region_and_verify (dest, dest_addr + updater->img_offset, update_len);
+	status = flash_erase_region_and_verify (dest, dest_addr, update_len + updater->img_offset);
 	if (status != 0) {
 		firmware_update_status_change (callback, update_fail);
 		return status;
@@ -519,8 +519,8 @@ static int firmware_update_write_image (struct firmware_update *updater,
 	if (status != 0) {
 		if (backup) {
 			/* Try to restore the image that was backed up. */
-			if (flash_erase_region_and_verify (dest, dest_addr + updater->img_offset,
-				backup_len) == 0) {
+			if (flash_erase_region_and_verify (dest, dest_addr,
+				backup_len + updater->img_offset) == 0) {
 				if (firmware_update_program_bootable (updater, dest,
 					dest_addr + updater->img_offset, backup, backup_addr + updater->img_offset,
 					backup_len, page) == 0) {
