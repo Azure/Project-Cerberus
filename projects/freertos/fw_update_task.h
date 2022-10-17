@@ -32,7 +32,7 @@ struct fw_update_task_notify {
 struct fw_update_task {
 	struct firmware_update_control base;							/**< The base control instance. */
 	struct fw_update_task_notify notify;							/**< The update notification interface. */
-	struct firmware_update *updater;								/**< The firmware updater. */
+	const struct firmware_update *updater;							/**< The firmware updater. */
 	struct system *system;											/**< The system manager. */
 	int update_status;												/**< The last firmware update status. */
 	uint8_t running;												/**< Flag indicating if an update is running. */
@@ -44,7 +44,7 @@ struct fw_update_task {
 };
 
 
-int fw_update_task_init (struct fw_update_task *task, struct firmware_update *updater,
+int fw_update_task_init (struct fw_update_task *task, const struct firmware_update *updater,
 	struct system *system);
 int fw_update_task_start (struct fw_update_task *task, uint16_t stack_words, bool running_recovery);
 

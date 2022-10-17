@@ -21,34 +21,34 @@
 #define	APP_IMAGE_SIG_LENGTH	256
 
 
-int app_image_verification (struct flash *flash, uint32_t start_addr, struct hash_engine *hash,
-	struct rsa_engine *rsa, const struct rsa_public_key *pub_key, uint8_t *hash_out,
-	size_t hash_length);
-int app_image_verification_with_header (struct flash *flash, uint32_t start_addr,
+int app_image_verification (const struct flash *flash, uint32_t start_addr,
+	struct hash_engine *hash, struct rsa_engine *rsa, const struct rsa_public_key *pub_key,
+	uint8_t *hash_out, size_t hash_length);
+int app_image_verification_with_header (const struct flash *flash, uint32_t start_addr,
 	size_t header_length, struct hash_engine *hash, struct rsa_engine *rsa,
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length);
 
-int app_image_load (struct flash *flash, uint32_t start_addr, uint8_t *load_addr, size_t max_length,
-	size_t *load_length);
-int app_image_load_and_verify (struct flash *flash, uint32_t start_addr, uint8_t *load_addr,
+int app_image_load (const struct flash *flash, uint32_t start_addr, uint8_t *load_addr,
+	size_t max_length, size_t *load_length);
+int app_image_load_and_verify (const struct flash *flash, uint32_t start_addr, uint8_t *load_addr,
 	size_t max_length, struct hash_engine *hash, struct rsa_engine *rsa,
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length,
 	size_t *load_length);
-int app_image_load_and_verify_with_header (struct flash *flash, uint32_t start_addr,
+int app_image_load_and_verify_with_header (const struct flash *flash, uint32_t start_addr,
 	size_t header_length, uint8_t *load_addr, size_t max_length, struct hash_engine *hash,
 	struct rsa_engine *rsa, const struct rsa_public_key *pub_key, uint8_t *hash_out,
 	size_t hash_length, size_t *load_length);
 
-int app_image_get_signature (struct flash *flash, uint32_t start_addr, uint8_t *sig_out,
+int app_image_get_signature (const struct flash *flash, uint32_t start_addr, uint8_t *sig_out,
 	size_t sig_length);
-int app_image_get_hash (struct flash *flash, uint32_t start_addr, struct hash_engine *hash,
+int app_image_get_hash (const struct flash *flash, uint32_t start_addr, struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length);
-int app_image_get_hash_with_header (struct flash *flash, uint32_t start_addr, size_t header_length,
-	struct hash_engine *hash, uint8_t *hash_out, size_t hash_length);
+int app_image_get_hash_with_header (const struct flash *flash, uint32_t start_addr,
+	size_t header_length, struct hash_engine *hash, uint8_t *hash_out, size_t hash_length);
 
-int app_image_get_data_addr (struct flash *flash, uint32_t start_addr, uint32_t *data_addr);
-int app_image_get_length (struct flash *flash, uint32_t start_addr, uint32_t *img_length);
-int app_image_get_image_end (struct flash *flash, uint32_t start_addr, uint32_t *end_addr);
+int app_image_get_data_addr (const struct flash *flash, uint32_t start_addr, uint32_t *data_addr);
+int app_image_get_length (const struct flash *flash, uint32_t start_addr, uint32_t *img_length);
+int app_image_get_image_end (const struct flash *flash, uint32_t start_addr, uint32_t *end_addr);
 
 
 #define	APP_IMAGE_ERROR(code)		ROT_ERROR (ROT_MODULE_APP_IMAGE, code)

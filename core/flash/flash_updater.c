@@ -19,7 +19,7 @@
  *
  * @return 0 if the update manager was initialized successfully or an error code.
  */
-static int flash_updater_init_common (struct flash_updater *updater, struct flash *flash,
+static int flash_updater_init_common (struct flash_updater *updater, const struct flash *flash,
 	uint32_t base_addr, size_t max_size, int (*erase) (const struct flash*, uint32_t, size_t))
 {
 	if ((updater == NULL) || (flash == NULL)) {
@@ -48,8 +48,8 @@ static int flash_updater_init_common (struct flash_updater *updater, struct flas
  *
  * @return 0 if the update manager was initialized successfully or an error code.
  */
-int flash_updater_init (struct flash_updater *updater, struct flash *flash, uint32_t base_addr,
-	size_t max_size)
+int flash_updater_init (struct flash_updater *updater, const struct flash *flash,
+	uint32_t base_addr, size_t max_size)
 {
 	return flash_updater_init_common (updater, flash, base_addr, max_size,
 		flash_erase_region_and_verify);
@@ -67,7 +67,7 @@ int flash_updater_init (struct flash_updater *updater, struct flash *flash, uint
  *
  * @return 0 if the update manager was initialized successfully or an error code.
  */
-int flash_updater_init_sector (struct flash_updater *updater, struct flash *flash,
+int flash_updater_init_sector (struct flash_updater *updater, const struct flash *flash,
 	uint32_t base_addr, size_t max_size)
 {
 	return flash_updater_init_common (updater, flash, base_addr, max_size,

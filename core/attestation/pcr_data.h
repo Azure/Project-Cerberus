@@ -55,7 +55,7 @@ struct pcr_measured_data {
 		} memory;							/**< Container for measured data stored in memory */
 
 		struct  {
-			struct flash *flash;			/**< Flash device containing the measured data */
+			const struct flash *flash;		/**< Flash device containing the measured data */
 			uint32_t addr;					/**< Address in flash */
 			size_t length;					/**< Measured data length */
 		} flash;							/**< Container for measured data stored in flash */

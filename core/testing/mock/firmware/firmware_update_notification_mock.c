@@ -8,7 +8,7 @@
 
 
 static void firmware_update_notification_mock_state_change (
-	struct firmware_update_notification *context, enum firmware_update_status state)
+	const struct firmware_update_notification *context, enum firmware_update_status state)
 {
 	struct firmware_update_notification_mock *mock =
 		(struct firmware_update_notification_mock*) context;

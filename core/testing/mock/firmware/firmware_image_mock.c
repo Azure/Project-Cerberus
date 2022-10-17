@@ -7,7 +7,7 @@
 #include "firmware_image_mock.h"
 
 
-static int firmware_image_mock_load (struct firmware_image *fw, struct flash *flash,
+static int firmware_image_mock_load (const struct firmware_image *fw, const struct flash *flash,
 	uint32_t base_addr)
 {
 	struct firmware_image_mock *mock = (struct firmware_image_mock*) fw;
@@ -20,7 +20,7 @@ static int firmware_image_mock_load (struct firmware_image *fw, struct flash *fl
 		MOCK_ARG_CALL (base_addr));
 }
 
-static int firmware_image_mock_verify (struct firmware_image *fw, struct hash_engine *hash)
+static int firmware_image_mock_verify (const struct firmware_image *fw, struct hash_engine *hash)
 {
 	struct firmware_image_mock *mock = (struct firmware_image_mock*) fw;
 
@@ -31,7 +31,7 @@ static int firmware_image_mock_verify (struct firmware_image *fw, struct hash_en
 	MOCK_RETURN (&mock->mock, firmware_image_mock_verify, fw, MOCK_ARG_CALL (hash));
 }
 
-static int firmware_image_mock_get_image_size (struct firmware_image *fw)
+static int firmware_image_mock_get_image_size (const struct firmware_image *fw)
 {
 	struct firmware_image_mock *mock = (struct firmware_image_mock*) fw;
 
@@ -42,7 +42,8 @@ static int firmware_image_mock_get_image_size (struct firmware_image *fw)
 	MOCK_RETURN_NO_ARGS (&mock->mock, firmware_image_mock_get_image_size, fw);
 }
 
-static struct key_manifest* firmware_image_mock_get_key_manifest (struct firmware_image *fw)
+static const struct key_manifest* firmware_image_mock_get_key_manifest (
+	const struct firmware_image *fw)
 {
 	struct firmware_image_mock *mock = (struct firmware_image_mock*) fw;
 
@@ -54,7 +55,8 @@ static struct key_manifest* firmware_image_mock_get_key_manifest (struct firmwar
 		firmware_image_mock_get_key_manifest, fw);
 }
 
-static struct firmware_header* firmware_image_mock_get_firmware_header (struct firmware_image *fw)
+static const struct firmware_header* firmware_image_mock_get_firmware_header (
+	const struct firmware_image *fw)
 {
 	struct firmware_image_mock *mock = (struct firmware_image_mock*) fw;
 

@@ -18,18 +18,19 @@ struct firmware_update_mock {
 
 
 int firmware_update_mock_init (struct firmware_update_mock *mock,
-	const struct firmware_flash_map *flash, struct app_context *context, struct firmware_image *fw,
-	struct hash_engine *hash, int allowed_revision);
+	struct firmware_update_state *state, const struct firmware_flash_map *flash,
+	struct app_context *context, struct firmware_image *fw, struct hash_engine *hash,
+	int allowed_revision);
 void firmware_update_mock_release (struct firmware_update_mock *mock);
 
 int firmware_update_mock_validate_and_release (struct firmware_update_mock *mock);
 
-int firmware_update_mock_finalize_image (struct firmware_update *updater, struct flash *flash,
-	uint32_t address);
+int firmware_update_mock_finalize_image (const struct firmware_update *updater,
+	const struct flash *flash, uint32_t address);
 void firmware_update_mock_enable_finalize_image (struct firmware_update_mock *mock);
 
-int firmware_update_mock_verify_boot_image (struct firmware_update *updater, struct flash *flash,
-	uint32_t address);
+int firmware_update_mock_verify_boot_image (const struct firmware_update *updater,
+	const struct flash *flash, uint32_t address);
 void firmware_update_mock_enable_verify_boot_image (struct firmware_update_mock *mock);
 
 

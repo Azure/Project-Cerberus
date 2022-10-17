@@ -7,8 +7,8 @@
 #include "firmware_update_mock.h"
 
 
-int firmware_update_mock_finalize_image (struct firmware_update *updater, struct flash *flash,
-	uint32_t address)
+int firmware_update_mock_finalize_image (const struct firmware_update *updater,
+	const struct flash *flash, uint32_t address)
 {
 	struct firmware_update_mock *mock = (struct firmware_update_mock*) updater;
 
@@ -20,8 +20,8 @@ int firmware_update_mock_finalize_image (struct firmware_update *updater, struct
 		MOCK_ARG_CALL (address));
 }
 
-int firmware_update_mock_verify_boot_image (struct firmware_update *updater, struct flash *flash,
-	uint32_t address)
+int firmware_update_mock_verify_boot_image (const struct firmware_update *updater,
+	const struct flash *flash, uint32_t address)
 {
 	struct firmware_update_mock *mock = (struct firmware_update_mock*) updater;
 
@@ -94,8 +94,9 @@ static const char* firmware_update_mock_arg_name_map (void *func, int arg)
  * @return 0 if the mock was initialized successfully or an error code.
  */
 int firmware_update_mock_init (struct firmware_update_mock *mock,
-	const struct firmware_flash_map *flash, struct app_context *context, struct firmware_image *fw,
-	struct hash_engine *hash, int allowed_revision)
+	struct firmware_update_state *state, const struct firmware_flash_map *flash,
+	struct app_context *context, struct firmware_image *fw, struct hash_engine *hash,
+	int allowed_revision)
 {
 	int status;
 
@@ -105,7 +106,7 @@ int firmware_update_mock_init (struct firmware_update_mock *mock,
 
 	memset (mock, 0, sizeof (struct firmware_update_mock));
 
-	status = firmware_update_init (&mock->base, flash, context, fw, hash, allowed_revision);
+	status = firmware_update_init (&mock->base, state, flash, context, fw, hash, allowed_revision);
 	if (status != 0) {
 		return status;
 	}

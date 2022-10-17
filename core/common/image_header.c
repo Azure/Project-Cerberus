@@ -17,7 +17,7 @@
  *
  * @return 0 if the header information was successfully loaded from flash or an error code.
  */
-int image_header_init (struct image_header *header, struct flash *flash, uint32_t addr,
+int image_header_init (struct image_header *header, const struct flash *flash, uint32_t addr,
 	uint32_t magic_num, size_t max_len)
 {
 	int status;
@@ -52,7 +52,7 @@ int image_header_init (struct image_header *header, struct flash *flash, uint32_
  * Release the recovery image header data.
  *
  * @param header The header instance to release.
- */ 
+ */
 void image_header_release (struct image_header *header)
 {
 	if (header) {
@@ -68,9 +68,9 @@ void image_header_release (struct image_header *header)
  * @param flash The flash that contains the image header.
  * @param addr The base address of the header.
  *
- * @return 0 if header data was successfully loaded from flash or an error code. 
+ * @return 0 if header data was successfully loaded from flash or an error code.
  */
-int image_header_load_data (struct image_header *header, struct flash *flash, uint32_t addr)
+int image_header_load_data (struct image_header *header, const struct flash *flash, uint32_t addr)
 {
 	size_t length;
 	int status;
@@ -102,7 +102,7 @@ int image_header_load_data (struct image_header *header, struct flash *flash, ui
  *
  * @return The total number of bytes in the header.
  */
-int image_header_get_length (struct image_header *header)
+int image_header_get_length (const struct image_header *header)
 {
 	if (header) {
 		return header->info.length;

@@ -15,7 +15,7 @@
  * to sequential locations in flash.
  */
 struct flash_updater {
-	struct flash *flash;									/**< The flash to manage for updates. */
+	const struct flash *flash;								/**< The flash to manage for updates. */
 	uint32_t base_addr;										/**< The start of the update region. */
 	size_t max_size;										/**< The maximum size of an update. */
 	int update_size;										/**< Expected size of the current update. */
@@ -24,9 +24,9 @@ struct flash_updater {
 };
 
 
-int flash_updater_init (struct flash_updater *updater, struct flash *flash, uint32_t base_addr,
-	size_t max_size);
-int flash_updater_init_sector (struct flash_updater *updater, struct flash *flash,
+int flash_updater_init (struct flash_updater *updater, const struct flash *flash,
+	uint32_t base_addr, size_t max_size);
+int flash_updater_init_sector (struct flash_updater *updater, const struct flash *flash,
 	uint32_t base_addr, size_t max_size);
 void flash_updater_release (struct flash_updater *updater);
 

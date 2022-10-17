@@ -50,7 +50,7 @@ union firmware_component_header_format {
  *
  * @return 0 if the component was successfully initialize or an error code.
  */
-int firmware_component_init (struct firmware_component *image, struct flash *flash,
+int firmware_component_init (struct firmware_component *image, const struct flash *flash,
 	uint32_t start_addr, uint32_t marker)
 {
 	int status;
@@ -103,8 +103,8 @@ int firmware_component_init (struct firmware_component *image, struct flash *fla
  *
  * @return 0 if the component was successfully initialized or an error code.
  */
-int firmware_component_init_with_header (struct firmware_component *image, struct flash *flash,
-	uint32_t start_addr, uint32_t marker, size_t header_length)
+int firmware_component_init_with_header (struct firmware_component *image,
+	const struct flash *flash, uint32_t start_addr, uint32_t marker, size_t header_length)
 {
 	int status;
 
@@ -138,7 +138,7 @@ void firmware_component_release (struct firmware_component *image)
  *
  * @return The size of the component image.
  */
-static size_t firmware_component_get_image_length (struct firmware_component *image)
+static size_t firmware_component_get_image_length (const struct firmware_component *image)
 {
 	return image->header.info.length + FW_COMPONENT_HDR (image, 0).length + image->offset;
 }
@@ -152,7 +152,7 @@ static size_t firmware_component_get_image_length (struct firmware_component *im
  *
  * @return 0 if the signature was read or an error code.
  */
-static int firmware_component_read_signature_data (struct firmware_component *image,
+static int firmware_component_read_signature_data (const struct firmware_component *image,
 	uint8_t **signature, size_t *sig_length)
 {
 	int status;
@@ -187,8 +187,9 @@ static int firmware_component_read_signature_data (struct firmware_component *im
  *
  * @return 0 if the component image is valid or an error code.
  */
-int firmware_component_verification (struct firmware_component *image, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
+int firmware_component_verification (const struct firmware_component *image,
+	struct hash_engine *hash, struct signature_verification *verification, uint8_t *hash_out,
+	size_t hash_length)
 {
 	uint8_t *signature;
 	size_t sig_length;
@@ -228,7 +229,7 @@ int firmware_component_verification (struct firmware_component *image, struct ha
  *
  * @return 0 if the component was loaded into memory or an error code.
  */
-int firmware_component_load (struct firmware_component *image, uint8_t *load_addr,
+int firmware_component_load (const struct firmware_component *image, uint8_t *load_addr,
 	size_t max_length, size_t *load_length)
 {
 	int status;
@@ -270,7 +271,7 @@ int firmware_component_load (struct firmware_component *image, uint8_t *load_add
  *
  * @return 0 if the component was loaded to memory and verified as good or an error code.
  */
-int firmware_component_load_and_verify (struct firmware_component *image, uint8_t *load_addr,
+int firmware_component_load_and_verify (const struct firmware_component *image, uint8_t *load_addr,
 	size_t max_length, struct hash_engine *hash, struct signature_verification *verification,
 	uint8_t *hash_out, size_t hash_length, size_t *load_length)
 {
@@ -383,8 +384,9 @@ hash_fail:
  *
  * @return 0 if the component data is contained on the destination flash or an error code.
  */
-static int firmware_component_copy_to_flash (struct firmware_component *image, struct flash *flash,
-	uint32_t dest_addr, size_t max_length, size_t *copy_length, bool force_copy)
+static int firmware_component_copy_to_flash (const struct firmware_component *image,
+	const struct flash *flash, uint32_t dest_addr, size_t max_length, size_t *copy_length,
+	bool force_copy)
 {
 	int status;
 
@@ -444,10 +446,11 @@ exit:
  *
  * @return 0 if the component was successfully copied to flash or an error code.
  */
-int firmware_component_copy (struct firmware_component *image, struct flash *flash,
+int firmware_component_copy (const struct firmware_component *image, const struct flash *flash,
 	uint32_t dest_addr, size_t max_length, size_t *copy_length)
 {
-	return firmware_component_copy_to_flash (image, flash, dest_addr, max_length, copy_length, true);
+	return firmware_component_copy_to_flash (image, flash, dest_addr, max_length, copy_length,
+		true);
 }
 
 /**
@@ -465,10 +468,11 @@ int firmware_component_copy (struct firmware_component *image, struct flash *fla
  *
  * @return 0 if the component data is contained on the destination flash or an error code.
  */
-int firmware_component_compare_and_copy (struct firmware_component *image, struct flash *flash,
-	uint32_t dest_addr, size_t max_length, size_t *copy_length)
+int firmware_component_compare_and_copy (const struct firmware_component *image,
+	const struct flash *flash, uint32_t dest_addr, size_t max_length, size_t *copy_length)
 {
-	return firmware_component_copy_to_flash (image, flash, dest_addr, max_length, copy_length, false);
+	return firmware_component_copy_to_flash (image, flash, dest_addr, max_length, copy_length,
+		false);
 }
 
 /**
@@ -478,7 +482,7 @@ int firmware_component_compare_and_copy (struct firmware_component *image, struc
  *
  * @return The length of the image signature.
  */
-size_t firmware_component_get_signature_length (struct firmware_component *image)
+size_t firmware_component_get_signature_length (const struct firmware_component *image)
 {
 	if (image) {
 		return FW_COMPONENT_HDR (image, 0).sig_length;
@@ -498,7 +502,7 @@ size_t firmware_component_get_signature_length (struct firmware_component *image
  * @return The length of the signature in the buffer or an error code.  Use ROT_IS_ERROR to check
  * the return for an error.
  */
-int firmware_component_get_signature (struct firmware_component *image, uint8_t *sig_out,
+int firmware_component_get_signature (const struct firmware_component *image, uint8_t *sig_out,
 	size_t sig_length)
 {
 	size_t length;
@@ -534,7 +538,7 @@ int firmware_component_get_signature (struct firmware_component *image, uint8_t 
  *
  * @return 0 if the hash was calculated successfully or an error code.
  */
-int firmware_component_get_hash (struct firmware_component *image, struct hash_engine *hash,
+int firmware_component_get_hash (const struct firmware_component *image, struct hash_engine *hash,
 	uint8_t *hash_out, size_t hash_length)
 {
 	size_t length;
@@ -560,7 +564,7 @@ int firmware_component_get_hash (struct firmware_component *image, struct hash_e
  *
  * @return The flash address for the start of firmware data.
  */
-uint32_t firmware_component_get_data_addr (struct firmware_component *image)
+uint32_t firmware_component_get_data_addr (const struct firmware_component *image)
 {
 	if (image) {
 		return image->start_addr + image->offset + image->header.info.length;
@@ -578,7 +582,7 @@ uint32_t firmware_component_get_data_addr (struct firmware_component *image)
  *
  * @return The size of the component image.
  */
-size_t firmware_component_get_length (struct firmware_component *image)
+size_t firmware_component_get_length (const struct firmware_component *image)
 {
 	if (image) {
 		return FW_COMPONENT_HDR (image, 0).length;
@@ -597,7 +601,7 @@ size_t firmware_component_get_length (struct firmware_component *image)
  *
  * @return The address at the end of the image.
  */
-uint32_t firmware_component_get_image_end (struct firmware_component *image)
+uint32_t firmware_component_get_image_end (const struct firmware_component *image)
 {
 	if (image) {
 		return image->start_addr + firmware_component_get_image_length (image) +

@@ -51,7 +51,7 @@ union firmware_header_format {
  *
  * @return 0 if the header was successfully loaded from flash or an error code.
  */
-int firmware_header_init (struct firmware_header *header, struct flash *flash, uint32_t addr)
+int firmware_header_init (struct firmware_header *header, const struct flash *flash, uint32_t addr)
 {
 	size_t length;
 	int status;
@@ -118,7 +118,7 @@ void firmware_header_release (struct firmware_header *header)
  *
  * @return 0 if the revision was available in the header or an error code.
  */
-int firmware_header_get_recovery_revision (struct firmware_header *header, int *revision)
+int firmware_header_get_recovery_revision (const struct firmware_header *header, int *revision)
 {
 	if ((header == NULL) || (revision == NULL)) {
 		return FIRMWARE_HEADER_INVALID_ARGUMENT;
@@ -137,7 +137,7 @@ int firmware_header_get_recovery_revision (struct firmware_header *header, int *
  *
  * @return The number of extra images or an error code.
  */
-int firmware_header_get_extra_images (struct firmware_header *header)
+int firmware_header_get_extra_images (const struct firmware_header *header)
 {
 	if (header == NULL) {
 		return FIRMWARE_HEADER_INVALID_ARGUMENT;
@@ -158,7 +158,8 @@ int firmware_header_get_extra_images (struct firmware_header *header)
  *
  * @return 0 if the revision was available in the header or an error code.
  */
-int firmware_header_get_earliest_allowed_revision (struct firmware_header *header, int *revision)
+int firmware_header_get_earliest_allowed_revision (const struct firmware_header *header,
+	int *revision)
 {
 	if ((header == NULL) || (revision == NULL)) {
 		return FIRMWARE_HEADER_INVALID_ARGUMENT;
@@ -187,7 +188,7 @@ int firmware_header_get_earliest_allowed_revision (struct firmware_header *heade
  *
  * @return 0 if the signature information was available in the header or an error code.
  */
-int firmware_header_get_signature_info (struct firmware_header *header, size_t *signed_length,
+int firmware_header_get_signature_info (const struct firmware_header *header, size_t *signed_length,
 	size_t *sig_length)
 {
 	if ((header == NULL) || (signed_length == NULL) || (sig_length == NULL)) {

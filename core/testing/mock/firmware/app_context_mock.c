@@ -7,7 +7,7 @@
 #include "app_context_mock.h"
 
 
-static int app_context_mock_save (struct app_context *context)
+static int app_context_mock_save (const struct app_context *context)
 {
 	struct app_context_mock *mock = (struct app_context_mock*) context;
 

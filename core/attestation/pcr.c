@@ -593,7 +593,7 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 			break;
 
 		case PCR_DATA_TYPE_FLASH: {
-			struct flash *flash_device = measured_data->data.flash.flash;
+			const struct flash *flash_device = measured_data->data.flash.flash;
 			size_t read_addr = measured_data->data.flash.addr + offset;
 
 			if (offset > (measured_data->data.flash.length - 1)) {

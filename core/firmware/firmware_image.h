@@ -29,7 +29,7 @@ struct firmware_image {
 	 *
 	 * @return 0 if the image reference was updated successfully or an error code.
 	 */
-	int (*load) (struct firmware_image *fw, struct flash *flash, uint32_t base_addr);
+	int (*load) (const struct firmware_image *fw, const struct flash *flash, uint32_t base_addr);
 
 	/**
 	 * Verify the complete firmware image.  All components in the image will be fully validated.
@@ -46,7 +46,7 @@ struct firmware_image {
 	 * incorrect signature, FIRMWARE_IMAGE_BAD_SIGNATURE will be returned, regardless of the
 	 * underlying signature verification algorithm.
 	 */
-	int (*verify) (struct firmware_image *fw, struct hash_engine *hash);
+	int (*verify) (const struct firmware_image *fw, struct hash_engine *hash);
 
 	/**
 	 * Get the total size of the firmware image.
@@ -56,7 +56,7 @@ struct firmware_image {
 	 * @return The size of the firmware image or an error code.  Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*get_image_size) (struct firmware_image *fw);
+	int (*get_image_size) (const struct firmware_image *fw);
 
 	/**
 	 * Get the key manifest for the current firmware image.
@@ -67,7 +67,7 @@ struct firmware_image {
 	 * manifest is managed by the firmware image instance and is only guaranteed to be valid until
 	 * the next call to firmware_image.load.
 	 */
-	struct key_manifest* (*get_key_manifest) (struct firmware_image *fw);
+	const struct key_manifest* (*get_key_manifest) (const struct firmware_image *fw);
 
 	/**
 	 * Get the main image header for the current firmware image.
@@ -78,7 +78,7 @@ struct firmware_image {
 	 * is managed by the firmware image instance and is only guaranteed to be valid until the next
 	 * call to firmware_image.load.
 	 */
-	struct firmware_header* (*get_firmware_header) (struct firmware_image *fw);
+	const struct firmware_header* (*get_firmware_header) (const struct firmware_image *fw);
 };
 
 

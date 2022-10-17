@@ -21,21 +21,21 @@
  * The flash addresses and devices to use for different firmware regions.
  */
 struct firmware_flash_map {
-	struct flash *active_flash;			/**< The flash device that contains the active region. */
-	uint32_t active_addr;				/**< The base address for the active flash region. */
-	size_t active_size;					/**< The size of the active flash region. */
-	struct flash *backup_flash;			/**< The flash device that contains the backup region. */
-	uint32_t backup_addr;				/**< The base address for the backup flash region. */
-	size_t backup_size;					/**< The size of the backup flash region. */
-	struct flash *staging_flash;		/**< The flash device that contains the staging region. */
-	uint32_t staging_addr;				/**< The base address for the staging flash region. */
-	size_t staging_size;				/**< The size of the staging flash region. */
-	struct flash *recovery_flash;		/**< The flash device that contains the recovery region. */
-	uint32_t recovery_addr;				/**< The base address for the recovery flash region. */
-	size_t recovery_size;				/**< The size of the recovery flash region. */
-	struct flash *rec_backup_flash;		/**< The flash device for the recovery backup region. */
-	uint32_t rec_backup_addr;			/**< The base address for the recovery backup region. */
-	size_t rec_backup_size;				/**< The size of the recovery backup flash region. */
+	const struct flash *active_flash;		/**< The flash device that contains the active region. */
+	uint32_t active_addr;					/**< The base address for the active flash region. */
+	size_t active_size;						/**< The size of the active flash region. */
+	const struct flash *backup_flash;		/**< The flash device that contains the backup region. */
+	uint32_t backup_addr;					/**< The base address for the backup flash region. */
+	size_t backup_size;						/**< The size of the backup flash region. */
+	const struct flash *staging_flash;		/**< The flash device that contains the staging region. */
+	uint32_t staging_addr;					/**< The base address for the staging flash region. */
+	size_t staging_size;					/**< The size of the staging flash region. */
+	const struct flash *recovery_flash;		/**< The flash device that contains the recovery region. */
+	uint32_t recovery_addr;					/**< The base address for the recovery flash region. */
+	size_t recovery_size;					/**< The size of the recovery flash region. */
+	const struct flash *rec_backup_flash;	/**< The flash device for the recovery backup region. */
+	uint32_t rec_backup_addr;				/**< The base address for the recovery backup region. */
+	size_t rec_backup_size;					/**< The size of the recovery backup flash region. */
 };
 
 /**
@@ -95,7 +95,8 @@ struct firmware_update_hooks {
 	 *
 	 * @return 0 if the image was successfully finalized or an error code.
 	 */
-	int (*finalize_image) (struct firmware_update *updater, struct flash *flash, uint32_t address);
+	int (*finalize_image) (const struct firmware_update *updater, const struct flash *flash,
+		uint32_t address);
 
 	/**
 	 * Run additional verification on a boot image stored on flash.  This will be called after
@@ -110,8 +111,20 @@ struct firmware_update_hooks {
 	 * @return 0 if the image is valid or an error code.  If the boot image is not valid,
 	 * FIRMWARE_UPDATE_INVALID_BOOT_IMAGE will be returned.
 	 */
-	int (*verify_boot_image) (struct firmware_update *updater, struct flash *flash,
+	int (*verify_boot_image) (const struct firmware_update *updater, const struct flash *flash,
 		uint32_t address);
+};
+
+/**
+ * Variable context for a firmware update handler.
+ */
+struct firmware_update_state {
+	struct flash_updater update_mgr;		/**< Update manager for writing data to flash. */
+	struct observable observable;			/**< Observer manager for the updater. */
+	bool recovery_bad;						/**< Indication if the recovery image on flash is bad. */
+	int recovery_rev;						/**< Revision ID of the current recovery image. */
+	int min_rev;							/**< Minimum revision ID allowed for update. */
+	int img_offset;							/**< Offset to apply to FW image regions. */
 };
 
 /**
@@ -119,17 +132,12 @@ struct firmware_update_hooks {
  */
 struct firmware_update {
 	struct firmware_update_hooks internal;	/**< Internal interface to customize the update process. */
+	struct firmware_update_state *state;	/**< Variable context for the update context. */
 	const struct firmware_flash_map *flash;	/**< The flash address mapping to use for the update. */
-	struct firmware_image *fw;				/**< The platform driver for handling firmware images. */
-	struct hash_engine *hash;				/**< The hash engine to use during update .*/
-	struct app_context *context;			/**< The platform application context API. */
-	struct flash_updater update_mgr;		/**< Update manager for writing data to flash. */
+	const struct firmware_image *fw;		/**< The platform driver for handling firmware images. */
+	struct hash_engine *hash;				/**< The hash engine to use during update. */
+	const struct app_context *context;		/**< The platform application context API. */
 	bool no_fw_header;						/**< Indication that a firmware header is not required. */
-	bool recovery_bad;						/**< Indication if the recovery image on flash is bad. */
-	int recovery_rev;						/**< Revision ID of the current recovery image. */
-	int min_rev;							/**< Minimum revision ID allowed for update. */
-	int img_offset;							/**< Offset to apply to FW image regions. */
-	struct observable observable;			/**< Observer manager for the updater. */
 };
 
 /**
@@ -142,39 +150,43 @@ struct firmware_update_notification {
 	 * @param context The context of the notification handler.
 	 * @param status The new status of the active firmware update.
 	 */
-	void (*status_change) (struct firmware_update_notification *context,
+	void (*status_change) (const struct firmware_update_notification *context,
 		enum firmware_update_status status);
 };
 
 
-int firmware_update_init (struct firmware_update *updater, const struct firmware_flash_map *flash,
-	struct app_context *context, struct firmware_image *fw, struct hash_engine *hash,
+int firmware_update_init (struct firmware_update *updater, struct firmware_update_state *state,
+	const struct firmware_flash_map *flash, const struct app_context *context,
+	const struct firmware_image *fw, struct hash_engine *hash, int allowed_revision);
+int firmware_update_init_no_firmware_header (struct firmware_update *updater,
+	struct firmware_update_state *state, const struct firmware_flash_map *flash,
+	const struct app_context *context, const struct firmware_image *fw, struct hash_engine *hash,
 	int allowed_revision);
-void firmware_update_release (struct firmware_update *updater);
+int firmware_update_init_state (const struct firmware_update *updater, int allowed_revision);
+void firmware_update_release (const struct firmware_update *updater);
 
-void firmware_update_set_image_offset (struct firmware_update *updater, int offset);
-void firmware_update_require_firmware_header (struct firmware_update *updater, bool has_fw_header);
+void firmware_update_set_image_offset (const struct firmware_update *updater, int offset);
 
-void firmware_update_set_recovery_revision (struct firmware_update *updater, int revision);
-void firmware_update_set_recovery_good (struct firmware_update *updater, bool img_good);
-void firmware_update_validate_recovery_image (struct firmware_update *updater);
-int firmware_update_is_recovery_good (struct firmware_update *updater);
+void firmware_update_set_recovery_revision (const struct firmware_update *updater, int revision);
+void firmware_update_set_recovery_good (const struct firmware_update *updater, bool img_good);
+void firmware_update_validate_recovery_image (const struct firmware_update *updater);
+int firmware_update_is_recovery_good (const struct firmware_update *updater);
 
-int firmware_update_restore_recovery_image (struct firmware_update *updater);
-int firmware_update_restore_active_image (struct firmware_update *updater);
+int firmware_update_restore_recovery_image (const struct firmware_update *updater);
+int firmware_update_restore_active_image (const struct firmware_update *updater);
 
-int firmware_update_add_observer (struct firmware_update *updater,
+int firmware_update_add_observer (const struct firmware_update *updater,
 	struct firmware_update_observer *observer);
-int firmware_update_remove_observer (struct firmware_update *updater,
+int firmware_update_remove_observer (const struct firmware_update *updater,
 	struct firmware_update_observer *observer);
 
-int firmware_update_run_update (struct firmware_update *updater,
-	struct firmware_update_notification *callback);
-int firmware_update_prepare_staging (struct firmware_update *updater,
-	struct firmware_update_notification *callback, size_t size);
-int firmware_update_write_to_staging (struct firmware_update *updater,
-	struct firmware_update_notification *callback, uint8_t *buf, size_t buf_len);
-int firmware_update_get_update_remaining (struct firmware_update *updater);
+int firmware_update_run_update (const struct firmware_update *updater,
+	const struct firmware_update_notification *callback);
+int firmware_update_prepare_staging (const struct firmware_update *updater,
+	const struct firmware_update_notification *callback, size_t size);
+int firmware_update_write_to_staging (const struct firmware_update *updater,
+	const struct firmware_update_notification *callback, uint8_t *buf, size_t buf_len);
+int firmware_update_get_update_remaining (const struct firmware_update *updater);
 
 
 #define	FIRMWARE_UPDATE_ERROR(code)		ROT_ERROR (ROT_MODULE_FIRMWARE_UPDATE, code)

@@ -251,10 +251,10 @@ static int fw_update_task_write_staging (struct firmware_update_control *update,
 	return status;
 }
 
-static void fw_update_task_status_change (struct firmware_update_notification *context,
+static void fw_update_task_status_change (const struct firmware_update_notification *context,
 	enum firmware_update_status status)
 {
-	struct fw_update_task_notify *notify = (struct fw_update_task_notify*) context;
+	const struct fw_update_task_notify *notify = (const struct fw_update_task_notify*) context;
 
 	if (notify != NULL) {
 		xSemaphoreTake (notify->task->lock, portMAX_DELAY);
@@ -272,7 +272,7 @@ static void fw_update_task_status_change (struct firmware_update_notification *c
  *
  * @return 0 if the task was successfully initialized or an error code.
  */
-int fw_update_task_init (struct fw_update_task *task, struct firmware_update *updater,
+int fw_update_task_init (struct fw_update_task *task, const struct firmware_update *updater,
 	struct system *system)
 {
 	if ((task == NULL) || (updater == NULL) || (system == NULL)) {

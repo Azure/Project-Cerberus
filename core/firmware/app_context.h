@@ -19,7 +19,7 @@ struct app_context {
 	 *
 	 * @return 0 if the application context has been saved or an error code.
 	 */
-	int (*save) (struct app_context *context);
+	int (*save) (const struct app_context *context);
 };
 
 

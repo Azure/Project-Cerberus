@@ -29,12 +29,13 @@ struct image_header {
 };
 
 
-int image_header_init (struct image_header *header, struct flash *flash, uint32_t addr,
+int image_header_init (struct image_header *header, const struct flash *flash, uint32_t addr,
 	uint32_t magic_num, size_t max_len);
 void image_header_release (struct image_header *header);
 
-int image_header_load_data (struct image_header *header, struct flash *flash, uint32_t addr);
-int image_header_get_length (struct image_header *header);
+int image_header_load_data (struct image_header *header, const struct flash *flash, uint32_t addr);
+
+int image_header_get_length (const struct image_header *header);
 
 
 #define	IMAGE_HEADER_ERROR(code)		ROT_ERROR (ROT_MODULE_IMAGE_HEADER, code)
