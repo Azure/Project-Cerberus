@@ -815,6 +815,13 @@ struct spdm_respond_if_ready_request {
  * @param resp Buffer with response
  */
 #define	spdm_get_spdm_rsp_payload(resp)							(((uint8_t*) resp) + 1)
+
+/**
+ * Get the SPDM response length without MCTP message type field
+ *
+ * @param len Response length
+ */
+#define spdm_get_spdm_rsp_length(len)							(len - 1)
 #pragma pack(pop)
 
 

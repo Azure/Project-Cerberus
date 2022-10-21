@@ -31,7 +31,6 @@
 #define CERBERUS_PROTOCOL_MAX_CERT_CHAIN_LEN				4096
 
 
-
 /**
  * Cerberus protocol commands
  */

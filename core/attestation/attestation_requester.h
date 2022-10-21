@@ -48,6 +48,7 @@ struct attestation_requester_transaction_state {
 	uint8_t respond_if_ready_token;								/**< Token to pass to responder in RESPOND_IF_READY requests. */
 	size_t cert_buffer_len;										/**< Length of cert_buffer contents. */
 	size_t cert_total_len;										/**< Total certificate chain length to read back from device. */
+	size_t alias_signature_len;									/**< Length of a signature component signed by device alias key. */
 	enum hash_type transcript_hash_type;						/**< Cryptographic hashing algorithm utilized in attestation transcript hashing. */
 	enum hash_type measurement_hash_type;						/**< Cryptographic hashing algorithm utilized in measurement hashing. */
 	bool cached_cert_valid;										/**< Certificate chain of device read back and digest is valid. */

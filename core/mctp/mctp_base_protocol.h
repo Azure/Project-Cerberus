@@ -88,13 +88,13 @@
 /**
  * The maximum buffer length needed to hold a packetized message using SMBus binding of maximum length.
  */
-#define	MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN				\
+#define	MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN					\
 	(MCTP_BASE_PROTOCOL_PACKETS_IN_MESSAGE (MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT) * MCTP_BASE_PROTOCOL_MIN_PACKET_LEN)
 
 /**
  * The number of packets needed to packetize a maximum sized message using the maximum transmission unit size.
  */
-#define	MCTP_BASE_PROTOCOL_MAX_PACKET_PER_MAX_SIZED_MESSAGE		\
+#define	MCTP_BASE_PROTOCOL_MAX_PACKET_PER_MAX_SIZED_MESSAGE	\
 	(MCTP_BASE_PROTOCOL_PACKETS_IN_MESSAGE (MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT))
 
 /**

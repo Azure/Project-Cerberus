@@ -835,11 +835,11 @@ int ecc_der_encode_ecdsa_signature (const uint8_t *sig_r, const uint8_t *sig_s, 
 	}
 
 	total_len = (pos - der) - 2;
+	der[1] = total_len;
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	/* For P521 signatures, the resulting structure could require 3 header bytes.  Adjust here, if
 	 * necessary. */
-	der[1] = total_len;
 	if (total_len >= 0x80) {
 		if (length == 0) {
 			return ECC_DER_UTIL_SMALL_DER_BUFFER;

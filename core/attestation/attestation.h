@@ -101,6 +101,18 @@ enum {
 	ATTESTATION_REFRESH_ROUTING_TABLE = ATTESTATION_ERROR (0x15),			/**< Updated MCTP bridge routing table needs to be retrieved. */
 	ATTESTATION_GET_DEVICE_ID_FAIL = ATTESTATION_ERROR (0x16),				/**< Device failed to send SPDM device ID block. */
 	ATTESTATION_TOO_MANY_RETRIES_REQUESTED = ATTESTATION_ERROR (0x17),		/**< Device requested too many ResponseNotReady retries. */
+	ATTESTATION_GET_MEAS_OPERATION_UNEXPECTED = ATTESTATION_ERROR (0x18),	/**< Get Measurements response does not perform requested operation. */
+	ATTESTATION_GET_MEAS_RSP_NOT_DIGEST = ATTESTATION_ERROR (0x19),			/**< Get Measurements response includes block in raw form when digest requested. */
+	ATTESTATION_GET_MEAS_RSP_NOT_RAW = ATTESTATION_ERROR (0x1A),			/**< Get Measurements response includes block in digest form when raw requested. */
+	ATTESTATION_GET_MEAS_BLOCKS_TOO_LARGE = ATTESTATION_ERROR (0x1B),		/**< Get Measurements response data larger than internal buffers.*/
+	ATTESTATION_DEVICE_NOT_INTEROPERABLE = ATTESTATION_ERROR (0x1C),		/**< Device SPDM version not supported. */
+	ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE = ATTESTATION_ERROR (0x1D),		/**< Device response utilizes unexpected algorithm. */
+	ATTESTATION_UNSUPPORTED_MEASUREMENT_SPEC = ATTESTATION_ERROR (0x1E),	/**< Unsupported measurement spec utilized by device. */
+	ATTESTATION_GET_CERT_NOT_SUPPORTED_BY_DEVICE = ATTESTATION_ERROR (0x1F),/**< Device does not support required Get Certificates command.*/
+	ATTESTATION_GET_MEAS_NOT_SUPPORTED_BY_DEVICE = ATTESTATION_ERROR (0x20),/**< Device does not support required Get Measurements command.*/
+	ATTESTATION_REQUESTED_SLOT_NUM_EMPTY = ATTESTATION_ERROR (0x21),		/**< Requested certificate slot number empty in response. */
+	ATTESTATION_UNEXPECTED_SLOT_NUM = ATTESTATION_ERROR (0x22),				/**< Certificate slot number in response unexpected. */
+	ATTESTATION_UNEXPECTED_NUM_MEAS_BLOCKS = ATTESTATION_ERROR (0x23),		/**< Unexpected number of measurement blocks in response. */
 };
 
 
