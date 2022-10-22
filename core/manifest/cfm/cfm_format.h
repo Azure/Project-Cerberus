@@ -41,7 +41,7 @@ enum cfm_check_type {
  */
 enum cfm_attestation_protocol {
 	CFM_CERBERUS_PROTOCOL = 0x00,								/**< Cerberus challenge protocol. */
-	CFM_DMTF_SPDM = 0x01,										/**< DMTF SPDM protocol. */
+	CFM_DMTF_SPDM = 0x01,										/**< DMTF SPDM. */
 };
 
 /**
@@ -82,7 +82,16 @@ struct cfm_pmr_digest_element {
 struct cfm_measurement_element {
 	uint8_t pmr_id;												/**< PMR ID. */
 	uint8_t measurement_id;										/**< PMR entry ID if Cerberus protocol, or measurement block index if SPDM. */
-	uint8_t digest_count;										/**< Number of allowable digests for this measurement. */
+	uint8_t allowable_digest_count;								/**< Number of allowable digests for this measurement. */
+	uint8_t reserved;											/**< Reserved. */
+};
+
+/**
+ * CFM allowable digests.
+ */
+struct cfm_allowable_digest_element {
+	uint16_t version_set;										/**< Identifier for set of measurements associated with the same device firmware version. 0 if set applies to all versions. */
+	uint8_t digest_count;										/**< The number of allowable digests for this version set. */
 	uint8_t reserved;											/**< Reserved. */
 };
 
@@ -96,16 +105,29 @@ struct cfm_measurement_data_element {
 };
 
 /**
+ * CFM comparison type.
+ */
+struct cfm_component_check_type {
+	uint8_t check:3;											/**< The type of comparison to execute. */
+	uint8_t reserved:4;											/**< Reserved. */
+	uint8_t endianness:1;										/**< Endianness of multi-byte data values. 0 if little endian. */
+};
+
+/**
  * CFM allowable data element.
  */
 struct cfm_allowable_data_element {
-	uint8_t reserved:6;											/**< Reserved. */
-	uint8_t bitmask_presence:1;									/**< Flag indicating presence of a bitmask. */
-	uint8_t endianness:1;										/**< Endianness of multi-byte data values. */
-	uint8_t check;												/**< Checking method. */
+	struct cfm_component_check_type check;						/**< The type of comparison to execute on the data. */
 	uint8_t num_data;											/**< Number of allowable data. */
-	uint16_t data_len;											/**< Length of data to use for comparison. */
-	uint8_t reserved2[3];										/**< Reserved. */
+	uint16_t bitmask_length;									/**< Length of the bitmask to apply. If 0, no bitmask is applied. */
+};
+
+/**
+ * A data entry within CFM allowable data element.
+ */
+struct cfm_allowable_data_element_entry {
+	uint16_t version_set;										/**< Identifier for set of measurements associated with the same device firmware version. 0 if set applies to all versions. */
+	uint16_t data_length;										/**< Length of the data. */
 };
 
 /**
@@ -144,7 +166,7 @@ struct cfm_allowable_pcd_element {
  * A allowable ID element.
  */
 struct cfm_allowable_id_element {
-	uint8_t check;												/**< The type of comparison to execute. */
+	struct cfm_component_check_type check;						/**< The type of comparison to execute. */
 	uint8_t num_id;												/**< Number of alllowable IDs. */
 	uint16_t reserved;											/**< Reserved. */
 };

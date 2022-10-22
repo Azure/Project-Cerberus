@@ -33,6 +33,14 @@ enum cfm_check {
 };
 
 /**
+ * CFM measurement entry types.
+ */
+enum cfm_measurement_type {
+	CFM_MEASUREMENT_TYPE_DIGEST = 0x00,							/**< Measurement entry. */
+	CFM_MEASUREMENT_TYPE_DATA = 0x01,							/**< Measurement data entry. */
+};
+
+/**
  * Information necessary to attest a component device.
  */
 struct cfm_component_device {
@@ -55,6 +63,14 @@ struct cfm_digests {
 };
 
 /**
+ * Container for allowable digests lists.
+ */
+struct cfm_allowable_digests {
+	uint16_t version_set;										/**< Identifier for set of measurements associated with the same device firmware version. 0 if set applies to all versions. */
+	struct cfm_digests digests;									/**< Container holding allowable digests. */
+};
+
+/**
  * Allowable digests for PMR ID.
  */
 struct cfm_pmr_digest {
@@ -65,34 +81,54 @@ struct cfm_pmr_digest {
 /**
  * Allowable digests for a PMR measurement.
  */
-struct cfm_measurement {
-	void *context;												/**< Implementation context. */
+struct cfm_measurement_digest {
 	uint8_t pmr_id;												/**< PMR ID. */
 	uint8_t measurement_id;										/**< PMR entry ID if Cerberus protocol, or measurement block index if SPDM. */
-	struct cfm_digests digests;									/**< Allowable digests for PMR measurement. */
+	size_t allowable_digests_count;								/**< Number of allowable digests in allowable digests list. */
+	struct cfm_allowable_digests *allowable_digests;			/**< List of allowable digest containers for PMR measurement. */
+};
+
+/**
+ * An individual data entry within an allowable data container.
+ */
+struct cfm_allowable_data_entry {
+	uint16_t version_set;										/**< Identifier for set of measurements associated with the same device firmware version. 0 if set applies to all versions. */
+	uint16_t data_len;											/**< Length of the data. */
+	const uint8_t *data;										/**< Data to use for comparison. */
 };
 
 /**
  * A list of allowable data for a single PMR measurement check.
  */
 struct cfm_allowable_data {
-	bool big_endian;											/**< Flag indicating if multi-byte data values are in big endian. */
-	enum cfm_check check;										/**< Checking method. */
+	enum cfm_check check;										/**< Type of check to perform. */
+	bool big_endian;											/**< Flag indicating if data is in big endian. */
 	size_t data_count;											/**< Number of allowable data. */
-	size_t data_len;											/**< Length of data to use for comparison. */
+	size_t bitmask_length;										/**< Length of bitmask. */
 	const uint8_t *bitmask;										/**< Buffer holding bitmask, if present. */
-	const uint8_t *allowable_data;								/**< Buffer holding list of allowable data. */
+	struct cfm_allowable_data_entry *allowable_data;			/**< List of allowable data entry containers. */
 };
 
 /**
  * Rules for performing attestation checks for a PMR measurement.
  */
 struct cfm_measurement_data {
-	void *context;												/**< Implementation context. */
 	uint8_t pmr_id;												/**< PMR ID. */
 	uint8_t measurement_id;										/**< Measurement ID. */
-	size_t check_count;											/**< Number of allowable data checks. */
-	struct cfm_allowable_data *check;							/**< List of allowable data check containers. */
+	size_t data_checks_count;									/**< Number of allowable data checks. */
+	struct cfm_allowable_data *data_checks;						/**< List of allowable data check containers. */
+};
+
+/**
+ * Combined measurement and measurement data container.
+ */
+struct cfm_measurement_container {
+	void *context;												/**< Implementation context.*/
+	union {
+		struct cfm_measurement_digest digest;					/**< Measurement digest container. */
+		struct cfm_measurement_data data;						/**< Measurement data container. */
+	} measurement;
+	enum cfm_measurement_type measurement_type;					/**< Measurement entry retrieved. */
 };
 
 /**
@@ -210,52 +246,38 @@ struct cfm {
 	void (*free_component_pmr_digest) (struct cfm *cfm, struct cfm_pmr_digest *pmr_digest);
 
 	/**
-	 * Find next measurement for the specified component ID.
+	 * Find the next Measurement Digest or Measurement Data for the specified component ID.  When
+	 * first is equal to true, this must return the Measurement information that will be used to
+	 * determine the current version set of Measurements.
+	 *
+	 * If free_measurement_container is called on a measurement, the next call to this function must
+	 * set first to true.  It is necessary to call free_measurement_container on the output
+	 * container before making another call with first set to true.  The exception is when a call
+	 * with first set to true fails.  In this case, free_measurement_container can still safely be
+	 * called, but is not strictly required.
 	 *
 	 * @param cfm The CFM to query.
-	 * @param component_id The component ID to find a measurement for.
-	 * @param pmr_measurement A container to be updated with the component measurement information.
+	 * @param component_id The component ID to find entry for.
+	 * @param container A container to be updated with the found component measurement information.
+	 *  Output will have either Measurement or Measurement Data, or neither if no entry is found.
 	 * 	If first is not true, then same container that was passed previously needs to be passed in.
 	 * 	Instances never passed to this function need to have first set to true.
-	 * @param first Fetch first PMR measurement from CFM, or next PMR measurement since last call.
+	 * @param first Fetch measurement or measurement data from CFM, or next since last call.
 	 *
-	 * @return 0 if the measurement was found or an error code. CFM_MEASUREMENT_NOT_FOUND is
-	 * 	returned when there are no more measurements for the specified component.
+	 * @return 0 if the Measurement or Measurement Data was found or an error code.
 	 */
-	int (*get_next_measurement) (struct cfm *cfm, uint32_t component_id,
-		struct cfm_measurement *pmr_measurement, bool first);
+	int (*get_next_measurement_or_measurement_data) (struct cfm *cfm, uint32_t component_id,
+		struct cfm_measurement_container *container, bool first);
 
 	/**
-	 * Free content within a measurement container.
+	 * Free content within a measurement container.  Calls to this function when a container has
+	 * already been freed are allowed.
 	 *
 	 * @param cfm The CFM instance that provided the measurement.
-	 * @param pmr_measurement The measurement container with content to free.
+	 * @param container The measurement container with content to free.
 	 */
-	void (*free_measurement) (struct cfm *cfm, struct cfm_measurement *pmr_measurement);
-
-	/**
-	 * Find next measurement data for the specified component type.
-	 *
-	 * @param cfm The CFM to query.
-	 * @param component_id The component ID to find a measurement data for.
-	 * @param measurement_data A container to be updated with the component measurement data
-	 * 	information.  If first is not true, then same container that was passed previously needs to
-	 * 	be passed in.  Instances never passed to this function need to have first set to true.
-	 * @param first Fetch first measurement data from CFM, or next measurement data since last call.
-	 *
-	 * @return 0 if the measurement data was found or an error code. CFM_MEASUREMENT_DATA_NOT_FOUND
-	 * 	is returned when there are no more measurement data for the specified component.
-	 */
-	int (*get_next_measurement_data) (struct cfm *cfm, uint32_t component_id,
-		struct cfm_measurement_data *measurement_data, bool first);
-
-	/**
-	 * Free content within a measurement data container.
-	 *
-	 * @param cfm The CFM instance that provided the measurement data.
-	 * @param measurement_data The measurement data container with content to free.
-	 */
-	void (*free_measurement_data) (struct cfm *cfm, struct cfm_measurement_data *measurement_data);
+	void (*free_measurement_container) (struct cfm *cfm,
+		struct cfm_measurement_container *container);
 
 	/**
 	 * Find root CA digest for the specified component ID.
@@ -281,6 +303,12 @@ struct cfm {
 	/**
 	 * Find next allowable PFM for the specified component ID.
 	 *
+	 * If free_manifest is called on a manifest container, the next call to this function must
+	 * set first to true.  It is necessary to call free_manifest on the output
+	 * container before making another call with first set to true.  The exception is when a call
+	 * with first set to true fails.  In this case, free_manifest can still safely be
+	 * called, but is not strictly required.
+	 *
 	 * @param cfm The CFM to query.
 	 * @param component_id The component ID to find allowable PFM for.
 	 * @param allowable_pfm A container to be updated with the component allowable PFM information.
@@ -295,6 +323,12 @@ struct cfm {
 
 	/**
 	 * Find next allowable CFM for the specified component ID.
+	 *
+	 * If free_manifest is called on a manifest container, the next call to this function must
+	 * set first to true.  It is necessary to call free_manifest on the output
+	 * container before making another call with first set to true.  The exception is when a call
+	 * with first set to true fails.  In this case, free_manifest can still safely be
+	 * called, but is not strictly required.
 	 *
 	 * @param cfm The CFM to query.
 	 * @param component_id The component ID to find allowable CFM for.
@@ -320,7 +354,8 @@ struct cfm {
 	int (*get_pcd) (struct cfm *cfm, uint32_t component_id, struct cfm_manifest *allowable_pcd);
 
 	/**
-	 * Free content within a manifest container.
+	 * Free content within a manifest container.  Calls to this function when a container has
+	 * already been freed are allowed.
 	 *
 	 * @param cfm The CFM instance that provided the manifest.
 	 * @param manifest The manifest container with content to free.
@@ -338,31 +373,30 @@ enum {
 	CFM_INVALID_ARGUMENT = CFM_ERROR (0x00),					/**< Input parameter is null or not valid. */
 	CFM_NO_MEMORY = CFM_ERROR (0x01),							/**< Memory allocation failed. */
 	CFM_PMR_DIGEST_NOT_FOUND = CFM_ERROR (0x02),				/**< CFM does not contain allowable PMR digests for PMR ID provided. */
-	CFM_MEASUREMENT_NOT_FOUND = CFM_ERROR (0x03),				/**< Could not find measurement for component type in CFM. */
-	CFM_MEASUREMENT_DATA_NOT_FOUND = CFM_ERROR (0x04),			/**< Could not find measurement data for component type in CFM. */
-	CFM_ROOT_CA_NOT_FOUND = CFM_ERROR (0x05),					/**< Could not find root CA digest for component type in CFM. */
-	CFM_ELEMENT_NOT_FOUND = CFM_ERROR (0x06),					/**< Could not find requested element for component type in CFM. */
-	CFM_PMR_NOT_FOUND = CFM_ERROR (0x07),						/**< CFM does not contain PMR for PMR ID provided. */
-	CFM_ELEMENT_MISSING_DIGESTS = CFM_ERROR (0x08),				/**< CFM element missing expected digests list. */
-	CFM_GET_COMP_DEVICE_FAIL = CFM_ERROR (0x09),				/**< Retrieving component device failed. */
-	CFM_BUFFER_SUPPORTED_COMP_FAIL = CFM_ERROR (0x0A),			/**< The list of supported components was not generated. */
-	CFM_GET_COMP_PMR_FAIL = CFM_ERROR (0x0B),					/**< Retrieving component PMR failed. */
-	CFM_GET_COMP_PMR_DIGEST_FAIL = CFM_ERROR (0x0C),			/**< Retrieving component PMR digest failed. */
-	CFM_GET_NEXT_MEASUREMENT_FAIL = CFM_ERROR (0x0D),			/**< Retrieving next allowable measurement failed. */
-	CFM_GET_NEXT_MEASUREMENT_DATA_FAIL = CFM_ERROR (0x0E),		/**< Retrieving next allowable measurement data failed. */
-	CFM_GET_ROOT_CA_DIGEST_FAIL = CFM_ERROR (0x0F),				/**< Retrieving list of root CA digests failed. */
-	CFM_GET_NEXT_PFM_FAIL = CFM_ERROR (0x10),					/**< Retrieving next allowable PFM failed. */
-	CFM_GET_NEXT_CFM_FAIL = CFM_ERROR (0x11),					/**< Retrieving next allowable CFM failed. */
-	CFM_GET_PCD_FAIL = CFM_ERROR (0x12),						/**< Retrieving allowable PCD failed. */
-	CFM_MALFORMED_COMPONENT_DEVICE_ELEMENT = CFM_ERROR (0x13),	/**< CFM Component Device element too short. */
-	CFM_MALFORMED_PMR_DIGEST_ELEMENT = CFM_ERROR (0x14),		/**< CFM PMR Digest element too short. */
-	CFM_MALFORMED_ALLOWABLE_DATA_ELEMENT = CFM_ERROR (0x15),	/**< CFM Allowable Data element too short. */
-	CFM_MALFORMED_ALLOWABLE_ID_ELEMENT = CFM_ERROR (0x16),		/**< CFM Allowable ID element too short. */
-	CFM_MALFORMED_PMR_ELEMENT = CFM_ERROR (0x17),				/**< CFM PMR element too short. */
-	CFM_MALFORMED_MEASUREMENT_ELEMENT = CFM_ERROR (0x18),		/**< CFM Measurement element too short. */
-	CFM_MALFORMED_MEASUREMENT_DATA_ELEMENT = CFM_ERROR (0x19),	/**< CFM Measurement Data element too short. */
-	CFM_MALFORMED_ROOT_CA_DIGESTS_ELEMENT = CFM_ERROR (0x20),	/**< CFM Root CA Digests element too short. */
-	CFM_MALFORMED_ALLOWABLE_PFM_ELEMENT = CFM_ERROR (0x21),		/**< CFM Allowable PFM element too short. */
+	CFM_ROOT_CA_NOT_FOUND = CFM_ERROR (0x03),					/**< Could not find root CA digest for component type in CFM. */
+	CFM_ENTRY_NOT_FOUND = CFM_ERROR (0x04),						/**< Could not find requested entry for component type in CFM. */
+	CFM_PMR_NOT_FOUND = CFM_ERROR (0x05),						/**< CFM does not contain PMR for PMR ID provided. */
+	CFM_ENTRY_MISSING_DIGESTS = CFM_ERROR (0x06),				/**< CFM entry missing expected digests list. */
+	CFM_GET_COMP_DEVICE_FAIL = CFM_ERROR (0x07),				/**< Retrieving component device failed. */
+	CFM_BUFFER_SUPPORTED_COMP_FAIL = CFM_ERROR (0x08),			/**< The list of supported components was not generated. */
+	CFM_GET_COMP_PMR_FAIL = CFM_ERROR (0x09),					/**< Retrieving component PMR failed. */
+	CFM_GET_COMP_PMR_DIGEST_FAIL = CFM_ERROR (0x0A),			/**< Retrieving component PMR digest failed. */
+	CFM_GET_NEXT_MEASUREMENT_FAIL = CFM_ERROR (0x0B),			/**< Retrieving next allowable measurement failed. */
+	CFM_GET_ROOT_CA_DIGEST_FAIL = CFM_ERROR (0x0C),				/**< Retrieving list of root CA digests failed. */
+	CFM_GET_NEXT_PFM_FAIL = CFM_ERROR (0x0D),					/**< Retrieving next allowable PFM failed. */
+	CFM_GET_NEXT_CFM_FAIL = CFM_ERROR (0x0E),					/**< Retrieving next allowable CFM failed. */
+	CFM_GET_PCD_FAIL = CFM_ERROR (0x0F),						/**< Retrieving allowable PCD failed. */
+	CFM_MALFORMED_COMPONENT_DEVICE_ENTRY = CFM_ERROR (0x10),	/**< CFM Component Device entry too short. */
+	CFM_MALFORMED_PMR_DIGEST_ENTRY = CFM_ERROR (0x11),			/**< CFM PMR Digest entry too short. */
+	CFM_MALFORMED_ALLOWABLE_DATA_ENTRY = CFM_ERROR (0x12),		/**< CFM Allowable Data entry too short. */
+	CFM_MALFORMED_ALLOWABLE_ID_ENTRY = CFM_ERROR (0x13),		/**< CFM Allowable ID entry too short. */
+	CFM_MALFORMED_PMR_ENTRY = CFM_ERROR (0x14),					/**< CFM PMR entry too short. */
+	CFM_MALFORMED_MEASUREMENT_ENTRY = CFM_ERROR (0x15),			/**< CFM Measurement entry too short. */
+	CFM_MALFORMED_MEASUREMENT_DATA_ENTRY = CFM_ERROR (0x16),	/**< CFM Measurement Data entry too short. */
+	CFM_MALFORMED_ROOT_CA_DIGESTS_ENTRY = CFM_ERROR (0x17),		/**< CFM Root CA Digests entry too short. */
+	CFM_MALFORMED_ALLOWABLE_PFM_ENTRY = CFM_ERROR (0x18),		/**< CFM Allowable PFM entry too short. */
+	CFM_INVALID_TRANSCRIPT_HASH_TYPE = CFM_ERROR (0x19),		/**< CFM transcript hash type is invalid. */
+	CFM_INVALID_MEASUREMENT_HASH_TYPE = CFM_ERROR (0x1A),		/**< CFM measurement hash type is invalid. */
 };
 
 

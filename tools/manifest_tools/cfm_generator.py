@@ -15,7 +15,6 @@ import manifest_common
 import manifest_parser
 from Crypto.PublicKey import RSA
 
-
 CFM_CONFIG_FILENAME = "cfm_generator.config"
 
 
@@ -205,16 +204,31 @@ def generate_measurements (xml_measurements, hash_engine, measurement_hash_type)
                     digest_len)
                 digests_len += digest_len
 
+            class cfm_allowable_digest_element (ctypes.LittleEndianStructure):
+                _pack_ = 1
+                _fields_ = [('version_set', ctypes.c_uint16),
+                            ('digest_count', ctypes.c_ubyte),
+                            ('reserved', ctypes.c_ubyte),
+                            ('digest', ctypes.c_ubyte * digests_len)]
+
+            # TODO: Derive version set based on digests across versions
+            allowable_digest = cfm_allowable_digest_element (0, num_digests, 0, digests_buf)
+            allowable_digest_len = ctypes.sizeof (allowable_digest)
+
+            allowable_digest_buf = (ctypes.c_ubyte * allowable_digest_len) ()
+            ctypes.memmove (ctypes.addressof (allowable_digest_buf),
+                ctypes.addressof (allowable_digest), allowable_digest_len)
+
             class cfm_measurement_element (ctypes.LittleEndianStructure):
                 _pack_ = 1
                 _fields_ = [('pmr_id', ctypes.c_ubyte),
                             ('measurement_id', ctypes.c_ubyte),
                             ('digest_count', ctypes.c_ubyte),
                             ('reserved', ctypes.c_ubyte),
-                            ('digests', ctypes.c_ubyte * digests_len)]
+                            ('digests_list', ctypes.c_ubyte * allowable_digest_len)]
 
-            measurement = cfm_measurement_element (pmr_id, measurement_id, num_digests, 0,
-                digests_buf)
+            measurement = cfm_measurement_element (pmr_id, measurement_id, 1, 0,
+                allowable_digest_buf)
             measurement_len = ctypes.sizeof (measurement)
 
             measurement_toc_entry = manifest_common.manifest_toc_entry (
@@ -253,37 +267,49 @@ def generate_measurement_data (xml_measurement_data, hash_engine):
 
     for pmr_id, pmr_entries_dict in xml_measurement_data.items ():
         for measurement_id, measurement_data_dict in pmr_entries_dict.items ():
-            data_len = measurement_data_dict["data_len"]
             allowable_data_list = []
             allowable_data_toc_list = []
             allowable_data_hash_list = []
             allowable_data_len = 0
 
             for group in measurement_data_dict["allowable_data"]:
-                manifest_common.check_maximum (data_len, 255,
-                    "PMR {0} measurement {1} data length".format (pmr_id, measurement_id))
                 num_data = len (group["data"])
-                data_buf_len = num_data * data_len
+                total_data_len = 0
                 data_list = []
+                data_list_buf = []
 
                 for data in group["data"]:
-                    data_list.append ((ctypes.c_ubyte * data_len).from_buffer_copy (data))
+                    data_len = len (data)
+                    manifest_common.check_maximum (data_len, 255,
+                        "PMR {0} measurement {1} data length".format (pmr_id, measurement_id))
+                    data_padding, data_padding_len = manifest_common.generate_4byte_padding_buf (
+                        data_len)
 
-                data_buf = (ctypes.c_ubyte * data_buf_len) ()
-                data_buf_len = manifest_common.move_list_to_buffer (data_buf, 0, data_list)
-                data_padding, data_padding_len = manifest_common.generate_4byte_padding_buf (
-                    data_buf_len)
+                    data_buf = (ctypes.c_ubyte * data_len).from_buffer_copy (data)
+                    data_buf_len = ctypes.sizeof (data_buf)
 
-                reserved_buf = (ctypes.c_ubyte * 3) ()
-                ctypes.memset (reserved_buf, 0, ctypes.sizeof (ctypes.c_ubyte) * 3)
+                    class cfm_allowable_data_element_entry (ctypes.LittleEndianStructure):
+                        _pack_ = 1
+                        _fields_ = [('version_set', ctypes.c_uint16),
+                                    ('data_length', ctypes.c_uint16),
+                                    ('data', ctypes.c_ubyte * data_buf_len),
+                                    ('data_padding', ctypes.c_ubyte * data_padding_len)]
+
+                    # TODO: Derive version set based on measurements across versions
+                    data_entry = cfm_allowable_data_element_entry (0, data_len, data_buf, data_padding)
+                    data_list.append (data_entry)
+                    total_data_len += ctypes.sizeof (data_entry)
 
                 check = manifest_common.get_key_from_dict (group, "check", "Measurement Data")
 
                 endianness = manifest_common.get_key_from_dict (group, "endianness",
                     "Measurement Data")
 
+                data_list_buf = (ctypes.c_ubyte * total_data_len) ()
+                manifest_common.move_list_to_buffer (data_list_buf, 0, data_list)
+
                 if "bitmask" in group:
-                    bitmask_len = data_len
+                    bitmask_len = group["bitmask_length"]
                     bitmask_padding, bitmask_padding_len = \
                         manifest_common.generate_4byte_padding_buf (bitmask_len)
 
@@ -291,36 +317,29 @@ def generate_measurement_data (xml_measurement_data, hash_engine):
 
                     class cfm_allowable_data_element (ctypes.LittleEndianStructure):
                         _pack_ = 1
-                        _fields_ = [('reserved', ctypes.c_uint8, 6),
-                                    ('bitmask_presence', ctypes.c_uint8, 1),
+                        _fields_ = [('check', ctypes.c_uint8, 3),
+                                    ('reserved', ctypes.c_uint8, 4),
                                     ('endianness', ctypes.c_uint8, 1),
-                                    ('check', ctypes.c_uint8),
                                     ('num_data', ctypes.c_uint8),
-                                    ('data_len', ctypes.c_uint16),
-                                    ('reserved2', ctypes.c_ubyte * 3),
+                                    ('bitmask_length', ctypes.c_uint16),
                                     ('data_bitmask', ctypes.c_ubyte * bitmask_len),
                                     ('data_bitmask_padding', ctypes.c_ubyte * bitmask_padding_len),
-                                    ('data', ctypes.c_ubyte * data_buf_len),
-                                    ('data_padding', ctypes.c_ubyte * data_padding_len)]
+                                    ('data', ctypes.c_ubyte * total_data_len)]
 
-                    allowable_data = cfm_allowable_data_element (0, 1, endianness, check, num_data,
-                        data_len, reserved_buf, bitmask_arr, bitmask_padding, data_buf,
-                        data_padding)
+                    allowable_data = cfm_allowable_data_element (check, 0, endianness, num_data,
+                        bitmask_len, bitmask_arr, bitmask_padding, data_list_buf)
                 else:
                     class cfm_allowable_data_element (ctypes.LittleEndianStructure):
                         _pack_ = 1
-                        _fields_ = [('reserved', ctypes.c_uint8, 6),
-                                    ('bitmask_presence', ctypes.c_uint8, 1),
+                        _fields_ = [('check', ctypes.c_uint8, 3),
+                                    ('reserved', ctypes.c_uint8, 4),
                                     ('endianness', ctypes.c_uint8, 1),
-                                    ('check', ctypes.c_uint8),
                                     ('num_data', ctypes.c_uint8),
-                                    ('data_len', ctypes.c_uint16),
-                                    ('reserved2', ctypes.c_ubyte * 3),
-                                    ('data', ctypes.c_ubyte * data_buf_len),
-                                    ('data_padding', ctypes.c_ubyte * data_padding_len)]
+                                    ('bitmask_length', ctypes.c_uint16),
+                                    ('data', ctypes.c_ubyte * total_data_len)]
 
-                    allowable_data = cfm_allowable_data_element (0, 0, endianness, check, num_data,
-                        data_len, reserved_buf, data_buf, data_padding)
+                    allowable_data = cfm_allowable_data_element (check, 0, endianness, num_data, 0,
+                        data_list_buf)
 
                 allowable_data_len = ctypes.sizeof (allowable_data)
                 measurement_data_buf_len += allowable_data_len
@@ -382,6 +401,9 @@ def generate_allowable_manifest (xml_list, hash_engine, index, manifest_type, ma
         check = manifest_common.get_key_from_dict (manifest_id, "check",
             "Allowable {0}".format (manifest_type))
 
+        endianness = manifest_common.get_key_from_dict (manifest_id, "endianness",
+            "Measurement Data")
+
         for id in manifest_id["ids"]:
             ids.append (ctypes.c_uint32 (id))
 
@@ -390,12 +412,14 @@ def generate_allowable_manifest (xml_list, hash_engine, index, manifest_type, ma
 
         class cfm_allowable_id_element (ctypes.LittleEndianStructure):
             _pack_ = 1
-            _fields_ = [('check', ctypes.c_uint8),
+            _fields_ = [('check', ctypes.c_uint8, 3),
+                        ('reserved', ctypes.c_uint8, 4),
+                        ('endianness', ctypes.c_uint8, 1),
                         ('num_id', ctypes.c_uint8),
                         ('reserved', ctypes.c_uint16),
                         ('ids', ctypes.c_uint32 * num_id)]
 
-        curr_manifest_id = cfm_allowable_id_element (check, num_id, 0, ids_buf)
+        curr_manifest_id = cfm_allowable_id_element (check, 0, endianness, num_id, 0, ids_buf)
         curr_manifest_id_len = ctypes.sizeof (curr_manifest_id)
         allowable_manifest_buf_len += curr_manifest_id_len
         allowable_manifest_list.append (curr_manifest_id)
@@ -652,7 +676,7 @@ if not empty:
             component_toc_list.extend (pmr_digests_toc_list)
             component_hash_list.extend (pmr_digests_hash_list)
 
-        if "measurements" in component_dict:
+        if (component_dict["unique"] == 0) and ("measurements" in component_dict):
             measurements, num_measurements, measurements_toc_list, measurements_hash_list = \
                 generate_measurements (component_dict["measurements"], hash_engine,
                     component_dict["measurement_hash_type"])
@@ -671,6 +695,16 @@ if not empty:
             component_elements_list.append (measurement_data)
             component_toc_list.extend (measurement_data_toc_list)
             component_hash_list.extend (measurement_data_hash_list)
+
+        if (component_dict["unique"] == 1) and ("measurements" in component_dict):
+            measurements, num_measurements, measurements_toc_list, measurements_hash_list = \
+                generate_measurements (component_dict["measurements"], hash_engine,
+                    component_dict["measurement_hash_type"])
+
+            cfm_len += ctypes.sizeof (measurements)
+            component_elements_list.append (measurements)
+            component_toc_list.extend (measurements_toc_list)
+            component_hash_list.extend (measurements_hash_list)
 
         if "allowable_pfm" in component_dict:
             allowable_pfm, num_allowable_pfm, allowable_pfm_toc_list, allowable_pfm_hash_list = \

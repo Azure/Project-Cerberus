@@ -333,14 +333,14 @@ int32_t visualize_toc (uint8_t *start)
 	return (pointer - start);
 }
 
-int32_t visualize_pcd_rot_element (uint8_t *start, const char* prefix)
+int32_t visualize_pcd_rot_element (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct pcd_rot_element *rot = (struct pcd_rot_element*) pointer;
 
 	pointer += sizeof (struct pcd_rot_element);
 
-	printf ("%spcd_rot_element\n", prefix);
+	printf ("%spcd_rot_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\trot_flags: 0x%x\n", prefix, rot->rot_flags);
 	printf ("%s\tport_count: %i\n", prefix, rot->port_count);
@@ -369,14 +369,14 @@ int32_t visualize_pcd_rot_element (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_pcd_port_element (uint8_t *start, const char* prefix)
+int32_t visualize_pcd_port_element (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct pcd_port_element *port = (struct pcd_port_element*) pointer;
 
 	pointer += sizeof (struct pcd_port_element);
 
-	printf ("%spcd_port_element\n", prefix);
+	printf ("%spcd_port_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tport_id: %i\n", prefix, port->port_id);
 	printf ("%s\tport_flags: 0x%x\n", prefix, port->port_flags);
@@ -388,7 +388,7 @@ int32_t visualize_pcd_port_element (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_pcd_power_controller_element (uint8_t *start, const char* prefix)
+int32_t visualize_pcd_power_controller_element (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct pcd_power_controller_element *power_controller =
@@ -396,7 +396,7 @@ int32_t visualize_pcd_power_controller_element (uint8_t *start, const char* pref
 
 	pointer += sizeof (struct pcd_power_controller_element);
 
-	printf ("%spcd_power_controller_element\n", prefix);
+	printf ("%spcd_power_controller_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tmux_count: %i\n", prefix, power_controller->i2c.mux_count);
 	printf ("%s\ti2c_flags: 0x%x\n", prefix, power_controller->i2c.i2c_flags);
@@ -425,7 +425,7 @@ int32_t visualize_pcd_power_controller_element (uint8_t *start, const char* pref
 	return (pointer - start);
 }
 
-int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char* prefix)
+int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct pcd_component_common *component = (struct pcd_component_common*) pointer;
@@ -433,7 +433,7 @@ int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char* 
 
 	pointer += (sizeof (struct pcd_component_common));
 
-	printf ("%spcd_direct_i2c_component_element\n", prefix);
+	printf ("%spcd_direct_i2c_component_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tpolicy: 0x%x\n", prefix, component->policy);
 	printf ("%s\tpower_ctrl_reg: 0x%x\n", prefix, component->power_ctrl_reg);
@@ -471,7 +471,7 @@ int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char* 
 	return (pointer - start);
 }
 
-int32_t visualize_pcd_mctp_bridge_component_element (uint8_t *start, const char* prefix)
+int32_t visualize_pcd_mctp_bridge_component_element (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct pcd_component_common *component = (struct pcd_component_common*) pointer;
@@ -479,7 +479,7 @@ int32_t visualize_pcd_mctp_bridge_component_element (uint8_t *start, const char*
 
 	pointer += (sizeof (struct pcd_component_common));
 
-	printf ("%spcd_mctp_bridge_component_element\n", prefix);
+	printf ("%spcd_mctp_bridge_component_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tpolicy: 0x%x\n", prefix, component->policy);
 	printf ("%s\tpower_ctrl_reg: 0x%x\n", prefix, component->power_ctrl_reg);
@@ -503,7 +503,7 @@ int32_t visualize_pcd_mctp_bridge_component_element (uint8_t *start, const char*
 	return (pointer - start);
 }
 
-int32_t visualize_platform_id (uint8_t *start, const char *prefix)
+int32_t visualize_platform_id (uint8_t *start, const char *prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct manifest_platform_id *platform_id = (struct manifest_platform_id*) pointer;
@@ -512,7 +512,7 @@ int32_t visualize_platform_id (uint8_t *start, const char *prefix)
 
 	pointer += sizeof (struct manifest_platform_id);
 
-	printf ("%smanifest_platform_id\n", prefix);
+	printf ("%smanifest_platform_id (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tid_length: %i\n", prefix, platform_id->id_length);
 	printf ("%s\treserved1: %i\n", prefix, platform_id->reserved[0]);
@@ -539,26 +539,26 @@ int32_t visualize_platform_id (uint8_t *start, const char *prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_common_element (uint8_t type, uint8_t *pointer, const char *prefix)
+int32_t visualize_common_element (uint8_t type, uint8_t *pointer, const char *prefix, int entry)
 {
 	switch (type) {
 		case MANIFEST_PLATFORM_ID:
-			return visualize_platform_id (pointer, prefix);
+			return visualize_platform_id (pointer, prefix, entry);
 
 		default:
-			printf ("Unsupported element type: 0x%x\n", type);
+			printf ("Unsupported element type: 0x%x (Entry %d)\n", type, entry);
 			return -1;
 	}
 }
 
-int32_t visualize_pfm_flash_device_element (uint8_t *start, const char* prefix)
+int32_t visualize_pfm_flash_device_element (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct pfm_flash_device_element *flash_device = (struct pfm_flash_device_element*) pointer;
 
 	pointer += sizeof (struct pfm_flash_device_element);
 
-	printf ("%spfm_flash_device_element\n", prefix);
+	printf ("%spfm_flash_device_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tblank_byte: 0x%x\n", prefix, flash_device->blank_byte);
 	printf ("%s\tfw_count: %i\n", prefix, flash_device->fw_count);
@@ -568,7 +568,7 @@ int32_t visualize_pfm_flash_device_element (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_pfm_fw_element (uint8_t *start, const char* prefix)
+int32_t visualize_pfm_fw_element (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct pfm_firmware_element *fw = (struct pfm_firmware_element*) pointer;
@@ -577,7 +577,7 @@ int32_t visualize_pfm_fw_element (uint8_t *start, const char* prefix)
 
 	pointer += (sizeof (struct pfm_firmware_element) - MANIFEST_MAX_STRING);
 
-	printf ("%spfm_firmware_element\n", prefix);
+	printf ("%spfm_firmware_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tversion_count: %i\n", prefix, fw->version_count);
 	printf ("%s\tid_length: %i\n", prefix, fw->id_length);
@@ -604,7 +604,7 @@ int32_t visualize_pfm_fw_element (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
+int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct pfm_firmware_version_element *version = (struct pfm_firmware_version_element*) pointer;
@@ -613,7 +613,7 @@ int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
 
 	pointer += (sizeof (struct pfm_firmware_version_element) - MANIFEST_MAX_STRING);
 
-	printf ("%spfm_firmware_version_element\n", prefix);
+	printf ("%spfm_firmware_version_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\timg_count: %i\n", prefix, version->img_count);
 	printf ("%s\trw_count: %i\n", prefix, version->rw_count);
@@ -738,7 +738,7 @@ int32_t visualize_pfm_fw_version_element (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_component_device (uint8_t *start, const char* prefix,
+int32_t visualize_cfm_component_device (uint8_t *start, const char* prefix, int entry,
 	uint8_t *measurement_hash_type)
 {
 	uint8_t *pointer = start;
@@ -746,7 +746,7 @@ int32_t visualize_cfm_component_device (uint8_t *start, const char* prefix,
 
 	pointer += sizeof (struct cfm_component_device_element);
 
-	printf ("%scfm_component_device_element\n", prefix);
+	printf ("%scfm_component_device_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tcert_slot: %i\n", prefix, device->cert_slot);
 	printf ("%s\tattestation_protocol: %i\n", prefix, device->attestation_protocol);
@@ -763,7 +763,8 @@ int32_t visualize_cfm_component_device (uint8_t *start, const char* prefix,
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_pmr_digest (uint8_t *start, const char* prefix, uint8_t measurement_hash_type)
+int32_t visualize_cfm_pmr_digest (uint8_t *start, const char* prefix, int entry,
+	uint8_t measurement_hash_type)
 {
 	uint8_t *pointer = start;
 	struct cfm_pmr_digest_element *pmr_digest = (struct cfm_pmr_digest_element*) pointer;
@@ -771,7 +772,7 @@ int32_t visualize_cfm_pmr_digest (uint8_t *start, const char* prefix, uint8_t me
 
 	pointer += sizeof (struct cfm_pmr_digest_element);
 
-	printf ("%scfm_pmr_digest_element\n", prefix);
+	printf ("%scfm_pmr_digest_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tpmr_id: %i\n", prefix, pmr_digest->pmr_id);
 	printf ("%s\tdigest_count: %i\n", prefix, pmr_digest->digest_count);
@@ -819,20 +820,22 @@ int32_t visualize_cfm_pmr_digest (uint8_t *start, const char* prefix, uint8_t me
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_measurement (uint8_t *start, const char* prefix,
+int32_t visualize_cfm_measurement (uint8_t *start, const char* prefix, int entry,
 	uint8_t measurement_hash_type)
 {
 	uint8_t *pointer = start;
 	struct cfm_measurement_element *measurement = (struct cfm_measurement_element*) pointer;
+	struct cfm_allowable_digest_element *allowable_digest =
+		(struct cfm_allowable_digest_element *) (pointer + sizeof (struct cfm_measurement_element));
 	int hash_len;
 
 	pointer += sizeof (struct cfm_measurement_element);
 
-	printf ("%scfm_measurement_element\n", prefix);
+	printf ("%scfm_measurement_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tpmr_id: %i\n", prefix, measurement->pmr_id);
 	printf ("%s\tmeasurement_id: %i\n", prefix, measurement->measurement_id);
-	printf ("%s\tdigest_count: %i\n", prefix, measurement->digest_count);
+	printf ("%s\tallowable_digest_count: %i\n", prefix, measurement->allowable_digest_count);
 	printf ("%s\treserved: %i\n", prefix, measurement->reserved);
 
 	switch (measurement_hash_type) {
@@ -856,19 +859,33 @@ int32_t visualize_cfm_measurement (uint8_t *start, const char* prefix,
 	printf ("%s\tHashes:\n", prefix);
 	printf ("%s\t[\n", prefix);
 
-	for (int i = 0; i < measurement->digest_count; ++i) {
-		printf ("%s\t\t{", prefix);
+	for (int i = 0; i < measurement->allowable_digest_count; ++i) {
+		printf ("%s\t\t{\n", prefix);
 
-		for (int j = 0; j < hash_len; ++j, ++pointer)
-		{
-			if ((j % 32) == 0)
+		printf ("%s\t\t\tversion_set: %i\n", prefix, allowable_digest->version_set);
+		printf ("%s\t\t\tdigest_count: %i\n", prefix, allowable_digest->digest_count);
+		printf ("%s\t\t\treserved: %i\n", prefix, allowable_digest->reserved);
+
+		pointer += sizeof (struct cfm_allowable_digest_element);
+
+		for (int j = 0; j < allowable_digest->digest_count; j++) {
+			printf ("%s\t\t\t{", prefix);
+
+			for (int k = 0; k < hash_len; ++k, ++pointer)
 			{
-				printf ("%s\n\t\t\t", prefix);
+				if ((k % 32) == 0)
+				{
+					printf ("%s\n\t\t\t\t", prefix);
+				}
+
+				printf ("%02x", *pointer);
 			}
 
-			printf ("%02x", *pointer);
+			printf ("%s\n\t\t\t}\n", prefix);
 		}
-		printf ("%s\n\t\t}\n", prefix);
+
+		allowable_digest += sizeof (struct cfm_allowable_digest_element) +
+			(allowable_digest->digest_count * hash_len);
 	}
 
 	printf ("%s\t]\n", prefix);
@@ -877,7 +894,7 @@ int32_t visualize_cfm_measurement (uint8_t *start, const char* prefix,
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_measurement_data (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_measurement_data (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct cfm_measurement_data_element *measurement_data =
@@ -885,7 +902,7 @@ int32_t visualize_cfm_measurement_data (uint8_t *start, const char* prefix)
 
 	pointer += sizeof (struct cfm_measurement_data_element);
 
-	printf ("%scfm_measurement_data_element\n", prefix);
+	printf ("%scfm_measurement_data_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tpmr_id: %i\n", prefix, measurement_data->pmr_id);
 	printf ("%s\tmeasurement_id: %i\n", prefix, measurement_data->measurement_id);
@@ -895,32 +912,29 @@ int32_t visualize_cfm_measurement_data (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_allowable_data (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_allowable_data (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct cfm_allowable_data_element *allowable_data =
 		(struct cfm_allowable_data_element*) pointer;
-	int total_data_len = 0;
+	struct cfm_allowable_data_element_entry *allowable_data_entry;
+	int entry_len = 0;
 
 	pointer += sizeof (struct cfm_allowable_data_element);
 
-	printf ("%scfm_allowable_data_element\n", prefix);
+	printf ("%scfm_allowable_data_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
-	printf ("%s\treserved: %i\n", prefix, allowable_data->reserved);
-	printf ("%s\tbitmask_presence: %i\n", prefix, allowable_data->bitmask_presence);
-	printf ("%s\tendianness: %i\n", prefix, allowable_data->endianness);
-	printf ("%s\tcheck: %i\n", prefix, allowable_data->check);
+	printf ("%s\tcheck: %i\n", prefix, allowable_data->check.check);
+	printf ("%s\treserved: %i\n", prefix, allowable_data->check.reserved);
+	printf ("%s\tendianness: %i\n", prefix, allowable_data->check.endianness);
 	printf ("%s\tnum_data: %i\n", prefix, allowable_data->num_data);
-	printf ("%s\tdata_len: %i\n", prefix, allowable_data->data_len);
-	printf ("%s\treserved2[0]: %i\n", prefix, allowable_data->reserved2[0]);
-	printf ("%s\treserved2[1]: %i\n", prefix, allowable_data->reserved2[1]);
-	printf ("%s\treserved2[2]: %i\n", prefix, allowable_data->reserved2[2]);
+	printf ("%s\tbitmask_length: %i\n", prefix, allowable_data->bitmask_length);
 
-	if (allowable_data->bitmask_presence) {
+	if (allowable_data->bitmask_length) {
 		printf ("%s\tBitmask:\n", prefix);
 		printf ("%s\t{", prefix);
 
-		for (int i = 0; i < allowable_data->data_len; ++i, ++pointer)
+		for (int i = 0; i < allowable_data->bitmask_length; ++i, ++pointer)
 		{
 			if ((i % 32) == 0)
 			{
@@ -930,32 +944,43 @@ int32_t visualize_cfm_allowable_data (uint8_t *start, const char* prefix)
 			printf ("%02x", *pointer);
 		}
 
-		pointer += ((((size_t) allowable_data->data_len + 3) &
-			~((size_t) 3)) - allowable_data->data_len);
+		pointer += ((((size_t) allowable_data->bitmask_length + 3) &
+			~((size_t) 3)) - allowable_data->bitmask_length);
 
 		printf ("\n\t}\n");
 	}
 
-	printf ("%s\tData:\n", prefix);
+	printf ("%s\tdata_list:\n", prefix);
 	printf ("%s\t[\n", prefix);
 
 	for (int i = 0; i < allowable_data->num_data; ++i) {
-		printf ("%s\t\t{", prefix);
+		allowable_data_entry = (struct cfm_allowable_data_element_entry*) pointer;
 
-		for (int j = 0; j < allowable_data->data_len; ++j, ++pointer, ++total_data_len)
+		printf ("%s\t\t{\n", prefix);
+
+		printf ("%s\t\t\tversion set: %i\n", prefix, allowable_data_entry->version_set);
+		printf ("%s\t\t\tdata_length: %i\n", prefix, allowable_data_entry->data_length);
+
+		pointer += sizeof (struct cfm_allowable_data_element_entry);
+		entry_len = sizeof (struct cfm_allowable_data_element_entry);
+
+		printf ("%s\t\t\tData:\n", prefix);
+		printf ("%s\t\t\t{", prefix);
+		for (int j = 0; j < allowable_data_entry->data_length; ++j, ++pointer, ++entry_len)
 		{
 			if ((j % 32) == 0)
 			{
-				printf ("%s\n\t\t\t", prefix);
+				printf ("%s\n\t\t\t\t", prefix);
 			}
 
 			printf ("%02x", *pointer);
 		}
 
+		pointer += ((((size_t) entry_len + 3) & ~((size_t) 3)) - entry_len);
+
+		printf ("\n\t\t\t}\n");
 		printf ("\n\t\t}\n");
 	}
-
-	pointer += ((((size_t) total_data_len + 3) & ~((size_t) 3)) - total_data_len);
 
 	printf ("%s\t]\n", prefix);
 	printf ("%s}\n", prefix);
@@ -972,7 +997,7 @@ int32_t visualize_cfm_allowable_manifest (uint8_t *start, const char* prefix)
 
 	pointer += (sizeof (struct cfm_allowable_manifest) - MANIFEST_MAX_STRING);
 
-	printf ("%scfm_allowable_manifest:\n", prefix);
+	printf ("%scfm_allowable_manifest\n", prefix);
 	printf ("%s{\n", prefix);
 	printf ("%s\tplatform_id_len: %i\n", prefix, allowable_manifest->platform_id_len);
 
@@ -996,14 +1021,14 @@ int32_t visualize_cfm_allowable_manifest (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_allowable_pfm (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_allowable_pfm (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct cfm_allowable_pfm_element *pfm = (struct cfm_allowable_pfm_element*) pointer;
 
 	pointer += (sizeof (struct cfm_allowable_pfm_element) - sizeof (struct cfm_allowable_manifest));
 
-	printf ("%scfm_allowable_pfm_element:\n", prefix);
+	printf ("%scfm_allowable_pfm_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tport_id: %i\n", prefix, pfm->port_id);
 
@@ -1014,14 +1039,14 @@ int32_t visualize_cfm_allowable_pfm (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_allowable_cfm (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_allowable_cfm (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct cfm_allowable_cfm_element *cfm = (struct cfm_allowable_cfm_element*) pointer;
 
 	pointer += (sizeof (struct cfm_allowable_cfm_element) - sizeof (struct cfm_allowable_manifest));
 
-	printf ("%scfm_allowable_cfm_element:\n", prefix);
+	printf ("%scfm_allowable_cfm_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tindex: %i\n", prefix, cfm->index);
 
@@ -1032,14 +1057,14 @@ int32_t visualize_cfm_allowable_cfm (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_allowable_pcd (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_allowable_pcd (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	struct cfm_allowable_pcd_element *pcd = (struct cfm_allowable_pcd_element*) pointer;
 
 	pointer += (sizeof (struct cfm_allowable_pcd_element) - sizeof (struct cfm_allowable_manifest));
 
-	printf ("%scfm_allowable_pcd_element:\n", prefix);
+	printf ("%scfm_allowable_pcd_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\treserved: %i\n", prefix, pcd->reserved);
 
@@ -1050,7 +1075,7 @@ int32_t visualize_cfm_allowable_pcd (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_allowable_id (uint8_t *start, const char* prefix)
+int32_t visualize_cfm_allowable_id (uint8_t *start, const char* prefix, int entry)
 {
 	uint8_t *pointer = start;
 	uint32_t *id;
@@ -1058,9 +1083,11 @@ int32_t visualize_cfm_allowable_id (uint8_t *start, const char* prefix)
 
 	pointer += sizeof (struct cfm_allowable_id_element);
 
-	printf ("%scfm_allowable_id_element\n", prefix);
+	printf ("%scfm_allowable_id_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
-	printf ("%s\tcheck: %i\n", prefix, allowable_id->check);
+	printf ("%s\tcheck: %i\n", prefix, allowable_id->check.check);
+	printf ("%s\treserved: %i\n", prefix, allowable_id->check.reserved);
+	printf ("%s\tendianness: %i\n", prefix, allowable_id->check.endianness);
 	printf ("%s\tnum_id: %i\n", prefix, allowable_id->num_id);
 	printf ("%s\treserved: %i\n", prefix, allowable_id->reserved);
 
@@ -1078,7 +1105,7 @@ int32_t visualize_cfm_allowable_id (uint8_t *start, const char* prefix)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_root_ca_digests (uint8_t *start, const char* prefix,
+int32_t visualize_cfm_root_ca_digests (uint8_t *start, const char* prefix, int entry,
 	uint8_t measurement_hash_type)
 {
 	uint8_t *pointer = start;
@@ -1088,7 +1115,7 @@ int32_t visualize_cfm_root_ca_digests (uint8_t *start, const char* prefix,
 
 	pointer += sizeof (struct cfm_root_ca_digests_element);
 
-	printf ("%scfm_root_ca_digests_element\n", prefix);
+	printf ("%scfm_root_ca_digests_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tca_count: %i\n", prefix, root_ca_digests->ca_count);
 	printf ("%s\treserved[0]: %i\n", prefix, root_ca_digests->reserved[0]);
@@ -1137,7 +1164,8 @@ int32_t visualize_cfm_root_ca_digests (uint8_t *start, const char* prefix,
 	return (pointer - start);
 }
 
-int32_t visualize_cfm_pmr (uint8_t *start, const char* prefix, uint8_t measurement_hash_type)
+int32_t visualize_cfm_pmr (uint8_t *start, const char* prefix, int entry,
+	uint8_t measurement_hash_type)
 {
 	uint8_t *pointer = start;
 	struct cfm_pmr_element *pmr = (struct cfm_pmr_element*) pointer;
@@ -1145,7 +1173,7 @@ int32_t visualize_cfm_pmr (uint8_t *start, const char* prefix, uint8_t measureme
 
 	pointer += (sizeof (struct cfm_pmr_element) - SHA512_HASH_LENGTH);
 
-	printf ("%scfm_pmr_element\n", prefix);
+	printf ("%scfm_pmr_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
 	printf ("%s\tpmr_id: %i\n", prefix, pmr->pmr_id);
 	printf ("%s\treserved[0]: %i\n", prefix, pmr->reserved[0]);
@@ -1183,7 +1211,7 @@ int32_t visualize_cfm_pmr (uint8_t *start, const char* prefix, uint8_t measureme
 		printf ("%02x", *pointer);
 	}
 	printf ("%s\n\t}\n", prefix);
-	printf ("%s\n}\n", prefix);
+	printf ("%s}\n", prefix);
 
 	return (pointer - start);
 }
@@ -1203,19 +1231,19 @@ int32_t visualize_pfm (uint8_t *start)
 	for (int i = 0; i < entry_count; ++i) {
 		switch (element_types[i]) {
 			case PFM_FLASH_DEVICE:
-				offset = visualize_pfm_flash_device_element (pointer, "");
+				offset = visualize_pfm_flash_device_element (pointer, "", i);
 				break;
 
 			case PFM_FIRMWARE:
-				offset = visualize_pfm_fw_element (pointer, "");
+				offset = visualize_pfm_fw_element (pointer, "", i);
 				break;
 
 			case PFM_FIRMWARE_VERSION:
-				offset = visualize_pfm_fw_version_element (pointer, "");
+				offset = visualize_pfm_fw_version_element (pointer, "", i);
 				break;
 
 			default:
-				offset = visualize_common_element (element_types[i], pointer, "");
+				offset = visualize_common_element (element_types[i], pointer, "", i);
 				break;
 		}
 
@@ -1245,51 +1273,51 @@ int32_t visualize_cfm (uint8_t *start)
 	for (int i = 0; i < entry_count; ++i) {
 		switch (element_types[i]) {
 			case CFM_COMPONENT_DEVICE:
-				offset = visualize_cfm_component_device (pointer, "", &measurement_hash_type);
+				offset = visualize_cfm_component_device (pointer, "", i, &measurement_hash_type);
 				break;
 
 			case CFM_PMR_DIGEST:
-				offset = visualize_cfm_pmr_digest (pointer, "", measurement_hash_type);
+				offset = visualize_cfm_pmr_digest (pointer, "", i, measurement_hash_type);
 				break;
 
 			case CFM_MEASUREMENT:
-				offset = visualize_cfm_measurement (pointer, "", measurement_hash_type);
+				offset = visualize_cfm_measurement (pointer, "", i, measurement_hash_type);
 				break;
 
 			case CFM_MEASUREMENT_DATA:
-				offset = visualize_cfm_measurement_data (pointer, "");
+				offset = visualize_cfm_measurement_data (pointer, "", i);
 				break;
 
 			case CFM_ALLOWABLE_DATA:
-				offset = visualize_cfm_allowable_data (pointer, "");
+				offset = visualize_cfm_allowable_data (pointer, "", i);
 				break;
 
 			case CFM_ALLOWABLE_PFM:
-				offset = visualize_cfm_allowable_pfm (pointer, "");
+				offset = visualize_cfm_allowable_pfm (pointer, "", i);
 				break;
 
 			case CFM_ALLOWABLE_CFM:
-				offset = visualize_cfm_allowable_cfm (pointer, "");
+				offset = visualize_cfm_allowable_cfm (pointer, "", i);
 				break;
 
 			case CFM_ALLOWABLE_PCD:
-				offset = visualize_cfm_allowable_pcd (pointer, "");
+				offset = visualize_cfm_allowable_pcd (pointer, "", i);
 				break;
 
 			case CFM_ALLOWABLE_ID:
-				offset = visualize_cfm_allowable_id (pointer, "");
+				offset = visualize_cfm_allowable_id (pointer, "", i);
 				break;
 
 			case CFM_ROOT_CA:
-				offset = visualize_cfm_root_ca_digests (pointer, "", measurement_hash_type);
+				offset = visualize_cfm_root_ca_digests (pointer, "", i, measurement_hash_type);
 				break;
 
 			case CFM_PMR:
-				offset = visualize_cfm_pmr (pointer, "", measurement_hash_type);
+				offset = visualize_cfm_pmr (pointer, "", i, measurement_hash_type);
 				break;
 
 			default:
-				offset = visualize_common_element (element_types[i], pointer, "");
+				offset = visualize_common_element (element_types[i], pointer, "", i);
 				break;
 		}
 
@@ -1318,27 +1346,27 @@ int32_t visualize_pcd (uint8_t *start)
 	for (int i = 0; i < entry_count; ++i) {
 		switch (element_types[i]) {
 			case PCD_ROT:
-				offset = visualize_pcd_rot_element (pointer, "");
+				offset = visualize_pcd_rot_element (pointer, "", i);
 				break;
 
 			case PCD_SPI_FLASH_PORT:
-				offset = visualize_pcd_port_element (pointer, "");
+				offset = visualize_pcd_port_element (pointer, "", i);
 				break;
 
 			case PCD_POWER_CONTROLLER:
-				offset = visualize_pcd_power_controller_element (pointer, "");
+				offset = visualize_pcd_power_controller_element (pointer, "", i);
 				break;
 
 			case PCD_COMPONENT_DIRECT:
-				offset = visualize_pcd_direct_i2c_component_element (pointer, "");
+				offset = visualize_pcd_direct_i2c_component_element (pointer, "", i);
 				break;
 
 			case PCD_COMPONENT_MCTP_BRIDGE:
-				offset = visualize_pcd_mctp_bridge_component_element (pointer, "");
+				offset = visualize_pcd_mctp_bridge_component_element (pointer, "", i);
 				break;
 
 			default:
-				offset = visualize_common_element (element_types[i], pointer, "");
+				offset = visualize_common_element (element_types[i], pointer, "", i);
 				break;
 		}
 

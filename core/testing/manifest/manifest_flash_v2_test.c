@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
-#include <stdio.h> // TODO rm
+
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -722,128 +722,6 @@ cancel:
 	CuAssertIntEquals (test, 0, status);
 }
 
-// TODO: Fix Valgrind invalid read error
-/**
- * Set expectations on mocks for reading a bad entry from a v2 manifest.
- *
- * @param test The testing framework.
- * @param manifest The components for the test.
- * @param data Manifest data for the test.
- * @param entry The entry index to read.
- * @param start The entry index to start reading.
- * @param hash_id The hash index to read.
- * @param offset Address offset of the element to read.
- * @param length Length of the element data.
- * @param read_len Maximum length of the element data to read.
- * @param read_offset Offset to starting reading the element data.
- * @param element_entry Bad element entry.
- */
-// void manifest_flash_v2_testing_read_element_bad_entry (CuTest *test,
-// 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
-// 	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
-// 	uint32_t read_offset, struct manifest_toc_entry *element_entry)
-// {
-// 	uint32_t toc_entry_offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
-// 	uint32_t first_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * start);
-// 	uint32_t last_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * (entry + 1));
-// 	uint32_t hash_offset;
-// 	uint32_t after_hash;
-// 	uint8_t element_data[read_len];
-// 	const struct manifest_toc_entry *toc_entries =
-// 		(struct manifest_toc_entry*) (data->raw + toc_entry_offset);
-// 	int i;
-// 	int entry_read;
-// 	int status;
-
-// 	/* Create bad element. */
-// 	memset (element_data, 0x55, sizeof (element_data));
-
-// 	if (hash_id >= 0) {
-// 		hash_offset = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * data->toc_entries) +
-// 			(data->toc_hash_len * hash_id);
-// 		after_hash = hash_offset + data->toc_hash_len;
-// 	}
-
-// 	/* Start hashing the table of contents data. */
-// 	status = flash_mock_expect_verify_flash (&manifest->flash, manifest->addr + toc_entry_offset,
-// 		data->raw + toc_entry_offset, first_entry - toc_entry_offset);
-
-// 	/* Find the desired TOC entry slot and replace with bad TOC entry. */
-// 	entry_read = (entry >= start) ? entry : data->toc_entries - 1;
-// 	for (i = start; i < entry_read; i++) {
-// 		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
-// 			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
-// 			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
-// 		status |= mock_expect_output (&manifest->flash.mock, 1, &toc_entries[i],
-// 			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
-// 	}
-
-// 	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
-// 		0, MOCK_ARG (manifest->addr + toc_entry_offset + (entry_read * MANIFEST_V2_TOC_ENTRY_SIZE)),
-// 		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
-// 	status |= mock_expect_output (&manifest->flash.mock, 1, element_entry,
-// 		MANIFEST_V2_TOC_ENTRY_SIZE, 2);
-
-// 	if (entry < start) {
-// 		/* Entry will not be found in the manifest. */
-// 		goto done;
-// 	}
-
-// 	if (hash_id >= 0) {
-// 		/* Hash TOC data until element hash. */
-// 		status |= flash_mock_expect_verify_flash (&manifest->flash, manifest->addr + last_entry,
-// 			data->raw + last_entry, hash_offset - last_entry);
-
-// 		/* Read element hash. */
-// 		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
-// 			0, MOCK_ARG (manifest->addr + hash_offset), MOCK_ARG_NOT_NULL,
-// 			MOCK_ARG (data->toc_hash_len));
-// 		status |= mock_expect_output (&manifest->flash.mock, 1, data->raw + hash_offset,
-// 			data->length - hash_offset, 2);
-
-// 		/* Hash remaining TOC data. */
-// 		status |= flash_mock_expect_verify_flash (&manifest->flash, manifest->addr + after_hash,
-// 			data->raw + after_hash, data->toc_hash_offset - after_hash);
-// 	}
-// 	else {
-// 		/* Hash remaining TOC data. */
-// 		status |= flash_mock_expect_verify_flash (&manifest->flash, manifest->addr + last_entry,
-// 			data->raw + last_entry, data->toc_hash_offset - last_entry);
-// 	}
-
-// 	if ((read_offset >= length) || (read_len == 0)) {
-// 		goto done;
-// 	}
-
-// 	/* Read element data */
-// 	if (read_offset != 0) {
-// 		if (hash_id >= 0) {
-// 			status |= flash_mock_expect_verify_flash (&manifest->flash, manifest->addr + offset,
-// 				&element_data[0], read_offset);
-// 		}
-
-// 		length -= read_offset;
-// 		offset += read_offset;
-// 	}
-// 	if (length < read_len) {
-// 		read_len = length;
-// 	}
-
-// 	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash, 0,
-// 		MOCK_ARG (manifest->addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (read_len));
-// 	status |= mock_expect_output (&manifest->flash.mock, 1, &element_data, sizeof (element_data),
-// 		2);
-
-// 	if ((hash_id >= 0) && (read_len < length)) {
-// 		status |= flash_mock_expect_verify_flash (&manifest->flash,
-// 			manifest->addr + offset + read_len, data->raw + offset + read_len, length - read_len);
-// 	}
-
-// done:
-// 	CuAssertIntEquals (test, 0, status);
-// }
-
-// TODO: Fix Valgrind invalid read error
 /**
  * Set expectations on mocks for reading a bad entry from a v2 manifest.  The mocked hashing engine
  * will be used.
@@ -859,204 +737,210 @@ cancel:
  * @param read_len Maximum length of the element data to read.
  * @param read_offset Offset to start reading the element data.
  * @param element_entry The bad element entry.
+ * @param element_data Optional data to use as element data. If null, garbage data will be used.
  */
-// void manifest_flash_v2_testing_read_element_mocked_hash_bad_entry (CuTest *test,
-// 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
-// 	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
-// 	uint32_t read_offset, struct manifest_toc_entry *element_entry)
-// {
-// 	uint32_t toc_entry_offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
-// 	uint32_t first_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * start);
-// 	uint32_t last_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * (entry + 1));
-// 	uint32_t hash_offset;
-// 	uint32_t after_hash;
-// 	uint8_t element_data[length];
-// 	const struct manifest_toc_entry *toc_entries =
-// 		(struct manifest_toc_entry*) (data->raw + toc_entry_offset);
-// 	int i;
-// 	int entry_read;
-// 	int status;
+void manifest_flash_v2_testing_read_element_mocked_hash_bad_entry (CuTest *test,
+	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
+	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
+	uint32_t read_offset, struct manifest_toc_entry *element_entry, uint8_t *element_data)
+{
+	uint32_t toc_entry_offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
+	uint32_t first_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * start);
+	uint32_t last_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * (entry + 1));
+	uint32_t hash_offset;
+	uint32_t after_hash;
+	uint8_t element_data_arr[length];
+	const struct manifest_toc_entry *toc_entries =
+		(struct manifest_toc_entry*) (data->raw + toc_entry_offset);
+	int i;
+	int entry_read;
+	int status;
 
-// 	/* Create bad element. */
-// 	memset (element_data, 0x55, sizeof (element_data));
+	/* Create bad element. */
+	if (element_data) {
+		memcpy (element_data_arr, element_data, length);
+	}
+	else {
+		memset (element_data_arr, 0x55, length);
+	}
 
-// 	if (hash_id >= 0) {
-// 		hash_offset = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * data->toc_entries) +
-// 			(data->toc_hash_len * hash_id);
-// 		after_hash = hash_offset + data->toc_hash_len;
-// 	}
+	if (hash_id >= 0) {
+		hash_offset = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * data->toc_entries) +
+			(data->toc_hash_len * hash_id);
+		after_hash = hash_offset + data->toc_hash_len;
+	}
 
-// 	/* Start hashing the table of contents data. */
-// 	switch (data->toc_hash_type) {
-// 		case HASH_TYPE_SHA256:
-// 			status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
-// 				&manifest->hash_mock, 0);
-// 			break;
+	/* Start hashing the table of contents data. */
+	switch (data->toc_hash_type) {
+		case HASH_TYPE_SHA256:
+			status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+				&manifest->hash_mock, 0);
+			break;
 
-// 		case HASH_TYPE_SHA384:
-// 			status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha384,
-// 				&manifest->hash_mock, 0);
-// 			break;
+		case HASH_TYPE_SHA384:
+			status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha384,
+				&manifest->hash_mock, 0);
+			break;
 
-// 		case HASH_TYPE_SHA512:
-// 			status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha512,
-// 				&manifest->hash_mock, 0);
-// 			break;
+		case HASH_TYPE_SHA512:
+			status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha512,
+				&manifest->hash_mock, 0);
+			break;
 
-// 		default:
-// 			status = 0;
-// 			break;
-// 	}
+		default:
+			status = 0;
+			break;
+	}
 
-// 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
-// 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
-// 		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 
-// 	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
-// 		manifest->addr + toc_entry_offset, data->raw + toc_entry_offset,
-// 		first_entry - toc_entry_offset);
+	status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+		manifest->addr + toc_entry_offset, data->raw + toc_entry_offset,
+		first_entry - toc_entry_offset);
 
-// 	/* Find the desired TOC entry slot and replace with bad TOC entry. */
-// 	entry_read = (entry >= start) ? entry : data->toc_entries - 1;
-// 	for (i = start; i < entry_read; i++) {
-// 		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
-// 			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
-// 			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
-// 		status |= mock_expect_output (&manifest->flash.mock, 1, &toc_entries[i],
-// 			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+	/* Find the desired TOC entry slot and replace with custom TOC entry. */
+	entry_read = (entry >= start) ? entry : data->toc_entries - 1;
+	for (i = start; i < entry_read; i++) {
+		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		status |= mock_expect_output (&manifest->flash.mock, 1, &toc_entries[i],
+			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
 
-// 		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
-// 			&manifest->hash_mock, 0,
-// 			MOCK_ARG_PTR_CONTAINS (&toc_entries[i], MANIFEST_V2_TOC_ENTRY_SIZE),
-// 			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
-// 	}
+		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+			&manifest->hash_mock, 0,
+			MOCK_ARG_PTR_CONTAINS (&toc_entries[i], MANIFEST_V2_TOC_ENTRY_SIZE),
+			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	}
 
-// 	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
-// 		0, MOCK_ARG (manifest->addr + toc_entry_offset + (entry_read * MANIFEST_V2_TOC_ENTRY_SIZE)),
-// 		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
-// 	status |= mock_expect_output (&manifest->flash.mock, 1, element_entry,
-// 		MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash, 0,
+		MOCK_ARG (manifest->addr + toc_entry_offset + (entry_read * MANIFEST_V2_TOC_ENTRY_SIZE)),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	status |= mock_expect_output (&manifest->flash.mock, 1, element_entry,
+		MANIFEST_V2_TOC_ENTRY_SIZE, 2);
 
-// 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
-// 		&manifest->hash_mock, 0,
-// 		MOCK_ARG_PTR_CONTAINS (element_entry, MANIFEST_V2_TOC_ENTRY_SIZE),
-// 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+		&manifest->hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (element_entry, MANIFEST_V2_TOC_ENTRY_SIZE),
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 
-// 	if (entry < start) {
-// 		/* Entry will not be found in the manifest. */
-// 		goto cancel;
-// 	}
+	if (entry < start) {
+		/* Entry will not be found in the manifest. */
+		goto cancel;
+	}
 
-// 	if (hash_id >= 0) {
-// 		/* Hash TOC data until element hash. */
-// 		status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
-// 			manifest->addr + last_entry, data->raw + last_entry, hash_offset - last_entry);
+	if (hash_id >= 0) {
+		/* Hash TOC data until element hash. */
+		status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+			manifest->addr + last_entry, data->raw + last_entry, hash_offset - last_entry);
 
-// 		/* Read element hash. */
-// 		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
-// 			0, MOCK_ARG (manifest->addr + hash_offset), MOCK_ARG_NOT_NULL,
-// 			MOCK_ARG (data->toc_hash_len));
-// 		status |= mock_expect_output (&manifest->flash.mock, 1, data->raw + hash_offset,
-// 			data->length - hash_offset, 2);
+		/* Read element hash. */
+		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + hash_offset), MOCK_ARG_NOT_NULL,
+			MOCK_ARG (data->toc_hash_len));
+		status |= mock_expect_output (&manifest->flash.mock, 1, data->raw + hash_offset,
+			data->length - hash_offset, 2);
 
-// 		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
-// 			&manifest->hash_mock, 0,
-// 			MOCK_ARG_PTR_CONTAINS (&data->raw[hash_offset], data->toc_hash_len),
-// 			MOCK_ARG (data->toc_hash_len));
+		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+			&manifest->hash_mock, 0,
+			MOCK_ARG_PTR_CONTAINS (&data->raw[hash_offset], data->toc_hash_len),
+			MOCK_ARG (data->toc_hash_len));
 
-// 		/* Hash remaining TOC data. */
-// 		status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
-// 			manifest->addr + after_hash, data->raw + after_hash,
-// 			data->toc_hash_offset - after_hash);
-// 	}
-// 	else {
-// 		/* Hash remaining TOC data. */
-// 		status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
-// 			manifest->addr + last_entry, data->raw + last_entry,
-// 			data->toc_hash_offset - last_entry);
-// 	}
+		/* Hash remaining TOC data. */
+		status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+			manifest->addr + after_hash, data->raw + after_hash,
+			data->toc_hash_offset - after_hash);
+	}
+	else {
+		/* Hash remaining TOC data. */
+		status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash, &manifest->hash_mock,
+			manifest->addr + last_entry, data->raw + last_entry,
+			data->toc_hash_offset - last_entry);
+	}
 
-// 	/* TOC hash */
-// 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.finish,
-// 		&manifest->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-// 	status |= mock_expect_output (&manifest->hash_mock.mock, 0, data->toc_hash, data->toc_hash_len,
-// 		1);
+	/* TOC hash */
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.finish,
+		&manifest->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&manifest->hash_mock.mock, 0, data->toc_hash, data->toc_hash_len,
+		1);
 
-// 	if ((read_offset >= length) || (read_len == 0)) {
-// 		goto done;
-// 	}
+	if ((read_offset >= length) || (read_len == 0)) {
+		goto done;
+	}
 
-// 	/* Read element data */
-// 	if (hash_id >= 0) {
-// 		switch (data->toc_hash_type) {
-// 			case HASH_TYPE_SHA256:
-// 				status |= mock_expect (&manifest->hash_mock.mock,
-// 					manifest->hash_mock.base.start_sha256, &manifest->hash_mock, 0);
-// 				break;
+	/* Read element data */
+	if (hash_id >= 0) {
+		switch (data->toc_hash_type) {
+			case HASH_TYPE_SHA256:
+				status |= mock_expect (&manifest->hash_mock.mock,
+					manifest->hash_mock.base.start_sha256, &manifest->hash_mock, 0);
+				break;
 
-// 			case HASH_TYPE_SHA384:
-// 				status |= mock_expect (&manifest->hash_mock.mock,
-// 					manifest->hash_mock.base.start_sha384, &manifest->hash_mock, 0);
-// 				break;
+			case HASH_TYPE_SHA384:
+				status |= mock_expect (&manifest->hash_mock.mock,
+					manifest->hash_mock.base.start_sha384, &manifest->hash_mock, 0);
+				break;
 
-// 			case HASH_TYPE_SHA512:
-// 				status |= mock_expect (&manifest->hash_mock.mock,
-// 					manifest->hash_mock.base.start_sha512, &manifest->hash_mock, 0);
-// 				break;
+			case HASH_TYPE_SHA512:
+				status |= mock_expect (&manifest->hash_mock.mock,
+					manifest->hash_mock.base.start_sha512, &manifest->hash_mock, 0);
+				break;
 
-// 			default:
-// 				break;
-// 		}
-// 	}
+			default:
+				break;
+		}
+	}
 
-// 	if (read_offset != 0) {
-// 		if (hash_id >= 0) {
-// 			status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash,
-// 				&manifest->hash_mock, manifest->addr + offset, &element_data[0], read_offset);
-// 		}
+	if (read_offset != 0) {
+		if (hash_id >= 0) {
+			status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash,
+				&manifest->hash_mock, manifest->addr + offset, &element_data_arr[0], read_offset);
+		}
 
-// 		length -= read_offset;
-// 		offset += read_offset;
-// 	}
-// 	if (length < read_len) {
-// 		read_len = length;
-// 	}
+		length -= read_offset;
+		offset += read_offset;
+	}
+	if (length < read_len) {
+		read_len = length;
+	}
 
-// 	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash, 0,
-// 		MOCK_ARG (manifest->addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (read_len));
-// 	status |= mock_expect_output (&manifest->flash.mock, 1, &element_data[0], read_len, 2);
+	status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash, 0,
+		MOCK_ARG (manifest->addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (read_len));
+	status |= mock_expect_output_tmp (&manifest->flash.mock, 1, &element_data_arr[0], read_len, 2);
 
-// 	/* Element hash */
-// 	if (hash_id >= 0) {
-// 		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
-// 			&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (&element_data[0], read_len),
-// 			MOCK_ARG (read_len));
+	/* Element hash */
+	if (hash_id >= 0) {
+		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
+			&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS_TMP (&element_data_arr[0], read_len),
+			MOCK_ARG (read_len));
 
-// 		if (read_len < length) {
-// 			status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash,
-// 				&manifest->hash_mock, manifest->addr + offset + read_len,
-// 				data->raw + offset + read_len, length - read_len);
-// 		}
+		if (read_len < length) {
+			status |= flash_mock_expect_verify_flash_and_hash (&manifest->flash,
+				&manifest->hash_mock, manifest->addr + offset + read_len,
+				data->raw + offset + read_len, length - read_len);
+		}
 
-// 		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.finish,
-// 			&manifest->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
-// 		status |= mock_expect_output (&manifest->hash_mock.mock, 0, &data->raw[hash_offset],
-// 			data->toc_hash_len, 1);
-// 	}
+		status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.finish,
+			&manifest->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		status |= mock_expect_output (&manifest->hash_mock.mock, 0, &data->raw[hash_offset],
+			data->toc_hash_len, 1);
+	}
 
-// done:
-// 	CuAssertIntEquals (test, 0, status);
-// 	return;
+done:
+	CuAssertIntEquals (test, 0, status);
+	return;
 
-// cancel:
-// 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.cancel,
-// 		&manifest->hash_mock, 0);
+cancel:
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.cancel,
+		&manifest->hash_mock, 0);
 
-// 	CuAssertIntEquals (test, 0, status);
-// }
+	CuAssertIntEquals (test, 0, status);
+}
 
 /**
- * Set expectations on mocks for getting number of child elements for an element in a v2 manifest.
+ * Set expectations on mocks for iterating through manifest TOC in a v2 manifest.
  *
  * @param test The testing framework.
  * @param manifest The components for the test.
@@ -1064,7 +948,7 @@ cancel:
  * @param entry The table of contents index to start searching at.
  * @param last_entry The last entry index to check.
  */
-void manifest_flash_v2_testing_get_num_child_elements (CuTest *test,
+void manifest_flash_v2_testing_iterate_manifest_toc (CuTest *test,
 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
 	int entry, int last_entry)
 {
@@ -1096,6 +980,42 @@ void manifest_flash_v2_testing_get_num_child_elements (CuTest *test,
 }
 
 /**
+ * Set expectations on mocks for iterating through manifest TOC in a v2 manifest but do not verify
+ * TOC after iteration.
+ *
+ * @param test The testing framework.
+ * @param manifest The components for the test.
+ * @param data Manifest data for the test.
+ * @param entry The table of contents index to start searching at.
+ * @param last_entry The last entry index to check.
+ */
+void manifest_flash_v2_testing_iterate_manifest_toc_no_verify (CuTest *test,
+	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
+	int entry, int last_entry)
+{
+	uint32_t offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
+	int status;
+
+	/* Start hashing the table of contents data. */
+	status = flash_mock_expect_verify_flash (&manifest->flash, manifest->addr + offset,
+		data->raw + offset, MANIFEST_V2_TOC_ENTRY_SIZE * entry);
+	CuAssertIntEquals (test, 0, status);
+
+	offset += (MANIFEST_V2_TOC_ENTRY_SIZE * entry);
+
+	for (int i = entry; i <= last_entry; ++i) {
+		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
+			0, MOCK_ARG (manifest->addr + offset), MOCK_ARG_NOT_NULL,
+			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		status |= mock_expect_output (&manifest->flash.mock, 1, data->raw + offset,
+			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+
+		offset += MANIFEST_V2_TOC_ENTRY_SIZE;
+	}
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
  * Set expectations on mocks for getting number of child elements for an element in a v2 manifest.
  * The mocked hashing engine will be used.
  *
@@ -1105,7 +1025,7 @@ void manifest_flash_v2_testing_get_num_child_elements (CuTest *test,
  * @param entry The table of contents index to start searching at.
  * @param last_entry The last entry index to check.
  */
-void manifest_flash_v2_testing_get_num_child_elements_mocked_hash (CuTest *test,
+void manifest_flash_v2_testing_iterate_manifest_toc_mocked_hash (CuTest *test,
 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
 	int entry, int last_entry)
 {
@@ -8038,52 +7958,169 @@ static void manifest_flash_v2_test_compare_platform_id_both_null (CuTest *test)
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_no_child_len (CuTest *test)
-{
-	struct manifest_flash_v2_testing manifest;
-	int status = 0;
-
-	TEST_START;
-
-	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
-		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
-
-	manifest_flash_v2_testing_get_num_child_elements (test, &manifest, &CFM_TESTING.manifest, 2,
-		26);
-
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ROOT_CA, NULL);
-	CuAssertIntEquals (test, 1, status);
-
-	manifest_flash_v2_testing_validate_and_release (test, &manifest);
-}
-
-static void manifest_flash_v2_test_get_num_child_elements_first_child (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_no_num_child (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
-	int status = 0;
+	int entry;
+	int status;
 
 	TEST_START;
 
 	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
 		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
 
-	manifest_flash_v2_testing_get_num_child_elements (test, &manifest, &CFM_TESTING.manifest, 2,
-		26);
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 2, 26);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ROOT_CA, &child_len);
-	CuAssertIntEquals (test, 1, status);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ROOT_CA, &child_len, NULL, &entry);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, entry);
 	CuAssertIntEquals (test, 0x44, child_len);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_not_first_child (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_only_num_child (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest;
+	int num_child;
+	int status;
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
+		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 2, 26);
+
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ROOT_CA, NULL, &num_child, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_child);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest);
+}
+
+static void manifest_flash_v2_test_get_child_elements_info_no_child_len (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest;
+	int num_child;
+	int entry;
+	int status;
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
+		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 2, 26);
+
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ROOT_CA, NULL, &num_child, &entry);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, entry);
+	CuAssertIntEquals (test, 1, num_child);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest);
+}
+
+static void manifest_flash_v2_test_get_child_elements_info_only_child_len (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int status;
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
+		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 2, 26);
+
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ROOT_CA, &child_len, NULL, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x44, child_len);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest);
+}
+
+static void manifest_flash_v2_test_get_child_elements_info_no_first_entry (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest;
+	size_t child_len;
+	int num_child;
+	int status;
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
+		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 2, 26);
+
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ROOT_CA, &child_len, &num_child, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0x44, child_len);
+	CuAssertIntEquals (test, 1, num_child);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest);
+}
+
+static void manifest_flash_v2_test_get_child_elements_info_only_first_entry (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest;
+	int entry;
+	int status;
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
+		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 2, 2);
+
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ROOT_CA, NULL, NULL, &entry);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, entry);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest);
+}
+
+static void manifest_flash_v2_test_get_child_elements_info_first_child (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest;
+	size_t child_len;
+	int num_child;
+	int entry;
+	int status;
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
+		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 2, 26);
+
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ROOT_CA, &child_len, &num_child, &entry);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_child);
+	CuAssertIntEquals (test, 2, entry);
+	CuAssertIntEquals (test, 0x44, child_len);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest);
+}
+
+static void manifest_flash_v2_test_get_child_elements_info_not_first_child (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest;
+	size_t child_len;
+	int num_child;
+	int entry;
 	int status = 0;
 
 	TEST_START;
@@ -8091,65 +8128,77 @@ static void manifest_flash_v2_test_get_num_child_elements_not_first_child (CuTes
 	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
 		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
 
-	manifest_flash_v2_testing_get_num_child_elements (test, &manifest, &CFM_TESTING.manifest, 2,
-		26);
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 2, 26);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_PMR_DIGEST, &child_len);
-	CuAssertIntEquals (test, 2, status);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_PMR_DIGEST, &child_len, &num_child, &entry);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, num_child);
+	CuAssertIntEquals (test, 5, entry);
 	CuAssertIntEquals (test, 0x68, child_len);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_entry_with_nested_child (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_entry_with_nested_child (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
-	int status = 0;
+	int num_child;
+	int entry;
+	int status;
 
 	TEST_START;
 
 	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
 		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
 
-	manifest_flash_v2_testing_get_num_child_elements (test, &manifest, &CFM_TESTING.manifest, 2,
-		26);
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 2, 26);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_MEASUREMENT_DATA, &child_len);
-	CuAssertIntEquals (test, 2, status);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_MEASUREMENT_DATA, &child_len, &num_child,
+		&entry);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, num_child);
+	CuAssertIntEquals (test, 9, entry);
 	CuAssertIntEquals (test, 0x8, child_len);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_get_nested_child_count (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_get_nested_child (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
-	int status = 0;
+	int num_child;
+	int entry;
+	int status;
 
 	TEST_START;
 
 	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
 		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
 
-	manifest_flash_v2_testing_get_num_child_elements (test, &manifest, &CFM_TESTING.manifest, 10,
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 10,
 		12);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 10,
-		CFM_MEASUREMENT_DATA, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_DATA, &child_len);
-	CuAssertIntEquals (test, 2, status);
-	CuAssertIntEquals (test, 0x34, child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 10,
+		CFM_MEASUREMENT_DATA, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_DATA, &child_len, &num_child,
+		&entry);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 10, entry);
+	CuAssertIntEquals (test, 2, num_child);
+	CuAssertIntEquals (test, 0x3c, child_len);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_terminate_at_parent (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_terminate_at_parent (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int num_child;
+	int entry;
 	int status;
 
 	TEST_START;
@@ -8157,22 +8206,25 @@ static void manifest_flash_v2_test_get_num_child_elements_terminate_at_parent (C
 	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
 		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
 
-	manifest_flash_v2_testing_get_num_child_elements (test, &manifest, &CFM_TESTING.manifest, 21,
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 21,
 		22);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 21,
-		CFM_ALLOWABLE_CFM, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_ID, &child_len);
-	CuAssertIntEquals (test, 1, status);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 21,
+		CFM_ALLOWABLE_CFM, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_ID, &child_len, &num_child, &entry);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 21, entry);
+	CuAssertIntEquals (test, 1, num_child);
 	CuAssertIntEquals (test, 0x8, child_len);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_terminate_same_as_entry (
-	CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_terminate_same_as_entry (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int num_child;
+	int entry;
 	int status;
 
 	TEST_START;
@@ -8180,21 +8232,24 @@ static void manifest_flash_v2_test_get_num_child_elements_terminate_same_as_entr
 	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
 		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
 
-	manifest_flash_v2_testing_get_num_child_elements (test, &manifest, &CFM_TESTING.manifest, 25,
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 25,
 		26);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 25,
-		CFM_ALLOWABLE_PCD, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_ID, &child_len);
-	CuAssertIntEquals (test, 1, status);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 25,
+		CFM_ALLOWABLE_PCD, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_ID, &child_len, &num_child, &entry);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 25, entry);
+	CuAssertIntEquals (test, 1, num_child);
 	CuAssertIntEquals (test, 0x8, child_len);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_entry_has_no_child_elements (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_entry_has_no_child_elements (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8202,17 +8257,41 @@ static void manifest_flash_v2_test_get_num_child_elements_entry_has_no_child_ele
 	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
 		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
 
-	manifest_flash_v2_testing_get_num_child_elements (test, &manifest, &CFM_TESTING.manifest, 3, 3);
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 3, 3);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 3,
-		CFM_ROOT_CA, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_DATA, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 3,
+		CFM_ROOT_CA, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_DATA, &child_len, &num_child, NULL);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, num_child);
 	CuAssertIntEquals (test, 0, child_len);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_null (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_entry_has_no_child_elements_only_entry_id (
+	CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest;
+	int entry;
+	int status;
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
+		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
+
+	manifest_flash_v2_testing_iterate_manifest_toc_no_verify (test, &manifest,
+		&CFM_TESTING.manifest, 3, 3);
+
+	status = manifest_flash_get_child_elements_info (&manifest.test,
+		&manifest.hash.base, 3, CFM_ROOT_CA, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_DATA, NULL, NULL,
+		&entry);
+	CuAssertIntEquals (test, MANIFEST_CHILD_NOT_FOUND, status);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest);
+}
+
+static void manifest_flash_v2_test_get_child_elements_info_null (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
@@ -8223,36 +8302,43 @@ static void manifest_flash_v2_test_get_num_child_elements_null (CuTest *test)
 	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, PFM_MAGIC_NUM,
 		PFM_V2_MAGIC_NUM, &PFM_V2.manifest, 0, false, 0);
 
-	status = manifest_flash_get_num_child_elements (NULL, &manifest.hash.base, 0, 0, 0, 0,
-		&child_len);
+	status = manifest_flash_get_child_elements_info (NULL, &manifest.hash.base, 0, 0, 0, 0,
+		&child_len, NULL, NULL);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, NULL, 0, 0, 0, 0, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, NULL, 0, 0, 0, 0, &child_len,
+		NULL, NULL);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 0, 0, 0,
+		0, NULL, NULL, NULL);
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_verify_never_run (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_verify_never_run (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
+	int num_child;
 	int status;
 
 	TEST_START;
 
 	manifest_flash_v2_testing_init (test, &manifest, 0x10000, CFM_MAGIC_NUM, CFM_V2_MAGIC_NUM);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 0, 0, 0, 0,
-		NULL);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 0, 0, 0,
+		0, NULL, &num_child, NULL);
 	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_entry_invalid (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_entry_invalid (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8260,18 +8346,21 @@ static void manifest_flash_v2_test_get_num_child_elements_entry_invalid (CuTest 
 	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
 		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 39,
-		CFM_MEASUREMENT_DATA, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_DATA, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 39,
+		CFM_MEASUREMENT_DATA, CFM_COMPONENT_DEVICE, CFM_ALLOWABLE_DATA, &child_len, &num_child,
+		NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, child_len);
+	CuAssertIntEquals (test, 0, num_child);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_entry_last (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_entry_last (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8279,21 +8368,22 @@ static void manifest_flash_v2_test_get_num_child_elements_entry_last (CuTest *te
 	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, CFM_MAGIC_NUM,
 		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
 
-	manifest_flash_v2_testing_get_num_child_elements (test, &manifest, &CFM_TESTING.manifest, 38,
-		38);
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &manifest, &CFM_TESTING.manifest, 38, 38);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 38,
-		CFM_ALLOWABLE_ID, CFM_ALLOWABLE_PCD, CFM_ALLOWABLE_DATA, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 38,
+		CFM_ALLOWABLE_ID, CFM_ALLOWABLE_PCD, CFM_ALLOWABLE_DATA, &child_len, &num_child, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, child_len);
+	CuAssertIntEquals (test, 0, num_child);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_start_hash_fail (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_start_hash_fail (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8305,17 +8395,18 @@ static void manifest_flash_v2_test_get_num_child_elements_start_hash_fail (CuTes
 		&manifest.hash_mock, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash_mock.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash_mock.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len, &num_child, NULL);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_toc_header_hash_update_fail (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_toc_header_hash_update_fail (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8333,18 +8424,19 @@ static void manifest_flash_v2_test_get_num_child_elements_toc_header_hash_update
 		&manifest.hash_mock, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash_mock.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash_mock.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len, &num_child, NULL);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_toc_before_entry_hash_update_fail (
+static void manifest_flash_v2_test_get_child_elements_info_toc_before_entry_hash_update_fail (
 	CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8368,17 +8460,18 @@ static void manifest_flash_v2_test_get_num_child_elements_toc_before_entry_hash_
 		&manifest.hash_mock, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash_mock.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash_mock.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len, &num_child, NULL);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_read_fail (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_read_fail (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8397,17 +8490,18 @@ static void manifest_flash_v2_test_get_num_child_elements_read_fail (CuTest *tes
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len, &num_child, NULL);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_hash_update_entry_fail (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_hash_update_entry_fail (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8448,19 +8542,20 @@ static void manifest_flash_v2_test_get_num_child_elements_hash_update_entry_fail
 		&manifest.hash_mock, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash_mock.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash_mock.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len, &num_child, NULL);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_toc_after_last_entry_hash_update_fail (
+static void manifest_flash_v2_test_get_child_elements_info_toc_after_last_entry_hash_update_fail (
 	CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	uint32_t offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8507,18 +8602,19 @@ static void manifest_flash_v2_test_get_num_child_elements_toc_after_last_entry_h
 		&manifest.hash_mock, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash_mock.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash_mock.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len, &num_child, NULL);
 	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_hash_finish_fail (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_hash_finish_fail (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	uint32_t offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8569,19 +8665,20 @@ static void manifest_flash_v2_test_get_num_child_elements_hash_finish_fail (CuTe
 		&manifest.hash_mock, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash_mock.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash_mock.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len, &num_child, NULL);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
-static void manifest_flash_v2_test_get_num_child_elements_toc_invalid (CuTest *test)
+static void manifest_flash_v2_test_get_child_elements_info_toc_invalid (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
 	uint8_t validate_hash[SHA512_HASH_LENGTH] = {0};
 	uint32_t offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
 	size_t child_len;
+	int num_child;
 	int status;
 
 	TEST_START;
@@ -8631,12 +8728,13 @@ static void manifest_flash_v2_test_get_num_child_elements_toc_invalid (CuTest *t
 		sizeof (validate_hash),	-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manifest_flash_get_num_child_elements (&manifest.test, &manifest.hash_mock.base, 2,
-		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len);
+	status = manifest_flash_get_child_elements_info (&manifest.test, &manifest.hash_mock.base, 2,
+		CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT, CFM_ALLOWABLE_PFM, &child_len, &num_child, NULL);
 	CuAssertIntEquals (test, MANIFEST_TOC_INVALID, status);
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
+
 
 TEST_SUITE_START (manifest_flash_v2);
 
@@ -8816,25 +8914,31 @@ TEST (manifest_flash_v2_test_compare_platform_id_no_manifests);
 TEST (manifest_flash_v2_test_compare_platform_id_null_manifest1);
 TEST (manifest_flash_v2_test_compare_platform_id_null_manifest2);
 TEST (manifest_flash_v2_test_compare_platform_id_both_null);
-TEST (manifest_flash_v2_test_get_num_child_elements_no_child_len);
-TEST (manifest_flash_v2_test_get_num_child_elements_first_child);
-TEST (manifest_flash_v2_test_get_num_child_elements_not_first_child);
-TEST (manifest_flash_v2_test_get_num_child_elements_entry_with_nested_child);
-TEST (manifest_flash_v2_test_get_num_child_elements_get_nested_child_count);
-TEST (manifest_flash_v2_test_get_num_child_elements_terminate_at_parent);
-TEST (manifest_flash_v2_test_get_num_child_elements_terminate_same_as_entry);
-TEST (manifest_flash_v2_test_get_num_child_elements_entry_has_no_child_elements);
-TEST (manifest_flash_v2_test_get_num_child_elements_null);
-TEST (manifest_flash_v2_test_get_num_child_elements_verify_never_run);
-TEST (manifest_flash_v2_test_get_num_child_elements_entry_invalid);
-TEST (manifest_flash_v2_test_get_num_child_elements_entry_last);
-TEST (manifest_flash_v2_test_get_num_child_elements_start_hash_fail);
-TEST (manifest_flash_v2_test_get_num_child_elements_toc_header_hash_update_fail);
-TEST (manifest_flash_v2_test_get_num_child_elements_toc_before_entry_hash_update_fail);
-TEST (manifest_flash_v2_test_get_num_child_elements_read_fail);
-TEST (manifest_flash_v2_test_get_num_child_elements_hash_update_entry_fail);
-TEST (manifest_flash_v2_test_get_num_child_elements_toc_after_last_entry_hash_update_fail);
-TEST (manifest_flash_v2_test_get_num_child_elements_hash_finish_fail);
-TEST (manifest_flash_v2_test_get_num_child_elements_toc_invalid);
+TEST (manifest_flash_v2_test_get_child_elements_info_no_num_child);
+TEST (manifest_flash_v2_test_get_child_elements_info_only_num_child);
+TEST (manifest_flash_v2_test_get_child_elements_info_no_child_len);
+TEST (manifest_flash_v2_test_get_child_elements_info_only_child_len);
+TEST (manifest_flash_v2_test_get_child_elements_info_no_first_entry);
+TEST (manifest_flash_v2_test_get_child_elements_info_only_first_entry);
+TEST (manifest_flash_v2_test_get_child_elements_info_first_child);
+TEST (manifest_flash_v2_test_get_child_elements_info_not_first_child);
+TEST (manifest_flash_v2_test_get_child_elements_info_entry_with_nested_child);
+TEST (manifest_flash_v2_test_get_child_elements_info_get_nested_child);
+TEST (manifest_flash_v2_test_get_child_elements_info_terminate_at_parent);
+TEST (manifest_flash_v2_test_get_child_elements_info_terminate_same_as_entry);
+TEST (manifest_flash_v2_test_get_child_elements_info_entry_has_no_child_elements);
+TEST (manifest_flash_v2_test_get_child_elements_info_entry_has_no_child_elements_only_entry_id);
+TEST (manifest_flash_v2_test_get_child_elements_info_null);
+TEST (manifest_flash_v2_test_get_child_elements_info_verify_never_run);
+TEST (manifest_flash_v2_test_get_child_elements_info_entry_invalid);
+TEST (manifest_flash_v2_test_get_child_elements_info_entry_last);
+TEST (manifest_flash_v2_test_get_child_elements_info_start_hash_fail);
+TEST (manifest_flash_v2_test_get_child_elements_info_toc_header_hash_update_fail);
+TEST (manifest_flash_v2_test_get_child_elements_info_toc_before_entry_hash_update_fail);
+TEST (manifest_flash_v2_test_get_child_elements_info_read_fail);
+TEST (manifest_flash_v2_test_get_child_elements_info_hash_update_entry_fail);
+TEST (manifest_flash_v2_test_get_child_elements_info_toc_after_last_entry_hash_update_fail);
+TEST (manifest_flash_v2_test_get_child_elements_info_hash_finish_fail);
+TEST (manifest_flash_v2_test_get_child_elements_info_toc_invalid);
 
 TEST_SUITE_END;

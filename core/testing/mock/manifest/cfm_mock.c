@@ -165,8 +165,8 @@ static void cfm_mock_free_component_device (struct cfm *cfm, struct cfm_componen
 	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_component_device, cfm, MOCK_ARG_CALL (component));
 }
 
-static int cfm_mock_get_next_measurement (struct cfm *cfm, uint32_t component_id,
-	struct cfm_measurement *pmr_measurement, bool first)
+static int cfm_mock_get_next_measurement_or_measurement_data (struct cfm *cfm,
+	uint32_t component_id, struct cfm_measurement_container *container, bool first)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
 
@@ -174,11 +174,12 @@ static int cfm_mock_get_next_measurement (struct cfm *cfm, uint32_t component_id
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cfm_mock_get_next_measurement, cfm, MOCK_ARG_CALL (component_id),
-		MOCK_ARG_CALL (pmr_measurement), MOCK_ARG_CALL (first));
+	MOCK_RETURN (&mock->mock, cfm_mock_get_next_measurement_or_measurement_data, cfm,
+		MOCK_ARG_CALL (component_id), MOCK_ARG_CALL (container), MOCK_ARG_CALL (first));
 }
 
-static void cfm_mock_free_measurement (struct cfm *cfm, struct cfm_measurement *pmr_measurement)
+static void cfm_mock_free_measurement_container (struct cfm *cfm,
+	struct cfm_measurement_container *container)
 {
 	struct cfm_mock *mock = (struct cfm_mock*) cfm;
 
@@ -186,33 +187,8 @@ static void cfm_mock_free_measurement (struct cfm *cfm, struct cfm_measurement *
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_measurement, cfm, MOCK_ARG_CALL (pmr_measurement));
-}
-
-static int cfm_mock_get_next_measurement_data (struct cfm *cfm, uint32_t component_id,
-	struct cfm_measurement_data *measurement_data, bool first)
-{
-	struct cfm_mock *mock = (struct cfm_mock*) cfm;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, cfm_mock_get_next_measurement_data, cfm,
-		MOCK_ARG_CALL (component_id), MOCK_ARG_CALL (measurement_data), MOCK_ARG_CALL (first));
-}
-
-static void cfm_mock_free_measurement_data (struct cfm *cfm,
-	struct cfm_measurement_data *measurement_data)
-{
-	struct cfm_mock *mock = (struct cfm_mock*) cfm;
-
-	if (mock == NULL) {
-		return;
-	}
-
-	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_measurement_data, cfm,
-		MOCK_ARG_CALL (measurement_data));
+	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_measurement_container, cfm,
+		MOCK_ARG_CALL (container));
 }
 
 static int cfm_mock_get_root_ca_digest (struct cfm *cfm, uint32_t component_id,
@@ -298,8 +274,8 @@ static int cfm_mock_func_arg_count (void *func)
 	}
 	else if ((func == cfm_mock_get_hash) || (func == cfm_mock_buffer_supported_components) ||
 		(func == cfm_mock_get_component_pmr) || (func == cfm_mock_get_component_pmr_digest) ||
-		(func == cfm_mock_get_next_measurement) || (func == cfm_mock_get_next_measurement_data) ||
-		(func == cfm_mock_get_next_pfm) || (func == cfm_mock_get_next_cfm)) {
+		(func == cfm_mock_get_next_pfm) || (func == cfm_mock_get_next_cfm) ||
+		(func == cfm_mock_get_next_measurement_or_measurement_data)) {
 		return 3;
 	}
 	else if ((func == cfm_mock_get_platform_id) || (func == cfm_mock_get_signature) ||
@@ -309,8 +285,8 @@ static int cfm_mock_func_arg_count (void *func)
 	}
 	else if ((func == cfm_mock_get_id) || (func == cfm_mock_free_platform_id) ||
 		(func == cfm_mock_free_component_device) || (func == cfm_mock_free_component_pmr_digest) ||
-		(func == cfm_mock_free_measurement) || (func == cfm_mock_free_measurement_data) ||
-		(func == cfm_mock_free_root_ca_digest) || (func == cfm_mock_free_manifest)) {
+		(func == cfm_mock_free_measurement_container) || (func == cfm_mock_free_root_ca_digest) ||
+		(func == cfm_mock_free_manifest)) {
 		return 1;
 	}
 	else {
@@ -359,17 +335,11 @@ static const char* cfm_mock_func_name_map (void *func)
 	else if (func == cfm_mock_free_component_device) {
 		return "free_component_device";
 	}
-	else if (func == cfm_mock_get_next_measurement) {
-		return "get_next_measurement";
+	else if (func == cfm_mock_get_next_measurement_or_measurement_data) {
+		return "get_next_measurement_or_measurement_data";
 	}
-	else if (func == cfm_mock_free_measurement) {
-		return "free_measurement";
-	}
-	else if (func == cfm_mock_get_next_measurement_data) {
-		return "get_next_measurement_data";
-	}
-	else if (func == cfm_mock_free_measurement_data) {
-		return "free_measurement_data";
+	else if (func == cfm_mock_free_measurement_container) {
+		return "free_measurement_container";
 	}
 	else if (func == cfm_mock_get_root_ca_digest) {
 		return "get_root_ca_digest";
@@ -510,40 +480,22 @@ static const char* cfm_mock_arg_name_map (void *func, int arg)
 				return "component";
 		}
 	}
-	else if (func == cfm_mock_get_next_measurement) {
+	else if (func == cfm_mock_get_next_measurement_or_measurement_data) {
 		switch (arg) {
 			case 0:
 				return "component_id";
 
 			case 1:
-				return "pmr_measurement";
+				return "container";
 
 			case 2:
 				return "first";
 		}
 	}
-	else if (func == cfm_mock_free_measurement) {
+	else if (func == cfm_mock_free_measurement_container) {
 		switch (arg) {
 			case 0:
-				return "pmr_measurement";
-		}
-	}
-	else if (func == cfm_mock_get_next_measurement_data) {
-		switch (arg) {
-			case 0:
-				return "component_id";
-
-			case 1:
-				return "measurement_data";
-
-			case 2:
-				return "first";
-		}
-	}
-	else if (func == cfm_mock_free_measurement_data) {
-		switch (arg) {
-			case 0:
-				return "measurement_data";
+				return "container";
 		}
 	}
 	else if (func == cfm_mock_get_root_ca_digest) {
@@ -642,10 +594,9 @@ int cfm_mock_init (struct cfm_mock *mock)
 	mock->base.get_component_pmr = cfm_mock_get_component_pmr;
 	mock->base.get_component_pmr_digest = cfm_mock_get_component_pmr_digest;
 	mock->base.free_component_pmr_digest = cfm_mock_free_component_pmr_digest;
-	mock->base.get_next_measurement = cfm_mock_get_next_measurement;
-	mock->base.free_measurement = cfm_mock_free_measurement;
-	mock->base.get_next_measurement_data = cfm_mock_get_next_measurement_data;
-	mock->base.free_measurement_data = cfm_mock_free_measurement_data;
+	mock->base.get_next_measurement_or_measurement_data =
+		cfm_mock_get_next_measurement_or_measurement_data;
+	mock->base.free_measurement_container = cfm_mock_free_measurement_container;
 	mock->base.get_root_ca_digest = cfm_mock_get_root_ca_digest;
 	mock->base.free_root_ca_digest = cfm_mock_free_root_ca_digest;
 	mock->base.get_next_pfm = cfm_mock_get_next_pfm;

@@ -30,19 +30,6 @@
 			CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 		</Digest>
 	</PMRDigest>
-	<Measurement pmr_id="1" measurement_id="2">
-		<Digest>
-			DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-		</Digest>
-		<Digest>
-			EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-		</Digest>
-	</Measurement>
-	<Measurement pmr_id="2" measurement_id="2">
-		<Digest>
-			CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-		</Digest>
-	</Measurement>
 	<MeasurementData pmr_id="1" measurement_id="2">
 		<AllowableData>
 			<Endianness>BigEndian</Endianness>
@@ -87,9 +74,21 @@
 			</Data>
 		</AllowableData>
 	</MeasurementData>
+	<Measurement pmr_id="1" measurement_id="2">
+		<Digest>
+			DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+		</Digest>
+		<Digest>
+			EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+		</Digest>
+	</Measurement>
+	<Measurement pmr_id="2" measurement_id="2">
+		<Digest>
+			CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+		</Digest>
+	</Measurement>
 	<AllowablePFM port="1" platform="platformA">
 		<ManifestID>
-			<Endianness>BigEndian</Endianness>
 			<Check>Equal</Check>
 			<ID>0x99</ID>
 			<ID>0x9A</ID>

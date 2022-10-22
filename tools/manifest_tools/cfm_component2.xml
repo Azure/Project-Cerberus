@@ -33,8 +33,9 @@
 	</MeasurementData>
 	<AllowablePFM port="2" platform="platform1">
 		<ManifestID>
+			<Endianness>BigEndian</Endianness>
 			<Check>GreaterOrEqual</Check>
-			<ID>0x12</ID>
+			<ID>0x14</ID>
 		</ManifestID>
 	</AllowablePFM>
 	<AllowableCFM index="0" platform="platform2">
@@ -45,6 +46,7 @@
 	</AllowableCFM>
 	<AllowablePCD platform="platform3">
 		<ManifestID>
+			<Endianness>BigEndian</Endianness>
 			<Check>LessThan</Check>
 			<ID>0x56</ID>
 		</ManifestID>

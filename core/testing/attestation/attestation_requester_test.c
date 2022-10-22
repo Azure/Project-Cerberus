@@ -1507,7 +1507,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_challenge (C
 
 /**
  * Helper function which sends and receives a successful Cerberus Protocol Get Digest, and sets up
- * hashing mock
+ * hashing mock.
  *
  * @param test Testing framework to utilize
  * @param testing Instances to utilize
@@ -1543,7 +1543,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_digest_w
 
 /**
  * Helper function which sends and receives a successful Cerberus Protocol Get Certificate, and sets
- * up hashing mock
+ * up hashing mock.
  *
  * @param test Testing framework to utilize
  * @param testing Instances to utilize
@@ -1570,6 +1570,8 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_certific
 	size_t i_digest;
 	int key_type = ecc ? X509_PUBLIC_KEY_ECC : X509_PUBLIC_KEY_RSA;
 	int status;
+
+	memset (&root_ca_digests.digests, 0, sizeof (struct cfm_digests));
 
 	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
 	root_ca_digests.digests.digest_count = 2;
@@ -3692,6 +3694,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
 		out_digest[i_digest] = i_digest + testing->second_device;
 	}
 
+	memset (&root_ca_digests.digests, 0, sizeof (struct cfm_digests));
+
 	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
 	root_ca_digests.digests.digest_count = 2;
 	root_ca_digests.digests.digests = ca_digests;
@@ -4712,7 +4716,6 @@ static void attestation_requester_test_attest_device_cerberus_ecc (CuTest *test)
 	int status;
 	int i;
 
-
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i) {
 		digest[i] = i * 3;
 	}
@@ -4768,7 +4771,6 @@ static void attestation_requester_test_attest_device_cerberus_ecc_vendor_root_ca
 	int status;
 	int i;
 
-
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i) {
 		digest[i] = i * 3;
 	}
@@ -4822,7 +4824,6 @@ static void attestation_requester_test_attest_device_cerberus_ecc_untrusted_root
 	struct cfm_pmr_digest pmr_digest;
 	int status;
 	int i;
-
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i) {
 		digest[i] = i * 3;
@@ -4878,7 +4879,6 @@ static void attestation_requester_test_attest_device_cerberus_rsa (CuTest *test)
 	int status;
 	int i;
 
-
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i) {
 		digest[i] = i * 3;
 	}
@@ -4933,7 +4933,6 @@ static void attestation_requester_test_attest_device_cerberus_mbedtls_x509 (CuTe
 	int status;
 	int i;
 
-
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i) {
 		digest[i] = i * 3;
 	}
@@ -4987,7 +4986,6 @@ static void attestation_requester_test_attest_device_cerberus_already_authentica
 	struct cfm_pmr_digest pmr_digest;
 	int status;
 	int i;
-
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i) {
 		digest[i] = i * 3;
@@ -5047,7 +5045,6 @@ static void attestation_requester_test_attest_device_cerberus_multiple_pmr0_dige
 	struct cfm_pmr_digest pmr_digest;
 	int status;
 	int i;
-
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i) {
 		digest[i + SHA256_HASH_LENGTH] = i * 3;
@@ -5380,7 +5377,6 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_in
 	uint32_t component_id = 50;
 	int status;
 
-
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
@@ -5425,7 +5421,6 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 50;
 	int status;
-
 
 	TEST_START;
 
@@ -5478,7 +5473,6 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 50;
 	int status;
-
 
 	TEST_START;
 
@@ -5540,10 +5534,11 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		ca_digests[i_digest] = 0x0a + i_digest;
 	}
 
-	root_ca_digests.digests.digest_count = 2;
-	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
-	root_ca_digests.digests.digests = ca_digests;
+	memset (&root_ca_digests.digests, 0, sizeof (struct cfm_digests));
 
+	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
+	root_ca_digests.digests.digest_count = 2;
+	root_ca_digests.digests.digests = ca_digests;
 
 	TEST_START;
 
@@ -5607,10 +5602,11 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		out_digest[i_digest] = 0x0b + i_digest;
 	}
 
-	root_ca_digests.digests.digest_count = 2;
-	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
-	root_ca_digests.digests.digests = ca_digests;
+	memset (&root_ca_digests.digests, 0, sizeof (struct cfm_digests));
 
+	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
+	root_ca_digests.digests.digest_count = 2;
+	root_ca_digests.digests.digests = ca_digests;
 
 	TEST_START;
 
@@ -5674,10 +5670,11 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		ca_digests[i_digest] = 0x0a + i_digest;
 	}
 
-	root_ca_digests.digests.digest_count = 2;
-	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
-	root_ca_digests.digests.digests = ca_digests;
+	memset (&root_ca_digests.digests, 0, sizeof (struct cfm_digests));
 
+	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
+	root_ca_digests.digests.digest_count = 2;
+	root_ca_digests.digests.digests = ca_digests;
 
 	TEST_START;
 
@@ -5746,7 +5743,6 @@ static void attestation_requester_test_attest_device_cerberus_add_intermediate_c
 	uint32_t component_id = 50;
 	int status;
 
-
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -5802,7 +5798,6 @@ static void attestation_requester_test_attest_device_cerberus_load_certificate_f
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 50;
 	int status;
-
 
 	TEST_START;
 
@@ -5864,7 +5859,6 @@ static void attestation_requester_test_attest_device_cerberus_authenticate_cert_
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 12;
 	int status;
-
 
 	TEST_START;
 
@@ -5938,7 +5932,6 @@ static void attestation_requester_test_attest_device_cerberus_hash_cert_chain_fa
 	uint32_t component_id = 12;
 	int status;
 
-
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -6010,7 +6003,6 @@ static void attestation_requester_test_attest_device_cerberus_compare_cert_chain
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 12;
 	int status;
-
 
 	TEST_START;
 
@@ -6087,7 +6079,6 @@ static void attestation_requester_test_attest_device_cerberus_get_public_key_typ
 	uint32_t component_id = 12;
 	int status;
 	size_t i_digest;
-
 
 	for (i_digest = 0; i_digest < sizeof (out_digest); ++i_digest) {
 		out_digest[i_digest] = i_digest + 50;
@@ -6169,7 +6160,6 @@ static void attestation_requester_test_attest_device_cerberus_get_public_key_fai
 	uint32_t component_id = 12;
 	int status;
 	size_t i_digest;
-
 
 	for (i_digest = 0; i_digest < sizeof (out_digest); ++i_digest) {
 		out_digest[i_digest] = i_digest + 50;
@@ -6778,7 +6768,6 @@ static void attestation_requester_test_attest_device_cerberus_get_component_pmr_
 	uint32_t component_id = 12;
 	int status;
 
-
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -6817,7 +6806,6 @@ static void attestation_requester_test_attest_device_cerberus_pmr0_digest_invali
 	uint8_t digest[SHA512_HASH_LENGTH] = {0};
 	struct cfm_pmr_digest pmr_digest;
 	int status;
-
 
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA512;
@@ -6867,7 +6855,6 @@ static void attestation_requester_test_attest_device_cerberus_no_pmr0_digest_mat
 	uint8_t digest[SHA256_HASH_LENGTH] = {0};
 	struct cfm_pmr_digest pmr_digest;
 	int status;
-
 
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
@@ -6941,14 +6928,14 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_challenge 
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature, &signature[ECC_KEY_LENGTH_256],
 		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM, component_id);
@@ -7033,17 +7020,16 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_challe
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
 
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest2;
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -7132,14 +7118,14 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_challenge 
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -7227,6 +7213,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challe
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -7235,8 +7223,6 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challe
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA384;
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest2;
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -7325,14 +7311,14 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_challenge 
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -7420,6 +7406,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challe
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -7428,8 +7416,6 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challe
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA512;
 	pmr_digest.digests.digest_count = 1;
 	pmr_digest.digests.digests = digest2;
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -7521,14 +7507,14 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -7643,11 +7629,11 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -7754,14 +7740,14 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTe
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -7876,11 +7862,11 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0 (
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -7987,14 +7973,14 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTe
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -8109,11 +8095,11 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0 (
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -8221,14 +8207,14 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -8320,7 +8306,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement cfm_measurement;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -8330,11 +8317,16 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 	int status;
 	size_t i;
 
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA256;
-	cfm_measurement.digests.digests = measurement;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -8346,14 +8338,14 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -8418,18 +8410,16 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -8444,7 +8434,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_measurement cfm_measurement;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t measurement[SHA256_HASH_LENGTH];
@@ -8453,11 +8444,16 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 	int status;
 	size_t i;
 
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA256;
-	cfm_measurement.digests.digests = measurement;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -8468,11 +8464,11 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -8524,18 +8520,16 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -8547,136 +8541,14 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_sha256_only_measurement_rsp_raw (
-	CuTest *test)
-{
-	struct attestation_requester_testing testing;
-	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
-	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
-	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement cfm_measurement;
-	uint32_t component_id = 65;
-	uint8_t digest[SHA256_HASH_LENGTH];
-	uint8_t digest2[SHA256_HASH_LENGTH];
-	uint8_t measurement_digest[SHA256_HASH_LENGTH];
-	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
-	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
-	int status;
-	size_t i;
-
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA256;
-	cfm_measurement.digests.digests = measurement_digest;
-
-	for (i = 0; i < sizeof (digest); ++i) {
-		digest[i] = i * 3;
-		digest2[i] = i * 2;
-		measurement_digest[i] = 3 + i;
-	}
-
-	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
-		signature[i] = i * 10;
-	}
-
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
-	CuAssertIntEquals (test, 69, status);
-
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
-
-	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
-		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
-		component_id);
-
-	testing.challenge_unsupported = true;
-	testing.get_all_blocks = false;
-	testing.raw_rsp[0] = true;
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
-		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
-		&testing, HASH_TYPE_SHA256, 4, true, false, false, NULL, component_id);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
-		&testing.secondary_hash, 0);
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
-		false, &testing);
-
-	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, false,
-		false, &testing, 8, 1);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
-		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
-		&testing.secondary_hash, 0);
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)));
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
-		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2), -1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
-		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
-		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_RSP_NOT_DIGEST, status);
-
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
-	CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION, status);
-
-	complete_attestation_requester_mock_test (test, &testing, true);
-}
-
 static void attestation_requester_test_attest_device_spdm_sha384_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement cfm_measurement;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA384_HASH_LENGTH];
 	uint8_t digest2[SHA384_HASH_LENGTH];
@@ -8686,11 +8558,16 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 	int status;
 	size_t i;
 
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA384;
-	cfm_measurement.digests.digests = measurement;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA384;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -8702,14 +8579,14 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -8774,18 +8651,16 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -8800,7 +8675,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_measurement cfm_measurement;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA384_HASH_LENGTH];
 	uint8_t measurement[SHA384_HASH_LENGTH];
@@ -8809,11 +8685,16 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 	int status;
 	size_t i;
 
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA384;
-	cfm_measurement.digests.digests = measurement;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA384;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -8824,11 +8705,11 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -8880,18 +8761,16 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -8903,136 +8782,14 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_sha384_only_measurement_rsp_raw (
-	CuTest *test)
-{
-	struct attestation_requester_testing testing;
-	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
-	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
-	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement cfm_measurement;
-	uint32_t component_id = 65;
-	uint8_t digest[SHA384_HASH_LENGTH];
-	uint8_t digest2[SHA384_HASH_LENGTH];
-	uint8_t measurement_digest[SHA384_HASH_LENGTH];
-	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
-	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
-	int status;
-	size_t i;
-
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA384;
-	cfm_measurement.digests.digests = measurement_digest;
-
-	for (i = 0; i < sizeof (digest); ++i) {
-		digest[i] = i * 3;
-		digest2[i] = i * 2;
-		measurement_digest[i] = 3 + i;
-	}
-
-	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
-		signature[i] = i * 10;
-	}
-
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
-	CuAssertIntEquals (test, 69, status);
-
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
-
-	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
-		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
-		component_id);
-
-	testing.challenge_unsupported = true;
-	testing.get_all_blocks = false;
-	testing.raw_rsp[0] = true;
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
-		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
-		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, component_id);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
-		&testing.secondary_hash, 0);
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
-		false, &testing);
-
-	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, false,
-		false, &testing, 8, 1);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
-		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
-		&testing.secondary_hash, 0);
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)));
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
-		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2), -1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
-		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
-		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_RSP_NOT_DIGEST, status);
-
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
-	CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION, status);
-
-	complete_attestation_requester_mock_test (test, &testing, true);
-}
-
 static void attestation_requester_test_attest_device_spdm_sha512_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement cfm_measurement;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA512_HASH_LENGTH];
 	uint8_t digest2[SHA512_HASH_LENGTH];
@@ -9042,11 +8799,17 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 	int status;
 	size_t i;
 
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA512;
-	cfm_measurement.digests.digests = measurement;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type =
+		HASH_TYPE_SHA512;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -9058,14 +8821,14 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -9130,18 +8893,16 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -9156,7 +8917,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measurement (CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_measurement cfm_measurement;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA512_HASH_LENGTH];
 	uint8_t measurement[SHA512_HASH_LENGTH];
@@ -9165,11 +8927,17 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 	int status;
 	size_t i;
 
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA512;
-	cfm_measurement.digests.digests = measurement;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type =
+		HASH_TYPE_SHA512;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -9180,11 +8948,11 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -9236,18 +9004,16 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -9259,129 +9025,6 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_sha512_only_measurement_rsp_raw (
-	CuTest *test)
-{
-	struct attestation_requester_testing testing;
-	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
-	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
-	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement cfm_measurement;
-	uint32_t component_id = 65;
-	uint8_t digest[SHA512_HASH_LENGTH];
-	uint8_t digest2[SHA512_HASH_LENGTH];
-	uint8_t measurement_digest[SHA512_HASH_LENGTH];
-	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
-	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
-	int status;
-	size_t i;
-
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA512;
-	cfm_measurement.digests.digests = measurement_digest;
-
-	for (i = 0; i < sizeof (digest); ++i) {
-		digest[i] = i * 3;
-		digest2[i] = i * 2;
-		measurement_digest[i] = 3 + i;
-	}
-
-	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
-		signature[i] = i * 10;
-	}
-
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
-	CuAssertIntEquals (test, 69, status);
-
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
-
-	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
-		HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
-		component_id);
-
-	testing.challenge_unsupported = true;
-	testing.get_all_blocks = false;
-	testing.raw_rsp[0] = true;
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
-		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
-		&testing, HASH_TYPE_SHA512, 4, true, false, false, NULL, component_id);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
-		&testing.secondary_hash, 0);
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
-		false, &testing);
-
-	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, false,
-		false, &testing, 8, 1);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
-		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
-		&testing.secondary_hash, 0);
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)));
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
-		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2), -1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
-		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
-		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_RSP_NOT_DIGEST, status);
-
-	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
-	CuAssertIntEquals (test, DEVICE_MANAGER_READY_FOR_ATTESTATION, status);
-
-	complete_attestation_requester_mock_test (test, &testing, true);
-}
-
 static void attestation_requester_test_attest_device_spdm_only_measurement_multiple_measurement_options (
 	CuTest *test)
 {
@@ -9389,7 +9032,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement cfm_measurement;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -9399,11 +9043,17 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 	int status;
 	size_t i;
 
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 2;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA256;
-	cfm_measurement.digests.digests = measurement;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 2;
+	container.measurement.digest.allowable_digests[0].digests.hash_type =
+		HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -9415,14 +9065,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -9487,18 +9137,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -9517,8 +9165,10 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement cfm_measurement;
-	struct cfm_measurement cfm_measurement2;
+	struct cfm_measurement_container container;
+	struct cfm_measurement_container container2;
+	struct cfm_allowable_digests allowable_digests;
+	struct cfm_allowable_digests allowable_digests2;
 	uint32_t component_id = 65;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -9533,17 +9183,28 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	int status;
 	size_t i;
 
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA256;
-	cfm_measurement.digests.digests = measurement;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+	container2.measurement.digest.allowable_digests = &allowable_digests2;
 
-	cfm_measurement2.pmr_id = 0;
-	cfm_measurement2.measurement_id = 1;
-	cfm_measurement2.digests.digest_count = 1;
-	cfm_measurement2.digests.hash_type = HASH_TYPE_SHA256;
-	cfm_measurement2.digests.digests = measurement2;
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type =
+		HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
+
+	container2.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container2.measurement.digest.pmr_id = 0;
+	container2.measurement.digest.measurement_id = 1;
+	container2.measurement.digest.allowable_digests_count = 1;
+	container2.measurement.digest.allowable_digests[0].version_set = 0;
+	container2.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container2.measurement.digest.allowable_digests[0].digests.hash_type =
+		HASH_TYPE_SHA256;
+	container2.measurement.digest.allowable_digests[0].digests.digests = measurement2;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -9559,6 +9220,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		signature2[i] = i * 10 - 1;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -9569,8 +9232,6 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -9676,25 +9337,21 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement2,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 2);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (2));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container2,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -9712,8 +9369,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -9723,17 +9381,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement);
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement);
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -9745,14 +9408,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -9818,18 +9481,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -9848,8 +9508,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -9859,17 +9520,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement);
-	data.allowable_data = measurement;
-	data.big_endian = true;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = true;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement);
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -9881,14 +9547,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -9954,18 +9620,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -9984,8 +9648,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
-	struct cfm_allowable_data data = {0};
+	struct cfm_measurement_container container;
+	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -9996,16 +9661,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -10020,14 +9691,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10094,18 +9765,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -10124,8 +9792,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -10135,17 +9804,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -10157,14 +9831,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10230,15 +9904,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -10257,8 +9929,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -10269,17 +9942,21 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
+	data.allowable_data = &data_entry;
+
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
 	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -10296,14 +9973,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10370,15 +10047,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -10397,8 +10072,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -10408,17 +10084,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_NOT_EQUAL;
-	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_NOT_EQUAL;
+	data.big_endian = false;
+	data.data_count = 2;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -10431,14 +10112,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10504,18 +10185,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -10534,8 +10213,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -10545,17 +10225,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_NOT_EQUAL;
-	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement2;
-	data.big_endian = true;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_NOT_EQUAL;
+	data.big_endian = true;
+	data.data_count = 2;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -10568,14 +10253,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10641,18 +10326,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -10671,8 +10353,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -10683,17 +10366,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_NOT_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_NOT_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -10710,14 +10398,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10784,18 +10472,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -10814,8 +10499,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -10825,17 +10511,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_NOT_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement);
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_NOT_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement);
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -10847,14 +10538,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -10920,15 +10611,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -10947,8 +10635,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -10957,18 +10646,23 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
 	int status;
 	size_t i;
-	data.big_endian = false;
+
+	data.allowable_data = &data_entry;
 
 	data.bitmask = NULL;
+	data.bitmask_length = 0;
 	data.check = CFM_CHECK_NOT_EQUAL;
+	data.big_endian = false;
 	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -10981,14 +10675,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -11054,15 +10748,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -11081,8 +10772,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -11093,17 +10785,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_NOT_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_NOT_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -11118,14 +10815,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -11192,15 +10889,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -11219,8 +10913,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -11230,17 +10925,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_LESS_THAN;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_LESS_THAN;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -11255,14 +10955,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,	component_id);
@@ -11326,18 +11026,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -11356,8 +11053,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -11367,17 +11065,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_LESS_THAN;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = true;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_NOT_EQUAL;
+	data.big_endian = true;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -11392,14 +11095,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,	component_id);
@@ -11463,18 +11166,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -11493,8 +11193,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -11505,17 +11206,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_LESS_THAN;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_LESS_THAN;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -11532,14 +11238,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -11606,18 +11312,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -11636,8 +11339,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -11647,17 +11351,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_LESS_THAN;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_LESS_THAN;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -11669,14 +11378,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -11742,15 +11451,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -11769,8 +11475,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -11781,17 +11488,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_LESS_THAN;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_LESS_THAN;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -11806,14 +11518,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -11880,15 +11592,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -11907,8 +11616,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -11918,17 +11628,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -11942,14 +11657,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12015,18 +11730,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -12045,8 +11757,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -12056,17 +11769,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = true;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
+	data.big_endian = true;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -12080,14 +11798,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12153,18 +11871,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -12183,8 +11898,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -12194,17 +11910,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -12216,14 +11937,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12289,18 +12010,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -12319,8 +12037,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -12331,17 +12050,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -12358,14 +12082,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12432,18 +12156,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -12462,8 +12183,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -12474,17 +12196,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -12500,14 +12227,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12574,18 +12301,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id),	MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -12604,8 +12328,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -12615,17 +12340,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -12639,14 +12369,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12712,15 +12442,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -12739,8 +12466,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -12751,17 +12479,21 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
+	data.allowable_data = &data_entry;
+
 	data.bitmask = measurement_bitmask;
 	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
 	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -12778,14 +12510,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12852,15 +12584,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -12879,8 +12608,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -12890,17 +12620,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_GREATER_THAN;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_GREATER_THAN;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -12914,14 +12649,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -12987,18 +12722,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -13017,8 +12749,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -13028,17 +12761,21 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_GREATER_THAN;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = true;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_GREATER_THAN;
+	data.big_endian = true;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -13052,14 +12789,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13125,18 +12862,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -13155,8 +12889,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -13167,17 +12902,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_GREATER_THAN;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_GREATER_THAN;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -13194,14 +12934,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13268,18 +13008,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -13298,8 +13035,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -13309,17 +13047,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_GREATER_THAN;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_GREATER_THAN;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -13331,14 +13074,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13404,15 +13147,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -13431,8 +13171,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -13443,17 +13184,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_GREATER_THAN;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_GREATER_THAN;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -13468,14 +13214,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13542,15 +13288,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -13569,8 +13312,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -13580,17 +13324,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -13604,14 +13353,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13677,18 +13426,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -13707,8 +13453,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -13718,17 +13465,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = true;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -13742,14 +13494,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13815,18 +13567,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -13845,7 +13594,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_data_entry data_entry;
 	struct cfm_allowable_data data;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -13856,17 +13606,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -13878,14 +13633,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13951,18 +13706,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -13981,8 +13733,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -13993,17 +13746,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -14020,14 +13778,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14094,18 +13852,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -14124,8 +13879,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -14136,17 +13892,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -14162,14 +13923,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14236,18 +13997,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -14266,8 +14024,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -14277,17 +14036,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -14301,14 +14065,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14374,15 +14138,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -14401,8 +14162,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -14413,17 +14175,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = measurement_bitmask;
-	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = measurement_bitmask;
+	data.bitmask_length = sizeof (measurement_bitmask);
+	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -14440,14 +14207,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14514,15 +14281,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -14541,8 +14305,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -14552,17 +14317,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 2;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -14575,14 +14345,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14648,18 +14418,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -14678,8 +14445,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -14689,17 +14457,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 2;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -14712,14 +14485,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14785,15 +14558,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -14812,8 +14582,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -14823,17 +14594,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_NOT_EQUAL;
-	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_NOT_EQUAL;
+	data.big_endian = false;
+	data.data_count = 2;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -14846,14 +14622,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -14919,18 +14695,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -14949,8 +14722,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -14960,17 +14734,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_NOT_EQUAL;
-	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_NOT_EQUAL;
+	data.big_endian = false;
+	data.data_count = 2;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -14983,14 +14762,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15056,15 +14835,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -15083,8 +14859,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -15094,17 +14871,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_LESS_THAN;
-	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_LESS_THAN;
+	data.big_endian = false;
+	data.data_count = 2;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -15117,14 +14899,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15190,15 +14972,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -15217,8 +14996,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -15228,17 +15008,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
-	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_LESS_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 2;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -15251,14 +15036,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15324,15 +15109,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -15351,8 +15133,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -15362,17 +15145,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_GREATER_THAN;
-	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_GREATER_THAN;
+	data.big_endian = false;
+	data.data_count = 2;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -15385,14 +15173,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15458,15 +15246,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -15485,8 +15270,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -15496,17 +15282,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
-	data.data_count = 2;
-	data.data_len = SHA256_HASH_LENGTH;
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_GREATER_THAN_OR_EQUAL;
+	data.big_endian = false;
+	data.data_count = 2;
+	data.allowable_data[0].data_len = SHA256_HASH_LENGTH;
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -15519,14 +15310,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15592,15 +15383,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -15619,8 +15407,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data[2];
+	struct cfm_allowable_data_entry data_entry[2];
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -15632,24 +15421,32 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
+	data[0].allowable_data = &data_entry[0];
+	data[1].allowable_data = &data_entry[1];
+
 	data[0].bitmask = measurement_bitmask;
+	data[0].bitmask_length = sizeof (measurement_bitmask);
 	data[0].check = CFM_CHECK_EQUAL;
-	data[0].data_count = 1;
-	data[0].data_len = sizeof (measurement);
-	data[0].allowable_data = measurement;
 	data[0].big_endian = false;
+	data[0].data_count = 1;
+	data[0].allowable_data[0].data_len = sizeof (measurement);
+	data[0].allowable_data[0].data = measurement;
+	data[0].allowable_data[0].version_set = 0;
 
 	data[1].bitmask = NULL;
+	data[1].bitmask = 0;
 	data[1].check = CFM_CHECK_EQUAL;
-	data[1].data_count = 1;
-	data[1].data_len = sizeof (measurement2);
-	data[1].allowable_data = measurement2;
 	data[1].big_endian = false;
+	data[1].data_count = 1;
+	data[1].allowable_data[0].data_len = sizeof (measurement2);
+	data[1].allowable_data[0].data = measurement2;
+	data[1].allowable_data[0].version_set = 0;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = data;
-	cfm_measurement_data.check_count = 2;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = data;
+	container.measurement.data.data_checks_count = 2;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -15667,14 +15464,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15740,15 +15537,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -15763,8 +15557,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 static void attestation_requester_test_attest_device_spdm_only_measurement_data_1_1 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t measurement[SHA256_HASH_LENGTH];
@@ -15773,17 +15568,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement);
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement);
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -15794,11 +15594,11 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15851,18 +15651,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -15881,8 +15679,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA384_HASH_LENGTH];
 	uint8_t digest2[SHA384_HASH_LENGTH];
@@ -15892,17 +15691,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement);
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement);
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -15914,14 +15718,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -15987,18 +15791,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -16017,8 +15819,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA512_HASH_LENGTH];
 	uint8_t digest2[SHA512_HASH_LENGTH];
@@ -16028,17 +15831,22 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement);
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement);
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -16050,14 +15858,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16123,18 +15931,16 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -16153,10 +15959,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
-	struct cfm_measurement_data cfm_measurement_data2;
+	struct cfm_measurement_container container;
+	struct cfm_measurement_container container2;
 	struct cfm_allowable_data data;
 	struct cfm_allowable_data data2;
+	struct cfm_allowable_data_entry data_entry;
+	struct cfm_allowable_data_entry data_entry2;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -16171,29 +15979,38 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement);
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
+	data2.allowable_data = &data_entry2;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement);
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	data2.bitmask = NULL;
+	data2.bitmask_length = 0;
 	data2.check = CFM_CHECK_EQUAL;
-	data2.data_count = 1;
-	data2.data_len = sizeof (measurement2);
-	data2.allowable_data = measurement2;
 	data2.big_endian = false;
+	data2.data_count = 1;
+	data2.allowable_data[0].data_len = sizeof (measurement2);
+	data2.allowable_data[0].data = measurement2;
+	data2.allowable_data[0].version_set = 0;
 
-	cfm_measurement_data2.pmr_id = 0;
-	cfm_measurement_data2.measurement_id = 1;
-	cfm_measurement_data2.check = &data2;
-	cfm_measurement_data2.check_count = 1;
+	container2.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container2.measurement.data.pmr_id = 0;
+	container2.measurement.data.measurement_id = 1;
+	container2.measurement.data.data_checks = &data2;
+	container2.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -16209,6 +16026,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature2[i] = i * 10 - 1;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -16219,8 +16038,6 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16328,25 +16145,21 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data2,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 2);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (2));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container2,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -16365,7 +16178,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -16374,10 +16187,11 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	int status;
 	size_t i;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = NULL;
-	cfm_measurement_data.check_count = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = NULL;
+	container.measurement.data.data_checks_count = 0;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -16388,14 +16202,14 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16461,16 +16275,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -16489,9 +16300,11 @@ static void attestation_requester_test_attest_device_spdm_measurement_and_measur
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement cfm_measurement;
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
+	struct cfm_measurement_container container2;
+	struct cfm_allowable_digests allowable_digests;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -16506,23 +16319,33 @@ static void attestation_requester_test_attest_device_spdm_measurement_and_measur
 	int status;
 	size_t i;
 
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA256;
-	cfm_measurement.digests.digests = measurement;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.pmr_id = 0;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+	data.allowable_data = &data_entry;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type =
+		HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.pmr_id = 0;
 
 	data.bitmask = NULL;
+	data.bitmask_length = 0;
 	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
 	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 1;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	container2.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container2.measurement.data.pmr_id = 0;
+	container2.measurement.data.measurement_id = 1;
+	container2.measurement.data.data_checks = &data;
+	container2.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -16538,6 +16361,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_and_measur
 		signature2[i] = i * 10 - 1;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -16548,8 +16373,6 @@ static void attestation_requester_test_attest_device_spdm_measurement_and_measur
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16657,25 +16480,21 @@ static void attestation_requester_test_attest_device_spdm_measurement_and_measur
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 2);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (2));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_MEASUREMENT_DATA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container2,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -16714,6 +16533,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -16729,8 +16550,6 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16830,10 +16649,11 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
 
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA384;
@@ -16846,8 +16666,6 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -16948,10 +16766,11 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
 
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA512;
@@ -16964,8 +16783,6 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17066,6 +16883,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -17074,7 +16893,6 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 		cert_chain_digest[i] = i * 5;
 	}
 
-
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
 	pmr_digest.digests.digest_count = 1;
@@ -17082,8 +16900,6 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17181,6 +16997,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -17189,7 +17007,6 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 		cert_chain_digest[i] = i * 5;
 	}
 
-
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA384;
 	pmr_digest.digests.digest_count = 1;
@@ -17197,8 +17014,6 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17296,6 +17111,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -17304,7 +17121,6 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 		cert_chain_digest[i] = i * 5;
 	}
 
-
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA512;
 	pmr_digest.digests.digest_count = 1;
@@ -17312,8 +17128,6 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA512, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17416,14 +17230,14 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17521,6 +17335,8 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -17528,11 +17344,8 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
 
-	TEST_START;
-
-	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true, HASH_TYPE_SHA256,
-		CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
-		component_id);
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
+		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM, component_id);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -17621,10 +17434,11 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
 
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA384;
@@ -17633,8 +17447,6 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, false,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17727,10 +17539,11 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
 
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA384;
@@ -17739,8 +17552,6 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -17841,6 +17652,8 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -17848,7 +17661,6 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 	for (i = 0; i < sizeof (out_digest); ++i) {
 		out_digest[i] = i;
 	}
-
 
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA384;
@@ -17861,10 +17673,7 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 	pub_key = platform_malloc (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN);
 	CuAssertPtrNotNull (test, pub_key);
 
-	memcpy (pub_key, RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN);
-
-	TEST_START;
+	memcpy (pub_key, RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -18014,14 +17823,14 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -18100,8 +17909,8 @@ static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuT
 	component_device.component_id = component_id;
 	component_device.num_pmr_ids = 1;
 	component_device.pmr_id_list = pmr_id_list;
-	component_device.transcript_hash_type = HASH_TYPE_SHA256;
-	component_device.measurement_hash_type = HASH_TYPE_SHA256;
+	component_device.transcript_hash_type = HASH_TYPE_SHA1;
+	component_device.measurement_hash_type = HASH_TYPE_SHA1;
 
 	TEST_START;
 
@@ -19877,6 +19686,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
@@ -19885,8 +19696,6 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
 
 	memset (&req, 0, sizeof (struct spdm_get_digests_request));
-
-	TEST_START;
 
 	component_device.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
 	component_device.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
@@ -20579,7 +20388,6 @@ static void attestation_requester_test_attest_device_spdm_init_ca_cert_store_fai
 	uint32_t component_id = 101;
 	int status;
 
-
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
@@ -20620,7 +20428,6 @@ static void attestation_requester_test_attest_device_spdm_add_root_ca_fail (CuTe
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 101;
 	int status;
-
 
 	TEST_START;
 
@@ -20669,7 +20476,6 @@ static void attestation_requester_test_attest_device_spdm_no_riot_ca_add_root_ca
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 50;
 	int status;
-
 
 	TEST_START;
 
@@ -20720,7 +20526,6 @@ static void attestation_requester_test_attest_device_spdm_get_vendor_root_ca_fai
 	uint32_t component_id = 50;
 	int status;
 
-
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -20765,8 +20570,10 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_hash_fa
 		ca_digests[i_digest] = 0x0a + i_digest;
 	}
 
-	root_ca_digests.digests.digest_count = 2;
+	memset (&root_ca_digests.digests, 0, sizeof (struct cfm_digests));
+
 	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
+	root_ca_digests.digests.digest_count = 2;
 	root_ca_digests.digests.digests = ca_digests;
 
 	TEST_START;
@@ -20828,8 +20635,10 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_not_sup
 		out_digest[i_digest] = 0x0b + i_digest;
 	}
 
-	root_ca_digests.digests.digest_count = 2;
+	memset (&root_ca_digests.digests, 0, sizeof (struct cfm_digests));
+
 	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
+	root_ca_digests.digests.digest_count = 2;
 	root_ca_digests.digests.digests = ca_digests;
 
 	TEST_START;
@@ -20891,8 +20700,10 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_add_roo
 		ca_digests[i_digest] = 0x0a + i_digest;
 	}
 
-	root_ca_digests.digests.digest_count = 2;
+	memset (&root_ca_digests.digests, 0, sizeof (struct cfm_digests));
+
 	root_ca_digests.digests.hash_type = HASH_TYPE_SHA256;
+	root_ca_digests.digests.digest_count = 2;
 	root_ca_digests.digests.digests = ca_digests;
 
 	TEST_START;
@@ -20958,7 +20769,6 @@ static void attestation_requester_test_attest_device_spdm_add_intermediate_ca_fa
 	uint32_t component_id = 50;
 	int status;
 
-
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -21011,7 +20821,6 @@ static void attestation_requester_test_attest_device_spdm_load_certificate_fail 
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 50;
 	int status;
-
 
 	TEST_START;
 
@@ -21070,7 +20879,6 @@ static void attestation_requester_test_attest_device_spdm_authenticate_cert_chai
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 50;
 	int status;
-
 
 	TEST_START;
 
@@ -21141,7 +20949,6 @@ static void attestation_requester_test_attest_device_spdm_sha256_hash_cert_chain
 	uint32_t component_id = 50;
 	int status;
 
-
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -21209,7 +21016,6 @@ static void attestation_requester_test_attest_device_spdm_sha384_hash_cert_chain
 	uint32_t component_id = 50;
 	int status;
 
-
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -21276,7 +21082,6 @@ static void attestation_requester_test_attest_device_spdm_sha512_hash_cert_chain
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 50;
 	int status;
-
 
 	TEST_START;
 
@@ -21346,7 +21151,6 @@ static void attestation_requester_test_attest_device_spdm_compare_cert_chain_dig
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
 	int status;
-
 
 	TEST_START;
 
@@ -21424,7 +21228,6 @@ static void attestation_requester_test_attest_device_spdm_get_public_key_type_fa
 	for (i_digest = 0; i_digest < sizeof (out_digest); ++i_digest) {
 		out_digest[i_digest] = i_digest;
 	}
-
 
 	TEST_START;
 
@@ -21504,7 +21307,6 @@ static void attestation_requester_test_attest_device_spdm_get_public_key_fail (C
 	for (i_digest = 0; i_digest < sizeof (out_digest); ++i_digest) {
 		out_digest[i_digest] = i_digest;
 	}
-
 
 	TEST_START;
 
@@ -22385,7 +22187,6 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
 
-
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
 	}
@@ -22441,7 +22242,6 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -22501,7 +22301,6 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -22645,11 +22444,11 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -22728,14 +22527,14 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -22828,14 +22627,14 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -22932,14 +22731,14 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -23012,7 +22811,6 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_get_pmr_dige
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 50;
 	int status;
-
 
 	TEST_START;
 
@@ -24792,11 +24590,11 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ver
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -24893,11 +24691,11 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_co
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -25000,11 +24798,11 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -25084,7 +24882,6 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_next_m
 	uint32_t component_id = 50;
 	int status;
 
-
 	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -25112,8 +24909,11 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_next_m
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, CFM_NO_MEMORY,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -25129,17 +24929,24 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_measurement cfm_measurement;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	int status;
 	size_t i;
 
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA256;
-	cfm_measurement.digests.digests = digest;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type =
+		HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = digest;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -25174,13 +24981,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -25198,7 +25005,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_no_digest_
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement cfm_measurement;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -25207,11 +25015,17 @@ static void attestation_requester_test_attest_device_spdm_measurement_no_digest_
 	int status;
 	size_t i;
 
-	cfm_measurement.pmr_id = 0;
-	cfm_measurement.measurement_id = 0;
-	cfm_measurement.digests.digest_count = 1;
-	cfm_measurement.digests.hash_type = HASH_TYPE_SHA256;
-	cfm_measurement.digests.digests = digest;
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 0;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type =
+		HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = digest;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -25222,14 +25036,14 @@ static void attestation_requester_test_attest_device_spdm_measurement_no_digest_
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -25294,13 +25108,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_no_digest_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement,
-		sizeof (struct cfm_measurement), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement, &testing.cfm, 0,
-		MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -25318,7 +25132,6 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_n
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 50;
 	int status;
-
 
 	TEST_START;
 
@@ -25347,10 +25160,11 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_n
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
-		&testing.cfm, CFM_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, CFM_NO_MEMORY,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -25366,23 +25180,29 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 50;
 	uint8_t measurement[SHA256_HASH_LENGTH];
 	int status;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement);
-	data.allowable_data = measurement;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement);
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	TEST_START;
 
@@ -25413,15 +25233,12 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -25440,8 +25257,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -25451,17 +25269,22 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -25473,14 +25296,14 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -25547,15 +25370,12 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -25576,8 +25396,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 50;
 	uint8_t measurement2[SHA256_HASH_LENGTH];
 	uint8_t *slot_id;
@@ -25603,17 +25424,22 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 		nonce[i] = SPDM_NONCE_LEN - i;
 	}
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (measurement2); ++i) {
 		measurement2[i] = 51 + i;
@@ -25673,15 +25499,12 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -25700,8 +25523,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
-	struct cfm_measurement_data cfm_measurement_data;
+	struct cfm_measurement_container container;
 	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
 	uint32_t component_id = 50;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
@@ -25711,17 +25535,22 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 	int status;
 	size_t i;
 
-	data.bitmask = NULL;
-	data.check = CFM_CHECK_EQUAL;
-	data.data_count = 1;
-	data.data_len = sizeof (measurement2);
-	data.allowable_data = measurement2;
-	data.big_endian = false;
+	data.allowable_data = &data_entry;
 
-	cfm_measurement_data.pmr_id = 0;
-	cfm_measurement_data.measurement_id = 0;
-	cfm_measurement_data.check = &data;
-	cfm_measurement_data.check_count = 1;
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data = measurement2;
+	data.allowable_data[0].data_len = sizeof (measurement2);
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 0;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -25733,14 +25562,14 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -25807,15 +25636,12 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement, &testing.cfm,
-		CFM_MEASUREMENT_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_data,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &cfm_measurement_data,
-		sizeof (struct cfm_measurement_data), -1);
-	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_data, &testing.cfm,
-		0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -25868,7 +25694,6 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	uint32_t component_id = 50;
 	uint8_t num_pcr_measurements = 0;
 	int status;
-
 
 	memset (&testing, 0, sizeof (struct attestation_requester_testing));
 
@@ -26077,14 +25902,13 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	struct cfm_component_device component_device;
 	int status;
 
-
 	component_device.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
 	component_device.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
 	component_device.component_id = component_id;
 	component_device.num_pmr_ids = 1;
 	component_device.pmr_id_list = pmr_id_list;
 	component_device.measurement_hash_type = (enum hash_type) 4;
-	component_device.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device.transcript_hash_type = HASH_TYPE_SHA1;
 
 	TEST_START;
 
@@ -26117,7 +25941,7 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
 
-	component_device.measurement_hash_type = HASH_TYPE_SHA256;
+	component_device.measurement_hash_type = HASH_TYPE_SHA1;
 	component_device.transcript_hash_type = (enum hash_type) 4;
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
@@ -27246,14 +27070,14 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -27903,14 +27727,14 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 		signature[i] = i * 10;
 	}
 
+	TEST_START;
+
 	status = ecc_der_encode_ecdsa_signature (signature,
 		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
-
-	TEST_START;
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM, component_id);
@@ -28120,13 +27944,10 @@ TEST (attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0);
 TEST (attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr0_options);
 TEST (attestation_requester_test_attest_device_spdm_sha256_only_measurement);
 TEST (attestation_requester_test_attest_device_spdm_sha256_1_1_only_measurement);
-TEST (attestation_requester_test_attest_device_spdm_sha256_only_measurement_rsp_raw);
 TEST (attestation_requester_test_attest_device_spdm_sha384_only_measurement);
 TEST (attestation_requester_test_attest_device_spdm_sha384_1_1_only_measurement);
-TEST (attestation_requester_test_attest_device_spdm_sha384_only_measurement_rsp_raw);
 TEST (attestation_requester_test_attest_device_spdm_sha512_only_measurement);
 TEST (attestation_requester_test_attest_device_spdm_sha512_1_1_only_measurement);
-TEST (attestation_requester_test_attest_device_spdm_sha512_only_measurement_rsp_raw);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_multiple_measurement_options);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_2_measurement_blocks);
 TEST (attestation_requester_test_attest_device_spdm_only_measurement_data_equal);

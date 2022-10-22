@@ -363,7 +363,14 @@ def process_cfm_allowable_manifest (root, manifest_name, component_type, xml_fil
 
         check = process_cfm_check (manifest_id, manifest_name, component_type, xml_file)
 
-        output["manifest_id"].append ({"check":check, "ids": ids})
+        endianness = 0
+        endian_tag = xml_find_single_tag (manifest_id, XML_ENDIANNESS_TAG, xml_file, False)
+        if endian_tag is not None:
+            endian_text = endian_tag.text.strip ()
+            if endian_text == CFM_ENDIANNESS_BIG_ENDIAN:
+                endianness = 1
+
+        output["manifest_id"].append ({"check": check, "endianness": endianness, "ids": ids})
 
     return output
 
@@ -388,6 +395,17 @@ def process_cfm (root, xml_file, selection_list):
 
     xml[component_type] = {}
     component = xml[component_type]
+
+    component["unique"] = -1
+
+    for element in root:
+        if element.tag == "Measurement":
+            component["unique"] = 0
+            break
+
+        if element.tag == "MeasurementData":
+            component["unique"] = 1
+            break
 
     result = xml_extract_attrib (root, XML_ATTESTATION_PROTOCOL_ATTRIB, True, xml_file)
     if result.lower () == "cerberus":
@@ -518,8 +536,9 @@ def process_cfm (root, xml_file, selection_list):
             bitmask_tag = xml_find_single_tag (allowable_data, XML_BITMASK_TAG, xml_file, False)
 
             if bitmask_tag is not None:
-                bitmask_tag_text = bitmask_tag.text.strip ()
-                data_dict["bitmask"] = binascii.a2b_hex (re.sub ("\s", "", bitmask_tag_text))
+                bitmask_text = binascii.a2b_hex (re.sub ("\s", "", bitmask_tag.text.strip ()))
+                data_dict["bitmask"] = bitmask_text
+                data_dict["bitmask_length"] = len (bitmask_text)
 
             check = process_cfm_check (allowable_data, "data", component_type, xml_file)
             data_dict["check"] = check
@@ -554,12 +573,12 @@ def process_cfm (root, xml_file, selection_list):
                     component["measurement_data"][pmr_id][measurement_id]["data_len"] = \
                         len (data_text)
 
-                if "bitmask" in data_dict and len (data_text) != len (data_dict["bitmask"]):
+                if "bitmask" in data_dict and len (data_text) > len (data_dict["bitmask"]):
                     raise ValueError (
-                        "Data {0} should be same length as bitmask {1} for component {2} in manifest {3}".format (
+                        "Data {0} length should be no greater than bitmask {1} for component {2} in manifest {3}".format (
                             data_text, data_dict["bitmask"], component_type, xml_file))
 
-                data_dict["data"].append(data_text)
+                data_dict["data"].append (data_text)
 
             component["measurement_data"][pmr_id][measurement_id]["allowable_data"].append (
                 data_dict)

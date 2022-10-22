@@ -17,6 +17,10 @@ struct cfm_testing_data {
 	uint32_t component_device1_offset;					/**< Offset of the first component device element. */
 	int component_device1_entry;						/**< TOC entry for the first component device element. */
 	int component_device1_hash;							/**< TOC hash for the first component device element. */
+	size_t component_device2_len;						/**< Second component device element data length. */
+	uint32_t component_device2_offset;					/**< Offset of the second component device element. */
+	int component_device2_entry;						/**< TOC entry for the second component device element. */
+	int component_device2_hash;							/**< TOC hash for the second component device element. */
 };
 
 extern const struct cfm_testing_data CFM_TESTING;

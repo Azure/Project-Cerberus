@@ -555,15 +555,15 @@ static int flash_mock_expect_copy_flash_ext (struct flash_mock *mock_dest,
 
 		status |= mock_expect (&mock_src->mock, mock_src->base.read, mock_src, 0,
 			MOCK_ARG (src_addr), MOCK_ARG_NOT_NULL, MOCK_ARG (page_len));
-		status |= mock_expect_output (&mock_src->mock, 1, data, length, 2);
+		status |= mock_expect_output_tmp (&mock_src->mock, 1, data, length, 2);
 
 		status |= mock_expect (&mock_dest->mock, mock_dest->base.write, mock_dest, page_len,
-			MOCK_ARG (dest_addr), MOCK_ARG_PTR_CONTAINS (data, page_len), MOCK_ARG (page_len));
+			MOCK_ARG (dest_addr), MOCK_ARG_PTR_CONTAINS_TMP (data, page_len), MOCK_ARG (page_len));
 
 		if (verify) {
 			status |= mock_expect (&mock_dest->mock, mock_dest->base.read, mock_dest, 0,
 				MOCK_ARG (dest_addr), MOCK_ARG_NOT_NULL, MOCK_ARG (page_len));
-			status |= mock_expect_output (&mock_dest->mock, 1, data, length, 2);
+			status |= mock_expect_output_tmp (&mock_dest->mock, 1, data, length, 2);
 		}
 
 		length -= page_len;
@@ -685,11 +685,11 @@ int flash_mock_expect_verify_flash_and_hash (struct flash_mock *mock, struct has
 
 		status |= mock_expect (&mock->mock, mock->base.read, mock, 0, MOCK_ARG (start),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (read_len));
-		status |= mock_expect_output (&mock->mock, 1, data, length, 2);
+		status |= mock_expect_output_tmp (&mock->mock, 1, data, length, 2);
 
 		if (hash) {
 			status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-				MOCK_ARG_PTR_CONTAINS (data, read_len), MOCK_ARG (read_len));
+				MOCK_ARG_PTR_CONTAINS_TMP (data, read_len), MOCK_ARG (read_len));
 		}
 
 		start += read_len;
@@ -724,11 +724,11 @@ int flash_mock_expect_verify_copy (struct flash_mock *mock1, uint32_t start1, co
 
 		status |= mock_expect (&mock1->mock, mock1->base.read, mock1, 0, MOCK_ARG (start1),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (page_len));
-		status |= mock_expect_output (&mock1->mock, 1, data1, length, 2);
+		status |= mock_expect_output_tmp (&mock1->mock, 1, data1, length, 2);
 
 		status |= mock_expect (&mock2->mock, mock2->base.read, mock2, 0, MOCK_ARG (start2),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (page_len));
-		status |= mock_expect_output (&mock2->mock, 1, data2, length, 2);
+		status |= mock_expect_output_tmp (&mock2->mock, 1, data2, length, 2);
 
 		length -= page_len;
 		start1 += page_len;

@@ -876,8 +876,16 @@ error:
 }
 
 /**
- * Find the number of direct child elements of specified type of requested element.  If element has
- * nested children, they are not counted.
+ * Get requested information of child elements or requested entry.
+ *
+ * Get Number of Child Elements: Use child_count to find the number of direct child elements of
+ * 	specified type of requested element.  If element has nested children, they are not counted.
+ *
+ * Get Total Length of Child Elements: Use child_len to find the total length of direct child
+ *  elements of	specified type of requested element.  If element has nested children, they are not
+ *  counted.
+ *
+ * Get Entry ID of First Child: Use first_entry to get first child entry of requested type.
  *
  * @param manifest The manifest to read.
  * @param hash The hash engine to use for element validation.
@@ -886,22 +894,23 @@ error:
  * @param parent_type Type of parent to requested parent element.
  * @param child_type Type of child element to get count of.
  * @param child_len Optional output buffer with total length of child elements.
+ * @param child_count Optional output buffer with number of child elements found.
+ * @param first_entry Optional output buffer with entry of first child.
  *
- * @return The number of child elements found or an error code.  Use ROT_IS_ERROR to check the
- * return value.
+ * @return 0 if request completed successfully or an error code.
  */
-int manifest_flash_get_num_child_elements (struct manifest_flash *manifest,
+int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
 	struct hash_engine *hash, int entry, uint8_t type, uint8_t parent_type, uint8_t child_type,
-	size_t *child_len)
+	size_t *child_len, int *child_count, int *first_entry)
 {
 	uint8_t validate_hash[SHA512_HASH_LENGTH];
 	struct manifest_toc_entry toc_entry;
 	uint32_t entry_addr;
 	uint32_t hash_addr;
-	int child_count = 0;
+	bool only_entry = ((child_len == NULL) && (child_count == NULL));
 	int status;
 
-	if ((manifest == NULL) || (hash == NULL)) {
+	if ((manifest == NULL) || (hash == NULL) || (only_entry && (first_entry == NULL))) {
 		return MANIFEST_INVALID_ARGUMENT;
 	}
 
@@ -911,6 +920,14 @@ int manifest_flash_get_num_child_elements (struct manifest_flash *manifest,
 
 	if (child_len != NULL) {
 		*child_len = 0;
+	}
+
+	if (child_count != NULL) {
+		*child_count = 0;
+	}
+
+	if (first_entry != NULL) {
+		*first_entry = 0;
 	}
 
 	if (entry >= manifest->toc_header.entry_count) {
@@ -957,16 +974,37 @@ int manifest_flash_get_num_child_elements (struct manifest_flash *manifest,
 		}
 
 		if ((toc_entry.parent == parent_type) || (toc_entry.type_id == parent_type)) {
+			if (only_entry) {
+				status = MANIFEST_CHILD_NOT_FOUND;
+				goto error;
+			}
+
 			entry_addr += sizeof (struct manifest_toc_entry);
 			break;
 		}
 		if ((toc_entry.parent == type) && (toc_entry.type_id == child_type)) {
-			++child_count;
+			if ((first_entry != NULL) && (*first_entry == 0)) {
+				*first_entry = entry;
+
+				if (only_entry) {
+					entry_addr += sizeof (struct manifest_toc_entry);
+					break;
+				}
+			}
+
+			if (child_count != NULL) {
+				*child_count = *child_count + 1;
+			}
 
 			if (child_len != NULL) {
 				*child_len = *child_len + toc_entry.length;
 			}
 		}
+	}
+
+	if (only_entry && (*first_entry == 0)) {
+		status = MANIFEST_CHILD_NOT_FOUND;
+		goto error;
 	}
 
 	/* Hash the unneeded TOC data until the entry hash. */
@@ -985,7 +1023,7 @@ int manifest_flash_get_num_child_elements (struct manifest_flash *manifest,
 		return MANIFEST_TOC_INVALID;
 	}
 
-	return child_count;
+	return 0;
 
 error:
 	hash->cancel (hash);

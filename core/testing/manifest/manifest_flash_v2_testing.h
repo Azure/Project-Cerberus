@@ -52,20 +52,22 @@ void manifest_flash_v2_testing_read_element_mocked_hash (CuTest *test,
 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
 	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
 	uint32_t read_offset);
-// TODO: Fix Valgrind invalid read error
-// void manifest_flash_v2_testing_read_element_bad_entry (CuTest *test,
-// 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
-// 	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
-// 	uint32_t read_offset, struct manifest_toc_entry *element_entry);
-// void manifest_flash_v2_testing_read_element_mocked_hash_bad_entry (CuTest *test,
-// 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
-// 	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
-// 	uint32_t read_offset, struct manifest_toc_entry *element_entry);
+void manifest_flash_v2_testing_read_element_bad_entry (CuTest *test,
+	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
+	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
+	uint32_t read_offset, struct manifest_toc_entry *element_entry, uint8_t *element_data);
+void manifest_flash_v2_testing_read_element_mocked_hash_bad_entry (CuTest *test,
+	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
+	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
+	uint32_t read_offset, struct manifest_toc_entry *element_entry, uint8_t *element_data);
 
-void manifest_flash_v2_testing_get_num_child_elements (CuTest *test,
+void manifest_flash_v2_testing_iterate_manifest_toc (CuTest *test,
 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
 	int entry, int last_entry);
-void manifest_flash_v2_testing_get_num_child_elements_mocked_hash (CuTest *test,
+void manifest_flash_v2_testing_iterate_manifest_toc_no_verify (CuTest *test,
+	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
+	int entry, int last_entry);
+void manifest_flash_v2_testing_iterate_manifest_toc_mocked_hash (CuTest *test,
 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
 	int entry, int last_entry);
 

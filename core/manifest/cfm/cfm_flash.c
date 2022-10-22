@@ -127,7 +127,13 @@ static int cfm_flash_get_component_device_with_starting_entry (struct cfm_flash 
 		}
 
 		if (status < (int) (sizeof (struct cfm_component_device_element))) {
-			return CFM_MALFORMED_COMPONENT_DEVICE_ELEMENT;
+			return CFM_MALFORMED_COMPONENT_DEVICE_ENTRY;
+		}
+		else if (component->transcript_hash_type > MANIFEST_HASH_SHA512) {
+			return CFM_INVALID_TRANSCRIPT_HASH_TYPE;
+		}
+		else if (component->measurement_hash_type > MANIFEST_HASH_SHA512) {
+			return CFM_INVALID_MEASUREMENT_HASH_TYPE;
 		}
 
 		element_entry++;
@@ -158,11 +164,11 @@ static int cfm_flash_get_pmr_id_list (struct cfm_flash *cfm_flash, uint8_t entry
 	int i_pmr_id;
 	int status;
 
-	num_pmr_ids = manifest_flash_get_num_child_elements (&cfm_flash->base_flash,
+	status = manifest_flash_get_child_elements_info (&cfm_flash->base_flash,
 		cfm_flash->base_flash.hash, entry, CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT,
-		CFM_PMR_DIGEST, NULL);
-	if (ROT_IS_ERROR (num_pmr_ids)) {
-		return num_pmr_ids;
+		CFM_PMR_DIGEST, NULL, &num_pmr_ids, NULL);
+	if (status != 0) {
+		return status;
 	}
 
 	if (num_pmr_ids == 0) {
@@ -182,14 +188,14 @@ static int cfm_flash_get_pmr_id_list (struct cfm_flash *cfm_flash, uint8_t entry
 			sizeof (struct cfm_pmr_digest_element));
 		if (ROT_IS_ERROR (status)) {
 			if (status == MANIFEST_CHILD_NOT_FOUND) {
-				status = CFM_ELEMENT_NOT_FOUND;
+				status = CFM_ENTRY_NOT_FOUND;
 			}
 
 			goto fail;
 		}
 
 		if (status < (int) (sizeof (struct cfm_pmr_digest_element))) {
-			status = CFM_MALFORMED_PMR_DIGEST_ELEMENT;
+			status = CFM_MALFORMED_PMR_DIGEST_ENTRY;
 
 			goto fail;
 		}
@@ -289,7 +295,7 @@ static int cfm_flash_buffer_supported_components (struct cfm *cfm, size_t offset
 		}
 
 		if (status < (int) (sizeof (struct cfm_component_device_element))) {
-			return CFM_MALFORMED_COMPONENT_DEVICE_ELEMENT;
+			return CFM_MALFORMED_COMPONENT_DEVICE_ENTRY;
 		}
 
 		++entry;
@@ -306,7 +312,7 @@ done:
  * Common function used to get next element data for the specified component ID and element type.
  *
  * @param cfm_flash The CFM to query.
- * @param component_id The component ID to find element for.
+ * @param component_id The component ID to find element for.  This is unused if entry is not NULL.
  * @param buffer A container to be updated with the pointer to requested element data.  If the
  *  buffer is null, a buffer will by dynamically allocated to fit the entire element.  This buffer
  *  must be freed by the caller.
@@ -353,11 +359,11 @@ static int cfm_flash_get_next_element (struct cfm_flash *cfm_flash, uint32_t com
 		buffer_len_ptr = &buffer_len_buf;
 	}
 
-	num_element = manifest_flash_get_num_child_elements (&cfm_flash->base_flash,
+	status = manifest_flash_get_child_elements_info (&cfm_flash->base_flash,
 		cfm_flash->base_flash.hash, element_entry, CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT,
-		element_type, NULL);
-	if (ROT_IS_ERROR (num_element)) {
-		return num_element;
+		element_type, NULL, &num_element, NULL);
+	if (status != 0) {
+		return status;
 	}
 
 	if (num_element == 0) {
@@ -382,7 +388,7 @@ static int cfm_flash_get_next_element (struct cfm_flash *cfm_flash, uint32_t com
 	return 0;
 
 not_found:
-	return CFM_ELEMENT_NOT_FOUND;
+	return CFM_ENTRY_NOT_FOUND;
 }
 
 static int cfm_flash_get_component_pmr (struct cfm *cfm, uint32_t component_id, uint8_t pmr_id,
@@ -419,7 +425,7 @@ static int cfm_flash_get_component_pmr (struct cfm *cfm, uint32_t component_id, 
 		status = cfm_flash_get_next_element (cfm_flash, component_id, (uint8_t**) &pmr_element_ptr,
 			&pmr_element_len, &entry, CFM_PMR);
 		if (status != 0) {
-			if (status == CFM_ELEMENT_NOT_FOUND) {
+			if (status == CFM_ENTRY_NOT_FOUND) {
 				return CFM_PMR_NOT_FOUND;
 			}
 
@@ -452,6 +458,28 @@ static int cfm_flash_get_component_pmr (struct cfm *cfm, uint32_t component_id, 
 static void cfm_flash_free_cfm_digests (struct cfm_flash *cfm_flash, struct cfm_digests *digests)
 {
 	platform_free ((void*) digests->digests);
+}
+
+/**
+ * Free cfm_allowable_digests container.
+ *
+ * @param cfm_flash The CFM to query.
+ * @param digests The CFM allowable digests container with content to free.
+ */
+static void cfm_flash_free_cfm_allowable_digests (struct cfm_flash *cfm_flash,
+	struct cfm_allowable_digests *allowable_digests, size_t allowable_digests_count)
+{
+	uint8_t i;
+
+	if (allowable_digests == NULL) {
+		return;
+	}
+
+	for (i = 0; i < allowable_digests_count; ++i) {
+		cfm_flash_free_cfm_digests (cfm_flash, &allowable_digests[i].digests);
+	}
+
+	platform_free ((void*) allowable_digests);
 }
 
 /**
@@ -495,12 +523,100 @@ static int cfm_flash_populate_digests (struct cfm_flash *cfm_flash, struct cfm_d
 		(uint8_t**) &digests->digests, digests_len);
 	if (ROT_IS_ERROR (status)) {
 		if (status == MANIFEST_CHILD_NOT_FOUND) {
-			status = CFM_ELEMENT_MISSING_DIGESTS;
+			status = CFM_ENTRY_MISSING_DIGESTS;
 		}
 
 		cfm_flash_free_cfm_digests (cfm_flash, digests);
 
 		return status;
+	}
+
+	return 0;
+}
+
+/**
+ * Read a list of Allowable Digests from CFM entry and offset provided, then generate a
+ * cfm_allowable_digests container list with the output.
+ *
+ * @param cfm_flash The CFM to query.
+ * @param allowable_digests The cfm_allowable_digests container list to fill up.
+ * @param digest_count The number of digests to read.
+ * @param hash_type The type of digests to read.
+ * @param entry The entry number of the element being read.
+ * @param offset The offset into the element being read the digests list is at.
+ *
+ * @return 0 if the container list was generated successfully or an error code.
+ */
+static int cfm_flash_populate_allowable_digests (struct cfm_flash *cfm_flash,
+	struct cfm_allowable_digests *allowable_digests, size_t allowable_digest_count,
+	enum hash_type hash_type, int entry, uint32_t offset)
+{
+	struct cfm_allowable_digest_element allowable_digest;
+	struct cfm_allowable_digest_element *allowable_digest_ptr = &allowable_digest;
+	struct cfm_allowable_digests *curr_allowable_digest;
+	size_t digests_len;
+	uint8_t i_allowable_digest;
+	int hash_len;
+	int status;
+
+	hash_len = hash_get_hash_length (hash_type);
+	if (ROT_IS_ERROR (hash_len)) {
+		return hash_len;
+	}
+
+	// Read each Allowable Digest and fill in allowable_digests
+	for (i_allowable_digest = 0; i_allowable_digest < allowable_digest_count; i_allowable_digest++)
+	{
+		curr_allowable_digest = &allowable_digests[i_allowable_digest];
+
+		// Read Allowable Digest information
+		status = manifest_flash_read_element_data (&cfm_flash->base_flash,
+			cfm_flash->base_flash.hash, CFM_MEASUREMENT, entry, CFM_COMPONENT_DEVICE, offset, NULL,
+			NULL, NULL, (uint8_t**) &allowable_digest_ptr,
+			sizeof (struct cfm_allowable_digest_element));
+		if (ROT_IS_ERROR (status)) {
+			if (status == MANIFEST_CHILD_NOT_FOUND) {
+				status = CFM_ENTRY_MISSING_DIGESTS;
+			}
+
+			return status;
+		}
+
+		if (status < (int) (sizeof (struct cfm_allowable_digest_element))) {
+			return CFM_MALFORMED_MEASUREMENT_ENTRY;
+		}
+
+		// Get & set fields for current Allowable Digest
+		curr_allowable_digest->version_set = allowable_digest_ptr->version_set;
+		curr_allowable_digest->digests.hash_type = hash_type;
+		curr_allowable_digest->digests.digest_count = allowable_digest_ptr->digest_count;
+
+		digests_len = curr_allowable_digest->digests.digest_count * hash_len;
+
+		// Advance to start of digests
+		offset += sizeof (struct cfm_allowable_digest_element);
+
+		// Allocate space for digests list
+		curr_allowable_digest->digests.digests = platform_malloc (digests_len);
+		if (curr_allowable_digest->digests.digests == NULL) {
+			return CFM_NO_MEMORY;
+		}
+
+		// Read digests from current Allowable Digest element
+		status = manifest_flash_read_element_data (&cfm_flash->base_flash,
+			cfm_flash->base_flash.hash, CFM_MEASUREMENT, entry, CFM_COMPONENT_DEVICE, offset, NULL,
+			NULL, NULL, (uint8_t**) &curr_allowable_digest->digests.digests, digests_len);
+		if (ROT_IS_ERROR (status)) {
+			if (status == MANIFEST_CHILD_NOT_FOUND) {
+				status = CFM_ENTRY_MISSING_DIGESTS;
+			}
+
+			return status;
+		}
+
+		if (status < (int) (digests_len)) {
+			return CFM_MALFORMED_MEASUREMENT_ENTRY;
+		}
 	}
 
 	return 0;
@@ -548,11 +664,15 @@ static int cfm_flash_get_component_pmr_digest (struct cfm *cfm, uint32_t compone
 		status = cfm_flash_get_next_element (cfm_flash, component_id,
 			(uint8_t**) &pmr_digest_element_ptr, &pmr_digest_element_len, &entry, CFM_PMR_DIGEST);
 		if (status != 0) {
-			if (status == CFM_ELEMENT_NOT_FOUND) {
+			if (status == CFM_ENTRY_NOT_FOUND) {
 				return CFM_PMR_DIGEST_NOT_FOUND;
 			}
 
 			return status;
+		}
+
+		if (pmr_digest_element_len < sizeof (struct cfm_pmr_digest_element)) {
+			return CFM_MALFORMED_PMR_DIGEST_ENTRY;
 		}
 
 		if (buffer.pmr_digest_element.pmr_id == pmr_id) {
@@ -565,229 +685,475 @@ static int cfm_flash_get_component_pmr_digest (struct cfm *cfm, uint32_t compone
 	}
 }
 
-static void cfm_flash_free_measurement (struct cfm *cfm, struct cfm_measurement *pmr_measurement)
+/**
+ * Find next measurement entry after provided entry ID.
+ *
+ * @param cfm The CFM to query.
+ * @param pmr_measurement A container to be updated with the component measurement information.
+ * @param entry Entry ID to start from, then output for the entry index	following the matching
+ * 	measurement element if found.
+ *
+ * @return 0 if the measurement was found or an error code.
+ */
+static int cfm_flash_get_next_measurement (struct cfm *cfm,
+	struct cfm_measurement_digest *pmr_measurement, enum hash_type hash_type, uint8_t *entry)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
-
-	if (pmr_measurement != NULL) {
-		cfm_flash_free_cfm_digests (cfm_flash, &pmr_measurement->digests);
-	}
-}
-
-static int cfm_flash_get_next_measurement (struct cfm *cfm, uint32_t component_id,
-	struct cfm_measurement *pmr_measurement, bool first)
-{
-	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
-	union {
-		struct cfm_component_device_element component;
-		struct cfm_measurement_element measurement_element;
-	} buffer;
-	struct cfm_component_device_element *component_ptr = &buffer.component;
-	struct cfm_measurement_element *measurement_element_ptr = &buffer.measurement_element;
+	struct cfm_measurement_element measurement_element;
+	struct cfm_measurement_element *measurement_element_ptr =
+		(struct cfm_measurement_element*) &measurement_element;
 	size_t measurement_element_len = sizeof (struct cfm_measurement_element);
-	uint8_t *element_entry_ptr;
-	enum hash_type hash_type;
 	int status;
 
-	if (pmr_measurement == NULL) {
-		return CFM_INVALID_ARGUMENT;
-	}
+	pmr_measurement->allowable_digests = NULL;
+	pmr_measurement->allowable_digests_count = 0;
 
-	element_entry_ptr = (uint8_t*) &pmr_measurement->context;
-
-	status = cfm_flash_get_component_device_with_starting_entry (cfm_flash, component_id,
-		component_ptr, NULL);
+	// Get the next Measurement element
+	status = cfm_flash_get_next_element (cfm_flash, 0, (uint8_t**) &measurement_element_ptr,
+		&measurement_element_len, entry, CFM_MEASUREMENT);
 	if (status != 0) {
 		return status;
 	}
 
-	hash_type = manifest_convert_manifest_hash_type (component_ptr->measurement_hash_type);
-
-	if (first) {
-		*element_entry_ptr = 0;
-	}
-
-	status = cfm_flash_get_next_element (cfm_flash, component_id,
-		(uint8_t**) &measurement_element_ptr, &measurement_element_len, element_entry_ptr,
-		CFM_MEASUREMENT);
-	if (status != 0) {
-		if (status == CFM_ELEMENT_NOT_FOUND) {
-			return CFM_MEASUREMENT_NOT_FOUND;
-		}
-
-		return status;
-	}
-
+	// Verify that an entire Measurement element was read
 	if (measurement_element_len < (int) (sizeof (struct cfm_measurement_element))) {
-		return CFM_MALFORMED_MEASUREMENT_ELEMENT;
+		return CFM_MALFORMED_MEASUREMENT_ENTRY;
 	}
 
-	pmr_measurement->pmr_id = buffer.measurement_element.pmr_id;
-	pmr_measurement->measurement_id = buffer.measurement_element.measurement_id;
+	pmr_measurement->pmr_id = measurement_element.pmr_id;
+	pmr_measurement->measurement_id = measurement_element.measurement_id;
+	pmr_measurement->allowable_digests_count = measurement_element.allowable_digest_count;
+	pmr_measurement->allowable_digests = platform_calloc (
+		pmr_measurement->allowable_digests_count, sizeof (struct cfm_allowable_digests));
 
-	return cfm_flash_populate_digests (cfm_flash, &pmr_measurement->digests,
-		buffer.measurement_element.digest_count, hash_type, CFM_MEASUREMENT, *element_entry_ptr - 1,
+	// Retrieve list of cfm_allowable_digests
+	status = cfm_flash_populate_allowable_digests (cfm_flash, pmr_measurement->allowable_digests,
+		pmr_measurement->allowable_digests_count, hash_type, *entry - 1,
 		sizeof (struct cfm_measurement_element));
+	if (status != 0) {
+		cfm_flash_free_cfm_allowable_digests (cfm_flash, pmr_measurement->allowable_digests,
+			pmr_measurement->allowable_digests_count);
+
+		pmr_measurement->allowable_digests = NULL;
+		pmr_measurement->allowable_digests_count = 0;
+	}
+
+	return status;
 }
 
+/**
+ * Free content within a measurement data container.
+ *
+ * @param cfm The CFM instance that provided the measurement data.
+ * @param measurement_data The measurement data container with content to free.
+ */
 static void cfm_flash_free_measurement_data (struct cfm *cfm,
 	struct cfm_measurement_data *measurement_data)
 {
 	uint8_t i_check;
+	uint8_t i_data;
+	struct cfm_allowable_data_entry *curr_allowable_data;
 
 	if (measurement_data != NULL) {
-		for (i_check = 0; i_check < measurement_data->check_count; ++i_check) {
-			platform_free ((void*) measurement_data->check[i_check].bitmask);
-			platform_free ((void*) measurement_data->check[i_check].allowable_data);
+		for (i_check = 0; i_check < measurement_data->data_checks_count; ++i_check) {
+			platform_free ((void*) measurement_data->data_checks[i_check].bitmask);
+
+			curr_allowable_data = measurement_data->data_checks[i_check].allowable_data;
+			if (curr_allowable_data != NULL) {
+				for (i_data = 0; i_data < measurement_data->data_checks[i_check].data_count;
+					i_data++) {
+					platform_free ((void*) curr_allowable_data[i_data].data);
+				}
+			}
+
+			platform_free (curr_allowable_data);
 		}
 
-		platform_free (measurement_data->check);
+		platform_free (measurement_data->data_checks);
+
+		measurement_data->data_checks = NULL;
 	}
 }
 
-static int cfm_flash_get_next_measurement_data (struct cfm *cfm, uint32_t component_id,
-	struct cfm_measurement_data *measurement_data, bool first)
+/**
+ * Internal measurement container free function.  This function does not free container context.
+ *
+ * @param cfm The CFM instance that provided the measurement data.
+ * @param measurement_data The measurement data container with content to free.
+ */
+static void cfm_flash_free_measurement_container_internal (struct cfm *cfm,
+	struct cfm_measurement_container *container)
+{
+	if (container != NULL) {
+		if (container->measurement_type == CFM_MEASUREMENT_TYPE_DIGEST) {
+			struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+
+			cfm_flash_free_cfm_allowable_digests (cfm_flash,
+				container->measurement.digest.allowable_digests,
+				container->measurement.digest.allowable_digests_count);
+
+			container->measurement.digest.allowable_digests = NULL;
+		}
+		else if (container->measurement_type == CFM_MEASUREMENT_TYPE_DATA) {
+			cfm_flash_free_measurement_data (cfm, &container->measurement.data);
+		}
+	}
+}
+
+static void cfm_flash_free_measurement_container (struct cfm *cfm,
+	struct cfm_measurement_container *container)
+{
+	if (container != NULL) {
+		cfm_flash_free_measurement_container_internal (cfm, container);
+		platform_free (container->context);
+	}
+}
+
+/**
+ * Find next measurement data after provided entry ID.
+ *
+ * @param cfm The CFM to query.
+ * @param measurement_data A container to be updated with the component measurement data
+ * 	information.
+ * @param entry Entry ID to start from, then output for the entry index	following the matching
+ * 	measurement element if found.
+ *
+ * @return 0 if the measurement data was found or an error code.
+ */
+static int cfm_flash_get_next_measurement_data (struct cfm *cfm,
+	struct cfm_measurement_data *measurement_data, uint8_t *entry)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
-	struct cfm_measurement_data_element measurement_data_element;
-	struct cfm_measurement_data_element *measurement_data_element_ptr = &measurement_data_element;
-	struct cfm_allowable_data_element allowable_data_element;
-	struct cfm_allowable_data_element *allowable_data_element_ptr = &allowable_data_element;
+	union {
+		struct cfm_measurement_data_element measurement_data_element;
+		struct cfm_allowable_data_element allowable_data_element;
+		struct cfm_allowable_data_element_entry allowable_data_element_entry;
+	} buffer;
+	struct cfm_measurement_data_element *measurement_data_element_ptr =
+		&buffer.measurement_data_element;
+	struct cfm_allowable_data_element *allowable_data_element_ptr = &buffer.allowable_data_element;
+	struct cfm_allowable_data_element_entry *allowable_data_element_entry_ptr =
+		&buffer.allowable_data_element_entry;
 	struct cfm_allowable_data *allowable_data_ptr;
 	size_t measurement_data_element_len = sizeof (struct cfm_measurement_data_element);
-	size_t allowable_data_len;
 	size_t offset;
 	uint8_t i_allowable_data;
-	uint8_t *element_entry_ptr;
 	int num_allowable_data;
 	int status;
 
-	if (measurement_data == NULL) {
-		return CFM_INVALID_ARGUMENT;
-	}
+	measurement_data->data_checks = NULL;
+	measurement_data->data_checks_count = 0;
 
-	element_entry_ptr = (uint8_t*) &measurement_data->context;
-
-	if (first) {
-		*element_entry_ptr = 0;
-	}
-
-	measurement_data->check_count = 0;
-	measurement_data->check = NULL;
-
-	status = cfm_flash_get_next_element (cfm_flash, component_id,
-		(uint8_t**) &measurement_data_element_ptr, &measurement_data_element_len, element_entry_ptr,
-		CFM_MEASUREMENT_DATA);
+	// Get Measurement Data element
+	status = cfm_flash_get_next_element (cfm_flash, 0, (uint8_t**) &measurement_data_element_ptr,
+		&measurement_data_element_len, entry, CFM_MEASUREMENT_DATA);
 	if (status != 0) {
-		if (status == CFM_ELEMENT_NOT_FOUND) {
-			return CFM_MEASUREMENT_DATA_NOT_FOUND;
-		}
-
 		return status;
 	}
 
+	// Verify that an entire Measurement Data element was read
 	if (measurement_data_element_len < (int) (sizeof (struct cfm_measurement_data_element))) {
-		return CFM_MALFORMED_MEASUREMENT_DATA_ELEMENT;
+		return CFM_MALFORMED_MEASUREMENT_DATA_ENTRY;
 	}
 
-	measurement_data->pmr_id = measurement_data_element.pmr_id;
-	measurement_data->measurement_id = measurement_data_element.measurement_id;
+	measurement_data->pmr_id = measurement_data_element_ptr->pmr_id;
+	measurement_data->measurement_id = measurement_data_element_ptr->measurement_id;
 
-	num_allowable_data = manifest_flash_get_num_child_elements (&cfm_flash->base_flash,
-		cfm_flash->base_flash.hash, *element_entry_ptr, CFM_MEASUREMENT_DATA, CFM_COMPONENT_DEVICE,
-		CFM_ALLOWABLE_DATA, NULL);
-	if (ROT_IS_ERROR (num_allowable_data)) {
-		return num_allowable_data;
+	// Get count of Allowable Data elements
+	status = manifest_flash_get_child_elements_info (&cfm_flash->base_flash,
+		cfm_flash->base_flash.hash, *entry, CFM_MEASUREMENT_DATA, CFM_COMPONENT_DEVICE,
+		CFM_ALLOWABLE_DATA, NULL, &num_allowable_data, NULL);
+	if (status != 0) {
+		return status;
 	}
 
-	measurement_data->check_count = num_allowable_data;
-	measurement_data->check =
-		platform_calloc (measurement_data->check_count, sizeof (struct cfm_allowable_data));
-	if (measurement_data->check == NULL) {
+	// Allocate space for Allowable Datas and set fields of measurement_data
+	measurement_data->data_checks_count = num_allowable_data;
+	measurement_data->data_checks =
+		platform_calloc (measurement_data->data_checks_count, sizeof (struct cfm_allowable_data));
+	if (measurement_data->data_checks == NULL) {
 		return CFM_NO_MEMORY;
 	}
 
+	// Read each Allowable Data element and fill in measurement_data
 	for (i_allowable_data = 0; i_allowable_data < num_allowable_data; ++i_allowable_data) {
+		// Read Allowable Data element
 		status = manifest_flash_read_element_data (&cfm_flash->base_flash,
-			cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *element_entry_ptr,
-			CFM_MEASUREMENT_DATA, 0, NULL, NULL, NULL, (uint8_t**) &allowable_data_element_ptr,
+			cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA, 0, NULL,
+			NULL, NULL, (uint8_t**) &allowable_data_element_ptr,
 			sizeof (struct cfm_allowable_data_element));
 		if (ROT_IS_ERROR (status)) {
 			if (status == MANIFEST_CHILD_NOT_FOUND) {
-				status = CFM_ELEMENT_NOT_FOUND;
+				status = CFM_ENTRY_NOT_FOUND;
 			}
 
 			goto free_allowable_data;
 		}
 
+		// Verify that an entire Allowable Data element was read
 		if (status < (int) (sizeof (struct cfm_allowable_data_element))) {
-			status = CFM_MALFORMED_ALLOWABLE_DATA_ELEMENT;
+			status = CFM_MALFORMED_ALLOWABLE_DATA_ENTRY;
 
 			goto free_allowable_data;
 		}
 
-		allowable_data_ptr = &measurement_data->check[i_allowable_data];
-		allowable_data_ptr->check = (enum cfm_check) allowable_data_element_ptr->check;
-		allowable_data_ptr->data_len = allowable_data_element_ptr->data_len;
-		allowable_data_ptr->data_count = allowable_data_element_ptr->num_data;
+		allowable_data_ptr = &measurement_data->data_checks[i_allowable_data];
+		allowable_data_ptr->check = (enum cfm_check) allowable_data_element_ptr->check.check;
 		allowable_data_ptr->big_endian =
-			(allowable_data_element_ptr->endianness == CFM_MULTIBYTE_BIG_ENDIAN);
+			(allowable_data_element_ptr->check.endianness == CFM_MULTIBYTE_BIG_ENDIAN);
+		allowable_data_ptr->data_count = allowable_data_element_ptr->num_data;
+		allowable_data_ptr->bitmask_length = allowable_data_element_ptr->bitmask_length;
 
+		// Update offset to start of bitmask
 		offset = sizeof (struct cfm_allowable_data_element);
 
-		if (allowable_data_element_ptr->bitmask_presence) {
-			allowable_data_ptr->bitmask = platform_malloc (allowable_data_ptr->data_len);
+		// Read bitmask, if one exists for this Allowable Data
+		if (allowable_data_ptr->bitmask_length) {
+			// Allocate space for bitmask
+			allowable_data_ptr->bitmask = platform_malloc (allowable_data_ptr->bitmask_length);
 			if (allowable_data_ptr->bitmask == NULL) {
 				status = CFM_NO_MEMORY;
 				goto free_allowable_data;
 			}
 
+			// Read bitmask from Allowable Data element
 			status = manifest_flash_read_element_data (&cfm_flash->base_flash,
-				cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *element_entry_ptr,
-				CFM_MEASUREMENT_DATA, offset, NULL, NULL, NULL,
-				(uint8_t**) &allowable_data_ptr->bitmask, allowable_data_ptr->data_len);
+				cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA,
+				offset, NULL, NULL, NULL, (uint8_t**) &allowable_data_ptr->bitmask,
+				allowable_data_ptr->bitmask_length);
 			if (ROT_IS_ERROR (status)) {
 				goto free_allowable_data;
 			}
 
-			if (status < (int) (allowable_data_ptr->data_len)) {
-				status = CFM_MALFORMED_ALLOWABLE_DATA_ELEMENT;
+			// Ensure that the full bitmask was read
+			if (status < (int) (allowable_data_ptr->bitmask_length)) {
+				status = CFM_MALFORMED_ALLOWABLE_DATA_ENTRY;
 
 				goto free_allowable_data;
 			}
 
-			offset += (((size_t) allowable_data_ptr->data_len + 3) & ~((size_t) 3));
+			// Advance offset for 4-byte alignment
+			offset += (((size_t) allowable_data_ptr->bitmask_length + 3) & ~((size_t) 3));
 		}
 
-		allowable_data_len = allowable_data_ptr->data_len * allowable_data_ptr->data_count;
-
-		allowable_data_ptr->allowable_data = platform_malloc (allowable_data_len);
+		// Allocate space for Data entries
+		allowable_data_ptr->allowable_data = platform_calloc (allowable_data_ptr->data_count,
+			sizeof (struct cfm_allowable_data_entry));
 		if (allowable_data_ptr->allowable_data == NULL) {
 			status = CFM_NO_MEMORY;
 			goto free_allowable_data;
 		}
 
-		status = manifest_flash_read_element_data (&cfm_flash->base_flash,
-			cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *element_entry_ptr,
-			CFM_MEASUREMENT_DATA, offset, element_entry_ptr, NULL, NULL,
-			(uint8_t**) &allowable_data_ptr->allowable_data, allowable_data_len);
-		if (ROT_IS_ERROR (status)) {
-			goto free_allowable_data;
+		// Read all Data entries of current Allowable Data element
+		for (uint8_t i_data = 0; i_data < allowable_data_ptr->data_count; i_data++) {
+			// Read Data header
+			status = manifest_flash_read_element_data (&cfm_flash->base_flash,
+				cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA,
+				offset, entry, NULL, NULL, (uint8_t**) &allowable_data_element_entry_ptr,
+				sizeof (struct cfm_allowable_data_element_entry));
+			if (ROT_IS_ERROR (status)) {
+				goto free_allowable_data;
+			}
+
+			if (status < (int) (sizeof (struct cfm_allowable_data_element_entry))) {
+				status = CFM_MALFORMED_ALLOWABLE_DATA_ENTRY;
+
+				goto free_allowable_data;
+			}
+
+			allowable_data_ptr->allowable_data[i_data].version_set =
+				allowable_data_element_entry_ptr->version_set;
+			allowable_data_ptr->allowable_data[i_data].data_len =
+				allowable_data_element_entry_ptr->data_length;
+
+			offset += sizeof (struct cfm_allowable_data_element_entry);
+
+			allowable_data_ptr->allowable_data[i_data].data =
+				platform_malloc (allowable_data_ptr->allowable_data[i_data].data_len);
+
+			// Read Data
+			status = manifest_flash_read_element_data (&cfm_flash->base_flash,
+				cfm_flash->base_flash.hash,	CFM_ALLOWABLE_DATA, *entry, CFM_MEASUREMENT_DATA,
+				offset, entry, NULL, NULL,
+				(uint8_t**) &allowable_data_ptr->allowable_data[i_data].data,
+				allowable_data_ptr->allowable_data[i_data].data_len);
+			if (ROT_IS_ERROR (status)) {
+				goto free_allowable_data;
+			}
+
+			if (status < (int) (allowable_data_ptr->allowable_data[i_data].data_len)) {
+				status = CFM_MALFORMED_ALLOWABLE_DATA_ENTRY;
+
+				goto free_allowable_data;
+			}
+
+			offset += (((size_t) allowable_data_ptr->allowable_data[i_data].data_len + 3) &
+				~((size_t) 3));
 		}
 
-		if (status < (int) (allowable_data_len)) {
-			status = CFM_MALFORMED_ALLOWABLE_DATA_ELEMENT;
-
-			goto free_allowable_data;
-		}
-
-		*element_entry_ptr = *element_entry_ptr + 1;
+		// Advance to next Allowable Data
+		*entry = *entry + 1;
 	}
 
 	return 0;
 
 free_allowable_data:
 	cfm_flash_free_measurement_data (cfm, measurement_data);
+
+	measurement_data->data_checks = NULL;
+	measurement_data->data_checks_count = 0;
+
+	return status;
+}
+
+/**
+ * Determine if the unique element to be used to determine device version set is a Measurement
+ * element or Measurement Data element.
+ *
+ * @param cfm The CFM to query.
+ * @param component_id The component ID to find version set element for.
+ * @param comp_device_entry Optional input for starting entry to use, then output for the entry
+ *  index following the matching component device element if found.  This can be null if not needed.
+ * @param comp_device_hash_type Buffer to update with component device hash type.
+ *
+ * @return Element tag used to determine version set, or an error code.
+ */
+static int cfm_flash_determine_version_set_element (struct cfm *cfm, uint32_t component_id,
+	uint8_t *comp_device_entry, enum hash_type *comp_device_hash_type)
+{
+	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
+	struct cfm_component_device_element component_element;
+	int measurement_data_entry;
+	int measurement_entry;
+	int status;
+
+	status = cfm_flash_get_component_device_with_starting_entry (cfm_flash, component_id,
+		&component_element, comp_device_entry);
+	if (status != 0) {
+		return status;
+	}
+
+	*comp_device_hash_type =
+		manifest_convert_manifest_hash_type (component_element.measurement_hash_type);
+
+	status = manifest_flash_get_child_elements_info (&cfm_flash->base_flash,
+		cfm_flash->base_flash.hash, *comp_device_entry, CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT,
+		CFM_MEASUREMENT, NULL, NULL, &measurement_entry);
+	if (status == MANIFEST_CHILD_NOT_FOUND) {
+		measurement_entry = MANIFEST_CHILD_NOT_FOUND;
+	}
+	else if (status != 0) {
+		return status;
+	}
+
+	 status = manifest_flash_get_child_elements_info (&cfm_flash->base_flash,
+	 	cfm_flash->base_flash.hash, *comp_device_entry, CFM_COMPONENT_DEVICE, MANIFEST_NO_PARENT,
+		CFM_MEASUREMENT_DATA, NULL, NULL, &measurement_data_entry);
+	if (status == MANIFEST_CHILD_NOT_FOUND) {
+		measurement_data_entry = MANIFEST_CHILD_NOT_FOUND;
+	}
+	else if (status != 0) {
+		return status;
+	}
+
+	// If both Measurement and Measurement Data elements not found, return error
+	if ((measurement_entry == MANIFEST_CHILD_NOT_FOUND) &&
+		(measurement_data_entry == MANIFEST_CHILD_NOT_FOUND)) {
+		return MANIFEST_CHILD_NOT_FOUND;
+	}
+
+	/* If Measurement Data element not found, or comes after Measurement element, select Measurement
+	 * element. */
+	if ((measurement_data_entry == MANIFEST_CHILD_NOT_FOUND) ||
+		(measurement_data_entry > measurement_entry)) {
+		return CFM_MEASUREMENT;
+	}
+
+	/* If Measurement element not found, or comes after Measurement Data element, select Measurement
+	 * Data element. */
+	return CFM_MEASUREMENT_DATA;
+}
+
+/**
+ * Implementation context for the get_next_measurement_or_measurement_data function.
+ */
+struct cfm_flash_measurement_context {
+	enum hash_type comp_device_hash_type;				/**< Hash type of component device. */
+	uint8_t element_entry;								/**< Entry for next element to read back. */
+	int version_set_element;							/**< Element type for version set selection. */
+};
+
+/**
+ * This function assumes all Measurement and Measurement Data entries are contiguous.
+ */
+static int cfm_flash_get_next_measurement_or_measurement_data (struct cfm *cfm,
+	uint32_t component_id, struct cfm_measurement_container *container, bool first)
+{
+	struct cfm_flash_measurement_context *context;
+	uint8_t comp_device_entry = 0;
+	int status;
+
+	if ((cfm == NULL) || (container == NULL)) {
+		return CFM_INVALID_ARGUMENT;
+	}
+
+	if (first) {
+		memset (container, 0, sizeof (struct cfm_measurement_container));
+
+		container->context = calloc (sizeof (struct cfm_flash_measurement_context), 1);
+		context = (struct cfm_flash_measurement_context*) container->context;
+
+		context->version_set_element = cfm_flash_determine_version_set_element (cfm, component_id,
+			&comp_device_entry, &context->comp_device_hash_type);
+		if (ROT_IS_ERROR (context->version_set_element)) {
+			status = context->version_set_element;
+			platform_free (container->context);
+
+			container->context = NULL;
+
+			return status;
+		}
+
+		context->element_entry = comp_device_entry;
+		container->measurement_type =
+			(context->version_set_element == CFM_MEASUREMENT) ?
+			CFM_MEASUREMENT_TYPE_DIGEST : CFM_MEASUREMENT_TYPE_DATA;
+	}
+	else {
+		cfm_flash_free_measurement_container_internal (cfm, container);
+	}
+
+	context = (struct cfm_flash_measurement_context*) container->context;
+
+	// TODO: Support interleaved measurement and measurement block entries
+	if (container->measurement_type == CFM_MEASUREMENT_TYPE_DIGEST) {
+		status = cfm_flash_get_next_measurement (cfm,
+			&container->measurement.digest, context->comp_device_hash_type,
+			&context->element_entry);
+		if ((status == CFM_ENTRY_NOT_FOUND) &&
+			(context->version_set_element == CFM_MEASUREMENT)) {
+			container->measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+
+			status = cfm_flash_get_next_measurement_data (cfm,
+				&container->measurement.data, &context->element_entry);
+		}
+	}
+	else {
+		status = cfm_flash_get_next_measurement_data (cfm,
+			&container->measurement.data, &context->element_entry);
+		if ((status == CFM_ENTRY_NOT_FOUND) &&
+			(context->version_set_element == CFM_MEASUREMENT_DATA)) {
+			container->measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+
+			status = cfm_flash_get_next_measurement (cfm,
+				&container->measurement.digest, context->comp_device_hash_type,
+				&context->element_entry);
+		}
+	}
+
+	if ((status != 0) && first) {
+		cfm_flash_free_measurement_container (cfm, container);
+	}
 
 	return status;
 }
@@ -834,7 +1200,7 @@ static int cfm_flash_get_root_ca_digest (struct cfm *cfm, uint32_t component_id,
 		(uint8_t**) &root_ca_digests_element_ptr, &root_ca_digests_element_len, &entry,
 		CFM_ROOT_CA);
 	if (status != 0) {
-		if (status == CFM_ELEMENT_NOT_FOUND) {
+		if (status == CFM_ENTRY_NOT_FOUND) {
 			return CFM_ROOT_CA_NOT_FOUND;
 		}
 
@@ -842,7 +1208,7 @@ static int cfm_flash_get_root_ca_digest (struct cfm *cfm, uint32_t component_id,
 	}
 
 	if (root_ca_digests_element_len < (int) (sizeof (struct cfm_root_ca_digests_element))) {
-		return CFM_MALFORMED_ROOT_CA_DIGESTS_ELEMENT;
+		return CFM_MALFORMED_ROOT_CA_DIGESTS_ENTRY;
 	}
 
 	return cfm_flash_populate_digests (cfm_flash, &root_ca_digest->digests,
@@ -861,6 +1227,9 @@ static void cfm_flash_free_manifest (struct cfm *cfm, struct cfm_manifest *manif
 
 		platform_free (manifest->check);
 		platform_free ((void*) manifest->platform_id);
+
+		manifest->check = NULL;
+		manifest->platform_id = NULL;
 	}
 }
 
@@ -881,10 +1250,12 @@ static int cfm_flash_get_next_manifest (struct cfm *cfm, uint32_t component_id, 
 	struct cfm_manifest *allowable_manifest, bool first)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
-	struct cfm_allowable_pfm_element allowable_pfm_element;
-	struct cfm_allowable_pfm_element *allowable_pfm_element_ptr = &allowable_pfm_element;
-	struct cfm_allowable_id_element allowable_id_element;
-	struct cfm_allowable_id_element *allowable_id_element_ptr = &allowable_id_element;
+	union {
+		struct cfm_allowable_pfm_element allowable_pfm_element;
+		struct cfm_allowable_id_element allowable_id_element;
+	} buffer;
+	struct cfm_allowable_pfm_element *allowable_pfm_element_ptr = &buffer.allowable_pfm_element;
+	struct cfm_allowable_id_element *allowable_id_element_ptr = &buffer.allowable_id_element;
 	struct cfm_allowable_id *allowable_id_ptr;
 	size_t allowable_pfm_element_len = sizeof (struct cfm_allowable_pfm_element);
 	size_t ids_len;
@@ -903,10 +1274,13 @@ static int cfm_flash_get_next_manifest (struct cfm *cfm, uint32_t component_id, 
 	if (first) {
 		*element_entry_ptr = 0;
 	}
+	else {
+		cfm_flash_free_manifest (cfm, allowable_manifest);
+	}
 
 	allowable_manifest->check_count = 0;
 	allowable_manifest->check = NULL;
-
+	allowable_manifest->platform_id = NULL;
 
 	// All allowable manifest elements have the same format, so use allowable PFM element containers
 	status = cfm_flash_get_next_element (cfm_flash, component_id,
@@ -916,20 +1290,20 @@ static int cfm_flash_get_next_manifest (struct cfm *cfm, uint32_t component_id, 
 		return status;
 	}
 
-	allowable_manifest->manifest_index = allowable_pfm_element.port_id;
+	allowable_manifest->manifest_index = allowable_pfm_element_ptr->port_id;
 
-	allowable_pfm_element.manifest.platform_id[allowable_pfm_element.manifest.platform_id_len] =
-		'\0';
-	allowable_manifest->platform_id = strdup ((char*) allowable_pfm_element.manifest.platform_id);
+	allowable_pfm_element_ptr->manifest.platform_id[
+		allowable_pfm_element_ptr->manifest.platform_id_len] = '\0';
+	allowable_manifest->platform_id =
+		strdup ((char*) allowable_pfm_element_ptr->manifest.platform_id);
 	if (allowable_manifest->platform_id == NULL) {
 		return CFM_NO_MEMORY;
 	}
 
-	num_allowable_id = manifest_flash_get_num_child_elements (&cfm_flash->base_flash,
+	status = manifest_flash_get_child_elements_info (&cfm_flash->base_flash,
 		cfm_flash->base_flash.hash, *element_entry_ptr, manifest_type, CFM_COMPONENT_DEVICE,
-		CFM_ALLOWABLE_ID, NULL);
-	if (ROT_IS_ERROR (num_allowable_id)) {
-		status = num_allowable_id;
+		CFM_ALLOWABLE_ID, NULL, &num_allowable_id, NULL);
+	if (status != 0) {
 		goto free_manifest;
 	}
 
@@ -942,26 +1316,27 @@ static int cfm_flash_get_next_manifest (struct cfm *cfm, uint32_t component_id, 
 	}
 
 	for (i_allowable_id = 0; i_allowable_id < num_allowable_id; ++i_allowable_id) {
+		// Read Allowable ID element
 		status = manifest_flash_read_element_data (&cfm_flash->base_flash,
 			cfm_flash->base_flash.hash,	CFM_ALLOWABLE_ID, *element_entry_ptr, manifest_type, 0,
 			NULL, NULL, NULL, (uint8_t**) &allowable_id_element_ptr,
 			sizeof (struct cfm_allowable_id_element));
 		if (ROT_IS_ERROR (status)) {
 			if (status == MANIFEST_CHILD_NOT_FOUND) {
-				status = CFM_ELEMENT_NOT_FOUND;
+				status = CFM_ENTRY_NOT_FOUND;
 			}
 
 			goto free_manifest;
 		}
 
 		if (status < (int) (sizeof (struct cfm_allowable_id_element))) {
-			status = CFM_MALFORMED_ALLOWABLE_ID_ELEMENT;
+			status = CFM_MALFORMED_ALLOWABLE_ID_ENTRY;
 
 			goto free_manifest;
 		}
 
 		allowable_id_ptr = &allowable_manifest->check[i_allowable_id];
-		allowable_id_ptr->check = (enum cfm_check) allowable_id_element_ptr->check;
+		allowable_id_ptr->check = (enum cfm_check) allowable_id_element_ptr->check.check;
 		allowable_id_ptr->id_count = allowable_id_element_ptr->num_id;
 
 		offset = sizeof (struct cfm_allowable_id_element);
@@ -974,6 +1349,7 @@ static int cfm_flash_get_next_manifest (struct cfm *cfm, uint32_t component_id, 
 			goto free_manifest;
 		}
 
+		// Read each ID
 		status = manifest_flash_read_element_data (&cfm_flash->base_flash,
 			cfm_flash->base_flash.hash,	CFM_ALLOWABLE_ID, *element_entry_ptr, manifest_type, offset,
 			element_entry_ptr, NULL, NULL, (uint8_t**) &allowable_id_ptr->allowable_id, ids_len);
@@ -982,9 +1358,16 @@ static int cfm_flash_get_next_manifest (struct cfm *cfm, uint32_t component_id, 
 		}
 
 		if (status < (int) (ids_len)) {
-			status = CFM_MALFORMED_ALLOWABLE_ID_ELEMENT;
+			status = CFM_MALFORMED_ALLOWABLE_ID_ENTRY;
 
 			goto free_manifest;
+		}
+
+		if (allowable_id_element_ptr->check.endianness == CFM_MULTIBYTE_BIG_ENDIAN) {
+			for (uint8_t i_id = 0; i_id < allowable_id_ptr->id_count; i_id++) {
+				*((uint32_t*) &allowable_id_ptr->allowable_id[i_id]) =
+					SWAP_BYTES_UINT32 (allowable_id_ptr->allowable_id[i_id]);
+			}
 		}
 
 		*element_entry_ptr = *element_entry_ptr + 1;
@@ -1067,10 +1450,9 @@ int cfm_flash_init (struct cfm_flash *cfm, struct flash *flash, struct hash_engi
 	cfm->base.get_component_pmr = cfm_flash_get_component_pmr;
 	cfm->base.get_component_pmr_digest = cfm_flash_get_component_pmr_digest;
 	cfm->base.free_component_pmr_digest = cfm_flash_free_component_pmr_digest;
-	cfm->base.get_next_measurement = cfm_flash_get_next_measurement;
-	cfm->base.free_measurement = cfm_flash_free_measurement;
-	cfm->base.get_next_measurement_data = cfm_flash_get_next_measurement_data;
-	cfm->base.free_measurement_data = cfm_flash_free_measurement_data;
+	cfm->base.get_next_measurement_or_measurement_data =
+		cfm_flash_get_next_measurement_or_measurement_data;
+	cfm->base.free_measurement_container = cfm_flash_free_measurement_container;
 	cfm->base.get_root_ca_digest = cfm_flash_get_root_ca_digest;
 	cfm->base.free_root_ca_digest = cfm_flash_free_root_ca_digest;
 	cfm->base.get_next_pfm = cfm_flash_get_next_pfm;

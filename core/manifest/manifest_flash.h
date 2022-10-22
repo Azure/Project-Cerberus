@@ -65,9 +65,9 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest, struct ha
 	uint8_t type, int start, uint8_t parent_type, uint32_t read_offset, uint8_t *found,
 	uint8_t *format, size_t *total_len, uint8_t **element, size_t length);
 
-int manifest_flash_get_num_child_elements (struct manifest_flash *manifest,
+int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
 	struct hash_engine *hash, int entry, uint8_t type, uint8_t parent_type, uint8_t child_type,
-	size_t *child_len);
+	size_t *child_len, int *child_count, int *first_entry);
 
 uint32_t manifest_flash_get_addr (struct manifest_flash *manifest);
 struct flash* manifest_flash_get_flash (struct manifest_flash *manifest);

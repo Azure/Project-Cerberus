@@ -833,6 +833,7 @@ static int attestation_requester_get_certificate_rsp_post_processing (
 			attestation->state->txn.cert_total_len) {
 			if (attestation->state->txn.cert_buffer != NULL) {
 				platform_free (attestation->state->txn.cert_buffer);
+				attestation->state->txn.cert_buffer = NULL;
 			}
 
 			return ATTESTATION_NO_MEMORY;
@@ -2190,54 +2191,38 @@ free_pmr_digest:
 }
 
 /**
- * For each measurement block with corresponding measurement entry in CFM, get measurement block
- * digest using SPDM and compare to allowable values.
+ * Get corresponding the SPDM measurement block for a measurement entry from the CFM, then compare
+ * to allowable values.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param measurement CFM measurement entry.
  * @param eid EID of device being attested.
  * @param device_addr Slave address of device.
- * @param active_cfm Active CFM to utilize.
- * @param component_id The component ID of the device.
  *
- * @return Completion status, 0 if success or no measurement entries in CFM, or an error code
- * 	otherwise
+ * @return Completion status, 0 if success or an error code	otherwise
  */
-static int attestation_requester_get_and_verify_spdm_measurement_blocks_in_cfm (
-	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, uint32_t component_id)
+static int attestation_requester_get_and_verify_spdm_measurement_block (
+	const struct attestation_requester *attestation, struct cfm_measurement_digest *measurement,
+	uint8_t eid, int device_addr)
 {
-	struct cfm_measurement measurement;
-	bool first = true;
 	int status = 0;
 
-	while (status == 0) {
-		status = active_cfm->get_next_measurement (active_cfm, component_id, &measurement, first);
-		if (status == 0) {
-			status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
-				device_addr, measurement.measurement_id + 1, false);
-			if (status == 0) {
-				/* TODO: If device responds with raw blocks, hash them here instead of reporting
-				 * error. */
-
-				status = attestation_requester_verify_digest_in_allowable_list (attestation,
-					&measurement.digests, NULL, attestation->state->txn.measurement_hash_type);
-				if (status != 0) {
-					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
-						DEBUG_LOG_COMPONENT_ATTESTATION,
-						ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
-						((eid << 16) | (attestation->state->txn.requested_command << 8) |
-							attestation->state->txn.protocol),
-						status);
-				}
-			}
-
-			active_cfm->free_measurement (active_cfm, &measurement);
-			first = false;
-		}
+	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
+		device_addr, measurement->measurement_id + 1, false);
+	if (status != 0) {
+		return status;
 	}
 
-	if (status == CFM_MEASUREMENT_NOT_FOUND) {
-		return 0;
+	// TODO: use version set
+	status = attestation_requester_verify_digest_in_allowable_list (attestation,
+		&measurement->allowable_digests[0].digests, NULL,
+		attestation->state->txn.measurement_hash_type);
+	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
+			((eid << 16) | (attestation->state->txn.requested_command << 8) |
+				attestation->state->txn.protocol),
+			status);
 	}
 
 	return status;
@@ -2333,17 +2318,19 @@ static int attestation_requester_verify_data_in_allowable_list (
 
 	for (i_allowable_data = 0; i_allowable_data < num_allowable_data;
 		++i_allowable_data, ++allowable_data) {
-		if ((allowable_data->data_len != attestation->state->txn.msg_buffer_len) ||
+		// TODO: use version set
+		if ((allowable_data->allowable_data[0].data_len != attestation->state->txn.msg_buffer_len) ||
 			((allowable_data->data_count != 1) && (allowable_data->check != CFM_CHECK_EQUAL) &&
 				(allowable_data->check != CFM_CHECK_NOT_EQUAL))) {
 			return ATTESTATION_CFM_INVALID_ATTESTATION;
 		}
 
 		for (i_data = 0, offset = 0; i_data < allowable_data->data_count; ++i_data,
-			offset += allowable_data->data_len) {
+			offset += allowable_data->allowable_data[0].data_len) {
 			status = attestation_requester_compare_data (allowable_data->check,
-				attestation->state->txn.msg_buffer, &allowable_data->allowable_data[offset],
-				allowable_data->data_len, allowable_data->bitmask, allowable_data->big_endian);
+				attestation->state->txn.msg_buffer, &allowable_data->allowable_data[0].data[offset],
+				allowable_data->allowable_data[0].data_len, allowable_data->bitmask,
+				allowable_data->big_endian);
 			if (status == 0) {
 				//For the equal check, at least one comparison must succeed
 				if (allowable_data->check == CFM_CHECK_EQUAL) {
@@ -2365,8 +2352,44 @@ static int attestation_requester_verify_data_in_allowable_list (
 }
 
 /**
- * For each measurement block with corresponding measurement data entry in CFM, get raw measurement
- * block using SPDM and compare to allowable values.
+ * Get corresponding the SPDM measurement block for a measurement data entry from the CFM, then
+ * compare to allowable values.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param measurement CFM measurement data entry.
+ * @param eid EID of device being attested.
+ * @param device_addr Slave address of device.
+ *
+ * @return Completion status, 0 if success or an error code	otherwise
+ */
+static int attestation_requester_get_and_verify_spdm_measurement_data_block (
+	const struct attestation_requester *attestation, struct cfm_measurement_data *data,
+	uint8_t eid, int device_addr)
+{
+	int status;
+
+	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
+		device_addr, data->measurement_id + 1, true);
+	if (status != 0) {
+		return status;
+	}
+
+	status = attestation_requester_verify_data_in_allowable_list (attestation, data->data_checks,
+		data->data_checks_count);
+	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
+			((eid << 16) | (attestation->state->txn.requested_command << 8) |
+				attestation->state->txn.protocol),
+			status);
+	}
+
+	return status;
+}
+
+/**
+ * For each measurement or measurement data entry in CFM, get corresponding SPDM measurement block
+ * and compare to allowable values.
  *
  * @param attestation Attestation requester instance to utilize.
  * @param eid EID of device being attested.
@@ -2377,38 +2400,34 @@ static int attestation_requester_verify_data_in_allowable_list (
  * @return Completion status, 0 if success or no measurement entries in CFM, or an error code
  * 	otherwise
  */
-static int attestation_requester_get_and_verify_raw_spdm_measurement_blocks_in_cfm (
+static int attestation_requester_get_and_verify_cfm_contents (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
 	struct cfm *active_cfm, uint32_t component_id)
 {
-	struct cfm_measurement_data data;
+	struct cfm_measurement_container container;
 	bool first = true;
 	int status = 0;
 
 	while (status == 0) {
-		status = active_cfm->get_next_measurement_data (active_cfm, component_id, &data, first);
+		status = active_cfm->get_next_measurement_or_measurement_data (active_cfm, component_id,
+			&container, first);
 		if (status == 0) {
-			status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
-				device_addr, data.measurement_id + 1, true);
-			if (status == 0) {
-				status = attestation_requester_verify_data_in_allowable_list (attestation,
-					data.check, data.check_count);
-				if (status != 0) {
-					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
-						DEBUG_LOG_COMPONENT_ATTESTATION,
-						ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
-						((eid << 16) | (attestation->state->txn.requested_command << 8) |
-							attestation->state->txn.protocol),
-						status);
-				}
+			if (container.measurement_type == CFM_MEASUREMENT_TYPE_DIGEST) {
+				status = attestation_requester_get_and_verify_spdm_measurement_block (attestation,
+					&container.measurement.digest, eid, device_addr);
+			}
+			else {
+				status = attestation_requester_get_and_verify_spdm_measurement_data_block (
+					attestation, &container.measurement.data, eid, device_addr);
 			}
 
-			active_cfm->free_measurement_data (active_cfm, &data);
 			first = false;
 		}
 	}
 
-	if (status == CFM_MEASUREMENT_DATA_NOT_FOUND) {
+	active_cfm->free_measurement_container (active_cfm, &container);
+
+	if (status == CFM_ENTRY_NOT_FOUND) {
 		return 0;
 	}
 
@@ -2523,6 +2542,12 @@ static int attestation_requester_attest_device_spdm (
 			status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
 				device_addr, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
 			if (status != 0) {
+				platform_free (attestation->state->txn.cert_buffer);
+
+				/* TODO: If pointer needs to be set to NULL, add test that fails without this
+				 * assignment. */
+				// attestation->state->txn.cert_buffer = NULL;
+
 				goto clear_cert_chain;
 			}
 		}
@@ -2579,14 +2604,8 @@ static int attestation_requester_attest_device_spdm (
 	/* If PMR0 entry exists in CFM, then by getting here device has valid PMR0. Since PMR0 includes
 	 * all measurement blocks, we dont have to check rest of the attestation rules. */
 	if (status == CFM_PMR_DIGEST_NOT_FOUND) {
-		status = attestation_requester_get_and_verify_spdm_measurement_blocks_in_cfm (attestation,
-			eid, device_addr, active_cfm, component_id);
-		if (status != 0) {
-			goto hash_cancel;
-		}
-
-		status = attestation_requester_get_and_verify_raw_spdm_measurement_blocks_in_cfm (
-			attestation, eid, device_addr, active_cfm, component_id);
+		status = attestation_requester_get_and_verify_cfm_contents (attestation, eid, device_addr,
+			active_cfm, component_id);
 		if (status != 0) {
 			goto hash_cancel;
 		}
