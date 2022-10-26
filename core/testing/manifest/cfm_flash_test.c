@@ -4190,7 +4190,6 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_measurement_
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
-
 static void cfm_flash_test_get_next_measurement_or_measurement_data_measurement_nonzero_version_set (CuTest *test)
 {
 	struct cfm_flash_testing cfm;
@@ -7879,19 +7878,6 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_incomplete_d
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
-static void cfm_flash_test_free_measurement_container_null (CuTest *test)
-{
-	struct cfm_flash_testing cfm;
-
-	TEST_START;
-
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false, 0);
-
-	cfm.test.base.free_measurement_container (&cfm.test.base, NULL);
-
-	cfm_flash_testing_validate_and_release (test, &cfm);
-}
-
 static void cfm_flash_test_get_next_measurement_or_measurement_data_malformed_measurement_data (
 	CuTest *test)
 {
@@ -8282,6 +8268,174 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_malformed_al
 	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
 		true);
 	CuAssertIntEquals (test, CFM_MALFORMED_ALLOWABLE_DATA_ENTRY, status);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_free_measurement_container_again_after_measurement_digest_free (
+	CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_measurement_container container;
+	size_t bytes_read = 0;
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false, 0);
+
+	// Read Component element
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 0, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len,
+		CFM_TESTING.component_device1_len, 0);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_TESTING.manifest, 2,
+		7);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_TESTING.manifest, 2,
+		9);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_TESTING.manifest, 2,
+		26);
+
+	// Read Measurement element
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 7, 2, 7,
+		0x74c, 0x48, sizeof (struct cfm_measurement_element), bytes_read);
+	bytes_read += sizeof (struct cfm_measurement_element);
+
+	// Read Allowable Digest 1
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 7, 7, 7,
+		0x74c, 0x48, sizeof (struct cfm_allowable_digest_element), bytes_read);
+	bytes_read += sizeof (struct cfm_allowable_digest_element);
+
+	// Read Allowable Digest 1 digests
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest, &CFM_TESTING.manifest, 7, 7, 7,
+		0x74c, 0x48, 2 * SHA256_HASH_LENGTH, bytes_read);
+
+	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
+		true);
+	CuAssertIntEquals (test, 0, status);
+
+	cfm.test.base.free_measurement_container (&cfm.test.base, &container);
+	cfm.test.base.free_measurement_container (&cfm.test.base, &container);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_free_measurement_container_again_after_measurement_data_free (
+	CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_measurement_container container;
+	size_t offset = 0;
+	int status;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_MEASUREMENT_DATA_FIRST_TESTING, 0,
+		false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest,
+		CFM_MEASUREMENT_DATA_FIRST_TESTING.component_device1_entry, 0,
+		CFM_MEASUREMENT_DATA_FIRST_TESTING.component_device1_hash,
+		CFM_MEASUREMENT_DATA_FIRST_TESTING.component_device1_offset,
+		CFM_MEASUREMENT_DATA_FIRST_TESTING.component_device1_len,
+		CFM_MEASUREMENT_DATA_FIRST_TESTING.component_device1_len, 0);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 2, 13);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 2, 7);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 2, 26);
+
+	// Read Measurement Data element
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 7, 2, 7, 0x74c, 0x4, 0x4, 0);
+
+	manifest_flash_v2_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 8, 10);
+
+	// Read Allowable Data element 1
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 8, 8, 8, 0x750, 0x24,
+		sizeof (struct cfm_allowable_data_element), offset);
+	offset += sizeof (struct cfm_allowable_data_element);
+
+	// Read Allowable Data element 1 bitmask
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 8, 8, 8, 0x750, 0x24, 6, offset); // Bitmask of length 6
+	offset += 8; // Advance offset by bitmask length and padding length
+
+	// Read Allowable Data element 1, Data entry 1 header
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 8, 8, 8, 0x750, 0x24,
+		sizeof (struct cfm_allowable_data_element_entry), offset);
+	offset += sizeof (struct cfm_allowable_data_element_entry);
+
+	// Read Allowable Data element 1, Data entry 1 data
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 8, 8, 8, 0x750, 0x24, 5, offset);
+	offset += 8; // Advance offset by data length and padding length
+
+	// Read Allowable Data element 1, Data entry 2 header
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 8, 8, 8, 0x750, 0x24,
+		sizeof (struct cfm_allowable_data_element_entry), offset);
+	offset += sizeof (struct cfm_allowable_data_element_entry);
+
+	// Read Allowable Data element 1, Data entry 2 data
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 8, 8, 8, 0x750, 0x24, 5, offset);
+
+	offset = 0;
+
+	// Read Allowable Data element 2
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 9, 9, 9, 0x774, 0x18,
+		sizeof (struct cfm_allowable_data_element), offset);
+	offset += sizeof (struct cfm_allowable_data_element);
+
+	// Read Allowable Data element 2 bitmask
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 9, 9, 9, 0x774, 0x18, 5, offset); // Bitmask of length 5
+	offset += 8; // Advance offset by bitmask length and padding length
+
+	// Read Allowable Data element 2, Data entry 1 header
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 9, 9, 9, 0x774, 0x18,
+		sizeof (struct cfm_allowable_data_element_entry), offset);
+	offset += sizeof (struct cfm_allowable_data_element_entry);
+
+	// Read Allowable Data element 2, Data entry 1 data
+	manifest_flash_v2_testing_read_element (test, &cfm.manifest,
+		&CFM_MEASUREMENT_DATA_FIRST_TESTING.manifest, 9, 9, 9, 0x774, 0x18, 5, offset);
+
+	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
+		true);
+	CuAssertIntEquals (test, 0, status);
+
+	cfm.test.base.free_measurement_container (&cfm.test.base, &container);
+	cfm.test.base.free_measurement_container (&cfm.test.base, &container);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
+static void cfm_flash_test_free_measurement_container_null (CuTest *test)
+{
+	struct cfm_measurement_container container;
+	struct cfm_flash_testing cfm;
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_TESTING, 0, false, 0);
+
+	cfm.test.base.free_measurement_container (NULL, &container);
+	cfm.test.base.free_measurement_container (&cfm.test.base, NULL);
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
@@ -10929,6 +11083,8 @@ TEST (cfm_flash_test_get_next_measurement_or_measurement_data_malformed_bitmask)
 TEST (cfm_flash_test_get_next_measurement_or_measurement_data_malformed_allowable_data_entry);
 TEST (cfm_flash_test_get_next_measurement_or_measurement_data_read_data_fail);
 TEST (cfm_flash_test_get_next_measurement_or_measurement_data_malformed_allowable_data_entry_data);
+TEST (cfm_flash_test_free_measurement_container_again_after_measurement_digest_free);
+TEST (cfm_flash_test_free_measurement_container_again_after_measurement_data_free);
 TEST (cfm_flash_test_free_measurement_container_null);
 TEST (cfm_flash_test_get_root_ca_digest);
 TEST (cfm_flash_test_get_root_ca_digest_second_component);

@@ -40,6 +40,7 @@ struct attestation_requester_transaction_state {
 	enum attestation_requester_request_state request_status;	/**< Response processing status. */
 	enum attestation_protocol protocol;							/**< Attestation protocol utilized with this device. */
 	uint32_t sleep_duration_ms;									/**< Duration in milliseconds to sleep while waiting for response. */
+	uint16_t device_version_set;								/**< Version set selected for device. */
 	uint8_t *cert_buffer;										/**< A temporary dynamically allocated buffer for aggregating and verifying certificate chain. */
 	uint8_t requested_command;									/**< Command awaiting response for. */
 	uint8_t measurement_operation_requested;					/**< Measurement operation requested from device. */

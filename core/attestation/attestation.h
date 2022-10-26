@@ -113,6 +113,8 @@ enum {
 	ATTESTATION_REQUESTED_SLOT_NUM_EMPTY = ATTESTATION_ERROR (0x21),		/**< Requested certificate slot number empty in response. */
 	ATTESTATION_UNEXPECTED_SLOT_NUM = ATTESTATION_ERROR (0x22),				/**< Certificate slot number in response unexpected. */
 	ATTESTATION_UNEXPECTED_NUM_MEAS_BLOCKS = ATTESTATION_ERROR (0x23),		/**< Unexpected number of measurement blocks in response. */
+	ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID = ATTESTATION_ERROR (0x24),/**< CFM version set selector entry invalid. */
+	ATTESTATION_FAILED_TO_SELECT_VERSION_SET = ATTESTATION_ERROR (0x25),	/**< Failed to determine device version set using CFM version set selector entry. */
 };
 
 

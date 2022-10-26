@@ -41,6 +41,8 @@ enum {
 	ATTESTATION_LOGGING_BRIDGE_RESET_TRIGGERED_ROUTING_TABLE_SYNC,	/**< MCTP bridge has triggered a MCTP routing table sync. */
 	ATTESTATION_LOGGING_BRIDGE_FAILED_TO_DETECT_MCTP_BRIDGE_RESET,	/**< MCTP bridge reset detection failed. */
 	ATTESTATION_LOGGING_ROUTING_TABLE_REFRESH_REQUEST_FAILED,		/**< Failed to request an MCTP routing table refresh. */
+	ATTESTATION_LOGGING_CFM_VERSION_SET_SELECTOR_INVALID,			/**< CFM version set selector entry invalid. */
+	ATTESTATION_LOGGING_VERSION_SET_SELECTION_FAILED,				/**< Failed to determine device version set using CFM version set selector entry. */
 };
 
 

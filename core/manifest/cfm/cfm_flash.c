@@ -458,6 +458,7 @@ static int cfm_flash_get_component_pmr (struct cfm *cfm, uint32_t component_id, 
 static void cfm_flash_free_cfm_digests (struct cfm_flash *cfm_flash, struct cfm_digests *digests)
 {
 	platform_free ((void*) digests->digests);
+	digests->digests = NULL;
 }
 
 /**
@@ -757,21 +758,25 @@ static void cfm_flash_free_measurement_data (struct cfm *cfm,
 	if (measurement_data != NULL) {
 		for (i_check = 0; i_check < measurement_data->data_checks_count; ++i_check) {
 			platform_free ((void*) measurement_data->data_checks[i_check].bitmask);
+			measurement_data->data_checks[i_check].bitmask = NULL;
 
 			curr_allowable_data = measurement_data->data_checks[i_check].allowable_data;
 			if (curr_allowable_data != NULL) {
 				for (i_data = 0; i_data < measurement_data->data_checks[i_check].data_count;
 					i_data++) {
 					platform_free ((void*) curr_allowable_data[i_data].data);
+					curr_allowable_data[i_data].data = NULL;
 				}
 			}
 
 			platform_free (curr_allowable_data);
+			measurement_data->data_checks[i_check].allowable_data = NULL;
 		}
 
 		platform_free (measurement_data->data_checks);
 
 		measurement_data->data_checks = NULL;
+		measurement_data->data_checks_count = 0;
 	}
 }
 
@@ -803,9 +808,10 @@ static void cfm_flash_free_measurement_container_internal (struct cfm *cfm,
 static void cfm_flash_free_measurement_container (struct cfm *cfm,
 	struct cfm_measurement_container *container)
 {
-	if (container != NULL) {
+	if ((cfm != NULL) && (container != NULL)) {
 		cfm_flash_free_measurement_container_internal (cfm, container);
 		platform_free (container->context);
+		container->context = NULL;
 	}
 }
 
@@ -1000,9 +1006,6 @@ static int cfm_flash_get_next_measurement_data (struct cfm *cfm,
 free_allowable_data:
 	cfm_flash_free_measurement_data (cfm, measurement_data);
 
-	measurement_data->data_checks = NULL;
-	measurement_data->data_checks_count = 0;
-
 	return status;
 }
 
@@ -1100,7 +1103,7 @@ static int cfm_flash_get_next_measurement_or_measurement_data (struct cfm *cfm,
 	if (first) {
 		memset (container, 0, sizeof (struct cfm_measurement_container));
 
-		container->context = calloc (sizeof (struct cfm_flash_measurement_context), 1);
+		container->context = platform_calloc (sizeof (struct cfm_flash_measurement_context), 1);
 		context = (struct cfm_flash_measurement_context*) container->context;
 
 		context->version_set_element = cfm_flash_determine_version_set_element (cfm, component_id,
@@ -1108,7 +1111,6 @@ static int cfm_flash_get_next_measurement_or_measurement_data (struct cfm *cfm,
 		if (ROT_IS_ERROR (context->version_set_element)) {
 			status = context->version_set_element;
 			platform_free (container->context);
-
 			container->context = NULL;
 
 			return status;
@@ -1127,27 +1129,24 @@ static int cfm_flash_get_next_measurement_or_measurement_data (struct cfm *cfm,
 
 	// TODO: Support interleaved measurement and measurement block entries
 	if (container->measurement_type == CFM_MEASUREMENT_TYPE_DIGEST) {
-		status = cfm_flash_get_next_measurement (cfm,
-			&container->measurement.digest, context->comp_device_hash_type,
-			&context->element_entry);
-		if ((status == CFM_ENTRY_NOT_FOUND) &&
-			(context->version_set_element == CFM_MEASUREMENT)) {
+		status = cfm_flash_get_next_measurement (cfm, &container->measurement.digest,
+			context->comp_device_hash_type, &context->element_entry);
+		if ((status == CFM_ENTRY_NOT_FOUND) && (context->version_set_element == CFM_MEASUREMENT)) {
 			container->measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 
-			status = cfm_flash_get_next_measurement_data (cfm,
-				&container->measurement.data, &context->element_entry);
+			status = cfm_flash_get_next_measurement_data (cfm, &container->measurement.data,
+				&context->element_entry);
 		}
 	}
 	else {
-		status = cfm_flash_get_next_measurement_data (cfm,
-			&container->measurement.data, &context->element_entry);
+		status = cfm_flash_get_next_measurement_data (cfm, &container->measurement.data,
+			&context->element_entry);
 		if ((status == CFM_ENTRY_NOT_FOUND) &&
 			(context->version_set_element == CFM_MEASUREMENT_DATA)) {
 			container->measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 
-			status = cfm_flash_get_next_measurement (cfm,
-				&container->measurement.digest, context->comp_device_hash_type,
-				&context->element_entry);
+			status = cfm_flash_get_next_measurement (cfm, &container->measurement.digest,
+				context->comp_device_hash_type,	&context->element_entry);
 		}
 	}
 

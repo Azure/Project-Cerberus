@@ -49,6 +49,14 @@
 	((attestation->state->txn.protocol < ATTESTATION_PROTOCOL_DMTF_SPDM_1_1) || \
 	(attestation->state->txn.requested_command != command))
 
+/**
+ * Check to see if device version set found
+ *
+ * @param attestation Attestation requester instance to utilize
+ */
+#define attestation_requester_is_version_set_selected(attestation) \
+	(attestation->state->txn.device_version_set != 0)
+
 
 #if defined (ATTESTATION_SUPPORT_SPDM) || defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE)
 /**
@@ -2205,6 +2213,7 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
 	const struct attestation_requester *attestation, struct cfm_measurement_digest *measurement,
 	uint8_t eid, int device_addr)
 {
+	size_t i_allowable_digests;
 	int status = 0;
 
 	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
@@ -2213,16 +2222,62 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
 		return status;
 	}
 
-	// TODO: use version set
-	status = attestation_requester_verify_digest_in_allowable_list (attestation,
-		&measurement->allowable_digests[0].digests, NULL,
-		attestation->state->txn.measurement_hash_type);
-	if (status != 0) {
+	for (i_allowable_digests = 0; i_allowable_digests < measurement->allowable_digests_count;
+		++i_allowable_digests) {
+		/* If device version set selected, and allowable digest has a non-zero version set which
+		 * does not match that of device, then digest not permitted for this device in its current
+		 * state.  If there are no allowable digests with matching version sets to device, then
+		 * measurement comparison is not applicable to device in its current state and will be
+		 * skipped without failing attestation. */
+		if (attestation_requester_is_version_set_selected (attestation) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set != 0) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set !=
+				attestation->state->txn.device_version_set)) {
+			continue;
+		}
+
+		/* If device version set not selected, then this should be a measurement used for version
+		 * set selection with only allowable digests unique to a single version set. */
+		if (!attestation_requester_is_version_set_selected (attestation) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set == 0)) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_CFM_VERSION_SET_SELECTOR_INVALID,
+				((eid << 16) | (measurement->pmr_id << 8) |(measurement->measurement_id)),
+				i_allowable_digests);
+
+			return ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID;
+		}
+
+		status = attestation_requester_verify_digest_in_allowable_list (attestation,
+			&measurement->allowable_digests[i_allowable_digests].digests, NULL,
+			attestation->state->txn.measurement_hash_type);
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
+				((eid << 16) | (attestation->state->txn.requested_command << 8) |
+					attestation->state->txn.protocol),
+				status);
+		}
+		else {
+			// If device version set still not selected, then set it
+			if (!attestation_requester_is_version_set_selected (attestation)) {
+				attestation->state->txn.device_version_set =
+					measurement->allowable_digests[i_allowable_digests].version_set;
+			}
+
+			break;
+		}
+	}
+
+	// If device version set not selected, then report error
+	if (!attestation_requester_is_version_set_selected (attestation)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
-			((eid << 16) | (attestation->state->txn.requested_command << 8) |
-				attestation->state->txn.protocol),
-			status);
+			ATTESTATION_LOGGING_VERSION_SET_SELECTION_FAILED,
+			((eid << 16) | (measurement->pmr_id << 8) |(measurement->measurement_id)), status);
+
+		if (status == 0) {
+			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
+		}
 	}
 
 	return status;
@@ -2299,41 +2354,76 @@ static int attestation_requester_compare_data (enum cfm_check check, const uint8
 }
 
 /**
- * Check if data in msg_buffer matches all checks in allowable data list.
+ * Check if data in msg_buffer matches all checks in allowable data list from CFM entry.
  *
  * @param attestation Attestation requester instance to utilize.
- * @param allowable_data List of allowable data checks to utilize.
- * @param num_allowable_data Number of allowable data checks.
+ * @param check List of allowable data checks to utilize.
+ * @param num_check Number of allowable data checks.
+ * @param pmr_id PMR ID for CFM measurement data entry.
+ * @param measurement_id Measurement ID for CFM measurement data entry.
+ * @param eid EID of device being attested.
  *
  * @return Completion status, 0 if success or an error code otherwise
  */
 static int attestation_requester_verify_data_in_allowable_list (
-	const struct attestation_requester *attestation, struct cfm_allowable_data *allowable_data,
-	size_t num_allowable_data)
+	const struct attestation_requester *attestation, struct cfm_allowable_data *check,
+	size_t num_check, uint8_t pmr_id, uint8_t measurement_id, uint8_t eid)
 {
-	size_t i_allowable_data;
+	size_t i_checks_in_version_set = 0;
+	size_t i_check;
 	size_t i_data;
-	size_t offset;
 	int status = ATTESTATION_CFM_INVALID_ATTESTATION;
 
-	for (i_allowable_data = 0; i_allowable_data < num_allowable_data;
-		++i_allowable_data, ++allowable_data) {
-		// TODO: use version set
-		if ((allowable_data->allowable_data[0].data_len != attestation->state->txn.msg_buffer_len) ||
-			((allowable_data->data_count != 1) && (allowable_data->check != CFM_CHECK_EQUAL) &&
-				(allowable_data->check != CFM_CHECK_NOT_EQUAL))) {
-			return ATTESTATION_CFM_INVALID_ATTESTATION;
-		}
+	for (i_check = 0; i_check < num_check; ++i_check, ++check) {
+		for (i_data = 0; i_data < check->data_count; ++i_data) {
+			/* If device version set selected, and allowable data entry has a non-zero version set
+			 * which does not match that of device, then data not permitted for this device in its
+			 * current state. */
+			if (attestation_requester_is_version_set_selected (attestation) &&
+				(check->allowable_data[i_data].version_set != 0) &&
+				(check->allowable_data[i_data].version_set !=
+					attestation->state->txn.device_version_set)) {
+				continue;
+			}
 
-		for (i_data = 0, offset = 0; i_data < allowable_data->data_count; ++i_data,
-			offset += allowable_data->allowable_data[0].data_len) {
-			status = attestation_requester_compare_data (allowable_data->check,
-				attestation->state->txn.msg_buffer, &allowable_data->allowable_data[0].data[offset],
-				allowable_data->allowable_data[0].data_len, allowable_data->bitmask,
-				allowable_data->big_endian);
+			/* If device version set not selected, then this should be a measurement data used for
+			 * version set selection with only allowable data entries unique to a single version
+			 * set. */
+			if (!attestation_requester_is_version_set_selected (attestation) &&
+				(check->allowable_data[i_data].version_set == 0)) {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_CFM_VERSION_SET_SELECTOR_INVALID,
+					((eid << 16) | (pmr_id << 8) |(measurement_id)), i_data);
+
+				return ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID;
+			}
+
+			if ((check->allowable_data[i_data].data_len !=
+				attestation->state->txn.msg_buffer_len)) {
+				return ATTESTATION_CFM_INVALID_ATTESTATION;
+			}
+
+			/* For a single version set, only a single allowable data entry is permitted unless a
+			 * "equal" or "not equal" check. */
+			if ((i_checks_in_version_set != 0) && (check->check != CFM_CHECK_EQUAL) &&
+					(check->check != CFM_CHECK_NOT_EQUAL)) {
+				return ATTESTATION_CFM_INVALID_ATTESTATION;
+			}
+
+			++i_checks_in_version_set;
+
+			status = attestation_requester_compare_data (check->check,
+				attestation->state->txn.msg_buffer, check->allowable_data[i_data].data,
+				check->allowable_data[i_data].data_len, check->bitmask, check->big_endian);
 			if (status == 0) {
+				// If device version set still not selected, then set it
+				if (!attestation_requester_is_version_set_selected (attestation)) {
+					attestation->state->txn.device_version_set =
+						check->allowable_data[i_data].version_set;
+				}
+
 				//For the equal check, at least one comparison must succeed
-				if (allowable_data->check == CFM_CHECK_EQUAL) {
+				if (check->check == CFM_CHECK_EQUAL) {
 					break;
 				}
 			}
@@ -2341,11 +2431,18 @@ static int attestation_requester_verify_data_in_allowable_list (
 				status = ATTESTATION_CFM_ATTESTATION_RULE_FAIL;
 
 				//Except for the equal check, all comparisons must succeed
-				if (allowable_data->check != CFM_CHECK_EQUAL) {
+				if (check->check != CFM_CHECK_EQUAL) {
 					break;
 				}
 			}
 		}
+	}
+
+	/* If there are no allowable data entries with matching version sets to device, then measurement
+	 * data comparison is not applicable to device in its current state and will be skipped without
+	 * failing attestation. */
+	if (i_checks_in_version_set == 0) {
+		return 0;
 	}
 
 	return status;
@@ -2375,13 +2472,24 @@ static int attestation_requester_get_and_verify_spdm_measurement_data_block (
 	}
 
 	status = attestation_requester_verify_data_in_allowable_list (attestation, data->data_checks,
-		data->data_checks_count);
+		data->data_checks_count, data->pmr_id, data->measurement_id, eid);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
 			((eid << 16) | (attestation->state->txn.requested_command << 8) |
 				attestation->state->txn.protocol),
 			status);
+	}
+
+	// If device version set not selected, then report error
+	if (!attestation_requester_is_version_set_selected (attestation)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_VERSION_SET_SELECTION_FAILED,
+			((eid << 16) | (data->pmr_id << 8) |(data->measurement_id)), status);
+
+		if (status == 0) {
+			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
+		}
 	}
 
 	return status;
@@ -2543,11 +2651,6 @@ static int attestation_requester_attest_device_spdm (
 				device_addr, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
 			if (status != 0) {
 				platform_free (attestation->state->txn.cert_buffer);
-
-				/* TODO: If pointer needs to be set to NULL, add test that fails without this
-				 * assignment. */
-				// attestation->state->txn.cert_buffer = NULL;
-
 				goto clear_cert_chain;
 			}
 		}

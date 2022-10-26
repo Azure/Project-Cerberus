@@ -212,7 +212,7 @@ def generate_measurements (xml_measurements, hash_engine, measurement_hash_type)
                             ('digest', ctypes.c_ubyte * digests_len)]
 
             # TODO: Derive version set based on digests across versions
-            allowable_digest = cfm_allowable_digest_element (0, num_digests, 0, digests_buf)
+            allowable_digest = cfm_allowable_digest_element (1, num_digests, 0, digests_buf)
             allowable_digest_len = ctypes.sizeof (allowable_digest)
 
             allowable_digest_buf = (ctypes.c_ubyte * allowable_digest_len) ()
@@ -296,7 +296,7 @@ def generate_measurement_data (xml_measurement_data, hash_engine):
                                     ('data_padding', ctypes.c_ubyte * data_padding_len)]
 
                     # TODO: Derive version set based on measurements across versions
-                    data_entry = cfm_allowable_data_element_entry (0, data_len, data_buf, data_padding)
+                    data_entry = cfm_allowable_data_element_entry (1, data_len, data_buf, data_padding)
                     data_list.append (data_entry)
                     total_data_len += ctypes.sizeof (data_entry)
 
