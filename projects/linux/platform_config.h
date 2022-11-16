@@ -19,6 +19,53 @@
 // #define	AUX_ATTESTATION_KEY_BITS			3072
 
 
+/*****************************
+ * Component attestation
+ *****************************/
+
+/**
+ * Wait time before reattesting after device succeeds attestation, in milliseconds.
+ */
+// #define PCD_FLASH_ATTESTATION_SUCCESS_RETRY_DEFAULT					86400000
+
+/**
+ * Wait time before reattesting after device fails attestation, in milliseconds.
+ */
+// #define PCD_FLASH_ATTESTATION_FAIL_RETRY_DEFAULT						10000
+
+/**
+ * Wait time before retrying after device fails discovery, in milliseconds.
+ */
+// #define PCD_FLASH_DISCOVERY_FAIL_RETRY_DEFAULT						10000
+
+/**
+ * MCTP control protocol response timeout period, in milliseconds.
+ */
+// #define PCD_FLASH_MCTP_CTRL_TIMEOUT_DEFAULT							2000
+
+/**
+ * Wait time after RoT boots to send MCTP get table request, in millseconds. If 0, RoT only waits
+ * for EID assignment.
+ */
+// #define PCD_FLASH_MCTP_BRIDGE_GET_TABLE_WAIT_DEFAULT					3000
+
+/**
+ * Additional time for timeout period due to MCTP bridge, in milliseconds.
+ */
+// #define PCD_FLASH_MCTP_BRIDGE_ADDITIONAL_TIMEOUT_DEFAULT				0
+
+/**
+ * Maximum duration to wait before retrying after receiving SPDM ResponseNotReady error, in
+ * milliseconds.
+ */
+// #define PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_DURATION_DEFAULT		1000
+
+/**
+ * Maximum number of SPDM ResponseNotReady retries permitted by device.
+ */
+// #define PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_RETRY_DEFAULT		3
+
+
 /*************
  * Crypto
  *************/

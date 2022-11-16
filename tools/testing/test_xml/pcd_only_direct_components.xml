@@ -9,6 +9,7 @@
 				<Policy>Passive</Policy>
 				<RuntimeVerification>Enabled</RuntimeVerification>
 				<WatchdogMonitoring>Enabled</WatchdogMonitoring>
+				<HostResetAction>ResetFlash</HostResetAction>
 				<PulseInterval>0</PulseInterval>
 			</Port>
 			<Port id="1">
@@ -18,6 +19,7 @@
 				<Policy>Active</Policy>
 				<RuntimeVerification>Disabled</RuntimeVerification>
 				<WatchdogMonitoring>Disabled</WatchdogMonitoring>
+				<HostResetAction>None</HostResetAction>
 				<PulseInterval>10</PulseInterval>
 			</Port>
 		</Ports>

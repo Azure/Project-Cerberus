@@ -16,6 +16,7 @@
 
 
 uint8_t *element_types = NULL;
+uint8_t *element_formats = NULL;
 int entry_count = 0;
 
 
@@ -30,7 +31,7 @@ int32_t visualize_pfm_v1 (uint8_t *pfm)
 {
 	struct pfm_allowable_firmware_header *allowable_fw_header =
 		(struct pfm_allowable_firmware_header*) pfm;
-	uint8_t* pointer = ((uint8_t*)allowable_fw_header) +
+	uint8_t *pointer = ((uint8_t*)allowable_fw_header) +
 		sizeof (struct pfm_allowable_firmware_header);
 
 	printf ("pfm_allowable_firmware_header\n");
@@ -242,7 +243,7 @@ int32_t visualize_pfm_v1 (uint8_t *pfm)
 int32_t visualize_toc (uint8_t *start)
 {
 	struct manifest_toc_header *toc_header = (struct manifest_toc_header*) start;
-	uint8_t* pointer = start + sizeof (struct manifest_toc_header);
+	uint8_t *pointer = start + sizeof (struct manifest_toc_header);
 	int hash_len;
 
 	printf ("manifest_toc_header\n");
@@ -254,6 +255,7 @@ int32_t visualize_toc (uint8_t *start)
 
 	entry_count = toc_header->entry_count;
 	element_types = malloc (sizeof (uint8_t) * entry_count);
+	element_formats = malloc (sizeof (uint8_t) * entry_count);
 
 	switch (toc_header->hash_type) {
 		case MANIFEST_HASH_SHA256:
@@ -281,6 +283,7 @@ int32_t visualize_toc (uint8_t *start)
 		pointer += sizeof (struct manifest_toc_entry);
 
 		element_types[i] = entry->type_id;
+		element_formats[i] = entry->format;
 
 		printf ("\t\tmanifest_toc_entry\n");
 		printf ("\t\t{\n");
@@ -333,37 +336,42 @@ int32_t visualize_toc (uint8_t *start)
 	return (pointer - start);
 }
 
-int32_t visualize_pcd_rot_element (uint8_t *start, const char* prefix, int entry)
+int32_t visualize_pcd_rot_element (uint8_t *start, const char* prefix, int entry, uint8_t format)
 {
 	uint8_t *pointer = start;
-	struct pcd_rot_element *rot = (struct pcd_rot_element*) pointer;
+	struct pcd_rot_element_v2 *rot = (struct pcd_rot_element_v2*) pointer;
 
-	pointer += sizeof (struct pcd_rot_element);
+	pointer += sizeof (struct pcd_rot_element_v1);
 
 	printf ("%spcd_rot_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
-	printf ("%s\trot_flags: 0x%x\n", prefix, rot->rot_flags);
-	printf ("%s\tport_count: %i\n", prefix, rot->port_count);
-	printf ("%s\tcomponents_count: %i\n", prefix, rot->components_count);
-	printf ("%s\trot_address: 0x%x\n", prefix, rot->rot_address);
-	printf ("%s\trot_eid: 0x%x\n", prefix, rot->rot_eid);
-	printf ("%s\tbridge_address: 0x%x\n", prefix, rot->bridge_address);
-	printf ("%s\tbridge_eid: 0x%x\n", prefix, rot->bridge_eid);
-	printf ("%s\treserved: %i\n", prefix, rot->reserved);
-	printf ("%s\tattestation_success_retry: %i\n", prefix, rot->attestation_success_retry);
-	printf ("%s\tattestation_fail_retry: %i\n", prefix, rot->attestation_fail_retry);
-	printf ("%s\tdiscovery_fail_retry: %i\n", prefix, rot->discovery_fail_retry);
-	printf ("%s\tmctp_ctrl_timeout: %i\n", prefix, rot->mctp_ctrl_timeout);
-	printf ("%s\tmctp_bridge_get_table_wait: %i\n", prefix, rot->mctp_bridge_get_table_wait);
-	printf ("%s\tmctp_bridge_additional_timeout: %i\n", prefix,
-		rot->mctp_bridge_additional_timeout);
-	printf ("%s\tattestation_rsp_not_ready_max_duration: %i\n", prefix,
-		rot->attestation_rsp_not_ready_max_duration);
-	printf ("%s\tattestation_rsp_not_ready_max_retry: %i\n", prefix,
-		rot->attestation_rsp_not_ready_max_retry);
-	printf ("%s\treserved2[0]: %i\n", prefix, rot->reserved2[0]);
-	printf ("%s\treserved2[1]: %i\n", prefix, rot->reserved2[1]);
-	printf ("%s\treserved2[2]: %i\n", prefix, rot->reserved2[2]);
+	printf ("%s\trot_flags: 0x%x\n", prefix, rot->v1.rot_flags);
+	printf ("%s\tport_count: %i\n", prefix, rot->v1.port_count);
+	printf ("%s\tcomponents_count: %i\n", prefix, rot->v1.components_count);
+	printf ("%s\trot_address: 0x%x\n", prefix, rot->v1.rot_address);
+	printf ("%s\trot_eid: 0x%x\n", prefix, rot->v1.rot_eid);
+	printf ("%s\tbridge_address: 0x%x\n", prefix, rot->v1.bridge_address);
+	printf ("%s\tbridge_eid: 0x%x\n", prefix, rot->v1.bridge_eid);
+	printf ("%s\treserved: %i\n", prefix, rot->v1.reserved);
+
+	if (format == 2) {
+		pointer += (sizeof (struct pcd_rot_element_v2) - sizeof (struct pcd_rot_element_v1));
+		printf ("%s\tattestation_success_retry: %i\n", prefix, rot->attestation_success_retry);
+		printf ("%s\tattestation_fail_retry: %i\n", prefix, rot->attestation_fail_retry);
+		printf ("%s\tdiscovery_fail_retry: %i\n", prefix, rot->discovery_fail_retry);
+		printf ("%s\tmctp_ctrl_timeout: %i\n", prefix, rot->mctp_ctrl_timeout);
+		printf ("%s\tmctp_bridge_get_table_wait: %i\n", prefix, rot->mctp_bridge_get_table_wait);
+		printf ("%s\tmctp_bridge_additional_timeout: %i\n", prefix,
+			rot->mctp_bridge_additional_timeout);
+		printf ("%s\tattestation_rsp_not_ready_max_duration: %i\n", prefix,
+			rot->attestation_rsp_not_ready_max_duration);
+		printf ("%s\tattestation_rsp_not_ready_max_retry: %i\n", prefix,
+			rot->attestation_rsp_not_ready_max_retry);
+		printf ("%s\treserved2[0]: %i\n", prefix, rot->reserved2[0]);
+		printf ("%s\treserved2[1]: %i\n", prefix, rot->reserved2[1]);
+		printf ("%s\treserved2[2]: %i\n", prefix, rot->reserved2[2]);
+	}
+
 	printf ("%s}\n", prefix);
 
 	return (pointer - start);
@@ -1346,7 +1354,7 @@ int32_t visualize_pcd (uint8_t *start)
 	for (int i = 0; i < entry_count; ++i) {
 		switch (element_types[i]) {
 			case PCD_ROT:
-				offset = visualize_pcd_rot_element (pointer, "", i);
+				offset = visualize_pcd_rot_element (pointer, "", i, element_formats[i]);
 				break;
 
 			case PCD_SPI_FLASH_PORT:
@@ -1469,5 +1477,9 @@ exit:
 
 	if (element_types != NULL) {
 		free (element_types);
+	}
+
+	if (element_formats != NULL) {
+		free (element_formats);
 	}
 }

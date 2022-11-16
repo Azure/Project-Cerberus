@@ -5,9 +5,38 @@
 #define PCD_FLASH_H
 
 #include <stdint.h>
+#include "platform_config.h"
 #include "pcd.h"
 #include "manifest/manifest_flash.h"
 #include "flash/flash.h"
+
+
+/* Configurable default PCD timeout and retry values.
+ * Defaults can be overridden in platform_config.h. */
+#ifndef PCD_FLASH_ATTESTATION_SUCCESS_RETRY_DEFAULT
+#define PCD_FLASH_ATTESTATION_SUCCESS_RETRY_DEFAULT						86400000
+#endif
+#ifndef PCD_FLASH_ATTESTATION_FAIL_RETRY_DEFAULT
+#define PCD_FLASH_ATTESTATION_FAIL_RETRY_DEFAULT						10000
+#endif
+#ifndef PCD_FLASH_DISCOVERY_FAIL_RETRY_DEFAULT
+#define PCD_FLASH_DISCOVERY_FAIL_RETRY_DEFAULT							10000
+#endif
+#ifndef PCD_FLASH_MCTP_CTRL_TIMEOUT_DEFAULT
+#define PCD_FLASH_MCTP_CTRL_TIMEOUT_DEFAULT								2000
+#endif
+#ifndef PCD_FLASH_MCTP_BRIDGE_GET_TABLE_WAIT_DEFAULT
+#define PCD_FLASH_MCTP_BRIDGE_GET_TABLE_WAIT_DEFAULT					3000
+#endif
+#ifndef PCD_FLASH_MCTP_BRIDGE_ADDITIONAL_TIMEOUT_DEFAULT
+#define PCD_FLASH_MCTP_BRIDGE_ADDITIONAL_TIMEOUT_DEFAULT				0
+#endif
+#ifndef PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_DURATION_DEFAULT
+#define PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_DURATION_DEFAULT		1000
+#endif
+#ifndef PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_RETRY_DEFAULT
+#define PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_RETRY_DEFAULT			3
+#endif
 
 
 /**
@@ -19,7 +48,7 @@ struct pcd_flash {
 };
 
 
-int pcd_flash_init (struct pcd_flash *pcd, struct flash *flash, struct hash_engine *hash, 
+int pcd_flash_init (struct pcd_flash *pcd, struct flash *flash, struct hash_engine *hash,
 	uint32_t base_addr, uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
 	size_t max_platform_id);
 void pcd_flash_release (struct pcd_flash *pcd);

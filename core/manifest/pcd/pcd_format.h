@@ -30,7 +30,10 @@ enum pcd_policy_failure_action {
 
 
 #pragma pack(push, 1)
-struct pcd_rot_element {
+/**
+ * RoT element of format version 1 defined in PCD.
+ */
+struct pcd_rot_element_v1 {
 	uint8_t rot_flags;											/**< Flags pertaining to RoT configuration. */
 	uint8_t port_count;											/**< The number of ports protected by RoT. */
 	uint8_t components_count;									/**< The number of components attested by RoT. */
@@ -39,6 +42,13 @@ struct pcd_rot_element {
 	uint8_t bridge_address;										/**< MCTP bridge slave address. */
 	uint8_t bridge_eid;											/**< MCTP bridge EID. */
 	uint8_t reserved;											/**< Unused. */
+};
+
+/**
+ * RoT element of format version 2 defined in PCD.
+ */
+struct pcd_rot_element_v2 {
+	struct pcd_rot_element_v1 v1;								/**< RoT v1 element. */
 	uint32_t attestation_success_retry;							/**< Wait time before reattesting after device succeeds attestation, in ms. */
 	uint32_t attestation_fail_retry;							/**< Wait time before reattesting after device fails attestation, in ms. */
 	uint32_t discovery_fail_retry;								/**< Wait time before retrying after device fails discovery, in ms. */

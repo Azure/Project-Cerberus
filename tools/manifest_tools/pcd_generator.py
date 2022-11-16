@@ -201,7 +201,7 @@ def generate_rot (xml_rot, num_components, num_ports, hash_engine, timeouts):
         attestation_rsp_not_ready_max_retry, (ctypes.c_ubyte * 3)())
     rot_len = ctypes.sizeof (rot)
     rot_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PCD_V2_ROT_TYPE_ID,
-        manifest_common.V2_BASE_TYPE_ID, 1, 0, 0, rot_len)
+        manifest_common.V2_BASE_TYPE_ID, 2, 0, 0, rot_len)
 
     rot_hash = manifest_common.generate_hash (rot, hash_engine)
 
@@ -360,7 +360,7 @@ def generate_direct_component_buf (xml_component, component_map, component_map_f
     component_len = ctypes.sizeof (component)
 
     component_toc_entry = manifest_common.manifest_toc_entry (
-        manifest_common.PCD_V2_DIRECT_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1,
+        manifest_common.PCD_V2_DIRECT_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 2,
         0, 0, component_len)
 
     component_hash = manifest_common.generate_hash (component, hash_engine)
@@ -443,7 +443,7 @@ def generate_mctp_bridge_component_buf (xml_component, component_map, component_
     component_len = ctypes.sizeof (component)
 
     component_toc_entry = manifest_common.manifest_toc_entry (
-        manifest_common.PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1,
+        manifest_common.PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 2,
         0, 0, component_len)
 
     component_hash = manifest_common.generate_hash (component, hash_engine)

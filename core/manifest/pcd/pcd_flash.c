@@ -95,24 +95,27 @@ static int pcd_flash_is_empty (struct manifest *pcd)
  * Helper function that grabs RoT element information from PCD.
  *
  * @param pcd The PCD instance to utilize.
- * @param rot_element_ptr Pointer to an pcd_rot_element instance.
+ * @param rot_element_ptr Pointer to a pcd_rot_element instance.
  * @param found Optional buffer to contain index of RoT element if found, set to NULL if unused.
+ * @param format Output describing the format version of the RoT element.
  *
  * @return 0 if completed successfully or an error code.
  */
-static int pcd_flash_get_rot_element_ptr (struct pcd *pcd, uint8_t *rot_element_ptr, uint8_t *found)
+static int pcd_flash_get_rot_element_ptr (struct pcd *pcd, uint8_t *rot_element_ptr, uint8_t *found,
+	uint8_t *format)
 {
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
 	int status;
 
 	status = manifest_flash_read_element_data (&pcd_flash->base_flash, pcd_flash->base_flash.hash,
-		PCD_ROT, 0, MANIFEST_NO_PARENT, 0, found, NULL, NULL, &rot_element_ptr,
-		sizeof (struct pcd_rot_element));
+		PCD_ROT, 0, MANIFEST_NO_PARENT, 0, found, format, NULL, &rot_element_ptr,
+		sizeof (struct pcd_rot_element_v2));
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
 
-	if (status < (int) (sizeof (struct pcd_rot_element))) {
+	if (((*format == 1) && (status < (int) (sizeof (struct pcd_rot_element_v1))))
+		|| ((*format >= 2) && (status < (int) (sizeof (struct pcd_rot_element_v2))))) {
 		return PCD_MALFORMED_ROT_ELEMENT;
 	}
 
@@ -122,7 +125,8 @@ static int pcd_flash_get_rot_element_ptr (struct pcd *pcd, uint8_t *rot_element_
 static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 {
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
-	struct pcd_rot_element rot_element;
+	struct pcd_rot_element_v2 rot_element;
+	uint8_t format;
 	int status;
 
 	if ((pcd_flash == NULL) || (info == NULL)) {
@@ -133,18 +137,33 @@ static int pcd_flash_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 		return MANIFEST_NO_MANIFEST;
 	}
 
-	status = pcd_flash_get_rot_element_ptr (pcd, (uint8_t*) &rot_element, NULL);
+	status = pcd_flash_get_rot_element_ptr (pcd, (uint8_t*) &rot_element, NULL, &format);
 	if (status != 0) {
 		return status;
 	}
 
-	info->is_pa_rot = (pcd_get_rot_type (&rot_element) == PCD_ROT_TYPE_PA_ROT);
-	info->port_count = rot_element.port_count;
-	info->components_count = rot_element.components_count;
-	info->i2c_slave_addr = rot_element.rot_address;
-	info->eid = rot_element.rot_eid;
-	info->bridge_i2c_addr = rot_element.bridge_address;
-	info->bridge_eid = rot_element.bridge_eid;
+	// Set default fields for unused fields in v1 format
+	if (format == 1) {
+		rot_element.attestation_success_retry = PCD_FLASH_ATTESTATION_SUCCESS_RETRY_DEFAULT;
+		rot_element.attestation_fail_retry = PCD_FLASH_ATTESTATION_FAIL_RETRY_DEFAULT;
+		rot_element.discovery_fail_retry = PCD_FLASH_DISCOVERY_FAIL_RETRY_DEFAULT;
+		rot_element.mctp_ctrl_timeout = PCD_FLASH_MCTP_CTRL_TIMEOUT_DEFAULT;
+		rot_element.mctp_bridge_get_table_wait = PCD_FLASH_MCTP_BRIDGE_GET_TABLE_WAIT_DEFAULT;
+		rot_element.mctp_bridge_additional_timeout =
+			PCD_FLASH_MCTP_BRIDGE_ADDITIONAL_TIMEOUT_DEFAULT;
+		rot_element.attestation_rsp_not_ready_max_duration =
+			PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_DURATION_DEFAULT;
+		rot_element.attestation_rsp_not_ready_max_retry =
+			PCD_FLASH_ATTESTATION_RSP_NOT_READY_MAX_RETRY_DEFAULT;
+	}
+
+	info->is_pa_rot = (pcd_get_rot_type (&rot_element.v1) == PCD_ROT_TYPE_PA_ROT);
+	info->port_count = rot_element.v1.port_count;
+	info->components_count = rot_element.v1.components_count;
+	info->i2c_slave_addr = rot_element.v1.rot_address;
+	info->eid = rot_element.v1.rot_eid;
+	info->bridge_i2c_addr = rot_element.v1.bridge_address;
+	info->bridge_eid = rot_element.v1.bridge_eid;
 	info->attestation_success_retry = rot_element.attestation_success_retry;
 	info->attestation_fail_retry = rot_element.attestation_fail_retry;
 	info->discovery_fail_retry = rot_element.discovery_fail_retry;
@@ -163,8 +182,9 @@ static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
 	struct pcd_port_element port_element;
 	uint8_t *port_element_ptr = (uint8_t*) &port_element;
-	struct pcd_rot_element rot_element;
+	struct pcd_rot_element_v2 rot_element;
 	uint8_t found;
+	uint8_t rot_element_format;
 	int start = 0;
 	int i_port;
 	int status;
@@ -177,18 +197,19 @@ static int pcd_flash_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd
 		return MANIFEST_NO_MANIFEST;
 	}
 
-	status = pcd_flash_get_rot_element_ptr (pcd, (uint8_t*) &rot_element, &found);
+	status = pcd_flash_get_rot_element_ptr (pcd, (uint8_t*) &rot_element, &found,
+		&rot_element_format);
 	if (status != 0) {
 		return status;
 	}
 
-	if (rot_element.port_count == 0) {
+	if (rot_element.v1.port_count == 0) {
 		return PCD_INVALID_PORT;
 	}
 
 	start = found + 1;
 
-	for (i_port = 0; i_port < rot_element.port_count; ++i_port) {
+	for (i_port = 0; i_port < rot_element.v1.port_count; ++i_port) {
 		status = manifest_flash_read_element_data (&pcd_flash->base_flash,
 			pcd_flash->base_flash.hash, PCD_SPI_FLASH_PORT, start, PCD_ROT, 0, &found,
 			NULL, NULL, &port_element_ptr, sizeof (struct pcd_port_element));

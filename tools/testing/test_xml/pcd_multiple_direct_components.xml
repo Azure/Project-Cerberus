@@ -10,6 +10,7 @@
 				<Policy>Passive</Policy>
 				<RuntimeVerification>Enabled</RuntimeVerification>
 				<WatchdogMonitoring>Enabled</WatchdogMonitoring>
+				<HostResetAction>ResetFlash</HostResetAction>
 				<PulseInterval>0</PulseInterval>
 			</Port>
 			<Port id="1">
@@ -19,6 +20,7 @@
 				<Policy>Active</Policy>
 				<RuntimeVerification>Disabled</RuntimeVerification>
 				<WatchdogMonitoring>Disabled</WatchdogMonitoring>
+				<HostResetAction>None</HostResetAction>
 				<PulseInterval>10</PulseInterval>
 			</Port>
 		</Ports>
@@ -67,7 +69,11 @@
 				<Mask>0xe0</Mask>
 			</PwrCtrl>
 		</Component>
-		<Component type="Theta" connection="Direct">
+		<Component type="Theta" connection="Direct"
+			attestation_success_retry="86400000"
+			attestation_fail_retry="10000"
+			attestation_rsp_not_ready_max_retry="3"
+			attestation_rsp_not_ready_max_duration="1000">
 			<Policy>Passive</Policy>
 			<Interface type="I2C">
 				<Bus>5</Bus>
@@ -86,7 +92,13 @@
 				<Mask>0xe6</Mask>
 			</PwrCtrl>
 		</Component>
-		<Component type="Beta" connection="MCTPBridge" count="2">
+		<Component type="Beta" connection="MCTPBridge" count="2"
+			attestation_success_retry="86400000"
+			attestation_fail_retry="10000"
+			discovery_fail_retry="10000"
+			mctp_bridge_additional_timeout="0"
+			attestation_rsp_not_ready_max_retry="3"
+			attestation_rsp_not_ready_max_duration="1000">
 			<Policy>Passive</Policy>
 			<DeviceID>0x0a</DeviceID>
 			<VendorID>0x0b</VendorID>

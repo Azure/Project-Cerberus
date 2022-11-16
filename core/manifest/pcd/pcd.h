@@ -27,8 +27,8 @@ struct pcd_rot_info {
 	uint32_t attestation_fail_retry;								/**< Wait time before reattesting after device fails attestation, in ms. */
 	uint32_t discovery_fail_retry;									/**< Wait time before retrying after device fails discovery, in ms. */
 	uint32_t mctp_ctrl_timeout;										/**< MCTP control protocol response timeout period, in ms. */
-	uint32_t mctp_bridge_get_table_wait;							/**< Wait time after RoT boots to send MCTP get table request. If 0, RoT only waits for EID assignment. */
-	uint32_t mctp_bridge_additional_timeout;						/**< Additional time for timeout period due to MCTP bridge. */
+	uint32_t mctp_bridge_get_table_wait;							/**< Wait time after RoT boots to send MCTP get table request, in ms. If 0, RoT only waits for EID assignment. */
+	uint32_t mctp_bridge_additional_timeout;						/**< Additional time for timeout period due to MCTP bridge, in ms. */
 	uint32_t attestation_rsp_not_ready_max_duration;				/**< Maximum duration to wait before retrying after receiving SPDM ResponseNotReady error, in ms. */
 	uint8_t attestation_rsp_not_ready_max_retry;					/**< Maximum number of SPDM ResponseNotReady retries permitted by device. */
 };
