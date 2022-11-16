@@ -9,6 +9,15 @@
 #include "host_fw/host_state_manager.h"
 
 
+/**
+ * Get the PFM interface for a manifest on flash.
+ *
+ * @param manager The manager to query.
+ * @param active Flag indicating if the interface for the active region should be returned.
+ * Otherwise, the pending region will be returned.
+ *
+ * @return The requested PFM instance or null if there was an error.
+ */
 static struct pfm* pfm_manager_flash_get_pfm (struct pfm_manager_flash *manager,
 	bool active)
 {
@@ -28,21 +37,21 @@ static struct pfm* pfm_manager_flash_get_pfm (struct pfm_manager_flash *manager,
 	return &flash->base;
 }
 
-static struct pfm* pfm_manager_flash_get_active_pfm (struct pfm_manager *manager)
+static struct pfm* pfm_manager_flash_get_active_pfm (const struct pfm_manager *manager)
 {
 	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
 
 	return pfm_manager_flash_get_pfm (pfm_mgr, true);
 }
 
-static struct pfm* pfm_manager_flash_get_pending_pfm (struct pfm_manager *manager)
+static struct pfm* pfm_manager_flash_get_pending_pfm (const struct pfm_manager *manager)
 {
 	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
 
 	return pfm_manager_flash_get_pfm (pfm_mgr, false);
 }
 
-static void pfm_manager_flash_free_pfm (struct pfm_manager *manager, struct pfm *pfm)
+static void pfm_manager_flash_free_pfm (const struct pfm_manager *manager, struct pfm *pfm)
 {
 	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
 
@@ -53,7 +62,7 @@ static void pfm_manager_flash_free_pfm (struct pfm_manager *manager, struct pfm 
 	manifest_manager_flash_free_manifest (&pfm_mgr->manifest_manager, (struct manifest*) pfm);
 }
 
-static int pfm_manager_flash_activate_pending_pfm (struct manifest_manager *manager)
+static int pfm_manager_flash_activate_pending_manifest (const struct manifest_manager *manager)
 {
 	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
 	int status;
@@ -73,7 +82,8 @@ static int pfm_manager_flash_activate_pending_pfm (struct manifest_manager *mana
 	return status;
 }
 
-static int pfm_manager_flash_clear_pending_region (struct manifest_manager *manager, size_t size)
+static int pfm_manager_flash_clear_pending_region (const struct manifest_manager *manager,
+	size_t size)
 {
 	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
 
@@ -84,7 +94,7 @@ static int pfm_manager_flash_clear_pending_region (struct manifest_manager *mana
 	return manifest_manager_flash_clear_pending_region (&pfm_mgr->manifest_manager, size);
 }
 
-static int pfm_manager_flash_write_pending_data (struct manifest_manager *manager,
+static int pfm_manager_flash_write_pending_data (const struct manifest_manager *manager,
 	const uint8_t *data, size_t length)
 {
 	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
@@ -96,7 +106,7 @@ static int pfm_manager_flash_write_pending_data (struct manifest_manager *manage
 	return manifest_manager_flash_write_pending_data (&pfm_mgr->manifest_manager, data, length);
 }
 
-int pfm_manager_flash_verify_pending_pfm (struct manifest_manager *manager)
+int pfm_manager_flash_verify_pending_manifest (const struct manifest_manager *manager)
 {
 	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
 	int status;
@@ -114,7 +124,7 @@ int pfm_manager_flash_verify_pending_pfm (struct manifest_manager *manager)
 	return status;
 }
 
-static int pfm_manager_flash_clear_all_manifests (struct manifest_manager *manager)
+static int pfm_manager_flash_clear_all_manifests (const struct manifest_manager *manager)
 {
 	struct pfm_manager_flash *pfm_mgr = (struct pfm_manager_flash*) manager;
 	int status;
@@ -202,10 +212,10 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 	manager->base.get_pending_pfm = pfm_manager_flash_get_pending_pfm;
 	manager->base.free_pfm = pfm_manager_flash_free_pfm;
 
-	manager->base.base.activate_pending_manifest = pfm_manager_flash_activate_pending_pfm;
+	manager->base.base.activate_pending_manifest = pfm_manager_flash_activate_pending_manifest;
 	manager->base.base.clear_pending_region = pfm_manager_flash_clear_pending_region;
 	manager->base.base.write_pending_data = pfm_manager_flash_write_pending_data;
-	manager->base.base.verify_pending_manifest = pfm_manager_flash_verify_pending_pfm;
+	manager->base.base.verify_pending_manifest = pfm_manager_flash_verify_pending_manifest;
 	manager->base.base.clear_all_manifests = pfm_manager_flash_clear_all_manifests;
 
 	manager->host_state = state;

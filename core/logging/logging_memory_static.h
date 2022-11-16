@@ -17,7 +17,7 @@ int logging_memory_read_contents (const struct logging *logging, uint32_t offset
 
 
 /**
- * Constant initializer for the the flush operation.
+ * Constant initializer for the flush operation.
  */
 #ifndef LOGGING_DISABLE_FLUSH
 #define	LOGGING_MEMORY_FLUSH_API	.flush = logging_memory_flush,

@@ -6,7 +6,7 @@
 
 #include <stddef.h>
 #include "status/rot_status.h"
-#include "platform.h"
+#include "platform_api.h"
 
 
 /**

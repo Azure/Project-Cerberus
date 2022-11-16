@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "crypto/aes_mbedtls.h"
 #include "testing/crypto/aes_testing.h"

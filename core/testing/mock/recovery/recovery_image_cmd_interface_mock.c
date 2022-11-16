@@ -8,7 +8,7 @@
 
 
 static int recovery_image_cmd_interface_mock_prepare_recovery_image (
-	struct recovery_image_cmd_interface *cmd, uint32_t image_size)
+	const struct recovery_image_cmd_interface *cmd, uint32_t image_size)
 {
 	struct recovery_image_cmd_interface_mock *mock =
 		(struct recovery_image_cmd_interface_mock*) cmd;
@@ -22,7 +22,7 @@ static int recovery_image_cmd_interface_mock_prepare_recovery_image (
 }
 
 static int recovery_image_cmd_interface_mock_update_recovery_image (
-	struct recovery_image_cmd_interface *cmd, const uint8_t *data, size_t length)
+	const struct recovery_image_cmd_interface *cmd, const uint8_t *data, size_t length)
 {
 	struct recovery_image_cmd_interface_mock *mock = (
 		struct recovery_image_cmd_interface_mock*) cmd;
@@ -36,7 +36,7 @@ static int recovery_image_cmd_interface_mock_update_recovery_image (
 }
 
 static int recovery_image_cmd_interface_mock_activate_recovery_image (
-	struct recovery_image_cmd_interface *cmd)
+	const struct recovery_image_cmd_interface *cmd)
 {
 	struct recovery_image_cmd_interface_mock *mock = (
 		struct recovery_image_cmd_interface_mock*) cmd;
@@ -49,7 +49,8 @@ static int recovery_image_cmd_interface_mock_activate_recovery_image (
 		cmd);
 }
 
-static int recovery_image_cmd_interface_mock_get_status (struct recovery_image_cmd_interface *cmd)
+static int recovery_image_cmd_interface_mock_get_status (
+	const struct recovery_image_cmd_interface *cmd)
 {
 	struct recovery_image_cmd_interface_mock *mock = (
 		struct recovery_image_cmd_interface_mock*) cmd;

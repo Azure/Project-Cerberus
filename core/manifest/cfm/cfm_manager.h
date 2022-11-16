@@ -27,7 +27,7 @@ struct cfm_manager {
 	 *
 	 * @return The active CFM or null if there is no active CFM.
 	 */
-	struct cfm* (*get_active_cfm) (struct cfm_manager *manager);
+	struct cfm* (*get_active_cfm) (const struct cfm_manager *manager);
 
 	/**
 	 * Get the CFM that is waiting to be activated.  The CFM instance must be released with the
@@ -37,7 +37,7 @@ struct cfm_manager {
 	 *
 	 * @return The pending CFM or null if there is no pending CFM.
 	 */
-	struct cfm* (*get_pending_cfm) (struct cfm_manager *manager);
+	struct cfm* (*get_pending_cfm) (const struct cfm_manager *manager);
 
 	/**
 	 * Release a CFM instance retrieved from the manager.  CFM instances must only be released by
@@ -46,7 +46,7 @@ struct cfm_manager {
 	 * @param manager The CFM manager that allocated the CFM instance.
 	 * @param cfm The CFM to release.
 	 */
-	void (*free_cfm) (struct cfm_manager *manager, struct cfm *cfm);
+	void (*free_cfm) (const struct cfm_manager *manager, struct cfm *cfm);
 };
 
 

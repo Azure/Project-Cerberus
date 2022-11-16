@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "cmd_interface/device_manager.h"
 #include "mctp_base_protocol.h"
 #include "mctp_logging.h"

@@ -8,7 +8,7 @@
 
 
 /**
- * Status codes for recovery image operations. MAKE SURE IN SYNC WITH tools\cerberus_utility\cerberus_utility_commands.h!!
+ * Status codes for recovery image operations.
  */
 enum recovery_image_cmd_status {
 	RECOVERY_IMAGE_CMD_STATUS_SUCCESS = 0,				/**< Successful operation. */
@@ -44,15 +44,16 @@ struct recovery_image_cmd_interface {
 	 * with the status of the operation being reported separately.
 	 *
 	 * @param cmd The command interface for the recovery image instance to prepare for update.
-	 * @param image_size Size of the incoming image. 
+	 * @param image_size Size of the incoming image.
 	 *
 	 * @return 0 if the action was successfully triggered or an error code.
 	 */
-	int (*prepare_recovery_image) (struct recovery_image_cmd_interface *cmd, uint32_t image_size);
+	int (*prepare_recovery_image) (const struct recovery_image_cmd_interface *cmd,
+		uint32_t image_size);
 
 	/**
-	 * Indicate that new recovery image data should be stored. This will return immediately, with the
-	 * status of the operation being reported separately.
+	 * Indicate that new recovery image data should be stored. This will return immediately, with
+	 * the status of the operation being reported separately.
 	 *
 	 * @param cmd The command interface for the recovery image to store.
 	 * @param data The recovery image data to store.
@@ -60,8 +61,8 @@ struct recovery_image_cmd_interface {
 	 *
 	 * @return 0 if the action was successfully triggered or an error code.
 	 */
-	int (*update_recovery_image) (struct recovery_image_cmd_interface *cmd, const uint8_t *data,
-		size_t length);
+	int (*update_recovery_image) (const struct recovery_image_cmd_interface *cmd,
+		const uint8_t *data, size_t length);
 
 	/**
 	 * Indicate that a complete recovery image has been received and should be activated. This will
@@ -71,7 +72,7 @@ struct recovery_image_cmd_interface {
 	 *
 	 * @return 0 if the action was successfully triggered or an error code.
 	 */
-	int (*activate_recovery_image) (struct recovery_image_cmd_interface *cmd);
+	int (*activate_recovery_image) (const struct recovery_image_cmd_interface *cmd);
 
 	/**
 	 * Get the status of the last image operation requested.
@@ -82,7 +83,7 @@ struct recovery_image_cmd_interface {
 	 * enum image_cmd_status. The remaining bits will be the return code from the image
 	 * operation.
 	 */
-	int (*get_status) (struct recovery_image_cmd_interface *cmd);
+	int (*get_status) (const struct recovery_image_cmd_interface *cmd);
 };
 
 

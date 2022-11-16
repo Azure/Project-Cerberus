@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "crypto/rsa.h"
 #include "testing/crypto/rsa_testing.h"

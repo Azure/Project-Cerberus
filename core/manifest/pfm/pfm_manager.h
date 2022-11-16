@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "manifest/manifest_manager.h"
 #include "manifest/pfm/pfm.h"
 #include "manifest/pfm/pfm_observer.h"
@@ -28,7 +28,7 @@ struct pfm_manager {
 	 *
 	 * @return The active PFM or null if there is no active PFM.
 	 */
-	struct pfm* (*get_active_pfm) (struct pfm_manager *manager);
+	struct pfm* (*get_active_pfm) (const struct pfm_manager *manager);
 
 	/**
 	 * Get the PFM that is waiting to be activated.  The PFM instance must be released with the
@@ -38,7 +38,7 @@ struct pfm_manager {
 	 *
 	 * @return The pending PFM or null if there is no pending PFM.
 	 */
-	struct pfm* (*get_pending_pfm) (struct pfm_manager *manager);
+	struct pfm* (*get_pending_pfm) (const struct pfm_manager *manager);
 
 	/**
 	 * Release a PFM instance retrieved from the manager.  PFM instances must only be released by
@@ -47,7 +47,7 @@ struct pfm_manager {
 	 * @param manager The PFM manager that allocated the PFM instance.
 	 * @param pfm The PFM to release.
 	 */
-	void (*free_pfm) (struct pfm_manager *manager, struct pfm *pfm);
+	void (*free_pfm) (const struct pfm_manager *manager, struct pfm *pfm);
 };
 
 

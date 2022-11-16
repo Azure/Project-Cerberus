@@ -3,7 +3,7 @@
 
 #include <string.h>
 #include "image_header.h"
-#include "platform.h"
+#include "platform_api.h"
 
 
 /**

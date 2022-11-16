@@ -740,7 +740,7 @@ int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 	size_t length;
 	int status;
 	int (*auth) (struct cmd_authorization*, uint8_t**, size_t*);
-	int (*action) (struct cmd_background*);
+	int (*action) (const struct cmd_background*);
 
 	request->crypto_timeout = true;
 

@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "logging/logging_flash.h"
 #include "logging/logging_flash_static.h"

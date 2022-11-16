@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "cmd_interface/device_manager.h"
 #include "mctp/mctp_base_protocol.h"
@@ -4455,7 +4455,8 @@ static void device_manager_test_get_time_till_next_action_single_attestation (Cu
 	CuAssertIntEquals (test, 0, status);
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
-	CuAssertTrue (test, (duration_ms < 2000) && (duration_ms != 0));
+	CuAssertTrue (test, (duration_ms <= 1000));
+	CuAssertTrue (test, (duration_ms != 0));
 
 	device_manager_release (&manager);
 }
@@ -4497,7 +4498,8 @@ static void device_manager_test_get_time_till_next_action_multiple_attestation (
 	CuAssertIntEquals (test, 0, status);
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
-	CuAssertTrue (test, (duration_ms < 2000) && (duration_ms != 0));
+	CuAssertTrue (test, (duration_ms <= 1000));
+	CuAssertTrue (test, (duration_ms != 0));
 
 	device_manager_release (&manager);
 }
@@ -4525,7 +4527,8 @@ static void device_manager_test_get_time_till_next_action_single_attestation_aut
 	CuAssertIntEquals (test, 0, status);
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
-	CuAssertTrue (test, (duration_ms < 6000) && (duration_ms != 0));
+	CuAssertTrue (test, (duration_ms <= 5000));
+	CuAssertTrue (test, (duration_ms > 1000));
 
 	device_manager_release (&manager);
 }
@@ -4556,7 +4559,8 @@ static void device_manager_test_get_time_till_next_action_multiple_attestation_a
 	CuAssertIntEquals (test, 0, status);
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
-	CuAssertTrue (test, (duration_ms < 6000) && (duration_ms != 0));
+	CuAssertTrue (test, (duration_ms <= 5000));
+	CuAssertTrue (test, (duration_ms > 1000));
 
 	device_manager_release (&manager);
 }
@@ -4593,7 +4597,8 @@ static void device_manager_test_get_time_till_next_action_multiple_attestation_a
 	CuAssertIntEquals (test, 0, status);
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
-	CuAssertTrue (test, (duration_ms < 2000) && (duration_ms != 0));
+	CuAssertTrue (test, (duration_ms <= 1000));
+	CuAssertTrue (test, (duration_ms != 0));
 
 	device_manager_release (&manager);
 }
@@ -4683,7 +4688,8 @@ static void device_manager_test_get_time_till_next_action_single_discovery_timeo
 	CuAssertIntEquals (test, 0, status);
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
-	CuAssertTrue (test, (duration_ms < 11000) && (duration_ms != 0));
+	CuAssertTrue (test, (duration_ms <= 10000));
+	CuAssertTrue (test, (duration_ms > 5000));
 
 	device_manager_release (&manager);
 }
@@ -4725,7 +4731,8 @@ static void device_manager_test_get_time_till_next_action_multiple_discovery_tim
 	CuAssertIntEquals (test, 0, status);
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
-	CuAssertTrue (test, (duration_ms < 11000) && (duration_ms != 0));
+	CuAssertTrue (test, (duration_ms <= 10000));
+	CuAssertTrue (test, (duration_ms > 5000));
 
 	device_manager_release (&manager);
 }
@@ -4801,7 +4808,8 @@ static void device_manager_test_get_time_till_next_action_attestation_and_discov
 	CuAssertIntEquals (test, 0, status);
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
-	CuAssertTrue (test, (duration_ms < 2000) && (duration_ms != 0));
+	CuAssertTrue (test, (duration_ms <= 1000));
+	CuAssertTrue (test, (duration_ms != 0));
 
 	status = device_manager_add_unidentified_device (&manager, 0xAA);
 	CuAssertIntEquals (test, 0, status);
@@ -4813,7 +4821,8 @@ static void device_manager_test_get_time_till_next_action_attestation_and_discov
 	CuAssertIntEquals (test, 0, status);
 
 	duration_ms = device_manager_get_time_till_next_action (&manager);
-	CuAssertTrue (test, (duration_ms < 11000) && (duration_ms != 0));
+	CuAssertTrue (test, (duration_ms <= 1000));
+	CuAssertTrue (test, (duration_ms != 0));
 
 	device_manager_release (&manager);
 }

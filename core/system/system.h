@@ -14,12 +14,12 @@
  * Manager for system-wide controls and operations.
  */
 struct system {
-	struct cmd_device *device;			/**< Device API for executing hardware functions. */
+	const struct cmd_device *device;	/**< Device API for executing hardware functions. */
 	struct observable observable;		/**< Observer manager for the system. */
 };
 
 
-int system_init (struct system *system, struct cmd_device *device);
+int system_init (struct system *system, const struct cmd_device *device);
 void system_release (struct system *system);
 
 int system_add_observer (struct system *system, struct system_observer *observer);

@@ -10,7 +10,7 @@
 #include "host_processor.h"
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "host_control.h"
 
 

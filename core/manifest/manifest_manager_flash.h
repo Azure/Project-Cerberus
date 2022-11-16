@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "manifest.h"
 #include "manifest_flash.h"
 #include "manifest_manager.h"

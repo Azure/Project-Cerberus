@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "authorization.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"

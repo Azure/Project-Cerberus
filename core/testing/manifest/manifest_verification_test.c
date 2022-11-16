@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "manifest/manifest_verification.h"
 #include "manifest/manifest_verification_static.h"
 #include "manifest/manifest_logging.h"

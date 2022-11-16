@@ -8,7 +8,7 @@
 #include "testing/engines/hash_testing_engine.h"
 
 
-static struct pcd* pcd_manager_mock_get_active_pcd (struct pcd_manager *manager)
+static struct pcd* pcd_manager_mock_get_active_pcd (const struct pcd_manager *manager)
 {
 	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
 
@@ -19,8 +19,7 @@ static struct pcd* pcd_manager_mock_get_active_pcd (struct pcd_manager *manager)
 	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct pcd*, pcd_manager_mock_get_active_pcd, manager);
 }
 
-static void pcd_manager_mock_free_pcd (struct pcd_manager *manager,
-	struct pcd *pcd)
+static void pcd_manager_mock_free_pcd (const struct pcd_manager *manager, struct pcd *pcd)
 {
 	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
 
@@ -31,7 +30,7 @@ static void pcd_manager_mock_free_pcd (struct pcd_manager *manager,
 	MOCK_VOID_RETURN (&mock->mock, pcd_manager_mock_free_pcd, manager, MOCK_ARG_CALL (pcd));
 }
 
-static int pcd_manager_mock_activate_pending_pcd (struct manifest_manager *manager)
+static int pcd_manager_mock_activate_pending_manifest (const struct manifest_manager *manager)
 {
 	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
 
@@ -39,10 +38,11 @@ static int pcd_manager_mock_activate_pending_pcd (struct manifest_manager *manag
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN_NO_ARGS (&mock->mock, pcd_manager_mock_activate_pending_pcd, manager);
+	MOCK_RETURN_NO_ARGS (&mock->mock, pcd_manager_mock_activate_pending_manifest, manager);
 }
 
-static int pcd_manager_mock_clear_pending_region (struct manifest_manager *manager, size_t size)
+static int pcd_manager_mock_clear_pending_region (const struct manifest_manager *manager,
+	size_t size)
 {
 	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
 
@@ -53,7 +53,7 @@ static int pcd_manager_mock_clear_pending_region (struct manifest_manager *manag
 	MOCK_RETURN (&mock->mock, pcd_manager_mock_clear_pending_region, manager, MOCK_ARG_CALL (size));
 }
 
-static int pcd_manager_mock_write_pending_data (struct manifest_manager *manager,
+static int pcd_manager_mock_write_pending_data (const struct manifest_manager *manager,
 	const uint8_t *data, size_t length)
 {
 	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
@@ -66,7 +66,7 @@ static int pcd_manager_mock_write_pending_data (struct manifest_manager *manager
 		MOCK_ARG_CALL (length));
 }
 
-static int pcd_manager_mock_verify_pending_pcd (struct manifest_manager *manager)
+static int pcd_manager_mock_verify_pending_manifest (const struct manifest_manager *manager)
 {
 	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
 
@@ -74,7 +74,18 @@ static int pcd_manager_mock_verify_pending_pcd (struct manifest_manager *manager
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN_NO_ARGS (&mock->mock, pcd_manager_mock_verify_pending_pcd, manager);
+	MOCK_RETURN_NO_ARGS (&mock->mock, pcd_manager_mock_verify_pending_manifest, manager);
+}
+
+static int pcd_manager_mock_clear_all_manifests (const struct manifest_manager *manager)
+{
+	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, pcd_manager_mock_clear_all_manifests, manager);
 }
 
 static int pcd_manager_mock_func_arg_count (void *func)
@@ -98,8 +109,8 @@ static const char* pcd_manager_mock_func_name_map (void *func)
 	else if (func == pcd_manager_mock_free_pcd) {
 		return "free_pcd";
 	}
-	else if (func == pcd_manager_mock_activate_pending_pcd) {
-		return "activate_pending_pcd";
+	else if (func == pcd_manager_mock_activate_pending_manifest) {
+		return "activate_pending_manifest";
 	}
 	else if (func == pcd_manager_mock_clear_pending_region) {
 		return "clear_pending_region";
@@ -107,8 +118,11 @@ static const char* pcd_manager_mock_func_name_map (void *func)
 	else if (func == pcd_manager_mock_write_pending_data) {
 		return "write_pending_data";
 	}
-	else if (func == pcd_manager_mock_verify_pending_pcd) {
-		return "verify_pending_pcd";
+	else if (func == pcd_manager_mock_verify_pending_manifest) {
+		return "verify_pending_manifest";
+	}
+	else if (func == pcd_manager_mock_clear_all_manifests) {
+		return "clear_all_manifests";
 	}
 	else {
 		return "unknown";
@@ -188,10 +202,11 @@ int pcd_manager_mock_init (struct pcd_manager_mock *mock)
 
 	mock->base.get_active_pcd = pcd_manager_mock_get_active_pcd;
 	mock->base.free_pcd = pcd_manager_mock_free_pcd;
-	mock->base.base.activate_pending_manifest = pcd_manager_mock_activate_pending_pcd;
+	mock->base.base.activate_pending_manifest = pcd_manager_mock_activate_pending_manifest;
 	mock->base.base.clear_pending_region = pcd_manager_mock_clear_pending_region;
 	mock->base.base.write_pending_data = pcd_manager_mock_write_pending_data;
-	mock->base.base.verify_pending_manifest = pcd_manager_mock_verify_pending_pcd;
+	mock->base.base.verify_pending_manifest = pcd_manager_mock_verify_pending_manifest;
+	mock->base.base.clear_all_manifests = pcd_manager_mock_clear_all_manifests;
 
 	mock->mock.func_arg_count = pcd_manager_mock_func_arg_count;
 	mock->mock.func_name_map = pcd_manager_mock_func_name_map;

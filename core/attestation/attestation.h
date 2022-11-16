@@ -118,4 +118,4 @@ enum {
 };
 
 
-#endif // ATTESTATION_H_
+#endif /* ATTESTATION_H_ */

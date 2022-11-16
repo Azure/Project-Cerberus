@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "cmd_interface/session_manager_ecc.h"
 #include "cmd_interface/cerberus_protocol_optional_commands.h"

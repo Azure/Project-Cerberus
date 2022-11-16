@@ -19,7 +19,7 @@ struct firmware_update_control {
 	 *
 	 * @return 0 if the update was successfully started or an error code.
 	 */
-	int (*start_update) (struct firmware_update_control *update);
+	int (*start_update) (const struct firmware_update_control *update);
 
 	/**
 	 * Get the status of the last firmware update to run.
@@ -30,7 +30,7 @@ struct firmware_update_control {
 	 * enum firmware_update_status.  The rest of the bits will be the return code from the update
 	 * process.
 	 */
-	int (*get_status) (struct firmware_update_control *update);
+	int (*get_status) (const struct firmware_update_control *update);
 
 	/**
 	 * Get the remaining image length to be received.
@@ -39,7 +39,7 @@ struct firmware_update_control {
 	 *
 	 * @return The remaining number of bytes.
 	 */
-	int32_t (*get_remaining_len) (struct firmware_update_control *update);
+	int32_t (*get_remaining_len) (const struct firmware_update_control *update);
 
 	/**
 	 * Prepare staging area for incoming update.
@@ -49,7 +49,7 @@ struct firmware_update_control {
 	 *
  	 * @return Preparation status, 0 if success or an error code.
 	 */
-	int (*prepare_staging) (struct firmware_update_control *update, size_t size);
+	int (*prepare_staging) (const struct firmware_update_control *update, size_t size);
 
 	/**
 	 * Write to staging area update data.
@@ -60,7 +60,8 @@ struct firmware_update_control {
 	 *
  	 * @return Write status, 0 if success or an error code.
 	 */
-	int (*write_staging) (struct firmware_update_control *update, uint8_t *buf, size_t buf_len);
+	int (*write_staging) (const struct firmware_update_control *update, uint8_t *buf,
+		size_t buf_len);
 };
 
 

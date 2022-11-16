@@ -8,7 +8,7 @@
 #include "testing/engines/hash_testing_engine.h"
 
 
-static struct cfm* cfm_manager_mock_get_active_cfm (struct cfm_manager *manager)
+static struct cfm* cfm_manager_mock_get_active_cfm (const struct cfm_manager *manager)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
 
@@ -19,7 +19,7 @@ static struct cfm* cfm_manager_mock_get_active_cfm (struct cfm_manager *manager)
 	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct cfm*, cfm_manager_mock_get_active_cfm, manager);
 }
 
-static struct cfm* cfm_manager_mock_get_pending_cfm (struct cfm_manager *manager)
+static struct cfm* cfm_manager_mock_get_pending_cfm (const struct cfm_manager *manager)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
 
@@ -30,8 +30,7 @@ static struct cfm* cfm_manager_mock_get_pending_cfm (struct cfm_manager *manager
 	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct cfm*, cfm_manager_mock_get_pending_cfm, manager);
 }
 
-static void cfm_manager_mock_free_cfm (struct cfm_manager *manager,
-	struct cfm *cfm)
+static void cfm_manager_mock_free_cfm (const struct cfm_manager *manager, struct cfm *cfm)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
 
@@ -42,7 +41,7 @@ static void cfm_manager_mock_free_cfm (struct cfm_manager *manager,
 	MOCK_VOID_RETURN (&mock->mock, cfm_manager_mock_free_cfm, manager, MOCK_ARG_CALL (cfm));
 }
 
-static int cfm_manager_mock_activate_pending_manifest (struct manifest_manager *manager)
+static int cfm_manager_mock_activate_pending_manifest (const struct manifest_manager *manager)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
 
@@ -53,7 +52,8 @@ static int cfm_manager_mock_activate_pending_manifest (struct manifest_manager *
 	MOCK_RETURN_NO_ARGS (&mock->mock, cfm_manager_mock_activate_pending_manifest, manager);
 }
 
-static int cfm_manager_mock_clear_pending_region (struct manifest_manager *manager, size_t size)
+static int cfm_manager_mock_clear_pending_region (const struct manifest_manager *manager,
+	size_t size)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
 
@@ -64,7 +64,7 @@ static int cfm_manager_mock_clear_pending_region (struct manifest_manager *manag
 	MOCK_RETURN (&mock->mock, cfm_manager_mock_clear_pending_region, manager, MOCK_ARG_CALL (size));
 }
 
-static int cfm_manager_mock_write_pending_data (struct manifest_manager *manager,
+static int cfm_manager_mock_write_pending_data (const struct manifest_manager *manager,
 	const uint8_t *data, size_t length)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
@@ -77,7 +77,7 @@ static int cfm_manager_mock_write_pending_data (struct manifest_manager *manager
 		MOCK_ARG_CALL (length));
 }
 
-static int cfm_manager_mock_verify_pending_manifest (struct manifest_manager *manager)
+static int cfm_manager_mock_verify_pending_manifest (const struct manifest_manager *manager)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
 
@@ -88,7 +88,7 @@ static int cfm_manager_mock_verify_pending_manifest (struct manifest_manager *ma
 	MOCK_RETURN_NO_ARGS (&mock->mock, cfm_manager_mock_verify_pending_manifest, manager);
 }
 
-static int cfm_manager_mock_clear_all_manifests (struct manifest_manager *manager)
+static int cfm_manager_mock_clear_all_manifests (const struct manifest_manager *manager)
 {
 	struct cfm_manager_mock *mock = (struct cfm_manager_mock*) manager;
 
@@ -124,7 +124,7 @@ static const char* cfm_manager_mock_func_name_map (void *func)
 		return "free_cfm";
 	}
 	else if (func == cfm_manager_mock_activate_pending_manifest) {
-		return "activate_pending_cfm";
+		return "activate_pending_manifest";
 	}
 	else if (func == cfm_manager_mock_clear_pending_region) {
 		return "clear_pending_region";
@@ -133,7 +133,7 @@ static const char* cfm_manager_mock_func_name_map (void *func)
 		return "write_pending_data";
 	}
 	else if (func == cfm_manager_mock_verify_pending_manifest) {
-		return "verify_pending_cfm";
+		return "verify_pending_manifest";
 	}
 	else if (func == cfm_manager_mock_clear_all_manifests) {
 		return "clear_all_manifests";

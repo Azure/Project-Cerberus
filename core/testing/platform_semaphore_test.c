@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "status/rot_status.h"
 
 

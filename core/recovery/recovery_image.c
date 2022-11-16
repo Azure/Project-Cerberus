@@ -5,7 +5,7 @@
 #include "recovery_image.h"
 #include "recovery_image_header.h"
 #include "recovery_image_section_header.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "flash/flash_util.h"
 #include "crypto/ecc.h"
 #include "cmd_interface/cerberus_protocol.h"

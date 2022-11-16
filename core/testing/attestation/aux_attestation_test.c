@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "attestation/aux_attestation.h"
 #include "testing/mock/keystore/keystore_mock.h"

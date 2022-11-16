@@ -22,7 +22,7 @@ struct manifest_manager {
 	 * @return 0 if the pending manifest was successfully activated or an error if there no pending
 	 * manifest to activate.
 	 */
-	int (*activate_pending_manifest) (struct manifest_manager *manager);
+	int (*activate_pending_manifest) (const struct manifest_manager *manager);
 
 	/**
 	 * Clear the pending manifest region in order to accept new manifest data.
@@ -32,7 +32,7 @@ struct manifest_manager {
 	 *
 	 * @return 0 if the pending manifest region was successfully cleared or an error code.
 	 */
-	int (*clear_pending_region) (struct manifest_manager *manager, size_t size);
+	int (*clear_pending_region) (const struct manifest_manager *manager, size_t size);
 
 	/**
 	 * Write data to the pending manifest region. This data must be written sequentially.
@@ -43,7 +43,7 @@ struct manifest_manager {
 	 *
 	 * @return 0 if the data was successfully written or an error code.
 	 */
-	int (*write_pending_data) (struct manifest_manager *manager, const uint8_t *data,
+	int (*write_pending_data) (const struct manifest_manager *manager, const uint8_t *data,
 		size_t length);
 
 	/**
@@ -54,7 +54,7 @@ struct manifest_manager {
 	 *
 	 * @return 0 if the pending manifest was successfully validated or an error code.
 	 */
-	int (*verify_pending_manifest) (struct manifest_manager *manager);
+	int (*verify_pending_manifest) (const struct manifest_manager *manager);
 
 	/**
 	 * Erase all manifest data from both active and pending regions and revert to state with no
@@ -64,7 +64,7 @@ struct manifest_manager {
 	 *
 	 * @return 0 if the manifests were erased or an error code.
 	 */
-	int (*clear_all_manifests) (struct manifest_manager *manager);
+	int (*clear_all_manifests) (const struct manifest_manager *manager);
 
 	int port;						/**< Port identifier for the manager. */
 	struct hash_engine *hash;		/**< The hash engine for generating measurement data. */
@@ -74,7 +74,7 @@ struct manifest_manager {
 int manifest_manager_init (struct manifest_manager *manager, struct hash_engine *hash);
 
 void manifest_manager_set_port (struct manifest_manager *manager, int port);
-int manifest_manager_get_port (struct manifest_manager *manager);
+int manifest_manager_get_port (const struct manifest_manager *manager);
 
 int manifest_manager_get_id_measured_data (struct manifest *active, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len);

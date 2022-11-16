@@ -7,7 +7,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "platform_io.h"
 #include "mock.h"
 #include "testing.h"

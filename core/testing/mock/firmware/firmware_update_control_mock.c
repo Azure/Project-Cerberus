@@ -7,7 +7,7 @@
 #include "firmware_update_control_mock.h"
 
 
-int firmware_update_control_mock_start_update (struct firmware_update_control *update)
+int firmware_update_control_mock_start_update (const struct firmware_update_control *update)
 {
 	struct firmware_update_control_mock *mock = (struct firmware_update_control_mock*) update;
 
@@ -18,7 +18,7 @@ int firmware_update_control_mock_start_update (struct firmware_update_control *u
 	MOCK_RETURN_NO_ARGS (&mock->mock, firmware_update_control_mock_start_update, update);
 }
 
-int firmware_update_control_mock_get_status (struct firmware_update_control *update)
+int firmware_update_control_mock_get_status (const struct firmware_update_control *update)
 {
 	struct firmware_update_control_mock *mock = (struct firmware_update_control_mock*) update;
 
@@ -29,7 +29,8 @@ int firmware_update_control_mock_get_status (struct firmware_update_control *upd
 	MOCK_RETURN_NO_ARGS (&mock->mock, firmware_update_control_mock_get_status, update);
 }
 
-int32_t firmware_update_control_mock_get_remaining_len (struct firmware_update_control *update)
+int32_t firmware_update_control_mock_get_remaining_len (
+	const struct firmware_update_control *update)
 {
 	struct firmware_update_control_mock *mock = (struct firmware_update_control_mock*) update;
 
@@ -40,7 +41,7 @@ int32_t firmware_update_control_mock_get_remaining_len (struct firmware_update_c
 	MOCK_RETURN_NO_ARGS (&mock->mock, firmware_update_control_mock_get_remaining_len, update);
 }
 
-int firmware_update_control_mock_prepare_staging (struct firmware_update_control *update,
+int firmware_update_control_mock_prepare_staging (const struct firmware_update_control *update,
 	size_t size)
 {
 	struct firmware_update_control_mock *mock = (struct firmware_update_control_mock*) update;
@@ -53,7 +54,7 @@ int firmware_update_control_mock_prepare_staging (struct firmware_update_control
 		MOCK_ARG_CALL (size));
 }
 
-int firmware_update_control_mock_write_staging (struct firmware_update_control *update,
+int firmware_update_control_mock_write_staging (const struct firmware_update_control *update,
 	uint8_t *buf, size_t buf_len)
 {
 	struct firmware_update_control_mock *mock = (struct firmware_update_control_mock*) update;

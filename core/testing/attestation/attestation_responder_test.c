@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "platform_io.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "attestation/attestation_responder.h"
 #include "attestation/pcr_store.h"
@@ -413,8 +413,9 @@ static void attestation_responder_test_init (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, attestation.responder.get_digests);
@@ -443,8 +444,9 @@ static void attestation_responder_test_init_init_keypair_fail (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ECC_ENGINE_KEY_PAIR_FAILED, status);
 
 	attestation_responder_testing_release_dependencies (test, &attestation);
@@ -459,32 +461,39 @@ static void attestation_responder_test_init_null (CuTest *test)
 
 	attestation_responder_testing_init_dependencies (test, &attestation);
 
-	status = attestation_responder_init (NULL, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (NULL, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_responder_init (&attestation.responder, NULL, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, NULL,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, NULL,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder,
+		&attestation.riot, NULL, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		NULL, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, NULL, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, NULL, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, NULL, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, NULL, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, NULL,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, NULL, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		NULL, 1, 2);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	attestation_responder_testing_release_dependencies (test, &attestation);
@@ -640,7 +649,8 @@ static void attestation_responder_test_get_digests (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, sizeof (cert_hash), status);
 	CuAssertIntEquals (test, 4, num_cert);
 
@@ -701,7 +711,8 @@ static void attestation_responder_test_get_digests_no_aux (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, sizeof (cert_hash), status);
 	CuAssertIntEquals (test, 4, num_cert);
 
@@ -763,7 +774,8 @@ static void attestation_responder_test_get_digests_aux_slot (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, sizeof (cert_hash), status);
 	CuAssertIntEquals (test, 4, num_cert);
 
@@ -787,7 +799,8 @@ static void attestation_responder_test_get_digests_aux_slot_no_aux (CuTest *test
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -856,7 +869,8 @@ static void attestation_responder_test_get_digests_no_int_ca (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, sizeof (cert_hash), status);
 	CuAssertIntEquals (test, 3, num_cert);
 
@@ -918,7 +932,8 @@ static void attestation_responder_test_get_digests_no_root_ca (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, sizeof (cert_hash), status);
 	CuAssertIntEquals (test, 2, num_cert);
 
@@ -1004,11 +1019,13 @@ static void attestation_responder_test_get_digests_no_dev_id (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -1071,11 +1088,13 @@ static void attestation_responder_test_get_digests_no_alias (CuTest *test)
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -1139,11 +1158,13 @@ static void attestation_responder_test_get_digests_aux_slot_no_dev_id (CuTest *t
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -1163,7 +1184,8 @@ static void attestation_responder_test_get_digests_aux_slot_no_aux_cert (CuTest 
 	attestation_testing_add_int_ca_to_riot_key_manager (test, &attestation.riot,
 		&attestation.keystore, &attestation.x509);
 
-	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, ATTESTATION_CERT_NOT_AVAILABLE, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -1186,7 +1208,8 @@ static void attestation_responder_test_get_digests_devid_fail (CuTest *test)
 		MOCK_ARG (RIOT_CORE_DEVID_CERT_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (32));
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -1215,7 +1238,8 @@ static void attestation_responder_test_get_digests_alias_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -1246,7 +1270,8 @@ static void attestation_responder_test_get_digests_aux_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 1, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -1278,7 +1303,8 @@ static void attestation_responder_test_get_digests_int_ca_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -1305,7 +1331,8 @@ static void attestation_responder_test_get_digests_root_ca_fail (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -1325,7 +1352,8 @@ static void attestation_responder_test_get_digests_null (CuTest *test)
 	status = attestation.responder.get_digests (NULL, 0, buf, sizeof (buf), &num_cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.responder.get_digests (&attestation.responder, 0, NULL, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 0, NULL, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	status = attestation.responder.get_digests (&attestation.responder, 0, buf, sizeof (buf), NULL);
@@ -1345,7 +1373,8 @@ static void attestation_responder_test_get_digests_invalid_slot_num (CuTest *tes
 
 	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.responder.get_digests (&attestation.responder, 2, buf, sizeof (buf), &num_cert);
+	status = attestation.responder.get_digests (&attestation.responder, 2, buf, sizeof (buf),
+		&num_cert);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_SLOT_NUM, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -1568,8 +1597,9 @@ static void attestation_responder_test_get_dev_id_certificate_no_dev_id (CuTest 
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation.responder.get_certificate (&attestation.responder, 0, 0, &cert);
@@ -1634,8 +1664,9 @@ static void attestation_responder_test_get_dev_id_certificate_no_alias (CuTest *
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation.responder.get_certificate (&attestation.responder, 0, 0, &cert);
@@ -1794,8 +1825,9 @@ static void attestation_responder_test_get_alias_certificate_no_dev_id (CuTest *
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation.responder.get_certificate (&attestation.responder, 0, 1, &cert);
@@ -1860,8 +1892,9 @@ static void attestation_responder_test_get_alias_certificate_no_alias (CuTest *t
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation.responder.get_certificate (&attestation.responder, 0, 1, &cert);
@@ -2268,8 +2301,9 @@ static void attestation_responder_test_get_aux_certificate_no_dev_id (CuTest *te
 	status |= mock_expect_save_arg (&attestation.ecc.mock, 2, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_responder_init (&attestation.responder, &attestation.riot, &attestation.hash.base,
-		&attestation.ecc.base, &attestation.rng.base, &attestation.store, &attestation.aux, 1, 2);
+	status = attestation_responder_init (&attestation.responder, &attestation.riot,
+		&attestation.hash.base, &attestation.ecc.base, &attestation.rng.base, &attestation.store,
+		&attestation.aux, 1, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation.responder.get_certificate (&attestation.responder, 1, 1, &cert);
@@ -3007,10 +3041,11 @@ static void attestation_responder_test_aux_attestation_unseal (CuTest *test)
 	status = pcr_store_update_digest (&attestation.store, 0, PCR0_VALUE, PCR0_VALUE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
-		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP,
+		KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key,
+		sizeof (key));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (ENCRYPTION_KEY, key, status);
@@ -3099,10 +3134,11 @@ static void attestation_responder_test_aux_attestation_unseal_sha256 (CuTest *te
 	status = pcr_store_update_digest (&attestation.store, 0, PCR0_VALUE, PCR0_VALUE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP_SHA256, KEY_SEED_ENCRYPT_OAEP_SHA256_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA256, PAYLOAD_HMAC, HMAC_SHA256,
-		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP_SHA256,
+		KEY_SEED_ENCRYPT_OAEP_SHA256_LEN, AUX_ATTESTATION_SEED_RSA,
+		AUX_ATTESTATION_PARAM_OAEP_SHA256, PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN,
+		SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (ENCRYPTION_KEY, key, status);
@@ -3121,10 +3157,11 @@ static void attestation_responder_test_aux_attestation_unseal_no_aux (CuTest *te
 
 	setup_attestation_responder_no_aux_mock_test (test, &attestation);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
-		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP,
+		KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key,
+		sizeof (key));
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_OPERATION, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -3148,10 +3185,11 @@ static void attestation_responder_test_aux_attestation_unseal_fail (CuTest *test
 	status = pcr_store_update_digest (&attestation.store, 0, PCR0_VALUE, PCR0_VALUE_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
-		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP,
+		KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key,
+		sizeof (key));
 	CuAssertIntEquals (test, KEYSTORE_LOAD_FAILED, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -3179,52 +3217,60 @@ static void attestation_responder_test_aux_attestation_unseal_null (CuTest *test
 		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, NULL, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
-		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, NULL,
+		KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key,
+		sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, 0,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
-		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT,
+		KEY_SEED_ENCRYPT_OAEP, 0, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key,
+		sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, NULL, HMAC_SHA256,
-		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP,
+		KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		NULL, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key,
+		sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
-		NULL, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP,
+		KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		PAYLOAD_HMAC, HMAC_SHA256, NULL, CIPHER_TEXT_LEN, SEALING_POLICY, 1, key,
+		sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
-		CIPHER_TEXT, 0, SEALING_POLICY, 1, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP,
+		KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, 0, SEALING_POLICY, 1, key,
+		sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
-		CIPHER_TEXT, CIPHER_TEXT_LEN, NULL, 1, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP,
+		KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN, NULL, 1, key,
+		sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
-		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 0, key, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP,
+		KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 0, key,
+		sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
-	status = attestation.responder.aux_attestation_unseal (&attestation.responder, &attestation.hash.base,
-		AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_HMAC, HMAC_SHA256,
-		CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, NULL, sizeof (key));
+	status = attestation.responder.aux_attestation_unseal (&attestation.responder,
+		&attestation.hash.base, AUX_ATTESTATION_KEY_256BIT, KEY_SEED_ENCRYPT_OAEP,
+		KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA, AUX_ATTESTATION_PARAM_OAEP_SHA1,
+		PAYLOAD_HMAC, HMAC_SHA256, CIPHER_TEXT, CIPHER_TEXT_LEN, SEALING_POLICY, 1, NULL,
+		sizeof (key));
 	CuAssertIntEquals (test, AUX_ATTESTATION_INVALID_ARGUMENT, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);
@@ -3425,8 +3471,8 @@ static void attestation_responder_test_aux_decrypt_null (CuTest *test)
 
 	setup_attestation_responder_mock_test (test, &attestation);
 
-	status = attestation.responder.aux_decrypt (NULL, KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN,
-		NULL, 0, HASH_TYPE_SHA1, decrypted, sizeof (decrypted));
+	status = attestation.responder.aux_decrypt (NULL, KEY_SEED_ENCRYPT_OAEP,
+		KEY_SEED_ENCRYPT_OAEP_LEN, NULL, 0, HASH_TYPE_SHA1, decrypted, sizeof (decrypted));
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
 	complete_attestation_responder_mock_test (test, &attestation);

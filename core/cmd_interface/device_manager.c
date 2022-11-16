@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "device_manager.h"
 #include "common/common_math.h"
 #include "mctp/mctp_base_protocol.h"
@@ -1354,6 +1354,29 @@ found:
 #endif
 
 /**
+ * Check a timeout to see if it will expire before a specified duration.
+ *
+ * @param timeout The timeout to check.
+ * @param duration_ms The duration to check the timeout against.
+ *
+ * @return The minimum of the remaining time in the specified timeout or the specified duration.
+ */
+static uint32_t device_manager_find_min_timeout (const platform_clock *timeout,
+	uint32_t duration_ms)
+{
+	uint32_t check_ms;
+	int status;
+
+	status = platform_get_timeout_remaining (timeout, &check_ms);
+	if (status != 0) {
+		/* If the remaining timeout could not be determined, assume the timeout has expired. */
+		check_ms = 0;
+	}
+
+	return min (check_ms, duration_ms);
+}
+
+/**
  * Get time in milliseconds till next attestation or discovery action.
  *
  * @param mgr Device manager instance to utilize.
@@ -1362,7 +1385,6 @@ found:
  */
 uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr)
 {
-	platform_clock now;
 	uint32_t duration_ms = DEVICE_MANAGER_MIN_ACTIVITY_CHECK;
 	uint8_t i_device;
 
@@ -1375,31 +1397,26 @@ uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr)
 			continue;
 		}
 
-		platform_init_current_tick (&now);
-
-		duration_ms = min (
-			platform_get_duration (&now, &mgr->entries[i_device].attestation_timeout), duration_ms);
+		duration_ms = device_manager_find_min_timeout (&mgr->entries[i_device].attestation_timeout,
+			duration_ms);
 	}
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-{
-	struct device_manager_unidentified_entry *runner = mgr->unidentified;
+	{
+		struct device_manager_unidentified_entry *runner = mgr->unidentified;
 
-	if (runner == NULL) {
-		return duration_ms;
+		if (runner == NULL) {
+			return duration_ms;
+		}
+
+		duration_ms = device_manager_find_min_timeout (&runner->discovery_timeout, duration_ms);
+
+		while (runner->next != mgr->unidentified) {
+			runner = runner->next;
+
+			duration_ms = device_manager_find_min_timeout (&runner->discovery_timeout, duration_ms);
+		}
 	}
-
-	platform_init_current_tick (&now);
-	duration_ms = min (platform_get_duration (&now, &runner->discovery_timeout), duration_ms);
-
-	while (runner->next != mgr->unidentified) {
-		runner = runner->next;
-
-		platform_init_current_tick (&now);
-		duration_ms = min (platform_get_duration (&now, &runner->discovery_timeout),
-			duration_ms);
-	}
-}
 #endif
 
 	return duration_ms;

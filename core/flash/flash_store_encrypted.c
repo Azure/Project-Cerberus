@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "flash_store_encrypted.h"
 #include "flash_util.h"
 

@@ -39,7 +39,7 @@ struct firmware_flash_map {
 };
 
 /**
- * The valid update status values. MAKE SURE IN SYNC WITH tools\cerberus_utility\cerberus_utility_commands.h!!
+ * The valid update status values.
  */
 enum firmware_update_status {
 	UPDATE_STATUS_SUCCESS = 0,			/**< Successful update. */
@@ -55,16 +55,16 @@ enum firmware_update_status {
 	UPDATE_STATUS_STATE_SAVE_FAIL,		/**< The application state was not saved. */
 	UPDATE_STATUS_UPDATING_IMAGE,		/**< The active image is being updated from the staging flash. */
 	UPDATE_STATUS_UPDATE_FAILED,		/**< Failed to update the active image. */
-	UPDATE_STATUS_CHECK_REVOCATION,		/**< Check the new certificate for revocation of older ones. */
-	UPDATE_STATUS_REVOKE_CHK_FAIL,		/**< Error while checking for certificate revocation. */
+	UPDATE_STATUS_CHECK_REVOCATION,		/**< Check the new image manifest for revocation of older ones. */
+	UPDATE_STATUS_REVOKE_CHK_FAIL,		/**< Error while checking for image revocation. */
 	UPDATE_STATUS_CHECK_RECOVERY,		/**< Check the recovery image to see if update is required. */
 	UPDATE_STATUS_RECOVERY_CHK_FAIL,	/**< Error while checking for recovery updates. */
 	UPDATE_STATUS_BACKUP_RECOVERY,		/**< The recovery image is being backed up. */
 	UPDATE_STATUS_BACKUP_REC_FAIL,		/**< The recovery image failed to be backed up. */
 	UPDATE_STATUS_UPDATE_RECOVERY,		/**< The recovery image is being updated from the staging flash. */
 	UPDATE_STATUS_UPDATE_REC_FAIL,		/**< Failed to update the recovery image. */
-	UPDATE_STATUS_REVOKE_CERT,			/**< The certificate revocation list is being updated. */
-	UPDATE_STATUS_REVOKE_FAILED,		/**< The revocation list failed updating. */
+	UPDATE_STATUS_REVOKE_MANIFEST,		/**< The manifest revocation state is being updated. */
+	UPDATE_STATUS_REVOKE_FAILED,		/**< The revocation state failed updating. */
 	UPDATE_STATUS_NONE_STARTED,			/**< No update has been attempted since the last reboot. */
 	UPDATE_STATUS_STAGING_PREP_FAIL,	/**< Failed to prepare staging area for update. */
 	UPDATE_STATUS_STAGING_PREP,			/**< Preparing staging area for update. */
@@ -116,7 +116,7 @@ struct firmware_update_hooks {
 };
 
 /**
- * Variable context for a firmware update handler.
+ * Variable context for a firmware updater.
  */
 struct firmware_update_state {
 	struct flash_updater update_mgr;		/**< Update manager for writing data to flash. */
@@ -132,7 +132,7 @@ struct firmware_update_state {
  */
 struct firmware_update {
 	struct firmware_update_hooks internal;	/**< Internal interface to customize the update process. */
-	struct firmware_update_state *state;	/**< Variable context for the update context. */
+	struct firmware_update_state *state;	/**< Variable context for the firmware updater. */
 	const struct firmware_flash_map *flash;	/**< The flash address mapping to use for the update. */
 	const struct firmware_image *fw;		/**< The platform driver for handling firmware images. */
 	struct hash_engine *hash;				/**< The hash engine to use during update. */
@@ -174,6 +174,7 @@ int firmware_update_is_recovery_good (const struct firmware_update *updater);
 
 int firmware_update_restore_recovery_image (const struct firmware_update *updater);
 int firmware_update_restore_active_image (const struct firmware_update *updater);
+int firmware_update_recovery_matches_active_image (const struct firmware_update *updater);
 
 int firmware_update_add_observer (const struct firmware_update *updater,
 	struct firmware_update_observer *observer);
@@ -182,6 +183,11 @@ int firmware_update_remove_observer (const struct firmware_update *updater,
 
 int firmware_update_run_update (const struct firmware_update *updater,
 	const struct firmware_update_notification *callback);
+int firmware_update_run_update_no_revocation (const struct firmware_update *updater,
+	const struct firmware_update_notification *callback);
+int firmware_update_run_revocation (const struct firmware_update *updater,
+	const struct firmware_update_notification *callback);
+
 int firmware_update_prepare_staging (const struct firmware_update *updater,
 	const struct firmware_update_notification *callback, size_t size);
 int firmware_update_write_to_staging (const struct firmware_update *updater,

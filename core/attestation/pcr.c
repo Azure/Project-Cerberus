@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include "common/common_math.h"
 #include "flash/flash.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "pcr.h"
 
 

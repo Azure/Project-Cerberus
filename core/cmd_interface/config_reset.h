@@ -18,8 +18,6 @@
 
 /**
  * Status codes for configuration reset operations.
- *
- * MAKE SURE IN SYNC WITH tools\cerberus_utility\cerberus_utility_commands.h!!
  */
 enum config_reset_status {
 	CONFIG_RESET_STATUS_SUCCESS = 0,				/**< Successful operation. */

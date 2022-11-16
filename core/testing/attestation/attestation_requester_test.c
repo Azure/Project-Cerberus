@@ -8,7 +8,7 @@
 #include "common/unused.h"
 #include "crypto/checksum.h"
 #include "platform_io.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "attestation/attestation_requester.h"
 #include "attestation/attestation_requester_static.h"

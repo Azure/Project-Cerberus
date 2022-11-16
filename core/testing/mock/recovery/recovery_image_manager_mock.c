@@ -97,7 +97,10 @@ static int recovery_image_manager_mock_erase_all_recovery_regions (
 
 static int recovery_image_manager_mock_func_arg_count (void *func)
 {
-	if ((func == recovery_image_manager_mock_clear_recovery_image_region) ||
+	if (func == recovery_image_manager_mock_write_recovery_image_data) {
+		return 2;
+	}
+	else if ((func == recovery_image_manager_mock_clear_recovery_image_region) ||
 		(func == recovery_image_manager_mock_free_recovery_image)) {
 		return 1;
 	}

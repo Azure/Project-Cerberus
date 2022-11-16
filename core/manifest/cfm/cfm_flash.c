@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "common/buffer_util.h"
 #include "common/common_math.h"
 #include "flash/flash_util.h"

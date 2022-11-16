@@ -10,7 +10,7 @@
 
 
 /**
- * Status codes for manifest operations. MAKE SURE IN SYNC WITH tools\cerberus_utility\cerberus_utility_commands.h!!
+ * Status codes for manifest operations.
  */
 enum manifest_cmd_status {
 	MANIFEST_CMD_STATUS_SUCCESS = 0,				/**< Successful operation. */

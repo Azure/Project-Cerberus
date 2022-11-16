@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "status/rot_status.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "crypto/hash.h"
 #include "pcr_data.h"
 

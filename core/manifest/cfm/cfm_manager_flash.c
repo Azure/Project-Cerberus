@@ -9,6 +9,15 @@
 #include "system/system_state_manager.h"
 
 
+/**
+ * Get the CFM interface for a manifest on flash.
+ *
+ * @param manager The manager to query.
+ * @param active Flag indicating if the interface for the active region should be returned.
+ * Otherwise, the pending region will be returned.
+ *
+ * @return The requested CFM instance or null if there was an error.
+ */
 static struct cfm* cfm_manager_flash_get_cfm (struct cfm_manager_flash *manager, bool active)
 {
 	struct cfm_flash *flash;
@@ -27,21 +36,21 @@ static struct cfm* cfm_manager_flash_get_cfm (struct cfm_manager_flash *manager,
 	return &flash->base;
 }
 
-static struct cfm* cfm_manager_flash_get_active_cfm (struct cfm_manager *manager)
+static struct cfm* cfm_manager_flash_get_active_cfm (const struct cfm_manager *manager)
 {
 	struct cfm_manager_flash *cfm_mgr = (struct cfm_manager_flash*) manager;
 
 	return cfm_manager_flash_get_cfm (cfm_mgr, true);
 }
 
-static struct cfm* cfm_manager_flash_get_pending_cfm (struct cfm_manager *manager)
+static struct cfm* cfm_manager_flash_get_pending_cfm (const struct cfm_manager *manager)
 {
 	struct cfm_manager_flash *cfm_mgr = (struct cfm_manager_flash*) manager;
 
 	return cfm_manager_flash_get_cfm (cfm_mgr, false);
 }
 
-static void cfm_manager_flash_free_cfm (struct cfm_manager *manager, struct cfm *cfm)
+static void cfm_manager_flash_free_cfm (const struct cfm_manager *manager, struct cfm *cfm)
 {
 	struct cfm_manager_flash *cfm_mgr = (struct cfm_manager_flash*) manager;
 
@@ -52,7 +61,7 @@ static void cfm_manager_flash_free_cfm (struct cfm_manager *manager, struct cfm 
 	manifest_manager_flash_free_manifest (&cfm_mgr->manifest_manager, (struct manifest*) cfm);
 }
 
-static int cfm_manager_flash_activate_pending_cfm (struct manifest_manager *manager)
+static int cfm_manager_flash_activate_pending_manifest (const struct manifest_manager *manager)
 {
 	struct cfm_manager_flash *cfm_mgr = (struct cfm_manager_flash*) manager;
 	int status;
@@ -71,7 +80,8 @@ static int cfm_manager_flash_activate_pending_cfm (struct manifest_manager *mana
 	return status;
 }
 
-static int cfm_manager_flash_clear_pending_region (struct manifest_manager *manager, size_t size)
+static int cfm_manager_flash_clear_pending_region (const struct manifest_manager *manager,
+	size_t size)
 {
 	struct cfm_manager_flash *cfm_mgr = (struct cfm_manager_flash*) manager;
 
@@ -82,7 +92,7 @@ static int cfm_manager_flash_clear_pending_region (struct manifest_manager *mana
 	return manifest_manager_flash_clear_pending_region (&cfm_mgr->manifest_manager, size);
 }
 
-static int cfm_manager_flash_write_pending_data (struct manifest_manager *manager,
+static int cfm_manager_flash_write_pending_data (const struct manifest_manager *manager,
 	const uint8_t *data, size_t length)
 {
 	struct cfm_manager_flash *cfm_mgr = (struct cfm_manager_flash*) manager;
@@ -94,7 +104,7 @@ static int cfm_manager_flash_write_pending_data (struct manifest_manager *manage
 	return manifest_manager_flash_write_pending_data (&cfm_mgr->manifest_manager, data, length);
 }
 
-static int cfm_manager_flash_verify_pending_cfm (struct manifest_manager *manager)
+static int cfm_manager_flash_verify_pending_manifest (const struct manifest_manager *manager)
 {
 	struct cfm_manager_flash *cfm_mgr = (struct cfm_manager_flash*) manager;
 	int status;
@@ -111,7 +121,7 @@ static int cfm_manager_flash_verify_pending_cfm (struct manifest_manager *manage
 	return status;
 }
 
-static int cfm_manager_flash_clear_all_manifests (struct manifest_manager *manager)
+static int cfm_manager_flash_clear_all_manifests (const struct manifest_manager *manager)
 {
 	struct cfm_manager_flash *cfm_mgr = (struct cfm_manager_flash*) manager;
 	int status;
@@ -174,10 +184,10 @@ int cfm_manager_flash_init (struct cfm_manager_flash *manager, struct cfm_flash 
 	manager->base.get_pending_cfm = cfm_manager_flash_get_pending_cfm;
 	manager->base.free_cfm = cfm_manager_flash_free_cfm;
 
-	manager->base.base.activate_pending_manifest = cfm_manager_flash_activate_pending_cfm;
+	manager->base.base.activate_pending_manifest = cfm_manager_flash_activate_pending_manifest;
 	manager->base.base.clear_pending_region = cfm_manager_flash_clear_pending_region;
 	manager->base.base.write_pending_data = cfm_manager_flash_write_pending_data;
-	manager->base.base.verify_pending_manifest = cfm_manager_flash_verify_pending_cfm;
+	manager->base.base.verify_pending_manifest = cfm_manager_flash_verify_pending_manifest;
 	manager->base.base.clear_all_manifests = cfm_manager_flash_clear_all_manifests;
 
 	return 0;

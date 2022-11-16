@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "riot_key_manager.h"
 #include "riot_logging.h"
 #include "common/certificate.h"

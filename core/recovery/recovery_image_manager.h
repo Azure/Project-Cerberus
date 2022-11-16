@@ -4,7 +4,7 @@
 #ifndef RECOVERY_IMAGE_MANAGER_H_
 #define RECOVERY_IMAGE_MANAGER_H_
 
-#include "platform.h"
+#include "platform_api.h"
 #include "recovery_image.h"
 #include "common/observable.h"
 #include "crypto/signature_verification.h"
@@ -171,6 +171,10 @@ enum {
 	RECOVERY_IMAGE_MANAGER_NO_TASK = RECOVERY_IMAGE_MANAGER_ERROR (0x07),			/**< No manager command task is running. */
 	RECOVERY_IMAGE_MANAGER_UNSUPPORTED_OP = RECOVERY_IMAGE_MANAGER_ERROR (0x08),	/**< The requested operation is not supported by the manager. */
 	RECOVERY_IMAGE_MANAGER_NO_IMAGE = RECOVERY_IMAGE_MANAGER_ERROR (0x09),			/**< No recovery image is available. */
+	RECOVERY_IMAGE_MANAGER_ACTIVATE_FAILED = RECOVERY_IMAGE_MANAGER_ERROR (0x0a),	/**< Failed to activate the recovery image. */
+	RECOVERY_IMAGE_MANAGER_CLEAR_FAILED = RECOVERY_IMAGE_MANAGER_ERROR (0x0b),		/**< Failed to clear the recovery image region. */
+	RECOVERY_IMAGE_MANAGER_WRITE_FAILED = RECOVERY_IMAGE_MANAGER_ERROR (0x0c),		/**< Failed to write recovery image data. */
+	RECOVERY_IMAGE_MANAGER_ERASE_ALL_FAILED = RECOVERY_IMAGE_MANAGER_ERROR (0x0d),	/**< Failed to erase all recovery image regions. */
 };
 
 

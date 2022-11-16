@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 #include <stdbool.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "flash_util.h"
 #include "flash_common.h"
 

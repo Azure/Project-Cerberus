@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "status/rot_status.h"
 #include "flash/flash_common.h"
 #include "flash/flash_util.h"

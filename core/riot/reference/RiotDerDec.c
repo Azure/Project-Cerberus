@@ -4,7 +4,7 @@
 #include "include/RiotDerDec.h"
 #include "include/RiotStatus.h"
 #include "include/RiotX509Bldr.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "riot/x509_riot.h"
 
 

@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "status/rot_status.h"
 #include "flash/flash.h"
 #include "crypto/hash.h"

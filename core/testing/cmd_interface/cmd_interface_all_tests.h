@@ -57,11 +57,23 @@ static void add_all_cmd_interface_tests (CuSuite *suite)
 	!defined TESTING_SKIP_CMD_AUTHORIZATION_SUITE
 	TESTING_RUN_SUITE (cmd_authorization);
 #endif
+#if (defined TESTING_RUN_CMD_BACKGROUND_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_BACKGROUND_HANDLER_SUITE
+	TESTING_RUN_SUITE (cmd_background_handler);
+#endif
 #if (defined TESTING_RUN_CMD_CHANNEL_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_CMD_CHANNEL_SUITE
 	TESTING_RUN_SUITE (cmd_channel);
+#endif
+#if (defined TESTING_RUN_CMD_CHANNEL_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_CHANNEL_HANDLER_SUITE
+	TESTING_RUN_SUITE (cmd_channel_handler);
 #endif
 #if (defined TESTING_RUN_CMD_INTERFACE_AC_ROT_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \

@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "logging.h"
-#include "platform.h"
+#include "platform_api.h"
 
 
 /**

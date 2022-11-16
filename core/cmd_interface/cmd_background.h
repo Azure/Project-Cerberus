@@ -42,7 +42,8 @@ struct cmd_background {
 	 *
 	 * @return 0 if the action was successfully scheduled or an error code.
 	 */
-	int (*unseal_start) (struct cmd_background *cmd, const uint8_t *unseal_request, size_t length);
+	int (*unseal_start) (const struct cmd_background *cmd, const uint8_t *unseal_request,
+		size_t length);
 
 	/**
 	 * Get the result of the last unseal operation requested.
@@ -57,7 +58,7 @@ struct cmd_background {
 	 *
 	 * @return 0 if completed successfully or an error code.
 	 */
-	int (*unseal_result) (struct cmd_background *cmd, uint8_t *key, size_t *key_length,
+	int (*unseal_result) (const struct cmd_background *cmd, uint8_t *key, size_t *key_length,
 		uint32_t *unseal_status);
 #endif
 
@@ -70,7 +71,7 @@ struct cmd_background {
 	 *
 	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
-	int (*reset_bypass) (struct cmd_background *cmd);
+	int (*reset_bypass) (const struct cmd_background *cmd);
 
 	/**
 	 * Remove all configuration and state from the device, restoring it to a clean state.
@@ -79,7 +80,7 @@ struct cmd_background {
 	 *
 	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
-	int (*restore_defaults) (struct cmd_background *cmd);
+	int (*restore_defaults) (const struct cmd_background *cmd);
 
 	/**
 	 * Remove all configuration for a specific platform from the device.
@@ -88,7 +89,7 @@ struct cmd_background {
 	 *
 	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
-	int (*clear_platform_config) (struct cmd_background *cmd);
+	int (*clear_platform_config) (const struct cmd_background *cmd);
 
 	/**
 	 * Remove all component manifests from the device.
@@ -97,7 +98,7 @@ struct cmd_background {
 	 *
 	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
-	int (*clear_component_manifests) (struct cmd_background *cmd);
+	int (*clear_component_manifests) (const struct cmd_background *cmd);
 #endif
 
 #ifdef CMD_ENABLE_INTRUSION
@@ -108,7 +109,7 @@ struct cmd_background {
 	 *
 	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
-	int (*reset_intrusion) (struct cmd_background *cmd);
+	int (*reset_intrusion) (const struct cmd_background *cmd);
 #endif
 
 #if defined CMD_ENABLE_RESET_CONFIG || defined CMD_ENABLE_INTRUSION
@@ -121,7 +122,7 @@ struct cmd_background {
 	 * {@link enum config_reset_status}.  The rest of the bits will be the return code from the
 	 * operation.
 	 */
-	int (*get_config_reset_status) (struct cmd_background *cmd);
+	int (*get_config_reset_status) (const struct cmd_background *cmd);
 #endif
 
 #ifdef CMD_ENABLE_DEBUG_LOG
@@ -132,7 +133,7 @@ struct cmd_background {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*debug_log_clear) (struct cmd_background *cmd);
+	int (*debug_log_clear) (const struct cmd_background *cmd);
 
 #ifdef CMD_SUPPORT_DEBUG_COMMANDS
 	/**
@@ -142,7 +143,7 @@ struct cmd_background {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*debug_log_fill) (struct cmd_background *cmd);
+	int (*debug_log_fill) (const struct cmd_background *cmd);
 #endif
 #endif
 
@@ -153,7 +154,7 @@ struct cmd_background {
 	 *
 	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
-	int (*authenticate_riot_certs) (struct cmd_background *cmd);
+	int (*authenticate_riot_certs) (const struct cmd_background *cmd);
 
 	/**
 	 * Get the current state of the stored certificate chain for RIoT keys.
@@ -164,7 +165,7 @@ struct cmd_background {
 	 * {@link enum riot_cert_state}.  The rest of the bits will be the return code from the previous
 	 * authentication request.
 	 */
-	int (*get_riot_cert_chain_state) (struct cmd_background *cmd);
+	int (*get_riot_cert_chain_state) (const struct cmd_background *cmd);
 };
 
 

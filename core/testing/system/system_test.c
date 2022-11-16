@@ -31,7 +31,7 @@ struct system_testing {
  * Initialize testing dependencies.
  *
  * @param test The testing framework.
- * @param sytem The testing components to initialize.
+ * @param system The testing components to initialize.
  */
 static void system_testing_init_dependencies (CuTest *test, struct system_testing *system)
 {
@@ -51,7 +51,7 @@ static void system_testing_init_dependencies (CuTest *test, struct system_testin
  * Release test dependencies and validate all mocks.
  *
  * @param test The testing framework.
- * @param cfm The testing components to release.
+ * @param system The testing components to release.
  */
 static void system_testing_validate_and_release_dependencies (CuTest *test,
 	struct system_testing *system)
@@ -61,12 +61,9 @@ static void system_testing_validate_and_release_dependencies (CuTest *test,
 	debug_log = NULL;
 
 	status = cmd_device_mock_validate_and_release (&system->device);
-	CuAssertIntEquals (test, 0, status);
+	status |= system_observer_mock_validate_and_release (&system->observer);
+	status |= logging_mock_validate_and_release (&system->logger);
 
-	status = system_observer_mock_validate_and_release (&system->observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = logging_mock_validate_and_release (&system->logger);
 	CuAssertIntEquals (test, 0, status);
 }
 

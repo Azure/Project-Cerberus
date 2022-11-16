@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "host_fw/bmc_recovery.h"
 #include "testing/mock/host_fw/host_irq_control_mock.h"

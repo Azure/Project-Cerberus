@@ -9,6 +9,15 @@
 #include "system/system_state_manager.h"
 
 
+/**
+ * Get the PCD interface for a manifest on flash.
+ *
+ * @param manager The manager to query.
+ * @param active Flag indicating if the interface for the active region should be returned.
+ * Otherwise, the pending region will be returned.
+ *
+ * @return The requested PCD instance or null if there was an error.
+ */
 static struct pcd* pcd_manager_flash_get_pcd (struct pcd_manager_flash *manager, bool active)
 {
 	struct pcd_flash *flash;
@@ -27,14 +36,14 @@ static struct pcd* pcd_manager_flash_get_pcd (struct pcd_manager_flash *manager,
 	return &flash->base;
 }
 
-static struct pcd* pcd_manager_flash_get_active_pcd (struct pcd_manager *manager)
+static struct pcd* pcd_manager_flash_get_active_pcd (const struct pcd_manager *manager)
 {
 	struct pcd_manager_flash *pcd_mgr = (struct pcd_manager_flash*) manager;
 
 	return pcd_manager_flash_get_pcd (pcd_mgr, true);
 }
 
-static void pcd_manager_flash_free_pcd (struct pcd_manager *manager, struct pcd *pcd)
+static void pcd_manager_flash_free_pcd (const struct pcd_manager *manager, struct pcd *pcd)
 {
 	struct pcd_manager_flash *pcd_mgr = (struct pcd_manager_flash*) manager;
 
@@ -45,7 +54,7 @@ static void pcd_manager_flash_free_pcd (struct pcd_manager *manager, struct pcd 
 	manifest_manager_flash_free_manifest (&pcd_mgr->manifest_manager, (struct manifest*) pcd);
 }
 
-static int pcd_manager_flash_activate_pending_pcd (struct manifest_manager *manager)
+static int pcd_manager_flash_activate_pending_manifest (const struct manifest_manager *manager)
 {
 	struct pcd_manager_flash *pcd_mgr = (struct pcd_manager_flash*) manager;
 	int status;
@@ -64,7 +73,8 @@ static int pcd_manager_flash_activate_pending_pcd (struct manifest_manager *mana
 	return status;
 }
 
-static int pcd_manager_flash_clear_pending_region (struct manifest_manager *manager, size_t size)
+static int pcd_manager_flash_clear_pending_region (const struct manifest_manager *manager,
+	size_t size)
 {
 	struct pcd_manager_flash *pcd_mgr = (struct pcd_manager_flash*) manager;
 
@@ -75,7 +85,7 @@ static int pcd_manager_flash_clear_pending_region (struct manifest_manager *mana
 	return manifest_manager_flash_clear_pending_region (&pcd_mgr->manifest_manager, size);
 }
 
-static int pcd_manager_flash_write_pending_data (struct manifest_manager *manager,
+static int pcd_manager_flash_write_pending_data (const struct manifest_manager *manager,
 	const uint8_t *data, size_t length)
 {
 	struct pcd_manager_flash *pcd_mgr = (struct pcd_manager_flash*) manager;
@@ -87,7 +97,7 @@ static int pcd_manager_flash_write_pending_data (struct manifest_manager *manage
 	return manifest_manager_flash_write_pending_data (&pcd_mgr->manifest_manager, data, length);
 }
 
-static int pcd_manager_flash_verify_pending_pcd (struct manifest_manager *manager)
+static int pcd_manager_flash_verify_pending_manifest (const struct manifest_manager *manager)
 {
 	struct pcd_manager_flash *pcd_mgr = (struct pcd_manager_flash*) manager;
 	int status;
@@ -104,7 +114,7 @@ static int pcd_manager_flash_verify_pending_pcd (struct manifest_manager *manage
 	return status;
 }
 
-static int pcd_manager_flash_clear_all_manifests (struct manifest_manager *manager)
+static int pcd_manager_flash_clear_all_manifests (const struct manifest_manager *manager)
 {
 	struct pcd_manager_flash *pcd_mgr = (struct pcd_manager_flash*) manager;
 	int status;
@@ -165,13 +175,13 @@ int pcd_manager_flash_init (struct pcd_manager_flash *manager, struct pcd_flash 
 
 	manager->base.get_active_pcd = pcd_manager_flash_get_active_pcd;
 	manager->base.free_pcd = pcd_manager_flash_free_pcd;
-	manager->base.base.activate_pending_manifest = pcd_manager_flash_activate_pending_pcd;
+	manager->base.base.activate_pending_manifest = pcd_manager_flash_activate_pending_manifest;
 	manager->base.base.clear_pending_region = pcd_manager_flash_clear_pending_region;
 	manager->base.base.write_pending_data = pcd_manager_flash_write_pending_data;
-	manager->base.base.verify_pending_manifest = pcd_manager_flash_verify_pending_pcd;
+	manager->base.base.verify_pending_manifest = pcd_manager_flash_verify_pending_manifest;
 	manager->base.base.clear_all_manifests = pcd_manager_flash_clear_all_manifests;
 
-	status = pcd_manager_flash_activate_pending_pcd (&manager->base.base);
+	status = pcd_manager_flash_activate_pending_manifest (&manager->base.base);
 	if (status == MANIFEST_MANAGER_NONE_PENDING) {
 		status = 0;
 	}

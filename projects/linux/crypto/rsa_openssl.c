@@ -9,7 +9,7 @@
 #include <openssl/bn.h>
 #include <openssl/err.h>
 #include "rsa_openssl.h"
-#include "platform.h"
+#include "platform_api.h"
 
 
 #ifdef RSA_ENABLE_PRIVATE_KEY

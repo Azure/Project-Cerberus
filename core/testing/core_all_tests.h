@@ -55,6 +55,12 @@ void add_all_core_tests (CuSuite *suite)
 	add_all_tpm_tests (suite);
 
 	/* Test coverage for platform abstractions. */
+#if (defined TESTING_RUN_PLATFORM_CLOCK_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_PLATFORM_CLOCK_SUITE
+	TESTING_RUN_SUITE (platform_clock);
+#endif
 #if (defined TESTING_RUN_PLATFORM_SEMAPHORE_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdbool.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "ecc_riot.h"
 #include "riot/riot_core.h"
 #include "reference/include/RiotEcc.h"

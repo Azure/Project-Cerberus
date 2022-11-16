@@ -111,6 +111,8 @@ enum {
 	ROT_MODULE_CMD_HANDLER_SPDM = 0x0063,				/**< Handler for received SPDM protocol commands. */
 	ROT_MODULE_SPDM_PROTOCOL_OBSERVER = 0x0064,			/**< SPDM protocol observer. */
 	ROT_MODULE_ASN1 = 0x0065,							/**< ASN1 operations. */
+	ROT_MODULE_EVENT_TASK = 0x0066,						/**< Task for event handling. */
+	ROT_MODULE_PERIODIC_TASK = 0x0067,					/**< Task for periodic execution. */
 };
 
 

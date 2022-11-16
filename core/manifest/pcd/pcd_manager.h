@@ -26,7 +26,7 @@ struct pcd_manager {
 	 *
 	 * @return The active PCD or null if there is no active PCD.
 	 */
-	struct pcd* (*get_active_pcd) (struct pcd_manager *manager);
+	struct pcd* (*get_active_pcd) (const struct pcd_manager *manager);
 
 	/**
 	 * Release a PCD instance retrieved from the manager. PCD instances must only be released by
@@ -35,7 +35,7 @@ struct pcd_manager {
 	 * @param manager The PCD manager that allocated the PCD instance.
 	 * @param pcd The PCD to release.
 	 */
-	void (*free_pcd) (struct pcd_manager *manager, struct pcd *pcd);
+	void (*free_pcd) (const struct pcd_manager *manager, struct pcd *pcd);
 };
 
 

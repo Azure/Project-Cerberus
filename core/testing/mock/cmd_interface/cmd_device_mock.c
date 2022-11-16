@@ -5,7 +5,8 @@
 #include "cmd_device_mock.h"
 
 
-static int cmd_device_mock_get_uuid (struct cmd_device *device, uint8_t *buffer, size_t buf_len)
+static int cmd_device_mock_get_uuid (const struct cmd_device *device, uint8_t *buffer,
+	size_t buf_len)
 {
 	struct cmd_device_mock *mock = (struct cmd_device_mock*) device;
 
@@ -17,7 +18,7 @@ static int cmd_device_mock_get_uuid (struct cmd_device *device, uint8_t *buffer,
 		MOCK_ARG_CALL (buf_len));
 }
 
-static int cmd_device_mock_reset (struct cmd_device *device)
+static int cmd_device_mock_reset (const struct cmd_device *device)
 {
 	struct cmd_device_mock *mock = (struct cmd_device_mock*) device;
 
@@ -28,8 +29,8 @@ static int cmd_device_mock_reset (struct cmd_device *device)
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_device_mock_reset, device);
 }
 
-static int cmd_device_mock_get_reset_counter (struct cmd_device *device, uint8_t type, uint8_t port,
-	uint16_t *counter)
+static int cmd_device_mock_get_reset_counter (const struct cmd_device *device, uint8_t type,
+	uint8_t port, uint16_t *counter)
 {
 	struct cmd_device_mock *mock = (struct cmd_device_mock*) device;
 
@@ -41,7 +42,7 @@ static int cmd_device_mock_get_reset_counter (struct cmd_device *device, uint8_t
 		MOCK_ARG_CALL (port), MOCK_ARG_CALL (counter));
 }
 
-static int cmd_device_mock_get_heap_stats (struct cmd_device *device,
+static int cmd_device_mock_get_heap_stats (const struct cmd_device *device,
 	struct cmd_device_heap_stats *heap)
 {
 	struct cmd_device_mock *mock = (struct cmd_device_mock*) device;

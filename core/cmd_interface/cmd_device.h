@@ -18,7 +18,7 @@
 struct cmd_device_heap_stats {
 	uint32_t total;				/**< Total size of heap memory. */
 	uint32_t free;				/**< Amount of the heap that is currently free. */
-	uint32_t min_free;			/**< The mimimun amount of free heap space. */
+	uint32_t min_free;			/**< The minimum amount of free heap space. */
 	uint32_t free_blocks;		/**< Number of blocks currently free. */
 	uint32_t max_block;			/**< Size of the largest free block. */
 	uint32_t min_block;			/**< Size of the smallest free block. */
@@ -39,7 +39,7 @@ struct cmd_device {
 	 * @return The length of the chip ID or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*get_uuid) (struct cmd_device *device, uint8_t *buffer, size_t buf_len);
+	int (*get_uuid) (const struct cmd_device *device, uint8_t *buffer, size_t buf_len);
 
 	/**
 	 * Reset the device.
@@ -49,7 +49,7 @@ struct cmd_device {
 	 * @return A error code if the device could not be reset.  If the device is reset, this will not
 	 * return.
 	 */
-	int (*reset) (struct cmd_device *device);
+	int (*reset) (const struct cmd_device *device);
 
 	/**
 	 * Retrieve the reset counter.
@@ -61,7 +61,7 @@ struct cmd_device {
 	 *
 	 * @return 0 if the reset counter was successfully retrieved or an error code.
 	 */
-	int (*get_reset_counter) (struct cmd_device *device, uint8_t type, uint8_t port,
+	int (*get_reset_counter) (const struct cmd_device *device, uint8_t type, uint8_t port,
 		uint16_t *counter);
 
 #ifdef CMD_ENABLE_HEAP_STATS
@@ -73,7 +73,7 @@ struct cmd_device {
 	 *
 	 * @return 0 if the heap statistics were successfully retrieved or an error code.
 	 */
-	int (*get_heap_stats) (struct cmd_device *device, struct cmd_device_heap_stats *heap);
+	int (*get_heap_stats) (const struct cmd_device *device, struct cmd_device_heap_stats *heap);
 #endif
 };
 

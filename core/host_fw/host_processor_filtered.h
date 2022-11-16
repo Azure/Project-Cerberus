@@ -4,7 +4,7 @@
 #ifndef HOST_PROCESSOR_FILTERED_H_
 #define HOST_PROCESSOR_FILTERED_H_
 
-#include "platform.h"
+#include "platform_api.h"
 #include "host_processor.h"
 #include "host_control.h"
 #include "host_flash_manager.h"

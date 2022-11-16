@@ -27,6 +27,12 @@ static void add_all_attestation_tests (CuSuite *suite)
 	!defined TESTING_SKIP_ATTESTATION_REQUESTER_SUITE
 	TESTING_RUN_SUITE (attestation_requester);
 #endif
+#if (defined TESTING_RUN_ATTESTATION_REQUESTER_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_ATTESTATION_REQUESTER_HANDLER_SUITE
+	TESTING_RUN_SUITE (attestation_requester_handler);
+#endif
 #if (defined TESTING_RUN_ATTESTATION_RESPONDER_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

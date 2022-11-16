@@ -7,7 +7,7 @@
 #include "cmd_background_mock.h"
 
 
-static int cmd_background_mock_unseal_start (struct cmd_background *cmd,
+static int cmd_background_mock_unseal_start (const struct cmd_background *cmd,
 	const uint8_t *unseal_request, size_t length)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
@@ -20,7 +20,7 @@ static int cmd_background_mock_unseal_start (struct cmd_background *cmd,
 		MOCK_ARG_CALL (length));
 }
 
-static int cmd_background_mock_unseal_result (struct cmd_background *cmd, uint8_t *key,
+static int cmd_background_mock_unseal_result (const struct cmd_background *cmd, uint8_t *key,
 	size_t *key_length, uint32_t *unseal_status)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
@@ -33,7 +33,7 @@ static int cmd_background_mock_unseal_result (struct cmd_background *cmd, uint8_
 		MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (unseal_status));
 }
 
-static int cmd_background_mock_reset_bypass (struct cmd_background *cmd)
+static int cmd_background_mock_reset_bypass (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -44,7 +44,7 @@ static int cmd_background_mock_reset_bypass (struct cmd_background *cmd)
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_reset_bypass, cmd);
 }
 
-static int cmd_background_mock_restore_defaults (struct cmd_background *cmd)
+static int cmd_background_mock_restore_defaults (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -55,7 +55,7 @@ static int cmd_background_mock_restore_defaults (struct cmd_background *cmd)
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_restore_defaults, cmd);
 }
 
-static int cmd_background_mock_clear_platform_config (struct cmd_background *cmd)
+static int cmd_background_mock_clear_platform_config (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -66,7 +66,7 @@ static int cmd_background_mock_clear_platform_config (struct cmd_background *cmd
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_clear_platform_config, cmd);
 }
 
-static int cmd_background_mock_clear_component_manifests (struct cmd_background *cmd)
+static int cmd_background_mock_clear_component_manifests (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -77,7 +77,7 @@ static int cmd_background_mock_clear_component_manifests (struct cmd_background 
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_clear_component_manifests, cmd);
 }
 
-static int cmd_background_mock_reset_intrusion (struct cmd_background *cmd)
+static int cmd_background_mock_reset_intrusion (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -88,7 +88,7 @@ static int cmd_background_mock_reset_intrusion (struct cmd_background *cmd)
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_reset_intrusion, cmd);
 }
 
-static int cmd_background_mock_get_config_reset_status (struct cmd_background *cmd)
+static int cmd_background_mock_get_config_reset_status (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -99,7 +99,7 @@ static int cmd_background_mock_get_config_reset_status (struct cmd_background *c
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_get_config_reset_status, cmd);
 }
 
-static int cmd_background_mock_debug_log_clear (struct cmd_background *cmd)
+static int cmd_background_mock_debug_log_clear (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -110,7 +110,7 @@ static int cmd_background_mock_debug_log_clear (struct cmd_background *cmd)
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_debug_log_clear, cmd);
 }
 
-static int cmd_background_mock_debug_log_fill (struct cmd_background *cmd)
+static int cmd_background_mock_debug_log_fill (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -121,7 +121,7 @@ static int cmd_background_mock_debug_log_fill (struct cmd_background *cmd)
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_debug_log_fill, cmd);
 }
 
-static int cmd_background_mock_authenticate_riot_certs (struct cmd_background *cmd)
+static int cmd_background_mock_authenticate_riot_certs (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -132,7 +132,7 @@ static int cmd_background_mock_authenticate_riot_certs (struct cmd_background *c
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_authenticate_riot_certs, cmd);
 }
 
-static int cmd_background_mock_get_riot_cert_chain_state (struct cmd_background *cmd)
+static int cmd_background_mock_get_riot_cert_chain_state (const struct cmd_background *cmd)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 

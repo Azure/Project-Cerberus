@@ -22,6 +22,8 @@ enum {
 	FIRMWARE_LOGGING_ACTIVE_RESTORE_START,		/**< Start to restore a bad active image. */
 	FIRMWARE_LOGGING_RECOVERY_RESTORE_START,	/**< Start to restore a bad recovery image. */
 	FIRMWARE_LOGGING_RECOVERY_UPDATE,			/**< Start to update a recovery image. */
+	FIRMWARE_LOGGING_REVOCATION_UPDATE,			/**< Device anti-rollback state is being updated. */
+	FIRMWARE_LOGGING_REVOCATION_FAIL,			/**< Error during revocation checks. */
 };
 
 

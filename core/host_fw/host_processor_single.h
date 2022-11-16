@@ -4,7 +4,7 @@
 #ifndef HOST_PROCESSOR_SINGLE_H_
 #define HOST_PROCESSOR_SINGLE_H_
 
-#include "platform.h"
+#include "platform_api.h"
 #include "host_processor.h"
 #include "host_processor_filtered.h"
 #include "host_flash_manager_single.h"

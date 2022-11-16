@@ -193,7 +193,7 @@ int bmc_recovery_init (struct bmc_recovery *recovery, struct host_irq_control *i
 	}
 
 	memcpy (&recovery->rec_ctrl, rec_ctrl, sizeof (struct bmc_recovery_control));
-	status = platform_init_current_tick (&recovery->timeout);
+	status = platform_init_timeout (0, &recovery->timeout);
 	if (status != 0) {
 		return status;
 	}

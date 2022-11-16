@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "status/rot_status.h"
 #include "intrusion/intrusion_state.h"
 #include "intrusion/intrusion_state_observer.h"

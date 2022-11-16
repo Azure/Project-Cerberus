@@ -9,7 +9,7 @@
 
 
 /**
- * Status codes for attestation operations. MAKE SURE IN SYNC WITH tools\cerberus_utility\cerberus_utility_commands.h!!
+ * Status codes for attestation operations.
  */
 enum attestation_cmd_status {
 	ATTESTATION_CMD_STATUS_SUCCESS = 0,			/**< Successful operation. */

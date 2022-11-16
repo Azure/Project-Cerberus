@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "spi_filter/spi_filter_logging.h"
 #include "testing/mock/logging/logging_mock.h"

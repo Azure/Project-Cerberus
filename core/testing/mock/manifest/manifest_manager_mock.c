@@ -7,7 +7,7 @@
 #include "manifest_manager_mock.h"
 
 
-static int manifest_manager_mock_activate_pending_manifest (struct manifest_manager *manager)
+static int manifest_manager_mock_activate_pending_manifest (const struct manifest_manager *manager)
 {
 	struct manifest_manager_mock *mock = (struct manifest_manager_mock*) manager;
 
@@ -18,7 +18,8 @@ static int manifest_manager_mock_activate_pending_manifest (struct manifest_mana
 	MOCK_RETURN_NO_ARGS (&mock->mock, manifest_manager_mock_activate_pending_manifest, manager);
 }
 
-static int manifest_manager_mock_clear_pending_region (struct manifest_manager *manager, size_t size)
+static int manifest_manager_mock_clear_pending_region (const struct manifest_manager *manager,
+	size_t size)
 {
 	struct manifest_manager_mock *mock = (struct manifest_manager_mock*) manager;
 
@@ -30,7 +31,7 @@ static int manifest_manager_mock_clear_pending_region (struct manifest_manager *
 		MOCK_ARG_CALL (size));
 }
 
-static int manifest_manager_mock_write_pending_data (struct manifest_manager *manager,
+static int manifest_manager_mock_write_pending_data (const struct manifest_manager *manager,
 	const uint8_t *data, size_t length)
 {
 	struct manifest_manager_mock *mock = (struct manifest_manager_mock*) manager;
@@ -39,11 +40,11 @@ static int manifest_manager_mock_write_pending_data (struct manifest_manager *ma
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, manifest_manager_mock_write_pending_data, manager, MOCK_ARG_CALL (data),
-		MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, manifest_manager_mock_write_pending_data, manager,
+		MOCK_ARG_CALL (data), MOCK_ARG_CALL (length));
 }
 
-static int manifest_manager_mock_verify_pending_manifest (struct manifest_manager *manager)
+static int manifest_manager_mock_verify_pending_manifest (const struct manifest_manager *manager)
 {
 	struct manifest_manager_mock *mock = (struct manifest_manager_mock*) manager;
 
@@ -54,7 +55,7 @@ static int manifest_manager_mock_verify_pending_manifest (struct manifest_manage
 	MOCK_RETURN_NO_ARGS (&mock->mock, manifest_manager_mock_verify_pending_manifest, manager);
 }
 
-static int manifest_manager_mock_clear_all_manifests (struct manifest_manager *manager)
+static int manifest_manager_mock_clear_all_manifests (const struct manifest_manager *manager)
 {
 	struct manifest_manager_mock *mock = (struct manifest_manager_mock*) manager;
 

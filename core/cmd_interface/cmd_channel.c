@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "cmd_channel.h"
 #include "cmd_logging.h"
 #include "common/common_math.h"
@@ -178,6 +178,7 @@ int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_in
 			if (status != 0) {
 				if (status == CMD_CHANNEL_PKT_EXPIRED) {
 					platform_clock now;
+
 					platform_init_current_tick (&now);
 					debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING,
 						DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_COMMAND_TIMEOUT, channel->id,

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "platform_io.h"
 #include "system_observer_stack_usage.h"
 

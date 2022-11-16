@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "riot/x509_riot.h"
 #include "riot/reference/include/RiotX509Bldr.h"

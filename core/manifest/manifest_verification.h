@@ -16,7 +16,7 @@
 #include "pcd/pcd_observer.h"
 #include "firmware/firmware_update_observer.h"
 #include "keystore/keystore.h"
-#include "platform.h"
+#include "platform_api.h"
 
 
 #pragma pack(push,1)

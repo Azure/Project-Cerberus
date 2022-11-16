@@ -1,11 +1,11 @@
 // Portions Copyright (c) Microsoft Corporation
 
-#ifndef CU_TEST_H
-#define CU_TEST_H
+#ifndef CUTEST_H_
+#define CUTEST_H_
 
 #include <setjmp.h>
 #include <stdarg.h>
-#include "platform.h"
+#include "platform_api.h"
 
 #define CUTEST_VERSION  "CuTest 1.5b"
 
@@ -119,4 +119,4 @@ void CuSuiteRun(CuSuite* testSuite);
 void CuSuiteSummary(CuSuite* testSuite, CuString* summary);
 void CuSuiteDetails(CuSuite* testSuite, CuString* details);
 
-#endif /* CU_TEST_H */
+#endif /* CUTEST_H_ */

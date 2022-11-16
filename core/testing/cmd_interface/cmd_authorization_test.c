@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "cmd_interface/cmd_authorization.h"
 #include "testing/mock/common/authorization_mock.h"
 

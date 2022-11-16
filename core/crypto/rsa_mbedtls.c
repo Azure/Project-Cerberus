@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "rsa_mbedtls.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "mbedtls/pk.h"
 #include "mbedtls/pk_internal.h"
 #include "mbedtls/rsa.h"

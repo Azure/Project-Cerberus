@@ -11,8 +11,9 @@
  * Logging messages for system management.
  */
 enum {
-	SYSTEM_LOGGING_RESET_NOT_EXECUTED,	/**< Failed to schedule a device reset. */
-	SYSTEM_LOGGING_RESET_FAIL,			/**< Failed to reset the device. */
+	SYSTEM_LOGGING_RESET_NOT_EXECUTED,		/**< Failed to schedule a device reset. */
+	SYSTEM_LOGGING_RESET_FAIL,				/**< Failed to reset the device. */
+	SYSTEM_LOGGING_PERIODIC_FAILED,			/**< A periodic task failed to execute a handler. */
 };
 
 

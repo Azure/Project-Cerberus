@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "debug_log.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "common/unused.h"
 
 

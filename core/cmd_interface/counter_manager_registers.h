@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "cmd_interface/cmd_device.h"
 #include "counter_manager.h"
 

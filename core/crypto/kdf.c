@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "common/common_math.h"
 #include "kdf.h"
 
@@ -12,8 +12,8 @@
  *
  * @param hash Hash engine to utilize.
  * @param hash_type HMAC hash type to utilize.
- * @param key_derivation_key Key used to derive keying material. 
- * @param key_derivation_key_len Key derivation key length. 
+ * @param key_derivation_key Key used to derive keying material.
+ * @param key_derivation_key_len Key derivation key length.
  * @param label Buffer containing label used as input to the KDF.
  * @param label_len Label length.
  * @param context Buffer containing context used as input to the KDF. Set to NULL if not used.
@@ -23,8 +23,8 @@
  *
  * @return Completion status, 0 if success or an error code.
  */
-int kdf_nist800_108_counter_mode (struct hash_engine *hash, enum hmac_hash hash_type, 
-	const uint8_t *key_derivation_key, size_t key_derivation_key_len, const uint8_t *label, 
+int kdf_nist800_108_counter_mode (struct hash_engine *hash, enum hmac_hash hash_type,
+	const uint8_t *key_derivation_key, size_t key_derivation_key_len, const uint8_t *label,
 	size_t label_len, const uint8_t *context, size_t context_len, uint8_t *key, uint32_t key_len)
 {
 	struct hmac_engine hmac;
@@ -51,7 +51,7 @@ int kdf_nist800_108_counter_mode (struct hash_engine *hash, enum hmac_hash hash_
 		case HMAC_SHA256:
 			hash_len = SHA256_HASH_LENGTH;
 			break;
-			
+
 		default:
 			return KDF_OPERATION_UNSUPPORTED;
 	}
@@ -60,7 +60,7 @@ int kdf_nist800_108_counter_mode (struct hash_engine *hash, enum hmac_hash hash_
 	memset (key, 0, key_len);
 
 	for (i = 1; i <= ceil ((L * 1.0) / h); ++i) {
-		status = hash_hmac_init (&hmac, hash, hash_type, key_derivation_key, 
+		status = hash_hmac_init (&hmac, hash, hash_type, key_derivation_key,
 			key_derivation_key_len);
 		if (status != 0) {
 			return status;
@@ -81,7 +81,7 @@ int kdf_nist800_108_counter_mode (struct hash_engine *hash, enum hmac_hash hash_
 		status = hash_hmac_update (&hmac, &separator, sizeof (separator));
 		if (status != 0) {
 			goto fail;
-		}	
+		}
 
 		if (context != NULL) {
 			status = hash_hmac_update (&hmac, context, context_len);

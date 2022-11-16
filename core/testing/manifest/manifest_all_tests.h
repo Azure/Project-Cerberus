@@ -45,6 +45,30 @@ static void add_all_manifest_tests (CuSuite *suite)
 	!defined TESTING_SKIP_CFM_OBSERVER_PCR_SUITE
 	TESTING_RUN_SUITE (cfm_observer_pcr);
 #endif
+#if (defined TESTING_RUN_MANIFEST_CMD_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_MANIFEST_CMD_HANDLER_SUITE
+	TESTING_RUN_SUITE (manifest_cmd_handler);
+#endif
+#if (defined TESTING_RUN_MANIFEST_CMD_HANDLER_CFM_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_MANIFEST_CMD_HANDLER_CFM_SUITE
+	TESTING_RUN_SUITE (manifest_cmd_handler_cfm);
+#endif
+#if (defined TESTING_RUN_MANIFEST_CMD_HANDLER_PCD_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_MANIFEST_CMD_HANDLER_PCD_SUITE
+	TESTING_RUN_SUITE (manifest_cmd_handler_pcd);
+#endif
+#if (defined TESTING_RUN_MANIFEST_CMD_HANDLER_PFM_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_MANIFEST_CMD_HANDLER_PFM_SUITE
+	TESTING_RUN_SUITE (manifest_cmd_handler_pfm);
+#endif
 #if (defined TESTING_RUN_MANIFEST_FLASH_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

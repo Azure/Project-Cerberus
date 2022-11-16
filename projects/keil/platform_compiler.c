@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 
 
 /**
@@ -39,7 +39,7 @@ char* strdup (const char *s)
 size_t strnlen (const char *s, size_t maxLen)
 {
 	size_t length = 0;
-	
+
 	if (s != NULL) {
 		while ((*s != '\0') && (length < maxLen)) {
 			length++;

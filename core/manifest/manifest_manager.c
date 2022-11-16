@@ -4,7 +4,7 @@
 #include <string.h>
 #include "common/common_math.h"
 #include "manifest_manager.h"
-#include "platform.h"
+#include "platform_api.h"
 
 
 /**
@@ -46,7 +46,7 @@ void manifest_manager_set_port (struct manifest_manager *manager, int port)
  *
  * @return The port identifier or an error code.  Use ROT_IS_ERROR to check for errors.
  */
-int manifest_manager_get_port (struct manifest_manager *manager)
+int manifest_manager_get_port (const struct manifest_manager *manager)
 {
 	if (manager) {
 		return manager->port;

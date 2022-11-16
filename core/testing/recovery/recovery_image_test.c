@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "recovery/recovery_image.h"
 #include "recovery/recovery_image_section_header.h"

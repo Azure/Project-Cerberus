@@ -7,7 +7,7 @@
 #include "state_manager_mock.h"
 
 
-static int state_manager_mock_save_active_manifest (struct state_manager *manager, 
+static int state_manager_mock_save_active_manifest (struct state_manager *manager,
 	uint8_t manifest_index, enum manifest_region active)
 {
 	struct state_manager_mock *mock = (struct state_manager_mock*) manager;
@@ -20,7 +20,7 @@ static int state_manager_mock_save_active_manifest (struct state_manager *manage
 		MOCK_ARG_CALL (manifest_index), MOCK_ARG_CALL (active));
 }
 
-static enum manifest_region state_manager_mock_get_active_manifest (struct state_manager *manager, 
+static enum manifest_region state_manager_mock_get_active_manifest (struct state_manager *manager,
 	uint8_t manifest_index)
 {
 	struct state_manager_mock *mock = (struct state_manager_mock*) manager;
@@ -29,7 +29,7 @@ static enum manifest_region state_manager_mock_get_active_manifest (struct state
 		return (enum manifest_region) MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN_CAST (&mock->mock, enum manifest_region, state_manager_mock_get_active_manifest, 
+	MOCK_RETURN_CAST (&mock->mock, enum manifest_region, state_manager_mock_get_active_manifest,
 		manager, MOCK_ARG_CALL (manifest_index));
 }
 
@@ -44,7 +44,7 @@ static int state_manager_mock_restore_default_state (struct state_manager *manag
 	MOCK_RETURN_NO_ARGS (&mock->mock, state_manager_mock_restore_default_state, manager);
 }
 
-static int state_manager_mock_is_manifest_valid (struct state_manager *manager, 
+static int state_manager_mock_is_manifest_valid (struct state_manager *manager,
 	uint8_t manifest_index)
 {
 	struct state_manager_mock *mock = (struct state_manager_mock*) manager;
@@ -53,7 +53,7 @@ static int state_manager_mock_is_manifest_valid (struct state_manager *manager,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, state_manager_mock_is_manifest_valid, manager, 
+	MOCK_RETURN (&mock->mock, state_manager_mock_is_manifest_valid, manager,
 		MOCK_ARG_CALL (manifest_index));
 }
 
@@ -98,6 +98,7 @@ static const char* state_manager_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "manifest_index";
+
 			case 1:
 				return "active";
 		}

@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "recovery_image_section_header.h"
 #include "cmd_interface/cmd_interface.h"
 
@@ -12,7 +12,7 @@
  */
 union recovery_image_section_header_format {
 	struct __attribute__ ((__packed__)) {
-		uint32_t addr;			/**< The host address to store the section image. */ 
+		uint32_t addr;			/**< The host address to store the section image. */
 		uint32_t length;		/**< The length of the section image. */
 	} format0;
 } __attribute__ ((__packed__));
@@ -90,7 +90,7 @@ int recovery_image_section_header_get_section_image_length (
 		return RECOVERY_IMAGE_SECTION_HEADER_INVALID_ARGUMENT;
 	}
 
-	*length = ((union recovery_image_section_header_format*) header->base.data)->format0.length; 
+	*length = ((union recovery_image_section_header_format*) header->base.data)->format0.length;
 
 	return 0;
 }

@@ -51,6 +51,12 @@ static void add_all_recovery_tests (CuSuite *suite)
 	!defined TESTING_SKIP_RECOVERY_IMAGE_SUITE
 	TESTING_RUN_SUITE (recovery_image);
 #endif
+#if (defined TESTING_RUN_RECOVERY_IMAGE_CMD_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_RECOVERY_IMAGE_CMD_HANDLER_SUITE
+	TESTING_RUN_SUITE (recovery_image_cmd_handler);
+#endif
 #if (defined TESTING_RUN_RECOVERY_IMAGE_HEADER_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

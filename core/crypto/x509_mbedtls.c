@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "x509_mbedtls.h"
 #include "mbedtls/pk.h"
 #include "mbedtls/x509_csr.h"

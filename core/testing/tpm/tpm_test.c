@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "tpm/tpm.h"
 #include "testing/mock/flash/flash_store_mock.h"

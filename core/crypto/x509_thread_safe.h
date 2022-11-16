@@ -4,7 +4,7 @@
 #ifndef X509_THREAD_SAFE_H_
 #define X509_THREAD_SAFE_H_
 
-#include "platform.h"
+#include "platform_api.h"
 #include "crypto/x509.h"
 
 

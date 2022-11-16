@@ -16,7 +16,7 @@
  *
  * @return 0 if the manager was successfully initialized or an error code.
  */
-int system_init (struct system *system, struct cmd_device *device)
+int system_init (struct system *system, const struct cmd_device *device)
 {
 	if ((system == NULL) || (device == NULL)) {
 		return SYSTEM_INVALID_ARGUMENT;

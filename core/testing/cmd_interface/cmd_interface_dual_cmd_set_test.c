@@ -7,7 +7,7 @@
 #include <string.h>
 #include <math.h>
 #include "testing.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "cmd_interface/cmd_interface_dual_cmd_set.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
 

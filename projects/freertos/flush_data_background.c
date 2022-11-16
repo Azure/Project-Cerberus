@@ -6,7 +6,7 @@
 #include <string.h>
 #include "flush_data_background.h"
 #include "state_manager/state_logging.h"
-#include "platform.h"
+#include "platform_api.h"
 
 
 /**

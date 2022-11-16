@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "testing.h"
 #include "crypto/checksum.h"
 #include "mctp/mctp_base_protocol.h"

@@ -6,7 +6,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "cmd_interface/cmd_channel.h"
 #include "cmd_interface/device_manager.h"
 #include "cmd_interface/cmd_interface.h"

@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "x509_riot.h"
 #include "reference/include/RiotDerEnc.h"
 #include "reference/include/RiotX509Bldr.h"

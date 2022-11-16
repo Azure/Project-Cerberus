@@ -4,7 +4,7 @@
 #ifndef BASE64_THREAD_SAFE_H_
 #define BASE64_THREAD_SAFE_H_
 
-#include "platform.h"
+#include "platform_api.h"
 #include "crypto/base64.h"
 
 

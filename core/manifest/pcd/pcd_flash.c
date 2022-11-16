@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "pcd_flash.h"
 #include "pcd_format.h"
 #include "flash/flash_util.h"

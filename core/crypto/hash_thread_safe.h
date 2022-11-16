@@ -4,7 +4,7 @@
 #ifndef HASH_THREAD_SAFE_H_
 #define HASH_THREAD_SAFE_H_
 
-#include "platform.h"
+#include "platform_api.h"
 #include "crypto/hash.h"
 
 

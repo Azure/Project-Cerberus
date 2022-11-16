@@ -4,7 +4,7 @@
 #ifndef RSA_THREAD_SAFE_H_
 #define RSA_THREAD_SAFE_H_
 
-#include "platform.h"
+#include "platform_api.h"
 #include "crypto/rsa.h"
 
 

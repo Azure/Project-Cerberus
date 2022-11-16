@@ -30,7 +30,7 @@ int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_f
 void pfm_manager_flash_release (struct pfm_manager_flash *manager);
 
 /* Internal functions for use by derived types. */
-int pfm_manager_flash_verify_pending_pfm (struct manifest_manager *manager);
+int pfm_manager_flash_verify_pending_manifest (const struct manifest_manager *manager);
 
 
 #endif /* PFM_MANAGER_FLASH_H_ */

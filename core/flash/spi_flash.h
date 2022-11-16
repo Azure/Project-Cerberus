@@ -11,7 +11,7 @@
 #include "flash.h"
 #include "flash_master.h"
 #include "spi_flash_sfdp.h"
-#include "platform.h"
+#include "platform_api.h"
 
 
 /**

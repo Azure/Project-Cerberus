@@ -17,8 +17,8 @@
 
 
 /**
- * Initialize a static instance of a firmware update handler.  This does not initialize the updater
- * state.  This can be a constant instance.
+ * Initialize a static instance of a firmware updater.  This does not initialize the updater state.
+ * This can be a constant instance.
  *
  * There is no validation done on the arguments.
  *
@@ -39,8 +39,8 @@
 	}
 
 /**
- * Initialize a static instance of a firmware update handler.  This does not initialize the updater
- * state.  This can be a constant instance.
+ * Initialize a static instance of a firmware updater.  This does not initialize the updater state.
+ * This can be a constant instance.
  *
  * Firmware images processed by the updater are not required to contain a firmware header.  If the
  * firmware header is present, it will be processed.  If the firmware header is not present, the

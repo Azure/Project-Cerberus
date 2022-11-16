@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "ecc_mbedtls.h"
 #include "mbedtls/pk.h"
 #include "mbedtls/ecp.h"

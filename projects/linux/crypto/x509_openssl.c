@@ -12,7 +12,7 @@
 #include <openssl/evp.h>
 #include <openssl/asn1t.h>
 #include <openssl/err.h>
-#include "platform.h"
+#include "platform_api.h"
 #include "crypto/x509_openssl.h"
 #include "common/unused.h"
 

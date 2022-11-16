@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "logging.h"
-#include "platform.h"
+#include "platform_api.h"
 #include "flash/flash_common.h"
 #include "flash/spi_flash.h"
 
