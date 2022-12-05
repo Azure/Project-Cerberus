@@ -156,7 +156,8 @@ static void platform_clock_test_get_duration (CuTest *test)
 
 	msec = platform_get_duration (&start, &end);
 	CuAssertTrue (test, (msec >= 500));
-	CuAssertTrue (test, (msec < 550));	/* There shouldn't be much else going on, so bound this for testing. */
+	/* There shouldn't be much else going on, so bound this for testing. */
+	CuAssertTrue (test, (msec < 550));
 }
 
 static void platform_clock_test_get_duration_of_expired_timeout (CuTest *test)
@@ -181,7 +182,8 @@ static void platform_clock_test_get_duration_of_expired_timeout (CuTest *test)
 
 	msec = platform_get_duration (&timeout, &end);
 	CuAssertTrue (test, (msec >= 300));
-	CuAssertTrue (test, (msec < 350));	/* There shouldn't be much else going on, so bound this for testing. */
+	/* There shouldn't be much else going on, so bound this for testing. */
+	CuAssertTrue (test, (msec < 350));
 }
 
 static void platform_clock_test_get_duration_between_two_timeouts_less_than_one_second (
@@ -201,7 +203,9 @@ static void platform_clock_test_get_duration_between_two_timeouts_less_than_one_
 	CuAssertIntEquals (test, 0, status);
 
 	msec = platform_get_duration (&timeout1, &timeout2);
-	CuAssertIntEquals (test, 400, msec);
+	/* Allow both values to account for boundary cases. */
+	CuAssertTrue (test,
+		((msec == 400) || (msec == (400 + PLATFORM_CLOCK_RESOLUTION))));
 }
 
 static void platform_clock_test_get_duration_between_two_timeouts_one_second (CuTest *test)
@@ -220,7 +224,9 @@ static void platform_clock_test_get_duration_between_two_timeouts_one_second (Cu
 	CuAssertIntEquals (test, 0, status);
 
 	msec = platform_get_duration (&timeout1, &timeout2);
-	CuAssertIntEquals (test, 1100, msec);
+	/* Allow both values to account for boundary cases. */
+	CuAssertTrue (test,
+		((msec == 1100) || (msec == (1100 + PLATFORM_CLOCK_RESOLUTION))));
 }
 
 static void platform_clock_test_get_duration_between_two_timeouts_more_than_one_second (
@@ -240,7 +246,9 @@ static void platform_clock_test_get_duration_between_two_timeouts_more_than_one_
 	CuAssertIntEquals (test, 0, status);
 
 	msec = platform_get_duration (&timeout1, &timeout2);
-	CuAssertIntEquals (test, 3700, msec);
+	/* Allow both values to account for boundary cases. */
+	CuAssertTrue (test,
+		((msec == 3700) || (msec == (3700 + PLATFORM_CLOCK_RESOLUTION))));
 }
 
 static void platform_clock_test_get_duration_null (CuTest *test)
@@ -295,7 +303,8 @@ static void platform_clock_test_get_time (CuTest *test)
 
 	diff = end - start;
 	CuAssertTrue (test, (diff >= 300));
-	CuAssertTrue (test, (diff < 350));	/* There shouldn't be much else going on, so bound this for testing. */
+	/* There shouldn't be much else going on, so bound this for testing. */
+	CuAssertTrue (test, (diff < 350));
 }
 
 

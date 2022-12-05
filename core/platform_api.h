@@ -123,6 +123,17 @@ uint32_t platform_htons (uint32_t hostshort);
 #define	PLATFORM_TIMEOUT_ERROR(code)		ROT_ERROR (ROT_MODULE_PLATFORM_TIMEOUT, code)
 
 
+#ifndef PLATFORM_CLOCK_RESOLUTION
+/**
+ * The resolution of the clock implementation for the platform.  This is the minimum duration that
+ * can be measured and is the minimum time that will be used for timeouts.
+ *
+ * If the platform doesn't override this value, it defaults to a 1 millisecond resolution.
+ */
+#define	PLATFORM_CLOCK_RESOLUTION			1
+#endif
+
+
 #ifndef platform_msleep
 /**
  * Sleep for a specified number of milliseconds.

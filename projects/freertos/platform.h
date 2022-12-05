@@ -34,6 +34,9 @@ typedef struct {
 	TickType_t end;
 } platform_clock;
 
+/* The clock resolution depends on the tick configuration. */
+#define	PLATFORM_CLOCK_RESOLUTION	portTICK_PERIOD_MS
+
 
 /* FreeRTOS mutex. */
 typedef SemaphoreHandle_t platform_mutex;
