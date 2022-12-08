@@ -335,14 +335,12 @@ void state_manager_release (struct state_manager *manager)
  */
 void state_manager_block_non_volatile_state_storage (struct state_manager *manager, bool block)
 {
-	struct state_manager *state_mgr = (struct state_manager*) manager;
-
-	if (state_mgr != NULL) {
+	if (manager != NULL) {
 		if (block) {
-			platform_mutex_lock (&state_mgr->store_lock);
+			platform_mutex_lock (&manager->store_lock);
 		}
 		else {
-			platform_mutex_unlock (&state_mgr->store_lock);
+			platform_mutex_unlock (&manager->store_lock);
 		}
 	}
 }
@@ -360,7 +358,6 @@ void state_manager_block_non_volatile_state_storage (struct state_manager *manag
  */
 int state_manager_store_non_volatile_state (struct state_manager *manager)
 {
-	struct state_manager *state_mgr = (struct state_manager*) manager;
 	int status = 0;
 	int erase_status;
 	uint16_t store_state;
@@ -371,46 +368,46 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 	bool bit_error = false;
 	bool refresh = false;
 
-	if (state_mgr == NULL) {
+	if (manager == NULL) {
 		return STATE_MANAGER_INVALID_ARGUMENT;
 	}
 
-	status = state_mgr->nv_store->get_sector_size (state_mgr->nv_store, &sector_size);
+	status = manager->nv_store->get_sector_size (manager->nv_store, &sector_size);
 	if (status != 0) {
 		return status;
 	}
 
-	platform_mutex_lock (&state_mgr->store_lock);
+	platform_mutex_lock (&manager->store_lock);
 
-	platform_mutex_lock (&state_mgr->state_lock);
-	store_state = state_mgr->nv_state & ~SINGLE_BYTE_STATE;
+	platform_mutex_lock (&manager->state_lock);
+	store_state = manager->nv_state & ~SINGLE_BYTE_STATE;
 	store_state |= MULTI_BYTE_STATE;
-	platform_mutex_unlock (&state_mgr->state_lock);
+	platform_mutex_unlock (&manager->state_lock);
 
 	/* If our current state hasn't changed from what is on flash, verify the flash contents and
 	 * refresh as necessary. */
-	if (store_state == state_mgr->last_nv_stored) {
-		status = state_mgr->nv_store->read (state_mgr->nv_store, state_mgr->store_addr,
+	if (store_state == manager->last_nv_stored) {
+		status = manager->nv_store->read (manager->nv_store, manager->store_addr,
 			(uint8_t*) nv_state, sizeof (nv_state));
 
 		if (status == 0) {
 			in_flash = state_manager_read_state_bits (nv_state, &bit_error, &refresh);
 			if ((in_flash != store_state) || bit_error) {
 				/* The data in flash is bad, so force the state to be rewritten. */
-				state_mgr->last_nv_stored = 0xffff;
+				manager->last_nv_stored = 0xffff;
 
 				if (refresh) {
-					state_manager_set_next_sector_write_offset (state_mgr, sector_size);
+					state_manager_set_next_sector_write_offset (manager, sector_size);
 				}
 			}
 		}
 	}
 
 	/* If our current state is different from that stored on flash, write it to flash. */
-	if (store_state != state_mgr->last_nv_stored) {
-		next_addr = state_mgr->store_addr + 8;
-		if (next_addr == (state_mgr->base_addr + (sector_size * 2))) {
-			next_addr = state_mgr->base_addr;
+	if (store_state != manager->last_nv_stored) {
+		next_addr = manager->store_addr + 8;
+		if (next_addr == (manager->base_addr + (sector_size * 2))) {
+			next_addr = manager->base_addr;
 		}
 
 		nv_state[0] = store_state;
@@ -423,33 +420,33 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 		 * If we are trying to write the last entry in the current sector, make sure the next sector
 		 * is erased.  Otherwise, we will not be able to correctly determine the last state stored
 		 * by looking for blank flash during initialization. */
-		if ((next_addr == state_mgr->base_addr) && !(state_mgr->volatile_state & SECTOR_1_BLANK)) {
+		if ((next_addr == manager->base_addr) && !(manager->volatile_state & SECTOR_1_BLANK)) {
 			status = STATE_MANAGER_NOT_BLANK;
 		}
-		else if ((next_addr == (state_mgr->base_addr + sector_size)) &&
-			!(state_mgr->volatile_state & SECTOR_2_BLANK)) {
+		else if ((next_addr == (manager->base_addr + sector_size)) &&
+			!(manager->volatile_state & SECTOR_2_BLANK)) {
 			status = STATE_MANAGER_NOT_BLANK;
 		}
-		else if ((next_addr == (state_mgr->base_addr + (sector_size * 2) - 8)) &&
-			!(state_mgr->volatile_state & SECTOR_1_BLANK)) {
+		else if ((next_addr == (manager->base_addr + (sector_size * 2) - 8)) &&
+			!(manager->volatile_state & SECTOR_1_BLANK)) {
 			status = STATE_MANAGER_NOT_BLANK;
 		}
-		else if (next_addr == (state_mgr->base_addr + sector_size - 8) &&
-			!(state_mgr->volatile_state & SECTOR_2_BLANK)) {
+		else if (next_addr == (manager->base_addr + sector_size - 8) &&
+			!(manager->volatile_state & SECTOR_2_BLANK)) {
 			status = STATE_MANAGER_NOT_BLANK;
 		}
 
 		if (status == 0) {
-			status = state_mgr->nv_store->write (state_mgr->nv_store, next_addr,
+			status = manager->nv_store->write (manager->nv_store, next_addr,
 				(uint8_t*) nv_state, sizeof (nv_state));
 			if (ROT_IS_ERROR (status)) {
-				platform_mutex_unlock (&state_mgr->store_lock);
+				platform_mutex_unlock (&manager->store_lock);
 				return status;
 			}
 
 			if (status == sizeof (nv_state)) {
 				status = 0;
-				state_mgr->last_nv_stored = store_state;
+				manager->last_nv_stored = store_state;
 			}
 			else {
 				/* We handle this scenario, but only minimally.  This is not really possible given
@@ -457,48 +454,48 @@ int state_manager_store_non_volatile_state (struct state_manager *manager)
 				status = STATE_MANAGER_INCOMPLETE_WRITE;
 			}
 
-			state_mgr->store_addr = next_addr;
+			manager->store_addr = next_addr;
 		}
 	}
 
 	/* Always make sure the unused sector is erased so it is ready to be written to when needed.
 	 * A failure to erase is not a reported error since the data was successfully stored. */
-	if (state_mgr->store_addr < (state_mgr->base_addr + sector_size)) {
-		if (state_mgr->volatile_state & SECTOR_1_BLANK) {
-			state_mgr->volatile_state &= ~SECTOR_1_BLANK;
+	if (manager->store_addr < (manager->base_addr + sector_size)) {
+		if (manager->volatile_state & SECTOR_1_BLANK) {
+			manager->volatile_state &= ~SECTOR_1_BLANK;
 		}
 
-		if (!(state_mgr->volatile_state & SECTOR_2_BLANK)) {
-			erase_status = flash_sector_erase_region_and_verify (state_mgr->nv_store,
-				state_mgr->base_addr + sector_size, sector_size);
+		if (!(manager->volatile_state & SECTOR_2_BLANK)) {
+			erase_status = flash_sector_erase_region_and_verify (manager->nv_store,
+				manager->base_addr + sector_size, sector_size);
 			if (erase_status == 0) {
-				state_mgr->volatile_state |= SECTOR_2_BLANK;
+				manager->volatile_state |= SECTOR_2_BLANK;
 			}
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_STATE_MGR,
-					STATE_LOGGING_ERASE_FAIL, state_mgr->base_addr + sector_size, status);
+					STATE_LOGGING_ERASE_FAIL, manager->base_addr + sector_size, status);
 			}
 		}
 	}
 	else {
-		if (state_mgr->volatile_state & SECTOR_2_BLANK) {
-			state_mgr->volatile_state &= ~SECTOR_2_BLANK;
+		if (manager->volatile_state & SECTOR_2_BLANK) {
+			manager->volatile_state &= ~SECTOR_2_BLANK;
 		}
 
-		if (!(state_mgr->volatile_state & SECTOR_1_BLANK)) {
-			erase_status = flash_sector_erase_region_and_verify (state_mgr->nv_store,
-				state_mgr->base_addr, sector_size);
+		if (!(manager->volatile_state & SECTOR_1_BLANK)) {
+			erase_status = flash_sector_erase_region_and_verify (manager->nv_store,
+				manager->base_addr, sector_size);
 			if (erase_status == 0) {
-				state_mgr->volatile_state |= SECTOR_1_BLANK;
+				manager->volatile_state |= SECTOR_1_BLANK;
 			}
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_STATE_MGR,
-					STATE_LOGGING_ERASE_FAIL, state_mgr->base_addr, status);
+					STATE_LOGGING_ERASE_FAIL, manager->base_addr, status);
 			}
 		}
 	}
 
-	platform_mutex_unlock (&state_mgr->store_lock);
+	platform_mutex_unlock (&manager->store_lock);
 
 	return status;
 }

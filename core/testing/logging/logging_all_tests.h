@@ -27,6 +27,12 @@ static void add_all_logging_tests (CuSuite *suite)
 	!defined TESTING_SKIP_DEBUG_LOG_SUITE
 	TESTING_RUN_SUITE (debug_log);
 #endif
+#if (defined TESTING_RUN_LOG_FLUSH_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_LOG_FLUSH_HANDLER_SUITE
+	TESTING_RUN_SUITE (log_flush_handler);
+#endif
 #if (defined TESTING_RUN_LOGGING_FLASH_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

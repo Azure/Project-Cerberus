@@ -29,7 +29,7 @@ struct periodic_task_handler {
 	/**
 	 * Get the time at which the handler next needs to be executed.
 	 *
-	 * @param handler The handler to query.
+	 * @param handler The handler to query.  This will never be null.
 	 *
 	 * @return The next time to run this handler.  If this is null, the handler is ready to be run
 	 * immediately.

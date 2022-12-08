@@ -27,6 +27,12 @@ static void add_all_state_manager_tests (CuSuite *suite)
 	!defined TESTING_SKIP_STATE_MANAGER_SUITE
 	TESTING_RUN_SUITE (state_manager);
 #endif
+#if (defined TESTING_RUN_STATE_PERSISTENCE_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_STATE_PERSISTENCE_HANDLER_SUITE
+	TESTING_RUN_SUITE (state_persistence_handler);
+#endif
 }
 
 
