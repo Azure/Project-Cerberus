@@ -207,7 +207,7 @@ get_pfm_signature_length() {
 				;;
 
 			*)
-				echo "Unsupported RSA key length: $sig_len"
+				echo "Unsupported ECC key length: $sig_len"
 				exit 1
 		esac
 

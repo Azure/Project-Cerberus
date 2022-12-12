@@ -8,33 +8,35 @@
 #include "firmware_header.h"
 
 
+#pragma pack(push,1)
 /**
  * Define all different formats of the firmware header.
  */
 union firmware_header_format {
-	struct __attribute__ ((__packed__)) {
+	struct {
 		uint16_t recovery_revision;			/**< The image revision ID for recovery updates. */
 	} format0;
 
-	struct __attribute__ ((__packed__)) {
+	struct {
 		uint16_t recovery_revision;			/**< The image revision ID for recovery updates. */
 		uint8_t extra_images;				/**< The number of additional app images included. */
 	} format1;
 
-	struct __attribute__ ((__packed__)) {
+	struct {
 		uint16_t recovery_revision;			/**< The image revision ID for recovery updates. */
 		uint8_t extra_images;				/**< The number of additional app images included. */
 		uint16_t allowed_rollback;			/**< Earliest revision ID allowed for updates. */
 	} format2;
 
-	struct __attribute__ ((__packed__)) {
+	struct {
 		uint16_t recovery_revision;			/**< The image revision ID for recovery updates. */
 		uint8_t extra_images;				/**< The number of additional app images included. */
 		uint16_t allowed_rollback;			/**< Earliest revision ID allowed for updates. */
 		uint32_t signed_length;				/**< Total length of data that has been signed. */
 		uint16_t sig_length;				/**< Length of the additional signature. */
 	} format3;
-} __attribute__ ((__packed__));
+};
+#pragma pack(pop)
 
 /**
  * Get the expected length of a header format version.

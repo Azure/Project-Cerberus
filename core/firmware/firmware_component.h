@@ -7,10 +7,17 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
-#include "flash/flash.h"
 #include "common/image_header.h"
 #include "crypto/hash.h"
 #include "crypto/signature_verification.h"
+#include "firmware/firmware_loader.h"
+#include "flash/flash.h"
+
+
+/**
+ * Length of the build version in the header.
+ */
+#define	FW_COMPONENT_BUILD_VERSION_LENGTH	8
 
 
 /**
@@ -31,14 +38,24 @@ int firmware_component_init_with_header (struct firmware_component *image,
 void firmware_component_release (struct firmware_component *image);
 
 int firmware_component_verification (const struct firmware_component *image,
-	struct hash_engine *hash, struct signature_verification *verification, uint8_t *hash_out,
-	size_t hash_length);
+	struct hash_engine *hash, const struct signature_verification *verification,
+	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
+	size_t hash_length, enum hash_type *hash_type);
 
 int firmware_component_load (const struct firmware_component *image, uint8_t *load_addr,
 	size_t max_length, size_t *load_length);
 int firmware_component_load_and_verify (const struct firmware_component *image, uint8_t *load_addr,
-	size_t max_length, struct hash_engine *hash, struct signature_verification *verification,
-	uint8_t *hash_out, size_t hash_length, size_t *load_length);
+	size_t max_length, struct hash_engine *hash, const struct signature_verification *verification,
+	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
+	size_t hash_length, enum hash_type *hash_type, size_t *load_length);
+
+int firmware_component_load_to_memory (const struct firmware_component *image,
+	const struct firmware_loader *loader, const uint8_t *iv, size_t iv_length, size_t *load_length);
+int firmware_component_load_to_memory_and_verify (const struct firmware_component *image,
+	const struct firmware_loader *loader, const uint8_t *iv, size_t iv_length,
+	struct hash_engine *hash, const struct signature_verification *verification,
+	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
+	size_t hash_length, enum hash_type *hash_type, size_t *load_length);
 
 int firmware_component_copy (const struct firmware_component *image, const struct flash *flash,
 	uint32_t dest_addr, size_t max_length, size_t *copy_length);
@@ -48,8 +65,13 @@ int firmware_component_compare_and_copy (const struct firmware_component *image,
 size_t firmware_component_get_signature_length (const struct firmware_component *image);
 int firmware_component_get_signature (const struct firmware_component *image, uint8_t *sig_out,
 	size_t sig_length);
+
+enum hash_type firmware_component_get_hash_type (const struct firmware_component *image);
 int firmware_component_get_hash (const struct firmware_component *image, struct hash_engine *hash,
-	uint8_t *hash_out, size_t hash_length);
+	uint8_t *hash_out, size_t hash_length, enum hash_type *hash_type);
+
+uint64_t firmware_component_get_load_address (const struct firmware_component *image);
+const uint8_t* firmware_component_get_build_version (const struct firmware_component *image);
 
 uint32_t firmware_component_get_data_addr (const struct firmware_component *image);
 size_t firmware_component_get_length (const struct firmware_component *image);
@@ -68,6 +90,8 @@ enum {
 	FIRMWARE_COMPONENT_SIG_BUFFER_TOO_SMALL = FIRMWARE_COMPONENT_ERROR (0x03),	/**< The buffer for the signature is not large enough. */
 	FIRMWARE_COMPONENT_HASH_BUFFER_TOO_SMALL = FIRMWARE_COMPONENT_ERROR (0x04),	/**< The buffer for the image hash is not large enough. */
 	FIRMWARE_COMPONENT_TOO_LARGE = FIRMWARE_COMPONENT_ERROR (0x05),				/**< There is not enough space available to load the image. */
+	FIRMWARE_COMPONENT_WRONG_VERSION = FIRMWARE_COMPONENT_ERROR (0x06),			/**< The component does not report the expected build version. */
+	FIRMWARE_COMPONENT_NO_LOAD_ADDRESS = FIRMWARE_COMPONENT_ERROR (0x07),		/**< The component does not specify a destination load address. */
 };
 
 
