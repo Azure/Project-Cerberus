@@ -43,15 +43,6 @@
  */
 #define device_manager_set_crypto_timeout_ms(timeout)			((timeout) / 100)
 
-/**
- * Determine if device is ready to be attested
- *
- * @param state Device state
- */
-#define device_manager_can_device_be_attested(state)			\
-	((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) || (state == DEVICE_MANAGER_AUTHENTICATED) ||\
-	 (state == DEVICE_MANAGER_NEVER_ATTESTED))
-
 
 /**
  * Device states
@@ -61,6 +52,7 @@ enum device_manager_device_state {
 	DEVICE_MANAGER_UNIDENTIFIED,								/**< Communication with device not established */
 	DEVICE_MANAGER_NEVER_ATTESTED,								/**< Device ready for attestation start, but never attested before */
 	DEVICE_MANAGER_READY_FOR_ATTESTATION,						/**< Device ready for attestation start */
+	DEVICE_MANAGER_ATTESTATION_FAILED,							/**< Previous attestation attempt failed */
 	DEVICE_MANAGER_NOT_ATTESTABLE,								/**< Not an attestable device */
 	NUM_DEVICE_MANAGER_STATES									/**< Number of device states */
 };

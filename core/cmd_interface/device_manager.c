@@ -10,6 +10,25 @@
 #include "mctp/mctp_base_protocol.h"
 #include "crypto/hash.h"
 
+/**
+ * Determine if device is undergoing or failed attestation and should use the unauthenticated
+ * cadence
+ *
+ * @param state Device state
+ */
+#define device_manager_is_device_unauthenticated(state)			\
+	((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) ||  \
+	(state == DEVICE_MANAGER_ATTESTATION_FAILED))
+
+/**
+ * Determine if device is ready to be attested
+ *
+ * @param state Device state
+ */
+#define device_manager_can_device_be_attested(state)			\
+	(device_manager_is_device_unauthenticated(state) || (state == DEVICE_MANAGER_AUTHENTICATED) ||\
+	 (state == DEVICE_MANAGER_NEVER_ATTESTED))
+
 
 /**
  * Update device manager device table entry state
@@ -40,8 +59,8 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 	if (state == DEVICE_MANAGER_AUTHENTICATED) {
 		timeout = mgr->authenticated_cadence_ms;
 	}
-	else if ((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) &&
-		((prev_state == DEVICE_MANAGER_READY_FOR_ATTESTATION) ||
+	else if ((device_manager_is_device_unauthenticated (state)) &&
+		(device_manager_is_device_unauthenticated (prev_state) ||
 			(prev_state == DEVICE_MANAGER_NEVER_ATTESTED))) {
 		timeout = mgr->unauthenticated_cadence_ms;
 	}
@@ -987,10 +1006,10 @@ int device_manager_get_component_id (struct device_manager *mgr, uint8_t eid,
 }
 
 /**
- * Get EID of first device that is ready for attestation. DEVICE_MANAGER_READY_FOR_ATTESTATION or
- * DEVICE_MANAGER_NEVER_ATTESTED have a cadence of unauthenticated_cadence_ms, and
- * DEVICE_MANAGER_AUTHENTICATED has a cadence of authenticated_cadence_ms. The device manager keeps
- * track of last device authenticated, so checking starts after that device.
+ * Get EID of first device that is ready for attestation. A device that is starting or has failed
+ * attestation has a cadence of unauthenticated_cadence_ms, a device that has previously  passed
+ * attestation has a cadence of authenticated_cadence_ms. The device manager keeps track of last
+ * device authenticated, so checking starts after that device.
  *
  * @param mgr Device manager instance to utilize.
  *

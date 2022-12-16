@@ -1786,10 +1786,6 @@ static int attestation_requester_attest_device_cerberus_protocol (
 	attestation->state->txn.msg_buffer_len = SHA256_HASH_LENGTH;
 
 	status = attestation_requester_verify_pmr (attestation, active_cfm, component_id, eid, 0);
-	if (status == 0) {
-		status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-			DEVICE_MANAGER_AUTHENTICATED);
-	}
 
 	/* TODO Implement additional Cerberus Challenge Protocol attestation flows
 	 *	1) PMR(n) attestation using the Get PMR command
@@ -2714,9 +2710,6 @@ static int attestation_requester_attest_device_spdm (
 		}
 	}
 
-	status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-		DEVICE_MANAGER_AUTHENTICATED);
-
 hash_cancel:
 	if (!attestation->state->txn.hash_finish) {
 		attestation->secondary_hash->cancel (attestation->secondary_hash);
@@ -2826,6 +2819,15 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 
 free_cfm:
 	attestation->cfm_manager->free_cfm (attestation->cfm_manager, active_cfm);
+
+	if (status == 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_AUTHENTICATED);
+	}
+	else {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_FAILED);
+	}
 
 	return status;
 }

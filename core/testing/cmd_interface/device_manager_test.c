@@ -3581,6 +3581,62 @@ static void device_manager_test_get_eid_of_next_device_to_attest_multiple (CuTes
 	device_manager_release (&manager);
 }
 
+static void device_manager_test_get_eid_of_next_device_to_attest_multiple_attestation_failed (
+	CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 3, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 200, 200, 200, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 2, 0xEE, 0xFF, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 3, 0xA0, 0xB0, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 3, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_eid_of_next_device_to_attest (&manager);
+	CuAssertIntEquals (test, 0xCC, status);
+
+	status = device_manager_get_eid_of_next_device_to_attest (&manager);
+	CuAssertIntEquals (test, 0xEE, status);
+
+	status = device_manager_get_eid_of_next_device_to_attest (&manager);
+	CuAssertIntEquals (test, 0xA0, status);
+
+	platform_msleep (200 + 100);
+
+	status = device_manager_get_eid_of_next_device_to_attest (&manager);
+	CuAssertIntEquals (test, 0xCC, status);
+
+	status = device_manager_get_eid_of_next_device_to_attest (&manager);
+	CuAssertIntEquals (test, 0xEE, status);
+
+	status = device_manager_get_eid_of_next_device_to_attest (&manager);
+	CuAssertIntEquals (test, 0xA0, status);
+
+	device_manager_release (&manager);
+}
+
 static void device_manager_test_get_eid_of_next_device_to_attest_multiple_authenticated (
 	CuTest *test)
 {
@@ -3768,7 +3824,7 @@ static void device_manager_test_reset_discovered_devices (CuTest *test)
 
 	TEST_START;
 
-	status = device_manager_init (&manager, 3, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&manager, 4, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -3781,6 +3837,9 @@ static void device_manager_test_reset_discovered_devices (CuTest *test)
 	status = device_manager_update_not_attestable_device_entry (&manager, 2, 0xEE, 0xFF, 2);
 	CuAssertIntEquals (test, 0, status);
 
+	status = device_manager_update_not_attestable_device_entry (&manager, 3, 0xAB, 0xCD, 3);
+	CuAssertIntEquals (test, 0, status);
+
 	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
@@ -3788,6 +3847,9 @@ static void device_manager_test_reset_discovered_devices (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 3, DEVICE_MANAGER_ATTESTATION_FAILED);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_reset_discovered_devices (&manager);
@@ -3800,6 +3862,9 @@ static void device_manager_test_reset_discovered_devices (CuTest *test)
 	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, status);
 
 	status = device_manager_get_device_state (&manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
+
+	status = device_manager_get_device_state (&manager, 3);
 	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED, status);
 
 	device_manager_release (&manager);
@@ -4504,6 +4569,83 @@ static void device_manager_test_get_time_till_next_action_multiple_attestation (
 	device_manager_release (&manager);
 }
 
+static void device_manager_test_get_time_till_next_action_single_attestation_failed (CuTest *test)
+{
+	struct device_manager manager;
+	uint32_t duration_ms;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	duration_ms = device_manager_get_time_till_next_action (&manager);
+	CuAssertIntEquals (test, 0, duration_ms);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	duration_ms = device_manager_get_time_till_next_action (&manager);
+	CuAssertTrue (test, (duration_ms <= 1000));
+	CuAssertTrue (test, (duration_ms != 0));
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_time_till_next_action_multiple_attestation_failed (CuTest *test)
+{
+	struct device_manager manager;
+	uint32_t duration_ms;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	duration_ms = device_manager_get_time_till_next_action (&manager);
+	CuAssertIntEquals (test, 0, duration_ms);
+
+	status = device_manager_update_device_state (&manager, 0, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	duration_ms = device_manager_get_time_till_next_action (&manager);
+	CuAssertIntEquals (test, 0, duration_ms);
+
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	duration_ms = device_manager_get_time_till_next_action (&manager);
+	CuAssertTrue (test, (duration_ms <= 1000));
+	CuAssertTrue (test, (duration_ms != 0));
+
+	device_manager_release (&manager);
+}
+
 static void device_manager_test_get_time_till_next_action_single_attestation_authenticated (
 	CuTest *test)
 {
@@ -4881,7 +5023,7 @@ static void device_manager_test_get_attestation_status (CuTest *test)
 			i_pcd);
 		CuAssertIntEquals (test, 0, status);
 
-		switch (i_pcd % 4) {
+		switch (i_pcd % 5) {
 			case 0:
 				status = device_manager_update_device_state (&manager, i_device,
 					DEVICE_MANAGER_AUTHENTICATED);
@@ -4897,6 +5039,11 @@ static void device_manager_test_get_attestation_status (CuTest *test)
 					DEVICE_MANAGER_UNIDENTIFIED);
 				break;
 
+			case 3:
+				status = device_manager_update_device_state (&manager, i_device,
+					DEVICE_MANAGER_ATTESTATION_FAILED);
+				break;
+
 			default:
 				status = device_manager_update_device_state (&manager, i_device,
 					DEVICE_MANAGER_NEVER_ATTESTED);
@@ -4909,7 +5056,7 @@ static void device_manager_test_get_attestation_status (CuTest *test)
 	CuAssertIntEquals (test, 254, status);
 
 	for (i_device = 0; i_device < 254; ++i_device) {
-		switch (i_device % 4) {
+		switch (i_device % 5) {
 			case 0:
 				CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED,
 					attestation_status[i_device]);
@@ -4922,6 +5069,11 @@ static void device_manager_test_get_attestation_status (CuTest *test)
 
 			case 2:
 				CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED,
+					attestation_status[i_device]);
+				break;
+
+			case 3:
+				CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED,
 					attestation_status[i_device]);
 				break;
 
@@ -5534,6 +5686,7 @@ TEST (device_manager_test_get_alias_key_unknown_device);
 TEST (device_manager_test_get_alias_key_empty);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_one_device);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_multiple);
+TEST (device_manager_test_get_eid_of_next_device_to_attest_multiple_attestation_failed);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_multiple_authenticated);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_invalid_arg);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_no_available_devices);
@@ -5572,6 +5725,8 @@ TEST (device_manager_test_update_device_ids_invalid_arg);
 TEST (device_manager_test_update_device_ids_unknown_device);
 TEST (device_manager_test_get_time_till_next_action_single_attestation);
 TEST (device_manager_test_get_time_till_next_action_multiple_attestation);
+TEST (device_manager_test_get_time_till_next_action_single_attestation_failed);
+TEST (device_manager_test_get_time_till_next_action_multiple_attestation_failed);
 TEST (device_manager_test_get_time_till_next_action_single_attestation_authenticated);
 TEST (device_manager_test_get_time_till_next_action_multiple_attestation_authenticated);
 TEST (device_manager_test_get_time_till_next_action_multiple_attestation_authenticated_and_unauthenticated);
