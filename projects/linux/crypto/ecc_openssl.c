@@ -11,6 +11,8 @@
 #include <openssl/ecdsa.h>
 #include <openssl/obj_mac.h>
 #include <openssl/err.h>
+#include "crypto/hash.h"
+#include "crypto/ecc_der_util.h"
 #include "crypto/ecc_openssl.h"
 #include "common/unused.h"
 
@@ -427,6 +429,16 @@ static int ecc_openssl_sign (struct ecc_engine *engine, struct ecc_private_key *
 		return ECC_ENGINE_SIG_BUFFER_TOO_SMALL;
 	}
 
+	switch (length) {
+		case SHA256_HASH_LENGTH:
+		case SHA384_HASH_LENGTH:
+		case SHA512_HASH_LENGTH:
+			break;
+
+		default:
+			return ECC_ENGINE_UNSUPPORTED_HASH_TYPE;
+	}
+
 	ERR_clear_error ();
 
 	status = ECDSA_sign (-1, digest, length, signature, &out_len, (EC_KEY*) key->context);
@@ -444,7 +456,8 @@ static int ecc_openssl_verify (struct ecc_engine *engine, struct ecc_public_key 
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	status = ECDSA_verify (-1, digest, length, signature, sig_length, (EC_KEY*) key->context);
+	status = ECDSA_verify (-1, digest, length, signature,
+		ecc_der_get_ecdsa_signature_length (signature, sig_length), (EC_KEY*) key->context);
 
 	return (status == 1) ? 0 : ECC_ENGINE_BAD_SIGNATURE;
 }

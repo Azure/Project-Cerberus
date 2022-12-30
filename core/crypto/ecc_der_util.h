@@ -10,6 +10,16 @@
 #include "crypto/ecc.h"
 
 
+/**
+ * Descriptor for a DER encoded ECC key.  Since the actual key data stored in other memory, this can
+ * be used to reference either a public or private key.
+ */
+struct ecc_der_key {
+	const uint8_t *der;						/**< Reference to the DER encoded key data. */
+	size_t length;							/**< Length of the DER encoded data. */
+};
+
+
 /* Length of ASN.1/DER encoded private keys. */
 #define	ECC_DER_P256_PRIVATE_LENGTH				((ECC_KEY_LENGTH_256 * 3) + (25))
 #define	ECC_DER_P384_PRIVATE_LENGTH				((ECC_KEY_LENGTH_384 * 3) + (23))
@@ -38,6 +48,17 @@ int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv
 	size_t key_length);
 int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_x,
 	const uint8_t *pub_key_y, size_t key_length, uint8_t *der, size_t length);
+size_t ecc_der_get_private_key_length (const uint8_t *der, size_t max_length);
+
+/**
+ * Container for a DER encoded ECC private key.  Since a DER encoded private key may also contain
+ * the public key, the memory allocated for this key is enough to alternatively be used to store a
+ * DER encoded public key.
+ */
+struct ecc_der_private_key {
+	uint8_t der[ECC_DER_MAX_PRIVATE_LENGTH];	/**< Buffer for the DER encoded private key. */
+	size_t length;								/**< Length of the private key data. */
+};
 
 
 /* Length of ASN.1/DER encoded public keys. */
@@ -60,6 +81,15 @@ int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_k
 	uint8_t *pub_key_y, size_t key_length);
 int ecc_der_encode_public_key (const uint8_t *pub_key_x, const uint8_t *pub_key_y,
 	size_t key_length, uint8_t *der, size_t length);
+size_t ecc_der_get_public_key_length (const uint8_t *der, size_t max_length);
+
+/**
+ * Container for a DER encoded ECC public key.
+ */
+struct ecc_der_public_key {
+	uint8_t der[ECC_DER_MAX_PUBLIC_LENGTH];		/**< Buffer for the DER encoded public key. */
+	size_t length;								/**< Length of the public key data. */
+};
 
 
 /* Max length of ASN.1/DER encoded ECDSA signatures. */
@@ -82,6 +112,7 @@ int ecc_der_decode_ecdsa_signature (const uint8_t *der, size_t length, uint8_t *
 	uint8_t *sig_s, size_t key_length);
 int ecc_der_encode_ecdsa_signature (const uint8_t *sig_r, const uint8_t *sig_s, size_t key_length,
 	uint8_t *der, size_t length);
+size_t ecc_der_get_ecdsa_signature_length (const uint8_t *der, size_t max_length);
 
 
 #define	ECC_DER_UTIL_ERROR(code)		ROT_ERROR (ROT_MODULE_ECC_DER_UTIL, code)

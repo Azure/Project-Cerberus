@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include <string.h>
+#include "asn1.h"
 #include "ecc_der_util.h"
 
 
@@ -435,6 +436,25 @@ int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_
 	return der[seq_hdr_len - 1] + seq_hdr_len;
 }
 
+/**
+ * Inspect a DER encoded ECC private key to determine the total length of the key data.  The length
+ * will be returned with the following conditions:
+ *	- If the encoded length is less than buffer length, the encoded length will be returned.
+ *	- If the encoded length is less than or equal to the buffer length, the buffer length will be
+ *		returned.
+ *	- If the encoded length cannot be determined, the buffer length will be returned.
+ *	- If the DER buffer is null, 0 will be returned.
+ *
+ * @param der An ASN.1/DER encoded ECC private key.
+ * @param max_length Length of the data buffer containing the key.
+ *
+ * @return Length of the key data contained within the buffer.
+ */
+size_t ecc_der_get_private_key_length (const uint8_t *der, size_t max_length)
+{
+	return asn1_get_der_encoded_length (der, max_length);
+}
+
 /*
  * ECC public key ASN.1 structure:  https://datatracker.ietf.org/doc/html/rfc5480
  *
@@ -650,6 +670,25 @@ int ecc_der_encode_public_key (const uint8_t *pub_key_x, const uint8_t *pub_key_
 	return der[seq_hdr_len - 1] + seq_hdr_len;
 }
 
+/**
+ * Inspect a DER encoded ECC public key to determine the total length of the key data.  The length
+ * will be returned with the following conditions:
+ *	- If the encoded length is less than buffer length, the encoded length will be returned.
+ *	- If the encoded length is less than or equal to the buffer length, the buffer length will be
+ *		returned.
+ *	- If the encoded length cannot be determined, the buffer length will be returned.
+ *	- If the DER buffer is null, 0 will be returned.
+ *
+ * @param der An ASN.1/DER encoded ECC public key.
+ * @param max_length Length of the data buffer containing the key.
+ *
+ * @return Length of the key data contained within the buffer.
+ */
+size_t ecc_der_get_public_key_length (const uint8_t *der, size_t max_length)
+{
+	return asn1_get_der_encoded_length (der, max_length);
+}
+
 /*
  * ECDSA signature ASN.1 structure:  https://datatracker.ietf.org/doc/html/rfc3279
  *
@@ -760,7 +799,8 @@ static int ecc_der_encode_ecdsa_integer (const uint8_t *sig, size_t key_length, 
 }
 
 /**
- * Extract an ECDSA signature from ASN.1/DER encoded data.
+ * Extract an ECDSA signature from ASN.1/DER encoded data.  Any additional bytes in the data buffer
+ * beyond the DER encoded length will be ignored.
  *
  * @param der An ASN.1/DER encoded ECDSA signature.
  * @param length Length of the DER data.
@@ -852,4 +892,23 @@ int ecc_der_encode_ecdsa_signature (const uint8_t *sig_r, const uint8_t *sig_s, 
 #endif
 
 	return total_len + 2;
+}
+
+/**
+ * Inspect a DER encoded ECDSA signature to determine the total length of the signature data.  The
+ * length will be returned with the following conditions:
+ *	- If the encoded length is less than buffer length, the encoded length will be returned.
+ *	- If the encoded length is less than or equal to the buffer length, the buffer length will be
+ *		returned.
+ *	- If the encoded length cannot be determined, the buffer length will be returned.
+ *	- If the DER buffer is null, 0 will be returned.
+ *
+ * @param der An ASN.1/DER encoded ECDSA signature.
+ * @param max_length Length of the data buffer containing the signature.
+ *
+ * @return Length of the signature data contained within the buffer.
+ */
+size_t ecc_der_get_ecdsa_signature_length (const uint8_t *der, size_t max_length)
+{
+	return asn1_get_der_encoded_length (der, max_length);
 }

@@ -14,6 +14,7 @@
 #include "mbedtls/bignum.h"
 #include "logging/debug_log.h"
 #include "crypto/crypto_logging.h"
+#include "crypto/ecc_der_util.h"
 #include "crypto/hash.h"
 #include "common/unused.h"
 
@@ -196,7 +197,8 @@ static int ecc_mbedtls_init_public_key (struct ecc_engine *engine, const uint8_t
 		return ECC_ENGINE_NO_MEMORY;
 	}
 
-	status = mbedtls_pk_parse_public_key (key_ctx, key, key_length);
+	status = mbedtls_pk_parse_public_key (key_ctx, key,
+		ecc_der_get_public_key_length (key, key_length));
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_PUB_EC, status, 0);
@@ -586,7 +588,7 @@ static int ecc_mbedtls_verify (struct ecc_engine *engine, struct ecc_public_key 
 	}
 
 	status = mbedtls_pk_verify ((mbedtls_pk_context*) key->context, MBEDTLS_MD_NONE, digest,
-		length, signature, sig_length);
+		length, signature, ecc_der_get_ecdsa_signature_length (signature, sig_length));
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_VERIFY_EC, status, 0);

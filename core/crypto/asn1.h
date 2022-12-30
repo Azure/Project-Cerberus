@@ -10,6 +10,7 @@
 
 
 int asn1_get_der_item_len (const uint8_t *der, size_t der_len);
+size_t asn1_get_der_encoded_length (const uint8_t *der, size_t max_length);
 
 
 #define	ASN1_ENGINE_ERROR(code)			ROT_ERROR (ROT_MODULE_ASN1, code)

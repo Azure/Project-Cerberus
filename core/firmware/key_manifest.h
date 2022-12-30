@@ -18,18 +18,22 @@
  */
 enum key_manifest_key_type {
 	KEY_MANIFEST_RSA_KEY,			/**< An RSA public key. */
-	KEY_MANIFEST_ECC_KEY,			/**< An ECc public key. */
+	KEY_MANIFEST_ECC_KEY,			/**< An ECC public key, represented as a raw ECC point. */
+	KEY_MANIFEST_ECC_DER_KEY,		/**< An ECC public key, DER encoded. */
+	KEY_MANIFEST_ECC_DER_REF_KEY,	/**< Reference to an ECC public key, DER encoded. */
 };
 
 /**
  * Public key format exposed from the key manifest.
  */
 struct key_manifest_public_key {
-	enum key_manifest_key_type type;		/**< The type of public key. */
+	enum key_manifest_key_type type;				/**< The type of public key. */
 	union {
-		struct rsa_public_key rsa;			/**< RSA public key data. */
-		struct ecc_point_public_key ecc;	/**< ECC public key data. */
-	} key;									/**< The public key. */
+		const struct rsa_public_key *rsa;			/**< RSA public key data. */
+		const struct ecc_point_public_key *ecc;		/**< ECC public key data. */
+		const struct ecc_der_public_key *ecc_der;	/**< DER encoded ECC public key data. */
+		struct ecc_der_key ecc_der_ref;				/**< Descriptor for DER encoded ECC public key data. */
+	} key;											/**< The public key. */
 };
 
 /**
@@ -60,7 +64,7 @@ struct key_manifest {
 	 *
 	 * Some implementations may also restrict key manifests whose revocation ID is too high relative
 	 * to the current device state.  This prevents a single image from invalidating all revocation
-	 * bits and to keeps the scope of allowed images as narrow as possible.
+	 * bits and to keep the scope of allowed images as narrow as possible.
 	 *
 	 * This call does not check that the manifest is valid, simply that it has not been revoked.  A
 	 * call to key_manifest.verify is required to ensure validity of the key manifest.

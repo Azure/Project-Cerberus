@@ -2344,6 +2344,231 @@ static void ecc_der_encode_ecdsa_signature_test_small_buffer_p521_sequence_heade
 	CuAssertIntEquals (test, ECC_DER_UTIL_SMALL_DER_BUFFER, status);
 }
 
+static void ecc_der_get_ecdsa_signature_length_test_p256 (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_ecdsa_signature_length (ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+	CuAssertIntEquals (test, ECC_SIG_TEST_LEN, (int) length);
+}
+
+static void ecc_der_get_ecdsa_signature_length_test_p384 (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_ecdsa_signature_length (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN);
+	CuAssertIntEquals (test, ECC384_SIG_TEST_LEN, (int) length);
+}
+
+static void ecc_der_get_ecdsa_signature_length_test_p521 (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_ecdsa_signature_length (ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN);
+	CuAssertIntEquals (test, ECC521_SIG_TEST_LEN, (int) length);
+}
+
+static void ecc_der_get_ecdsa_signature_length_test_extra_length (CuTest *test)
+{
+	uint8_t der_padded[ECC_SIG_TEST_LEN + 10];
+	size_t length;
+
+	TEST_START;
+
+	memcpy (der_padded, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN);
+
+	length = ecc_der_get_ecdsa_signature_length (der_padded, sizeof (der_padded));
+	CuAssertIntEquals (test, ECC_SIG_TEST_LEN, (int) length);
+}
+
+static void ecc_der_get_ecdsa_signature_length_test_short_buffer (CuTest *test)
+{
+	size_t length;
+	size_t der_length = ECC384_SIG_TEST_LEN - 10;
+
+	TEST_START;
+
+	length = ecc_der_get_ecdsa_signature_length (ECC384_SIGNATURE_TEST, der_length);
+	CuAssertIntEquals (test, der_length, (int) length);
+}
+
+static void ecc_der_get_ecdsa_signature_length_test_invalid_asn1 (CuTest *test)
+{
+	size_t length;
+	size_t der_length = 1;
+
+	TEST_START;
+
+	length = ecc_der_get_ecdsa_signature_length (ECC384_SIGNATURE_TEST, der_length);
+	CuAssertIntEquals (test, der_length, (int) length);
+}
+
+static void ecc_der_get_ecdsa_signature_length_test_null (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_ecdsa_signature_length (NULL, 100);
+	CuAssertIntEquals (test, 0, (int) length);
+}
+
+static void ecc_der_get_private_key_length_test_p256 (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_private_key_length (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
+	CuAssertIntEquals (test, ECC_PRIVKEY_DER_LEN, (int) length);
+}
+
+static void ecc_der_get_private_key_length_test_p384 (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_private_key_length (ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN);
+	CuAssertIntEquals (test, ECC384_PRIVKEY_DER_LEN, (int) length);
+}
+
+static void ecc_der_get_private_key_length_test_p521 (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_private_key_length (ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN);
+	CuAssertIntEquals (test, ECC521_PRIVKEY_DER_LEN, (int) length);
+}
+
+static void ecc_der_get_private_key_length_test_extra_length (CuTest *test)
+{
+	uint8_t der_padded[ECC_PRIVKEY_DER_LEN + 10];
+	size_t length;
+
+	TEST_START;
+
+	memcpy (der_padded, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN);
+
+	length = ecc_der_get_private_key_length (der_padded, sizeof (der_padded));
+	CuAssertIntEquals (test, ECC_PRIVKEY_DER_LEN, (int) length);
+}
+
+static void ecc_der_get_private_key_length_test_short_buffer (CuTest *test)
+{
+	size_t length;
+	size_t der_length = ECC384_PRIVKEY_DER_LEN - 10;
+
+	TEST_START;
+
+	length = ecc_der_get_private_key_length (ECC384_PRIVKEY_DER, der_length);
+	CuAssertIntEquals (test, der_length, (int) length);
+}
+
+static void ecc_der_get_private_key_length_test_invalid_asn1 (CuTest *test)
+{
+	size_t length;
+	size_t der_length = 1;
+
+	TEST_START;
+
+	length = ecc_der_get_private_key_length (ECC384_PRIVKEY_DER, der_length);
+	CuAssertIntEquals (test, der_length, (int) length);
+}
+
+static void ecc_der_get_private_key_length_test_null (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_private_key_length (NULL, 100);
+	CuAssertIntEquals (test, 0, (int) length);
+}
+
+static void ecc_der_get_public_key_length_test_p256 (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_public_key_length (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, ECC_PUBKEY_DER_LEN, (int) length);
+}
+
+static void ecc_der_get_public_key_length_test_p384 (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_public_key_length (ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, ECC384_PUBKEY_DER_LEN, (int) length);
+}
+
+static void ecc_der_get_public_key_length_test_p521 (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_public_key_length (ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, ECC521_PUBKEY_DER_LEN, (int) length);
+}
+
+static void ecc_der_get_public_key_length_test_extra_length (CuTest *test)
+{
+	uint8_t der_padded[ECC_PUBKEY_DER_LEN + 10];
+	size_t length;
+
+	TEST_START;
+
+	memcpy (der_padded, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN);
+
+	length = ecc_der_get_public_key_length (der_padded, sizeof (der_padded));
+	CuAssertIntEquals (test, ECC_PUBKEY_DER_LEN, (int) length);
+}
+
+static void ecc_der_get_public_key_length_test_short_buffer (CuTest *test)
+{
+	size_t length;
+	size_t der_length = ECC384_PUBKEY_DER_LEN - 10;
+
+	TEST_START;
+
+	length = ecc_der_get_public_key_length (ECC384_PUBKEY_DER, der_length);
+	CuAssertIntEquals (test, der_length, (int) length);
+}
+
+static void ecc_der_get_public_key_length_test_invalid_asn1 (CuTest *test)
+{
+	size_t length;
+	size_t der_length = 1;
+
+	TEST_START;
+
+	length = ecc_der_get_public_key_length (ECC384_PUBKEY_DER, der_length);
+	CuAssertIntEquals (test, der_length, (int) length);
+}
+
+static void ecc_der_get_public_key_length_test_null (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = ecc_der_get_public_key_length (NULL, 100);
+	CuAssertIntEquals (test, 0, (int) length);
+}
+
 
 TEST_SUITE_START (ecc_der_util);
 
@@ -2505,5 +2730,26 @@ TEST (ecc_der_encode_ecdsa_signature_test_small_buffer_s_integer);
 TEST (ecc_der_encode_ecdsa_signature_test_small_buffer_s_integer_padding);
 TEST (ecc_der_encode_ecdsa_signature_test_small_buffer_s_integer_value);
 TEST (ecc_der_encode_ecdsa_signature_test_small_buffer_p521_sequence_header);
+TEST (ecc_der_get_ecdsa_signature_length_test_p256);
+TEST (ecc_der_get_ecdsa_signature_length_test_p384);
+TEST (ecc_der_get_ecdsa_signature_length_test_p521);
+TEST (ecc_der_get_ecdsa_signature_length_test_extra_length);
+TEST (ecc_der_get_ecdsa_signature_length_test_short_buffer);
+TEST (ecc_der_get_ecdsa_signature_length_test_invalid_asn1);
+TEST (ecc_der_get_ecdsa_signature_length_test_null);
+TEST (ecc_der_get_private_key_length_test_p256);
+TEST (ecc_der_get_private_key_length_test_p384);
+TEST (ecc_der_get_private_key_length_test_p521);
+TEST (ecc_der_get_private_key_length_test_extra_length);
+TEST (ecc_der_get_private_key_length_test_short_buffer);
+TEST (ecc_der_get_private_key_length_test_invalid_asn1);
+TEST (ecc_der_get_private_key_length_test_null);
+TEST (ecc_der_get_public_key_length_test_p256);
+TEST (ecc_der_get_public_key_length_test_p384);
+TEST (ecc_der_get_public_key_length_test_p521);
+TEST (ecc_der_get_public_key_length_test_extra_length);
+TEST (ecc_der_get_public_key_length_test_short_buffer);
+TEST (ecc_der_get_public_key_length_test_invalid_asn1);
+TEST (ecc_der_get_public_key_length_test_null);
 
 TEST_SUITE_END;

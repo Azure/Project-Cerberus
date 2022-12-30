@@ -72,7 +72,7 @@ struct ecc_engine {
 	 *
 	 * @param engine The ECC engine to use for key initialization.
 	 * @param key The private key to use for key initialization.  This must be a DER encoded private
-	 * key.
+	 * key.  It can contain more bytes that specified in the DER encoding, which will be ignored.
 	 * @param key_length The length of the private key data.
 	 * @param priv_key Output for the initialized private key.  This can be null to skip private key
 	 * initialization.
@@ -89,7 +89,7 @@ struct ecc_engine {
 	 *
 	 * @param engine The ECC engine to use for key initialization.
 	 * @param key The public key to use for key initialization.  This must be a DER encoded public
-	 * key.
+	 * key.  It can contain more bytes that specified in the DER encoding, which will be ignored.
 	 * @param key_length The length of the public key data.
 	 * @param pub_key Output for the initialized public key.
 	 *
@@ -215,7 +215,9 @@ struct ecc_engine {
 	 * @param key The public key to verify the signature with.
 	 * @param digest The digest to use for signature verification.
 	 * @param length The length of the digest.
-	 * @param signature The ECDSA signature to verify.  The signature must be DER encoded.
+	 * @param signature The ECDSA signature to verify.  The signature must be DER encoded.  As long
+	 * as the encoded length is correct, the buffer can be padded with extra data and not cause a
+	 * verification failure.
 	 * @param sig_length The length of the signature.
 	 *
 	 * @return 0 if the signature matches the digest or an error code.

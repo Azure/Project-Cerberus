@@ -136,6 +136,202 @@ extern const size_t ECC_PRIVKEY3_DER_LEN;
 extern const uint8_t ECC_PRIVKEY3_NO_PUBKEY_DER[];
 extern const size_t ECC_PRIVKEY3_NO_PUBKEY_DER_LEN;
 
+extern const uint8_t ECC_PRIVKEY4[];
+extern const size_t ECC_PRIVKEY4_LEN;
+
+extern const uint8_t ECC_PUBKEY4[];
+extern const size_t ECC_PUBEY4_LEN;
+
+extern const uint8_t ECC_PUBKEY4_SHA1[];
+extern const uint8_t ECC_PUBKEY4_SHA256[];
+extern const uint8_t ECC_PUBKEY4_SHA384[];
+extern const uint8_t ECC_PUBKEY4_SHA512[];
+
+extern const struct ecc_point_public_key ECC_PUBKEY4_POINT;
+
+extern const char ECC_PUBKEY4_PEM[];
+extern const size_t ECC_PUBKEY4_PEM_LEN;
+
+extern const uint8_t ECC_PUBKEY4_DER[];
+extern const size_t ECC_PUBKEY4_DER_LEN;
+
+extern const char ECC_PRIVKEY4_PEM[];
+extern const size_t ECC_PRIVKEY4_PEM_LEN;
+
+extern const uint8_t ECC_PRIVKEY4_DER[];
+extern const size_t ECC_PRIVKEY4_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY4_NO_PUBKEY_DER[];
+extern const size_t ECC_PRIVKEY4_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY5[];
+extern const size_t ECC_PRIVKEY5_LEN;
+
+extern const uint8_t ECC_PUBKEY5[];
+extern const size_t ECC_PUBEY5_LEN;
+
+extern const uint8_t ECC_PUBKEY5_SHA1[];
+extern const uint8_t ECC_PUBKEY5_SHA256[];
+extern const uint8_t ECC_PUBKEY5_SHA384[];
+extern const uint8_t ECC_PUBKEY5_SHA512[];
+
+extern const struct ecc_point_public_key ECC_PUBKEY5_POINT;
+
+extern const char ECC_PUBKEY5_PEM[];
+extern const size_t ECC_PUBKEY5_PEM_LEN;
+
+extern const uint8_t ECC_PUBKEY5_DER[];
+extern const size_t ECC_PUBKEY5_DER_LEN;
+
+extern const char ECC_PRIVKEY5_PEM[];
+extern const size_t ECC_PRIVKEY5_PEM_LEN;
+
+extern const uint8_t ECC_PRIVKEY5_DER[];
+extern const size_t ECC_PRIVKEY5_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY5_NO_PUBKEY_DER[];
+extern const size_t ECC_PRIVKEY5_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY6[];
+extern const size_t ECC_PRIVKEY6_LEN;
+
+extern const uint8_t ECC_PUBKEY6[];
+extern const size_t ECC_PUBEY6_LEN;
+
+extern const uint8_t ECC_PUBKEY6_SHA1[];
+extern const uint8_t ECC_PUBKEY6_SHA256[];
+extern const uint8_t ECC_PUBKEY6_SHA384[];
+extern const uint8_t ECC_PUBKEY6_SHA512[];
+
+extern const struct ecc_point_public_key ECC_PUBKEY6_POINT;
+
+extern const char ECC_PUBKEY6_PEM[];
+extern const size_t ECC_PUBKEY6_PEM_LEN;
+
+extern const uint8_t ECC_PUBKEY6_DER[];
+extern const size_t ECC_PUBKEY6_DER_LEN;
+
+extern const char ECC_PRIVKEY6_PEM[];
+extern const size_t ECC_PRIVKEY6_PEM_LEN;
+
+extern const uint8_t ECC_PRIVKEY6_DER[];
+extern const size_t ECC_PRIVKEY6_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY6_NO_PUBKEY_DER[];
+extern const size_t ECC_PRIVKEY6_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY7[];
+extern const size_t ECC_PRIVKEY7_LEN;
+
+extern const uint8_t ECC_PUBKEY7[];
+extern const size_t ECC_PUBEY7_LEN;
+
+extern const uint8_t ECC_PUBKEY7_SHA1[];
+extern const uint8_t ECC_PUBKEY7_SHA256[];
+extern const uint8_t ECC_PUBKEY7_SHA384[];
+extern const uint8_t ECC_PUBKEY7_SHA512[];
+
+extern const struct ecc_point_public_key ECC_PUBKEY7_POINT;
+
+extern const char ECC_PUBKEY7_PEM[];
+extern const size_t ECC_PUBKEY7_PEM_LEN;
+
+extern const uint8_t ECC_PUBKEY7_DER[];
+extern const size_t ECC_PUBKEY7_DER_LEN;
+
+extern const char ECC_PRIVKEY7_PEM[];
+extern const size_t ECC_PRIVKEY7_PEM_LEN;
+
+extern const uint8_t ECC_PRIVKEY7_DER[];
+extern const size_t ECC_PRIVKEY7_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY7_NO_PUBKEY_DER[];
+extern const size_t ECC_PRIVKEY7_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY8[];
+extern const size_t ECC_PRIVKEY8_LEN;
+
+extern const uint8_t ECC_PUBKEY8[];
+extern const size_t ECC_PUBEY8_LEN;
+
+extern const uint8_t ECC_PUBKEY8_SHA1[];
+extern const uint8_t ECC_PUBKEY8_SHA256[];
+extern const uint8_t ECC_PUBKEY8_SHA384[];
+extern const uint8_t ECC_PUBKEY8_SHA512[];
+
+extern const struct ecc_point_public_key ECC_PUBKEY8_POINT;
+
+extern const char ECC_PUBKEY8_PEM[];
+extern const size_t ECC_PUBKEY8_PEM_LEN;
+
+extern const uint8_t ECC_PUBKEY8_DER[];
+extern const size_t ECC_PUBKEY8_DER_LEN;
+
+extern const char ECC_PRIVKEY8_PEM[];
+extern const size_t ECC_PRIVKEY8_PEM_LEN;
+
+extern const uint8_t ECC_PRIVKEY8_DER[];
+extern const size_t ECC_PRIVKEY8_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY8_NO_PUBKEY_DER[];
+extern const size_t ECC_PRIVKEY8_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY9[];
+extern const size_t ECC_PRIVKEY9_LEN;
+
+extern const uint8_t ECC_PUBKEY9[];
+extern const size_t ECC_PUBEY9_LEN;
+
+extern const uint8_t ECC_PUBKEY9_SHA1[];
+extern const uint8_t ECC_PUBKEY9_SHA256[];
+extern const uint8_t ECC_PUBKEY9_SHA384[];
+extern const uint8_t ECC_PUBKEY9_SHA512[];
+
+extern const struct ecc_point_public_key ECC_PUBKEY9_POINT;
+
+extern const char ECC_PUBKEY9_PEM[];
+extern const size_t ECC_PUBKEY9_PEM_LEN;
+
+extern const uint8_t ECC_PUBKEY9_DER[];
+extern const size_t ECC_PUBKEY9_DER_LEN;
+
+extern const char ECC_PRIVKEY9_PEM[];
+extern const size_t ECC_PRIVKEY9_PEM_LEN;
+
+extern const uint8_t ECC_PRIVKEY9_DER[];
+extern const size_t ECC_PRIVKEY9_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY9_NO_PUBKEY_DER[];
+extern const size_t ECC_PRIVKEY9_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY10[];
+extern const size_t ECC_PRIVKEY10_LEN;
+
+extern const uint8_t ECC_PUBKEY10[];
+extern const size_t ECC_PUBEY10_LEN;
+
+extern const uint8_t ECC_PUBKEY10_SHA1[];
+extern const uint8_t ECC_PUBKEY10_SHA256[];
+extern const uint8_t ECC_PUBKEY10_SHA384[];
+extern const uint8_t ECC_PUBKEY10_SHA512[];
+
+extern const struct ecc_point_public_key ECC_PUBKEY10_POINT;
+
+extern const char ECC_PUBKEY10_PEM[];
+extern const size_t ECC_PUBKEY10_PEM_LEN;
+
+extern const uint8_t ECC_PUBKEY10_DER[];
+extern const size_t ECC_PUBKEY10_DER_LEN;
+
+extern const char ECC_PRIVKEY10_PEM[];
+extern const size_t ECC_PRIVKEY10_PEM_LEN;
+
+extern const uint8_t ECC_PRIVKEY10_DER[];
+extern const size_t ECC_PRIVKEY10_DER_LEN;
+
+extern const uint8_t ECC_PRIVKEY10_NO_PUBKEY_DER[];
+extern const size_t ECC_PRIVKEY10_NO_PUBKEY_DER_LEN;
+
 
 extern const uint8_t ECC384_PRIVKEY[];
 extern const size_t ECC384_PRIVKEY_LEN;
@@ -248,6 +444,216 @@ extern const size_t ECC384_PRIVKEY3_DER_LEN;
 
 extern const uint8_t ECC384_PRIVKEY3_NO_PUBKEY_DER[];
 extern const size_t ECC384_PRIVKEY3_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY4[];
+extern const size_t ECC384_PRIVKEY4_LEN;
+
+extern const uint8_t ECC384_PUBKEY4[];
+extern const size_t ECC384_PUBKEY4_LEN;
+
+extern const uint8_t ECC384_PUBKEY4_SHA1[];
+extern const uint8_t ECC384_PUBKEY4_SHA256[];
+extern const uint8_t ECC384_PUBKEY4_SHA384[];
+extern const uint8_t ECC384_PUBKEY4_SHA512[];
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_point_public_key ECC384_PUBKEY4_POINT;
+#endif
+
+extern const char ECC384_PUBKEY4_PEM[];
+extern const size_t ECC384_PUBKEY4_PEM_LEN;
+
+extern const uint8_t ECC384_PUBKEY4_DER[];
+extern const size_t ECC384_PUBKEY4_DER_LEN;
+
+extern const char ECC384_PRIVKEY4_PEM[];
+extern const size_t ECC384_PRIVKEY4_PEM_LEN;
+
+extern const uint8_t ECC384_PRIVKEY4_DER[];
+extern const size_t ECC384_PRIVKEY4_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY4_NO_PUBKEY_DER[];
+extern const size_t ECC384_PRIVKEY4_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY5[];
+extern const size_t ECC384_PRIVKEY5_LEN;
+
+extern const uint8_t ECC384_PUBKEY5[];
+extern const size_t ECC384_PUBKEY5_LEN;
+
+extern const uint8_t ECC384_PUBKEY5_SHA1[];
+extern const uint8_t ECC384_PUBKEY5_SHA256[];
+extern const uint8_t ECC384_PUBKEY5_SHA384[];
+extern const uint8_t ECC384_PUBKEY5_SHA512[];
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_point_public_key ECC384_PUBKEY5_POINT;
+#endif
+
+extern const char ECC384_PUBKEY5_PEM[];
+extern const size_t ECC384_PUBKEY5_PEM_LEN;
+
+extern const uint8_t ECC384_PUBKEY5_DER[];
+extern const size_t ECC384_PUBKEY5_DER_LEN;
+
+extern const char ECC384_PRIVKEY5_PEM[];
+extern const size_t ECC384_PRIVKEY5_PEM_LEN;
+
+extern const uint8_t ECC384_PRIVKEY5_DER[];
+extern const size_t ECC384_PRIVKEY5_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY5_NO_PUBKEY_DER[];
+extern const size_t ECC384_PRIVKEY5_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY6[];
+extern const size_t ECC384_PRIVKEY6_LEN;
+
+extern const uint8_t ECC384_PUBKEY6[];
+extern const size_t ECC384_PUBKEY6_LEN;
+
+extern const uint8_t ECC384_PUBKEY6_SHA1[];
+extern const uint8_t ECC384_PUBKEY6_SHA256[];
+extern const uint8_t ECC384_PUBKEY6_SHA384[];
+extern const uint8_t ECC384_PUBKEY6_SHA512[];
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_point_public_key ECC384_PUBKEY6_POINT;
+#endif
+
+extern const char ECC384_PUBKEY6_PEM[];
+extern const size_t ECC384_PUBKEY6_PEM_LEN;
+
+extern const uint8_t ECC384_PUBKEY6_DER[];
+extern const size_t ECC384_PUBKEY6_DER_LEN;
+
+extern const char ECC384_PRIVKEY6_PEM[];
+extern const size_t ECC384_PRIVKEY6_PEM_LEN;
+
+extern const uint8_t ECC384_PRIVKEY6_DER[];
+extern const size_t ECC384_PRIVKEY6_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY6_NO_PUBKEY_DER[];
+extern const size_t ECC384_PRIVKEY6_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY7[];
+extern const size_t ECC384_PRIVKEY7_LEN;
+
+extern const uint8_t ECC384_PUBKEY7[];
+extern const size_t ECC384_PUBKEY7_LEN;
+
+extern const uint8_t ECC384_PUBKEY7_SHA1[];
+extern const uint8_t ECC384_PUBKEY7_SHA256[];
+extern const uint8_t ECC384_PUBKEY7_SHA384[];
+extern const uint8_t ECC384_PUBKEY7_SHA512[];
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_point_public_key ECC384_PUBKEY7_POINT;
+#endif
+
+extern const char ECC384_PUBKEY7_PEM[];
+extern const size_t ECC384_PUBKEY7_PEM_LEN;
+
+extern const uint8_t ECC384_PUBKEY7_DER[];
+extern const size_t ECC384_PUBKEY7_DER_LEN;
+
+extern const char ECC384_PRIVKEY7_PEM[];
+extern const size_t ECC384_PRIVKEY7_PEM_LEN;
+
+extern const uint8_t ECC384_PRIVKEY7_DER[];
+extern const size_t ECC384_PRIVKEY7_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY7_NO_PUBKEY_DER[];
+extern const size_t ECC384_PRIVKEY7_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY8[];
+extern const size_t ECC384_PRIVKEY8_LEN;
+
+extern const uint8_t ECC384_PUBKEY8[];
+extern const size_t ECC384_PUBKEY8_LEN;
+
+extern const uint8_t ECC384_PUBKEY8_SHA1[];
+extern const uint8_t ECC384_PUBKEY8_SHA256[];
+extern const uint8_t ECC384_PUBKEY8_SHA384[];
+extern const uint8_t ECC384_PUBKEY8_SHA512[];
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_point_public_key ECC384_PUBKEY8_POINT;
+#endif
+
+extern const char ECC384_PUBKEY8_PEM[];
+extern const size_t ECC384_PUBKEY8_PEM_LEN;
+
+extern const uint8_t ECC384_PUBKEY8_DER[];
+extern const size_t ECC384_PUBKEY8_DER_LEN;
+
+extern const char ECC384_PRIVKEY8_PEM[];
+extern const size_t ECC384_PRIVKEY8_PEM_LEN;
+
+extern const uint8_t ECC384_PRIVKEY8_DER[];
+extern const size_t ECC384_PRIVKEY8_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY8_NO_PUBKEY_DER[];
+extern const size_t ECC384_PRIVKEY8_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY9[];
+extern const size_t ECC384_PRIVKEY9_LEN;
+
+extern const uint8_t ECC384_PUBKEY9[];
+extern const size_t ECC384_PUBKEY9_LEN;
+
+extern const uint8_t ECC384_PUBKEY9_SHA1[];
+extern const uint8_t ECC384_PUBKEY9_SHA256[];
+extern const uint8_t ECC384_PUBKEY9_SHA384[];
+extern const uint8_t ECC384_PUBKEY9_SHA512[];
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_point_public_key ECC384_PUBKEY9_POINT;
+#endif
+
+extern const char ECC384_PUBKEY9_PEM[];
+extern const size_t ECC384_PUBKEY9_PEM_LEN;
+
+extern const uint8_t ECC384_PUBKEY9_DER[];
+extern const size_t ECC384_PUBKEY9_DER_LEN;
+
+extern const char ECC384_PRIVKEY9_PEM[];
+extern const size_t ECC384_PRIVKEY9_PEM_LEN;
+
+extern const uint8_t ECC384_PRIVKEY9_DER[];
+extern const size_t ECC384_PRIVKEY9_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY9_NO_PUBKEY_DER[];
+extern const size_t ECC384_PRIVKEY9_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY10[];
+extern const size_t ECC384_PRIVKEY10_LEN;
+
+extern const uint8_t ECC384_PUBKEY10[];
+extern const size_t ECC384_PUBKEY10_LEN;
+
+extern const uint8_t ECC384_PUBKEY10_SHA1[];
+extern const uint8_t ECC384_PUBKEY10_SHA256[];
+extern const uint8_t ECC384_PUBKEY10_SHA384[];
+extern const uint8_t ECC384_PUBKEY10_SHA512[];
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_point_public_key ECC384_PUBKEY10_POINT;
+#endif
+
+extern const char ECC384_PUBKEY10_PEM[];
+extern const size_t ECC384_PUBKEY10_PEM_LEN;
+
+extern const uint8_t ECC384_PUBKEY10_DER[];
+extern const size_t ECC384_PUBKEY10_DER_LEN;
+
+extern const char ECC384_PRIVKEY10_PEM[];
+extern const size_t ECC384_PRIVKEY10_PEM_LEN;
+
+extern const uint8_t ECC384_PRIVKEY10_DER[];
+extern const size_t ECC384_PRIVKEY10_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY10_NO_PUBKEY_DER[];
+extern const size_t ECC384_PRIVKEY10_NO_PUBKEY_DER_LEN;
 
 
 extern const uint8_t ECC521_PRIVKEY[];
