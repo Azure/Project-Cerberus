@@ -149,7 +149,8 @@ static int ecc_mbedtls_init_key_pair (struct ecc_engine *engine, const uint8_t *
 		return ECC_ENGINE_NO_MEMORY;
 	}
 
-	status = mbedtls_pk_parse_key (key_ctx, key, key_length, NULL, 0);
+	status = mbedtls_pk_parse_key (key_ctx, key, ecc_der_get_private_key_length (key, key_length),
+		NULL, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_EC, status, 0);
