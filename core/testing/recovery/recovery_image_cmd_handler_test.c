@@ -321,7 +321,7 @@ static void recovery_image_cmd_handler_test_prepare_recovery_image (CuTest *test
 		sizeof (handler.context_ptr), -1);
 
 	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG (&handler.test.base_event));
+		MOCK_ARG_PTR (&handler.test.base_event));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -363,7 +363,7 @@ static void recovery_image_cmd_handler_test_prepare_recovery_image_static_init (
 		sizeof (handler.context_ptr), -1);
 
 	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG (&test_static.base_event));
+		MOCK_ARG_PTR (&test_static.base_event));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -520,7 +520,7 @@ static void recovery_image_cmd_handler_test_prepare_recovery_image_notify_error 
 		sizeof (handler.context_ptr), -1);
 
 	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task,
-		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG (&handler.test.base_event));
+		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG_PTR (&handler.test.base_event));
 
 	/* Need to lock while updating the status. */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -558,7 +558,7 @@ static void recovery_image_cmd_handler_test_update_recovery_image (CuTest *test)
 		sizeof (handler.context_ptr), -1);
 
 	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG (&handler.test.base_event));
+		MOCK_ARG_PTR (&handler.test.base_event));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -600,7 +600,7 @@ static void recovery_image_cmd_handler_test_update_recovery_image_static_init (C
 		sizeof (handler.context_ptr), -1);
 
 	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG (&test_static.base_event));
+		MOCK_ARG_PTR (&test_static.base_event));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -765,7 +765,7 @@ static void recovery_image_cmd_handler_test_update_recovery_image_notify_error (
 		sizeof (handler.context_ptr), -1);
 
 	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task,
-		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG (&handler.test.base_event));
+		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG_PTR (&handler.test.base_event));
 
 	/* Need to lock while updating the status. */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -803,7 +803,7 @@ static void recovery_image_cmd_handler_test_activate_recovery_image (CuTest *tes
 		sizeof (handler.context_ptr), -1);
 
 	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG (&handler.test.base_event));
+		MOCK_ARG_PTR (&handler.test.base_event));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -839,7 +839,7 @@ static void recovery_image_cmd_handler_test_activate_recovery_image_static_init 
 		sizeof (handler.context_ptr), -1);
 
 	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
-		MOCK_ARG (&test_static.base_event));
+		MOCK_ARG_PTR (&test_static.base_event));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -986,7 +986,7 @@ static void recovery_image_cmd_handler_test_activate_recovery_image_notify_error
 		sizeof (handler.context_ptr), -1);
 
 	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task,
-		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG (&handler.test.base_event));
+		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG_PTR (&handler.test.base_event));
 
 	/* Need to lock while updating the status. */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);

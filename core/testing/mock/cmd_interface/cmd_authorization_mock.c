@@ -17,7 +17,7 @@ static int cmd_authorization_mock_authorize_revert_bypass (struct cmd_authorizat
 	}
 
 	MOCK_RETURN (&mock->mock, cmd_authorization_mock_authorize_revert_bypass, auth,
-		MOCK_ARG_CALL (token), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (token), MOCK_ARG_PTR_CALL (length));
 }
 
 static int cmd_authorization_mock_authorize_reset_defaults (struct cmd_authorization *auth,
@@ -30,7 +30,7 @@ static int cmd_authorization_mock_authorize_reset_defaults (struct cmd_authoriza
 	}
 
 	MOCK_RETURN (&mock->mock, cmd_authorization_mock_authorize_reset_defaults, auth,
-		MOCK_ARG_CALL (token), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (token), MOCK_ARG_PTR_CALL (length));
 }
 
 static int cmd_authorization_mock_authorize_clear_platform_config (struct cmd_authorization *auth,
@@ -43,7 +43,7 @@ static int cmd_authorization_mock_authorize_clear_platform_config (struct cmd_au
 	}
 
 	MOCK_RETURN (&mock->mock, cmd_authorization_mock_authorize_clear_platform_config, auth,
-		MOCK_ARG_CALL (token), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (token), MOCK_ARG_PTR_CALL (length));
 }
 
 static int cmd_authorization_mock_authorize_clear_component_manifests (
@@ -56,7 +56,7 @@ static int cmd_authorization_mock_authorize_clear_component_manifests (
 	}
 
 	MOCK_RETURN (&mock->mock, cmd_authorization_mock_authorize_clear_component_manifests, auth,
-		MOCK_ARG_CALL (token), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (token), MOCK_ARG_PTR_CALL (length));
 }
 
 static int cmd_authorization_mock_authorize_reset_intrusion (struct cmd_authorization *auth,
@@ -69,7 +69,7 @@ static int cmd_authorization_mock_authorize_reset_intrusion (struct cmd_authoriz
 	}
 
 	MOCK_RETURN (&mock->mock, cmd_authorization_mock_authorize_reset_intrusion, auth,
-		MOCK_ARG_CALL (token), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (token), MOCK_ARG_PTR_CALL (length));
 }
 
 static int cmd_authorization_mock_func_arg_count (void *func)

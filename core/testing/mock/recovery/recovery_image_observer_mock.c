@@ -14,8 +14,8 @@ static void recovery_image_observer_mock_on_recovery_image_activated (
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, recovery_image_observer_mock_on_recovery_image_activated, observer,
-		MOCK_ARG_CALL (active));
+	MOCK_VOID_RETURN (&mock->mock, recovery_image_observer_mock_on_recovery_image_activated,
+		observer, MOCK_ARG_PTR_CALL (active));
 }
 
 static void recovery_image_observer_mock_on_recovery_image_deactivated (

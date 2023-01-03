@@ -16,7 +16,8 @@ static struct cfm* cfm_manager_mock_get_active_cfm (const struct cfm_manager *ma
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct cfm*, cfm_manager_mock_get_active_cfm, manager);
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct cfm*, cfm_manager_mock_get_active_cfm,
+		manager);
 }
 
 static struct cfm* cfm_manager_mock_get_pending_cfm (const struct cfm_manager *manager)
@@ -27,7 +28,8 @@ static struct cfm* cfm_manager_mock_get_pending_cfm (const struct cfm_manager *m
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct cfm*, cfm_manager_mock_get_pending_cfm, manager);
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct cfm*, cfm_manager_mock_get_pending_cfm,
+		manager);
 }
 
 static void cfm_manager_mock_free_cfm (const struct cfm_manager *manager, struct cfm *cfm)
@@ -38,7 +40,7 @@ static void cfm_manager_mock_free_cfm (const struct cfm_manager *manager, struct
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, cfm_manager_mock_free_cfm, manager, MOCK_ARG_CALL (cfm));
+	MOCK_VOID_RETURN (&mock->mock, cfm_manager_mock_free_cfm, manager, MOCK_ARG_PTR_CALL (cfm));
 }
 
 static int cfm_manager_mock_activate_pending_manifest (const struct manifest_manager *manager)
@@ -73,8 +75,8 @@ static int cfm_manager_mock_write_pending_data (const struct manifest_manager *m
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cfm_manager_mock_write_pending_data, manager, MOCK_ARG_CALL (data),
-		MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, cfm_manager_mock_write_pending_data, manager,
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static int cfm_manager_mock_verify_pending_manifest (const struct manifest_manager *manager)

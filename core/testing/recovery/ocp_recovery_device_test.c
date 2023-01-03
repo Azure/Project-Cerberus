@@ -2008,7 +2008,7 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.hw.mock, recovery.hw.base.activate_recovery, &recovery.hw, 0,
-		MOCK_ARG (&recovery.cms[0]), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&recovery.cms[0]), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
@@ -2187,7 +2187,8 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image_failure (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.hw.mock, recovery.hw.base.activate_recovery, &recovery.hw,
-		OCP_RECOVERY_DEVICE_ACTIVATE_REC_FAILED, MOCK_ARG (&recovery.cms[0]), MOCK_ARG_NOT_NULL);
+		OCP_RECOVERY_DEVICE_ACTIVATE_REC_FAILED, MOCK_ARG_PTR (&recovery.cms[0]),
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&recovery.hw.mock, 1, &auth_error, sizeof (auth_error), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2237,7 +2238,8 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image_auth_failure (
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.hw.mock, recovery.hw.base.activate_recovery, &recovery.hw,
-		OCP_RECOVERY_DEVICE_ACTIVATE_REC_FAILED, MOCK_ARG (&recovery.cms[0]), MOCK_ARG_NOT_NULL);
+		OCP_RECOVERY_DEVICE_ACTIVATE_REC_FAILED, MOCK_ARG_PTR (&recovery.cms[0]),
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&recovery.hw.mock, 1, &auth_error, sizeof (auth_error), -1);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2375,7 +2377,7 @@ static void ocp_recovery_device_test_recovery_ctrl_activate_image_non_zero_cms_i
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.hw.mock, recovery.hw.base.activate_recovery, &recovery.hw, 0,
-		MOCK_ARG (&recovery.cms[OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1]),
+		MOCK_ARG_PTR (&recovery.cms[OCP_RECOVERY_DEVICE_TESTING_MAX_CMS - 1]),
 		MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2918,7 +2920,7 @@ static void ocp_recovery_device_test_recovery_ctrl_static_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.hw.mock, recovery.hw.base.activate_recovery, &recovery.hw, 0,
-		MOCK_ARG (&recovery.cms[0]), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&recovery.cms[0]), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ocp_recovery_device_write_request (&test_static, &message, msg_length);

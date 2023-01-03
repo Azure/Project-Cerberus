@@ -16,8 +16,9 @@ static int pfm_mock_verify (struct manifest *pfm, struct hash_engine *hash,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_verify, pfm, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (verification), MOCK_ARG_CALL (hash_out), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, pfm_mock_verify, pfm, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (verification), MOCK_ARG_PTR_CALL (hash_out),
+		MOCK_ARG_CALL (hash_length));
 }
 
 static int pfm_mock_get_id (struct manifest *pfm, uint32_t *id)
@@ -28,7 +29,7 @@ static int pfm_mock_get_id (struct manifest *pfm, uint32_t *id)
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_id, pfm, MOCK_ARG_CALL (id));
+	MOCK_RETURN (&mock->mock, pfm_mock_get_id, pfm, MOCK_ARG_PTR_CALL (id));
 }
 
 static int pfm_mock_get_platform_id (struct manifest *pfm, char **id, size_t length)
@@ -39,7 +40,7 @@ static int pfm_mock_get_platform_id (struct manifest *pfm, char **id, size_t len
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_platform_id, pfm, MOCK_ARG_CALL (id),
+	MOCK_RETURN (&mock->mock, pfm_mock_get_platform_id, pfm, MOCK_ARG_PTR_CALL (id),
 		MOCK_ARG_CALL (length));
 }
 
@@ -51,7 +52,7 @@ static void pfm_mock_free_platform_id (struct manifest *pfm, char *id)
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_platform_id, pfm, MOCK_ARG_CALL (id));
+	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_platform_id, pfm, MOCK_ARG_PTR_CALL (id));
 }
 
 static int pfm_mock_get_hash (struct manifest *pfm, struct hash_engine *hash, uint8_t *hash_out,
@@ -63,8 +64,8 @@ static int pfm_mock_get_hash (struct manifest *pfm, struct hash_engine *hash, ui
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_hash, pfm, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (hash_out), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, pfm_mock_get_hash, pfm, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (hash_out), MOCK_ARG_CALL (hash_length));
 }
 
 static int pfm_mock_get_signature (struct manifest *pfm, uint8_t *signature, size_t length)
@@ -75,7 +76,7 @@ static int pfm_mock_get_signature (struct manifest *pfm, uint8_t *signature, siz
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_signature, pfm, MOCK_ARG_CALL (signature),
+	MOCK_RETURN (&mock->mock, pfm_mock_get_signature, pfm, MOCK_ARG_PTR_CALL (signature),
 		MOCK_ARG_CALL (length));
 }
 
@@ -98,7 +99,7 @@ static int pfm_mock_get_firmware (struct pfm *pfm, struct pfm_firmware *fw)
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_firmware, pfm, MOCK_ARG_CALL (fw));
+	MOCK_RETURN (&mock->mock, pfm_mock_get_firmware, pfm, MOCK_ARG_PTR_CALL (fw));
 }
 
 static void pfm_mock_free_firmware (struct pfm *pfm, struct pfm_firmware *fw)
@@ -109,7 +110,7 @@ static void pfm_mock_free_firmware (struct pfm *pfm, struct pfm_firmware *fw)
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_firmware, pfm, MOCK_ARG_CALL (fw));
+	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_firmware, pfm, MOCK_ARG_PTR_CALL (fw));
 }
 
 static int pfm_mock_get_supported_versions (struct pfm *pfm, const char *fw,
@@ -121,8 +122,8 @@ static int pfm_mock_get_supported_versions (struct pfm *pfm, const char *fw,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_supported_versions, pfm, MOCK_ARG_CALL (fw),
-		MOCK_ARG_CALL (ver_list));
+	MOCK_RETURN (&mock->mock, pfm_mock_get_supported_versions, pfm, MOCK_ARG_PTR_CALL (fw),
+		MOCK_ARG_PTR_CALL (ver_list));
 }
 
 static void pfm_mock_free_fw_versions (struct pfm *pfm, struct pfm_firmware_versions *ver_list)
@@ -133,7 +134,7 @@ static void pfm_mock_free_fw_versions (struct pfm *pfm, struct pfm_firmware_vers
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_fw_versions, pfm, MOCK_ARG_CALL (ver_list));
+	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_fw_versions, pfm, MOCK_ARG_PTR_CALL (ver_list));
 }
 
 static int pfm_mock_buffer_supported_versions (struct pfm *pfm, const char *fw, size_t offset,
@@ -145,8 +146,8 @@ static int pfm_mock_buffer_supported_versions (struct pfm *pfm, const char *fw, 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_buffer_supported_versions, pfm, MOCK_ARG_CALL (fw),
-		MOCK_ARG_CALL (offset), MOCK_ARG_CALL (length), MOCK_ARG_CALL (ver_list));
+	MOCK_RETURN (&mock->mock, pfm_mock_buffer_supported_versions, pfm, MOCK_ARG_PTR_CALL (fw),
+		MOCK_ARG_CALL (offset), MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (ver_list));
 }
 
 static int pfm_mock_get_read_write_regions (struct pfm *pfm, const char *fw, const char *version,
@@ -158,8 +159,8 @@ static int pfm_mock_get_read_write_regions (struct pfm *pfm, const char *fw, con
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_read_write_regions, pfm, MOCK_ARG_CALL (fw),
-		MOCK_ARG_CALL (version), MOCK_ARG_CALL (writable));
+	MOCK_RETURN (&mock->mock, pfm_mock_get_read_write_regions, pfm, MOCK_ARG_PTR_CALL (fw),
+		MOCK_ARG_PTR_CALL (version), MOCK_ARG_PTR_CALL (writable));
 }
 
 static void pfm_mock_free_read_write_regions (struct pfm *pfm,
@@ -171,7 +172,8 @@ static void pfm_mock_free_read_write_regions (struct pfm *pfm,
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_read_write_regions, pfm, MOCK_ARG_CALL (writable));
+	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_read_write_regions, pfm,
+		MOCK_ARG_PTR_CALL (writable));
 }
 
 static int pfm_mock_get_firmware_images (struct pfm *pfm, const char *fw, const char *version,
@@ -183,8 +185,8 @@ static int pfm_mock_get_firmware_images (struct pfm *pfm, const char *fw, const 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_mock_get_firmware_images, pfm, MOCK_ARG_CALL (fw),
-		MOCK_ARG_CALL (version), MOCK_ARG_CALL (img_list));
+	MOCK_RETURN (&mock->mock, pfm_mock_get_firmware_images, pfm, MOCK_ARG_PTR_CALL (fw),
+		MOCK_ARG_PTR_CALL (version), MOCK_ARG_PTR_CALL (img_list));
 }
 
 static void pfm_mock_free_firmware_images (struct pfm *pfm, struct pfm_image_list *img_list)
@@ -195,7 +197,8 @@ static void pfm_mock_free_firmware_images (struct pfm *pfm, struct pfm_image_lis
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_firmware_images, pfm, MOCK_ARG_CALL (img_list));
+	MOCK_VOID_RETURN (&mock->mock, pfm_mock_free_firmware_images, pfm,
+		MOCK_ARG_PTR_CALL (img_list));
 }
 
 static int pfm_mock_func_arg_count (void *func)

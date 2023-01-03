@@ -17,7 +17,7 @@ static int rng_mock_generate_random_buffer (struct rng_engine *engine, size_t ra
 	}
 
 	MOCK_RETURN (&mock->mock, rng_mock_generate_random_buffer, engine, MOCK_ARG_CALL (rand_len),
-		MOCK_ARG_CALL (buf));
+		MOCK_ARG_PTR_CALL (buf));
 }
 
 static int rng_mock_func_arg_count (void *func)

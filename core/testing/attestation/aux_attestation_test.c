@@ -867,7 +867,7 @@ static void aux_attestation_test_create_certificate (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN), MOCK_ARG (8),
 		MOCK_ARG_PTR_CONTAINS ("AUX", 3), MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.x509.mock, 0, 1);
 
 	status |= mock_expect (&aux.x509.mock, aux.x509.base.get_certificate_der, &aux.x509, 0,
@@ -1103,7 +1103,7 @@ static void aux_attestation_test_create_certificate_zero_serial_number (CuTest *
 		MOCK_ARG_PTR_CONTAINS (X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN), MOCK_ARG (8),
 		MOCK_ARG_PTR_CONTAINS ("AUX", 3), MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&aux.x509.mock, aux.x509.base.release_certificate, &aux.x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
@@ -1169,7 +1169,7 @@ static void aux_attestation_test_create_certificate_zero_serial_number_twice (Cu
 		MOCK_ARG_PTR_CONTAINS (X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN), MOCK_ARG (8),
 		MOCK_ARG_PTR_CONTAINS ("AUX", 3), MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&aux.x509.mock, aux.x509.base.release_certificate, &aux.x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
@@ -1471,7 +1471,7 @@ static void aux_attestation_test_create_certificate_create_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN), MOCK_ARG (8),
 		MOCK_ARG_PTR_CONTAINS ("AUX", 3), MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&aux.x509.mock, aux.x509.base.release_certificate, &aux.x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
@@ -1528,7 +1528,7 @@ static void aux_attestation_test_create_certificate_cert_der_error (CuTest *test
 		MOCK_ARG_PTR_CONTAINS (X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN), MOCK_ARG (8),
 		MOCK_ARG_PTR_CONTAINS ("AUX", 3), MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.x509.mock, 0, 1);
 
 	status |= mock_expect (&aux.x509.mock, aux.x509.base.get_certificate_der, &aux.x509,
@@ -1634,7 +1634,7 @@ static void aux_attestation_test_set_certificate_before_create (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN), MOCK_ARG (8),
 		MOCK_ARG_PTR_CONTAINS ("AUX", 3), MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.x509.mock, 0, 1);
 
 	status |= mock_expect (&aux.x509.mock, aux.x509.base.get_certificate_der, &aux.x509, 0,
@@ -1811,7 +1811,7 @@ static void aux_attestation_test_set_certificate_after_create (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN), MOCK_ARG (8),
 		MOCK_ARG_PTR_CONTAINS ("AUX", 3), MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.x509.mock, 0, 1);
 
 	status |= mock_expect (&aux.x509.mock, aux.x509.base.get_certificate_der, &aux.x509, 0,
@@ -1925,7 +1925,7 @@ static void aux_attestation_test_set_static_certificate_before_create (CuTest *t
 		MOCK_ARG_PTR_CONTAINS (X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN), MOCK_ARG (8),
 		MOCK_ARG_PTR_CONTAINS ("AUX", 3), MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.x509.mock, 0, 1);
 
 	status |= mock_expect (&aux.x509.mock, aux.x509.base.get_certificate_der, &aux.x509, 0,
@@ -2079,7 +2079,7 @@ static void aux_attestation_test_set_static_certificate_after_create (CuTest *te
 		MOCK_ARG_PTR_CONTAINS (X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN), MOCK_ARG (8),
 		MOCK_ARG_PTR_CONTAINS ("AUX", 3), MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.x509.mock, 0, 1);
 
 	status |= mock_expect (&aux.x509.mock, aux.x509.base.get_certificate_der, &aux.x509, 0,
@@ -2166,7 +2166,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha1 (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -2269,7 +2269,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha256 (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP_SHA256, KEY_SEED_ENCRYPT_OAEP_SHA256_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_SHA256_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_SHA256_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -2387,7 +2387,7 @@ static void aux_attestation_test_unseal_ecdh_raw (CuTest *test)
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
@@ -2399,9 +2399,9 @@ static void aux_attestation_test_unseal_ecdh_raw (CuTest *test)
 	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
 	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
@@ -2486,7 +2486,7 @@ static void aux_attestation_test_unseal_ecdh_sha256 (CuTest *test)
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
@@ -2498,9 +2498,9 @@ static void aux_attestation_test_unseal_ecdh_sha256 (CuTest *test)
 	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.calculate_sha256, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED, KEY_SEED_LEN), MOCK_ARG (KEY_SEED_LEN), MOCK_ARG_NOT_NULL,
@@ -2610,7 +2610,7 @@ static void aux_attestation_test_unseal_pcr_mismatch (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -2698,7 +2698,7 @@ static void aux_attestation_test_unseal_unused_byte_nonzero (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -2782,7 +2782,7 @@ static void aux_attestation_test_unseal_bypass_pcr_check (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -2888,7 +2888,7 @@ static void aux_attestation_test_unseal_multiple_pcr (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -2998,7 +2998,7 @@ static void aux_attestation_test_unseal_multiple_pcr_mismatch (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -3089,7 +3089,7 @@ static void aux_attestation_test_unseal_multiple_pcr_unused_byte_nonzero (CuTest
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -3176,7 +3176,7 @@ static void aux_attestation_test_unseal_multiple_pcr_bypass_single (CuTest *test
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -3282,7 +3282,7 @@ static void aux_attestation_test_unseal_multiple_pcr_bypass_multiple (CuTest *te
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -3389,7 +3389,7 @@ static void aux_attestation_test_unseal_unused_pcrs (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -3494,7 +3494,7 @@ static void aux_attestation_test_unseal_unsupported_pcrs_unused (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -3599,7 +3599,7 @@ static void aux_attestation_test_unseal_bad_hmac (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -4378,7 +4378,7 @@ static void aux_attestation_test_unseal_rsa_decrypt_error (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, RSA_ENGINE_DECRYPT_FAILED,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.release_key, &aux.rsa, 0,
@@ -4486,10 +4486,10 @@ static void aux_attestation_test_unseal_ecdh_private_key_error (CuTest *test)
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc,
 		ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4529,16 +4529,16 @@ static void aux_attestation_test_unseal_ecdh_secret_length_error (CuTest *test)
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc,
 		ECC_ENGINE_SECRET_LENGTH_FAILED, MOCK_ARG_SAVED_ARG (1));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4578,7 +4578,7 @@ static void aux_attestation_test_unseal_ecdh_shared_secret_error (CuTest *test)
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
@@ -4589,9 +4589,9 @@ static void aux_attestation_test_unseal_ecdh_shared_secret_error (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4631,7 +4631,7 @@ static void aux_attestation_test_unseal_ecdh_hash_error (CuTest *test)
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
@@ -4643,9 +4643,9 @@ static void aux_attestation_test_unseal_ecdh_hash_error (CuTest *test)
 	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.calculate_sha256, &aux.hash,
 		HASH_ENGINE_SHA256_FAILED, MOCK_ARG_PTR_CONTAINS (KEY_SEED, KEY_SEED_LEN),
@@ -4702,7 +4702,7 @@ static void aux_attestation_test_unseal_signing_key_kdf_error (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -4765,7 +4765,7 @@ static void aux_attestation_test_unseal_validate_init_error (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -4844,7 +4844,7 @@ static void aux_attestation_test_unseal_validate_hash_cipher_error (CuTest *test
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -4927,7 +4927,7 @@ static void aux_attestation_test_unseal_validate_hash_policy_error (CuTest *test
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -5012,7 +5012,7 @@ static void aux_attestation_test_unseal_validate_finish_error (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -5099,7 +5099,7 @@ static void aux_attestation_test_unseal_unsupported_pcr (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -5184,7 +5184,7 @@ static void aux_attestation_test_unseal_encryption_key_kdf_error (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -5404,7 +5404,7 @@ static void aux_attestation_test_decrypt (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (decrypted)));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -5505,7 +5505,7 @@ static void aux_attestation_test_decrypt_sha256 (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (decrypted)));
 	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
 
@@ -5746,7 +5746,7 @@ static void aux_attestation_test_decrypt_error (CuTest *test)
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, RSA_ENGINE_DECRYPT_FAILED,
 		MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
-		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG (NULL), MOCK_ARG (0),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
 		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (decrypted)));
 
 	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.release_key, &aux.rsa, 0,
@@ -5778,7 +5778,7 @@ static void aux_attestation_test_generate_ecdh_seed (CuTest *test)
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
@@ -5790,9 +5790,9 @@ static void aux_attestation_test_generate_ecdh_seed (CuTest *test)
 	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5823,7 +5823,7 @@ static void aux_attestation_test_generate_ecdh_seed_sha256 (CuTest *test)
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
@@ -5835,9 +5835,9 @@ static void aux_attestation_test_generate_ecdh_seed_sha256 (CuTest *test)
 	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.calculate_sha256, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (KEY_SEED, KEY_SEED_LEN), MOCK_ARG (KEY_SEED_LEN), MOCK_ARG_NOT_NULL,
@@ -5987,16 +5987,16 @@ static void aux_attestation_test_generate_ecdh_seed_small_seed_buffer (CuTest *t
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 20,
 		MOCK_ARG_SAVED_ARG (1));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -6024,16 +6024,16 @@ static void aux_attestation_test_generate_ecdh_seed_small_seed_buffer_sha256 (Cu
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 20,
 		MOCK_ARG_SAVED_ARG (1));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -6062,16 +6062,16 @@ static void aux_attestation_test_generate_ecdh_seed_small_seed_buffer_sha256_lar
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 48,
 		MOCK_ARG_SAVED_ARG (1));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -6123,10 +6123,10 @@ static void aux_attestation_test_generate_ecdh_seed_private_key_error (CuTest *t
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc,
 		ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -6154,16 +6154,16 @@ static void aux_attestation_test_generate_ecdh_seed_secret_length_error (CuTest 
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc,
 		ECC_ENGINE_SECRET_LENGTH_FAILED, MOCK_ARG_SAVED_ARG (1));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -6191,7 +6191,7 @@ static void aux_attestation_test_generate_ecdh_seed_shared_secret_error (CuTest 
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
@@ -6202,9 +6202,9 @@ static void aux_attestation_test_generate_ecdh_seed_shared_secret_error (CuTest 
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -6232,7 +6232,7 @@ static void aux_attestation_test_generate_ecdh_seed_hash_error (CuTest *test)
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.init_key_pair, &aux.ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_KEY, RIOT_CORE_ALIAS_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&aux.ecc.mock, 2, 1);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.get_shared_secret_max_length, &aux.ecc, 32,
@@ -6244,9 +6244,9 @@ static void aux_attestation_test_generate_ecdh_seed_hash_error (CuTest *test)
 	status |= mock_expect_output (&aux.ecc.mock, 2, KEY_SEED, KEY_SEED_LEN, 3);
 
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (NULL));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&aux.ecc.mock, aux.ecc.base.release_key_pair, &aux.ecc, 0,
-		MOCK_ARG (NULL), MOCK_ARG_SAVED_ARG (0));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.calculate_sha256, &aux.hash,
 		HASH_ENGINE_SHA256_FAILED, MOCK_ARG_PTR_CONTAINS (KEY_SEED, KEY_SEED_LEN),

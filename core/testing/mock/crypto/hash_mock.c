@@ -16,8 +16,8 @@ static int hash_mock_calculate_sha1 (struct hash_engine *engine, const uint8_t *
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, hash_mock_calculate_sha1, engine, MOCK_ARG_CALL (data),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, hash_mock_calculate_sha1, engine, MOCK_ARG_PTR_CALL (data),
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_length));
 }
 
 static int hash_mock_start_sha1 (struct hash_engine *engine)
@@ -40,8 +40,8 @@ static int hash_mock_calculate_sha256 (struct hash_engine *engine, const uint8_t
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, hash_mock_calculate_sha256, engine, MOCK_ARG_CALL (data),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, hash_mock_calculate_sha256, engine, MOCK_ARG_PTR_CALL (data),
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_length));
 }
 
 static int hash_mock_start_sha256 (struct hash_engine *engine)
@@ -64,8 +64,8 @@ static int hash_mock_calculate_sha384 (struct hash_engine *engine, const uint8_t
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, hash_mock_calculate_sha384, engine, MOCK_ARG_CALL (data),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, hash_mock_calculate_sha384, engine, MOCK_ARG_PTR_CALL (data),
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_length));
 }
 
 static int hash_mock_start_sha384 (struct hash_engine *engine)
@@ -88,8 +88,8 @@ static int hash_mock_calculate_sha512 (struct hash_engine *engine, const uint8_t
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, hash_mock_calculate_sha512, engine, MOCK_ARG_CALL (data),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, hash_mock_calculate_sha512, engine, MOCK_ARG_PTR_CALL (data),
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_length));
 }
 
 static int hash_mock_start_sha512 (struct hash_engine *engine)
@@ -111,7 +111,7 @@ static int hash_mock_update (struct hash_engine *engine, const uint8_t *data, si
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, hash_mock_update, engine, MOCK_ARG_CALL (data),
+	MOCK_RETURN (&mock->mock, hash_mock_update, engine, MOCK_ARG_PTR_CALL (data),
 		MOCK_ARG_CALL (length));
 }
 
@@ -123,7 +123,7 @@ static int hash_mock_finish (struct hash_engine *engine, uint8_t *hash, size_t h
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, hash_mock_finish, engine, MOCK_ARG_CALL (hash),
+	MOCK_RETURN (&mock->mock, hash_mock_finish, engine, MOCK_ARG_PTR_CALL (hash),
 		MOCK_ARG_CALL (hash_length));
 }
 
@@ -418,7 +418,7 @@ int hash_mock_expect_hmac_finish (struct hash_engine_mock *mock, const uint8_t *
 		MOCK_ARG (SHA256_HASH_LENGTH));
 
 	if (hmac != NULL) {
-		status |= mock_expect (&mock->mock, mock->base.finish, mock, 0, MOCK_ARG (hmac),
+		status |= mock_expect (&mock->mock, mock->base.finish, mock, 0, MOCK_ARG_PTR (hmac),
 			MOCK_ARG (hmac_length));
 	}
 	else {

@@ -46,7 +46,7 @@ static void host_processor_single_test_bypass_mode_ro_flash (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -89,7 +89,7 @@ static void host_processor_single_test_bypass_mode_ro_flash_cs1 (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -129,7 +129,7 @@ static void host_processor_single_test_bypass_mode_rw_flash (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -172,7 +172,7 @@ static void host_processor_single_test_bypass_mode_rw_flash_cs0 (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -212,7 +212,7 @@ static void host_processor_single_test_bypass_mode_no_observer (CuTest *test)
 		MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -254,7 +254,7 @@ static void host_processor_single_test_bypass_mode_unsupported_flash (CuTest *te
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -323,7 +323,7 @@ static void host_processor_single_test_bypass_mode_filter_error (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -360,15 +360,15 @@ static void host_processor_single_test_bypass_mode_host_access_error (CuTest *te
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
 

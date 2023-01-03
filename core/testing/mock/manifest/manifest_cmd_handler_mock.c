@@ -15,7 +15,8 @@ int manifest_cmd_handler_mock_activation (const struct manifest_cmd_handler *han
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, manifest_cmd_handler_mock_activation, handler, MOCK_ARG_CALL (reset));
+	MOCK_RETURN (&mock->mock, manifest_cmd_handler_mock_activation, handler,
+		MOCK_ARG_PTR_CALL (reset));
 }
 
 static int manifest_cmd_handler_mock_func_arg_count (void *func)

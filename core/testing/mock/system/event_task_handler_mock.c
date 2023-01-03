@@ -28,7 +28,7 @@ static void event_task_handler_mock_execute (const struct event_task_handler *ha
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, event_task_handler_mock_execute, handler,
-		MOCK_ARG_CALL (context), MOCK_ARG_CALL (reset));
+		MOCK_ARG_PTR_CALL (context), MOCK_ARG_PTR_CALL (reset));
 }
 
 static int event_task_handler_mock_func_arg_count (void *func)

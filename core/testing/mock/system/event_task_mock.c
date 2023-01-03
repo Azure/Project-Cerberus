@@ -38,7 +38,7 @@ static int event_task_mock_get_event_context (const struct event_task *task,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, event_task_mock_get_event_context, task, MOCK_ARG_CALL (context));
+	MOCK_RETURN (&mock->mock, event_task_mock_get_event_context, task, MOCK_ARG_PTR_CALL (context));
 }
 
 static int event_task_mock_notify (const struct event_task *task,
@@ -50,7 +50,7 @@ static int event_task_mock_notify (const struct event_task *task,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, event_task_mock_notify, task, MOCK_ARG_CALL (handler));
+	MOCK_RETURN (&mock->mock, event_task_mock_notify, task, MOCK_ARG_PTR_CALL (handler));
 }
 
 static int event_task_mock_func_arg_count (void *func)

@@ -19,7 +19,7 @@ static void spdm_protocol_observer_mock_on_get_version_response (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_get_version_response, observer,
-		MOCK_ARG_CALL (response));
+		MOCK_ARG_PTR_CALL (response));
 }
 
 static void spdm_protocol_observer_mock_on_get_capabilities_response (
@@ -33,7 +33,7 @@ static void spdm_protocol_observer_mock_on_get_capabilities_response (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_get_capabilities_response,
-		observer, MOCK_ARG_CALL (response));
+		observer, MOCK_ARG_PTR_CALL (response));
 }
 
 static void spdm_protocol_observer_mock_on_negotiate_algorithms_response (
@@ -47,7 +47,7 @@ static void spdm_protocol_observer_mock_on_negotiate_algorithms_response (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_negotiate_algorithms_response,
-		observer, MOCK_ARG_CALL (response));
+		observer, MOCK_ARG_PTR_CALL (response));
 }
 
 static void spdm_protocol_observer_mock_on_get_digests_response (
@@ -61,7 +61,7 @@ static void spdm_protocol_observer_mock_on_get_digests_response (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_get_digests_response,
-		observer, MOCK_ARG_CALL (response));
+		observer, MOCK_ARG_PTR_CALL (response));
 }
 
 static void spdm_protocol_observer_mock_on_get_certificate_response (
@@ -75,7 +75,7 @@ static void spdm_protocol_observer_mock_on_get_certificate_response (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_get_certificate_response,
-		observer, MOCK_ARG_CALL (response));
+		observer, MOCK_ARG_PTR_CALL (response));
 }
 
 static void spdm_protocol_observer_mock_on_challenge_response (
@@ -89,7 +89,7 @@ static void spdm_protocol_observer_mock_on_challenge_response (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_challenge_response,
-		observer, MOCK_ARG_CALL (response));
+		observer, MOCK_ARG_PTR_CALL (response));
 }
 
 static void spdm_protocol_observer_mock_on_get_measurements_response (
@@ -103,7 +103,7 @@ static void spdm_protocol_observer_mock_on_get_measurements_response (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_get_measurements_response,
-		observer, MOCK_ARG_CALL (response));
+		observer, MOCK_ARG_PTR_CALL (response));
 }
 
 static void spdm_protocol_observer_mock_on_response_not_ready (
@@ -117,7 +117,7 @@ static void spdm_protocol_observer_mock_on_response_not_ready (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, spdm_protocol_observer_mock_on_response_not_ready,
-		observer, MOCK_ARG_CALL (response));
+		observer, MOCK_ARG_PTR_CALL (response));
 }
 
 static int spdm_protocol_observer_mock_func_arg_count (void *func)

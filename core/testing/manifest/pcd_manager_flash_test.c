@@ -1171,7 +1171,7 @@ static void pcd_manager_flash_test_activate_pending_pcd_region2_after_write_noti
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.observer.mock, manager.observer.base.on_pcd_activated,
-		&manager.observer, 0, MOCK_ARG (&manager.pcd2));
+		&manager.observer, 0, MOCK_ARG_PTR (&manager.pcd2));
 	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_pcd_activation_request,
 		&manager.observer, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -1215,7 +1215,7 @@ static void pcd_manager_flash_test_activate_pending_pcd_region1_after_write_noti
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.observer.mock, manager.observer.base.on_pcd_activated,
-		&manager.observer, 0, MOCK_ARG (&manager.pcd1));
+		&manager.observer, 0, MOCK_ARG_PTR (&manager.pcd1));
 	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_pcd_activation_request,
 		&manager.observer, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -1987,7 +1987,7 @@ static void pcd_manager_flash_test_verify_pending_pcd_region2_notify_observers (
 
 	status = pcd_manager_flash_testing_verify_pcd (&manager, 0x20000);
 	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_pcd_verified,
-		&manager.observer, 0, MOCK_ARG (&manager.pcd2));
+		&manager.observer, 0, MOCK_ARG_PTR (&manager.pcd2));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2017,7 +2017,7 @@ static void pcd_manager_flash_test_verify_pending_pcd_region1_notify_observers (
 
 	status = pcd_manager_flash_testing_verify_pcd (&manager, 0x10000);
 	status |= mock_expect (&manager.observer.mock, manager.observer.base.on_pcd_verified,
-		&manager.observer, 0, MOCK_ARG (&manager.pcd1));
+		&manager.observer, 0, MOCK_ARG_PTR (&manager.pcd1));
 
 	CuAssertIntEquals (test, 0, status);
 

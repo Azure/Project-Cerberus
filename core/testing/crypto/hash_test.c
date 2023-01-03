@@ -1390,7 +1390,7 @@ static void hash_test_hmac_init_sha1_large_key_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&engine.mock, engine.base.calculate_sha1, &engine,
-		HASH_ENGINE_SHA1_FAILED, MOCK_ARG (key), MOCK_ARG (sizeof (key)), MOCK_ARG_NOT_NULL,
+		HASH_ENGINE_SHA1_FAILED, MOCK_ARG_PTR (key), MOCK_ARG (sizeof (key)), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1420,7 +1420,7 @@ static void hash_test_hmac_init_sha256_large_key_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&engine.mock, engine.base.calculate_sha256, &engine,
-		HASH_ENGINE_SHA256_FAILED, MOCK_ARG (key), MOCK_ARG (sizeof (key)), MOCK_ARG_NOT_NULL,
+		HASH_ENGINE_SHA256_FAILED, MOCK_ARG_PTR (key), MOCK_ARG (sizeof (key)), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1450,7 +1450,7 @@ static void hash_test_hmac_init_sha384_large_key_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&engine.mock, engine.base.calculate_sha384, &engine,
-		HASH_ENGINE_SHA384_FAILED, MOCK_ARG (key), MOCK_ARG (sizeof (key)), MOCK_ARG_NOT_NULL,
+		HASH_ENGINE_SHA384_FAILED, MOCK_ARG_PTR (key), MOCK_ARG (sizeof (key)), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1481,7 +1481,7 @@ static void hash_test_hmac_init_sha512_large_key_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&engine.mock, engine.base.calculate_sha512, &engine,
-		HASH_ENGINE_SHA512_FAILED, MOCK_ARG (key), MOCK_ARG (sizeof (key)), MOCK_ARG_NOT_NULL,
+		HASH_ENGINE_SHA512_FAILED, MOCK_ARG_PTR (key), MOCK_ARG (sizeof (key)), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1718,7 +1718,7 @@ static void hash_test_hmac_finish_inner_hash_error (CuTest *test)
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_BLOCK_SIZE));
 
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG (message),
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_PTR (message),
 		MOCK_ARG (strlen (message)));
 
 	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
@@ -1758,7 +1758,7 @@ static void hash_test_hmac_finish_outer_init_error (CuTest *test)
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_BLOCK_SIZE));
 
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG (message),
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_PTR (message),
 		MOCK_ARG (strlen (message)));
 
 	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
@@ -1801,7 +1801,7 @@ static void hash_test_hmac_finish_outer_key_error (CuTest *test)
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_BLOCK_SIZE));
 
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG (message),
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_PTR (message),
 		MOCK_ARG (strlen (message)));
 
 	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
@@ -1846,7 +1846,7 @@ static void hash_test_hmac_finish_outer_update_error (CuTest *test)
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_BLOCK_SIZE));
 
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG (message),
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_PTR (message),
 		MOCK_ARG (strlen (message)));
 
 	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
@@ -1894,7 +1894,7 @@ static void hash_test_hmac_finish_outer_hash_error (CuTest *test)
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_BLOCK_SIZE));
 
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG (message),
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_PTR (message),
 		MOCK_ARG (strlen (message)));
 
 	status |= mock_expect (&engine.mock, engine.base.finish, &engine, 0, MOCK_ARG_NOT_NULL,
@@ -1909,7 +1909,7 @@ static void hash_test_hmac_finish_outer_hash_error (CuTest *test)
 		MOCK_ARG (SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG (hmac), MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_PTR (hmac), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2412,7 +2412,7 @@ static void hash_test_hash_generate_hmac_update_error (CuTest *test)
 		MOCK_ARG (SHA256_BLOCK_SIZE));
 
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG (message), MOCK_ARG (strlen (message)));
+		MOCK_ARG_PTR (message), MOCK_ARG (strlen (message)));
 	status |= mock_expect (&engine.mock, engine.base.cancel, &engine, 0);
 
 	CuAssertIntEquals (test, 0, status);
@@ -2443,7 +2443,7 @@ static void hash_test_hash_generate_hmac_finish_error (CuTest *test)
 	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_BLOCK_SIZE));
 
-	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG (message),
+	status |= mock_expect (&engine.mock, engine.base.update, &engine, 0, MOCK_ARG_PTR (message),
 		MOCK_ARG (strlen (message)));
 
 	status |= mock_expect (&engine.mock, engine.base.finish, &engine, HASH_ENGINE_FINISH_FAILED,

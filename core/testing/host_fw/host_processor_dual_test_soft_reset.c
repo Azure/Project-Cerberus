@@ -26,15 +26,15 @@ static void host_processor_dual_test_soft_reset_no_pfm (CuTest *test)
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -54,7 +54,7 @@ static void host_processor_dual_test_soft_reset_no_pfm (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -91,15 +91,15 @@ static void host_processor_dual_test_soft_reset_no_pfm_no_observer (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -113,7 +113,7 @@ static void host_processor_dual_test_soft_reset_no_pfm_no_observer (CuTest *test
 		MOCK_ARG (SPI_FILTER_CS_1));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -149,9 +149,9 @@ static void host_processor_dual_test_soft_reset_no_pfm_bypass (CuTest *test)
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -194,15 +194,15 @@ static void host_processor_dual_test_soft_reset_no_pfm_checked (CuTest *test)
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -222,7 +222,7 @@ static void host_processor_dual_test_soft_reset_no_pfm_checked (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -259,9 +259,9 @@ static void host_processor_dual_test_soft_reset_no_pfm_checked_bypass (CuTest *t
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -305,15 +305,15 @@ static void host_processor_dual_test_soft_reset_no_pfm_dirty (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -333,7 +333,7 @@ static void host_processor_dual_test_soft_reset_no_pfm_dirty (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -372,9 +372,9 @@ static void host_processor_dual_test_soft_reset_no_pfm_dirty_bypass (CuTest *tes
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -420,15 +420,15 @@ static void host_processor_dual_test_soft_reset_no_pfm_dirty_checked (CuTest *te
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -448,7 +448,7 @@ static void host_processor_dual_test_soft_reset_no_pfm_dirty_checked (CuTest *te
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -488,9 +488,9 @@ static void host_processor_dual_test_soft_reset_no_pfm_dirty_checked_bypass (CuT
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -531,15 +531,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty (CuTest *te
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
@@ -593,19 +593,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_bypass (CuT
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -628,10 +628,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_bypass (CuT
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -692,19 +692,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_bypass_mult
 	rw_host.count = 2;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -729,10 +729,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_bypass_mult
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -768,15 +768,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_checked (Cu
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
@@ -831,19 +831,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_checked_byp
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -866,10 +866,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_not_dirty_checked_byp
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -923,19 +923,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty (CuTest *test)
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -945,7 +945,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty (CuTest *test)
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -957,10 +957,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1021,19 +1021,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_multiple_fw (Cu
 	rw_host.count = 2;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -1045,7 +1045,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_multiple_fw (Cu
 		0, MOCK_ARG (2), MOCK_ARG (0x400), MOCK_ARG (0x500));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -1057,10 +1057,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_multiple_fw (Cu
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1117,19 +1117,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_no_observer (Cu
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -1139,16 +1139,16 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_no_observer (Cu
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.free_read_write_regions,
 		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1204,19 +1204,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass (CuTest 
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -1239,10 +1239,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass (CuTest 
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1298,19 +1298,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -1320,7 +1320,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -1332,10 +1332,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1398,19 +1398,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -1433,10 +1433,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1496,19 +1496,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -1518,7 +1518,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -1530,10 +1530,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1597,19 +1597,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -1632,10 +1632,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1691,19 +1691,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked (CuTest
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -1713,7 +1713,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked (CuTest
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -1725,10 +1725,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked (CuTest
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1785,19 +1785,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_bypass 
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -1820,10 +1820,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_bypass 
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1881,19 +1881,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -1903,7 +1903,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -1915,10 +1915,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -1982,19 +1982,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -2017,10 +2017,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -2081,19 +2081,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -2103,7 +2103,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -2115,10 +2115,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -2183,19 +2183,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -2218,10 +2218,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -2275,16 +2275,16 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_pulse_reset (Cu
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -2294,7 +2294,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_pulse_reset (Cu
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -2306,10 +2306,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_pulse_reset (Cu
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -2363,21 +2363,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty 
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -2400,10 +2400,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty 
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -2462,21 +2462,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	rw_host.count = 2;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -2501,10 +2501,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -2539,20 +2539,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -2574,7 +2574,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -2628,21 +2628,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -2668,10 +2668,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -2708,20 +2708,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -2732,7 +2732,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -2769,15 +2769,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
@@ -2833,21 +2833,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -2873,10 +2873,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -2916,20 +2916,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -2940,7 +2940,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -2994,21 +2994,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty (CuT
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -3019,7 +3019,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty (CuT
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -3031,10 +3031,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty (CuT
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3096,21 +3096,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_mult
 	rw_host.count = 2;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -3123,7 +3123,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_mult
 		0, MOCK_ARG (2), MOCK_ARG (0x400), MOCK_ARG (0x500));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -3135,10 +3135,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_mult
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3176,20 +3176,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -3211,7 +3211,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3267,21 +3267,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -3307,10 +3307,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3350,20 +3350,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -3374,7 +3374,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3430,21 +3430,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -3455,7 +3455,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -3467,10 +3467,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3512,20 +3512,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -3547,7 +3547,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3605,21 +3605,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -3645,10 +3645,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3691,20 +3691,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -3715,7 +3715,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3772,21 +3772,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_prev
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -3797,7 +3797,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_prev
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -3809,10 +3809,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_prev
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3875,21 +3875,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_prev
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -3900,7 +3900,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_prev
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -3912,10 +3912,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_prev
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -3973,21 +3973,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -3998,7 +3998,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -4010,10 +4010,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -4072,21 +4072,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -4097,7 +4097,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -4109,10 +4109,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_chec
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -4166,18 +4166,18 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_bypass_pul
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -4203,10 +4203,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_bypass_pul
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -4260,22 +4260,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -4298,12 +4298,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -4362,22 +4362,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	rw_host.count = 2;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -4402,12 +4402,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -4442,23 +4442,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -4480,7 +4480,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -4534,22 +4534,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -4576,12 +4576,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -4618,23 +4618,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -4645,7 +4645,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -4682,17 +4682,17 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
@@ -4732,17 +4732,17 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
@@ -4798,22 +4798,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -4840,12 +4840,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -4885,23 +4885,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -4912,7 +4912,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -4964,19 +4964,19 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -4999,12 +4999,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -5061,22 +5061,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty (C
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -5087,7 +5087,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty (C
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -5099,12 +5099,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty (C
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -5166,22 +5166,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_mu
 	rw_host.count = 2;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -5194,7 +5194,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_mu
 		0, MOCK_ARG (2), MOCK_ARG (0x400), MOCK_ARG (0x500));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -5206,12 +5206,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_mu
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -5249,23 +5249,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -5287,7 +5287,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -5343,22 +5343,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -5385,12 +5385,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -5430,23 +5430,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -5457,7 +5457,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -5514,22 +5514,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -5540,7 +5540,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -5552,12 +5552,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -5620,22 +5620,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -5662,12 +5662,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -5730,22 +5730,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -5756,7 +5756,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -5768,12 +5768,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -5840,22 +5840,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -5882,12 +5882,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -5943,22 +5943,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -5969,7 +5969,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -5981,12 +5981,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -6028,23 +6028,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -6066,7 +6066,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -6124,22 +6124,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -6166,12 +6166,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -6214,23 +6214,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -6241,7 +6241,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -6299,22 +6299,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -6324,7 +6324,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -6336,12 +6336,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -6405,22 +6405,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -6447,12 +6447,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -6511,22 +6511,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm_next), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -6537,7 +6537,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -6549,12 +6549,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -6619,22 +6619,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -6661,12 +6661,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -6721,19 +6721,19 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pu
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -6744,7 +6744,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pu
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -6756,12 +6756,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pu
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -6818,23 +6818,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -6852,10 +6852,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -6910,23 +6910,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -6944,10 +6944,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -6985,23 +6985,24 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -7010,10 +7011,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7068,23 +7069,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -7108,10 +7109,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_fail
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7165,23 +7166,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_hash_validation
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -7199,10 +7200,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_hash_validation
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7256,23 +7257,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_blank_fail (CuT
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -7290,10 +7291,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_blank_fail (CuT
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7347,23 +7348,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_unknown_version
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -7381,10 +7382,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_unknown_version
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7424,28 +7425,28 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_validati
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7485,28 +7486,28 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_hash_val
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7545,28 +7546,28 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_blank_fa
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7606,28 +7607,29 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_unknown_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7684,23 +7686,24 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -7718,10 +7721,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7778,23 +7781,24 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -7812,10 +7816,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7855,23 +7859,25 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -7880,10 +7886,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -7940,23 +7946,24 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -7980,10 +7987,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8042,23 +8049,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -8076,10 +8083,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8138,23 +8145,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -8172,10 +8179,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8217,23 +8224,24 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -8242,10 +8250,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8304,23 +8312,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -8344,10 +8352,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8406,23 +8414,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -8440,10 +8448,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8502,23 +8510,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -8536,10 +8544,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8598,23 +8606,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -8632,10 +8640,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_checked_prevali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8670,30 +8678,30 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8728,30 +8736,30 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8786,30 +8794,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8846,30 +8855,30 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8906,30 +8915,30 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -8966,30 +8975,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9044,25 +9054,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -9092,10 +9102,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9150,25 +9160,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -9198,10 +9208,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9256,25 +9266,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -9310,10 +9320,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9368,25 +9378,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_hash
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -9416,10 +9426,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_hash
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9474,25 +9484,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_blan
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -9522,10 +9532,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_blan
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9580,25 +9590,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_unkn
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -9628,10 +9638,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_unkn
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9669,25 +9679,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_v
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -9696,10 +9706,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_v
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9737,25 +9747,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_v
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
@@ -9764,10 +9774,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_v
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9805,25 +9815,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_h
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -9832,10 +9842,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_h
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9873,25 +9883,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_u
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -9900,10 +9911,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_u
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -9943,30 +9954,30 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10006,30 +10017,30 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10069,30 +10080,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10127,33 +10139,34 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10188,34 +10201,34 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10250,34 +10263,34 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10332,26 +10345,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -10381,12 +10394,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10441,26 +10454,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -10490,12 +10503,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10550,26 +10563,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -10605,12 +10618,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10665,26 +10678,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ha
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -10714,12 +10727,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ha
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10774,26 +10787,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_bl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -10823,12 +10836,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_bl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10883,26 +10896,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_un
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -10932,12 +10945,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_un
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -10994,26 +11007,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -11023,7 +11036,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -11035,12 +11048,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -11097,26 +11110,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -11126,7 +11139,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -11138,12 +11151,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -11200,26 +11213,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -11229,7 +11242,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -11241,12 +11254,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -11303,26 +11316,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -11332,7 +11345,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -11344,12 +11357,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -11404,30 +11417,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -11437,7 +11451,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -11449,12 +11463,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -11509,31 +11523,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -11543,7 +11557,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -11555,12 +11569,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -11615,31 +11629,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -11649,7 +11663,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -11661,12 +11675,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -11721,34 +11735,35 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -11766,12 +11781,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -11826,34 +11841,35 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -11871,12 +11887,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -11914,34 +11930,36 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -11950,12 +11968,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -12010,34 +12028,35 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -12061,12 +12080,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -12121,34 +12140,35 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -12166,12 +12186,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -12226,34 +12246,35 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -12271,12 +12292,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -12331,35 +12352,35 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -12377,12 +12398,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -12439,26 +12460,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -12488,12 +12509,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -12550,26 +12571,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -12599,12 +12620,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -12661,26 +12682,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -12716,12 +12737,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -12778,26 +12799,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -12827,12 +12848,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -12889,26 +12910,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -12938,12 +12959,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -13000,26 +13021,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -13049,12 +13070,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -13111,30 +13132,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -13144,7 +13166,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -13156,12 +13178,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -13218,31 +13240,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -13252,7 +13274,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -13264,12 +13286,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -13326,31 +13348,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -13360,7 +13382,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -13372,12 +13394,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -13434,34 +13456,36 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -13479,12 +13503,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -13541,34 +13565,36 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -13586,12 +13612,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -13631,34 +13657,37 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -13667,12 +13696,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -13729,34 +13758,36 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -13780,12 +13811,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -13843,26 +13874,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -13880,12 +13912,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -13943,26 +13975,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -13980,12 +14013,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -14026,26 +14059,28 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -14054,12 +14089,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -14117,26 +14152,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -14160,12 +14196,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -14224,27 +14260,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next), MOCK_ARG (true),
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -14262,12 +14298,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -14326,27 +14362,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next), MOCK_ARG (true),
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -14364,12 +14400,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -14411,27 +14447,28 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next), MOCK_ARG (true),
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -14440,12 +14477,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -14504,27 +14541,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next), MOCK_ARG (true),
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -14548,12 +14585,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -14610,26 +14647,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -14652,12 +14690,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -14714,26 +14752,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -14756,12 +14795,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -14818,26 +14857,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash),MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -14860,12 +14900,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -14922,27 +14962,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (NULL), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true),
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -14965,12 +15005,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -15010,37 +15050,38 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -15080,37 +15121,38 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -15150,37 +15192,38 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL),MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -15220,37 +15263,39 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -15304,20 +15349,20 @@ static void host_processor_dual_test_soft_reset_validation_fail_pulse_reset (CuT
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -15335,10 +15380,10 @@ static void host_processor_dual_test_soft_reset_validation_fail_pulse_reset (CuT
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -15395,20 +15440,20 @@ static void host_processor_dual_test_soft_reset_hash_validation_fail_pulse_reset
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -15426,10 +15471,10 @@ static void host_processor_dual_test_soft_reset_hash_validation_fail_pulse_reset
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -15486,20 +15531,20 @@ static void host_processor_dual_test_soft_reset_blank_fail_pulse_reset (CuTest *
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -15517,10 +15562,10 @@ static void host_processor_dual_test_soft_reset_blank_fail_pulse_reset (CuTest *
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -15577,20 +15622,20 @@ static void host_processor_dual_test_soft_reset_unknown_version_pulse_reset (CuT
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -15608,10 +15653,10 @@ static void host_processor_dual_test_soft_reset_unknown_version_pulse_reset (CuT
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -15704,24 +15749,24 @@ static void host_processor_dual_test_soft_reset_rot_access_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -15758,21 +15803,21 @@ static void host_processor_dual_test_soft_reset_rot_access_error_pulse_reset (Cu
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -15812,32 +15857,32 @@ static void host_processor_dual_test_soft_reset_rot_access_error_host_access_err
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_ROT_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
@@ -15892,19 +15937,19 @@ static void host_processor_dual_test_soft_reset_host_access_error (CuTest *test)
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -15914,7 +15959,7 @@ static void host_processor_dual_test_soft_reset_host_access_error (CuTest *test)
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -15926,18 +15971,18 @@ static void host_processor_dual_test_soft_reset_host_access_error (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
@@ -15992,16 +16037,16 @@ static void host_processor_dual_test_soft_reset_host_access_error_pulse_reset (C
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -16011,7 +16056,7 @@ static void host_processor_dual_test_soft_reset_host_access_error_pulse_reset (C
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -16023,16 +16068,16 @@ static void host_processor_dual_test_soft_reset_host_access_error_pulse_reset (C
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG (&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_HOST_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -16069,15 +16114,15 @@ static void host_processor_dual_test_soft_reset_no_pfm_clear_error (CuTest *test
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
@@ -16097,7 +16142,7 @@ static void host_processor_dual_test_soft_reset_no_pfm_clear_error (CuTest *test
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -16131,15 +16176,15 @@ static void host_processor_dual_test_soft_reset_no_pfm_filter_error (CuTest *tes
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -16167,7 +16212,7 @@ static void host_processor_dual_test_soft_reset_no_pfm_filter_error (CuTest *tes
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -16201,15 +16246,15 @@ static void host_processor_dual_test_soft_reset_no_pfm_cs_error (CuTest *test)
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -16256,7 +16301,7 @@ static void host_processor_dual_test_soft_reset_no_pfm_cs_error (CuTest *test)
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -16295,9 +16340,9 @@ static void host_processor_dual_test_soft_reset_no_pfm_bypass_clear_error (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, SPI_FILTER_CLEAR_DIRTY_FAILED);
@@ -16358,23 +16403,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -16389,10 +16434,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -16430,32 +16475,33 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -16510,23 +16556,23 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -16547,10 +16593,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -16605,20 +16651,20 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -16633,10 +16679,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_validation_erro
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -16693,19 +16739,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_swap_error (CuT
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -16715,15 +16761,16 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_swap_error (CuT
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-			&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+			&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
+			MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -16735,10 +16782,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_swap_error (CuT
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -16792,19 +16839,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_filter_error (C
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -16822,7 +16869,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_filter_error (C
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -16834,10 +16881,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_filter_error (C
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -16877,28 +16924,29 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_validati
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -16938,25 +16986,26 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_validati
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -17015,19 +17064,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_init_err
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -17062,10 +17111,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_init_err
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -17121,19 +17170,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_filter_e
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -17164,10 +17213,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_bypass_filter_e
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -17224,23 +17273,24 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -17255,10 +17305,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -17298,32 +17348,34 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -17380,23 +17432,24 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -17417,10 +17470,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -17477,19 +17530,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -17499,15 +17552,15 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -17519,10 +17572,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -17579,19 +17632,19 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -17609,7 +17662,7 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -17621,10 +17674,10 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_prevalidated_fl
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -17659,30 +17712,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -17717,27 +17771,28 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_processor_dual_testing_init_pulse_reset (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -17775,15 +17830,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm,
 		MANIFEST_CHECK_EMPTY_FAILED);
@@ -17792,10 +17847,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -17847,21 +17902,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -17892,10 +17947,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_not_dirty_
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -17950,25 +18005,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -17995,10 +18050,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18053,25 +18108,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -18104,10 +18159,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18145,34 +18200,35 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_v
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18210,34 +18266,34 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18275,25 +18331,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -18302,10 +18359,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18360,22 +18417,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -18402,10 +18459,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_vali
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -18446,15 +18503,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm,
 		MANIFEST_CHECK_EMPTY_FAILED);
@@ -18463,10 +18520,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18521,21 +18578,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_swap
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -18547,18 +18604,18 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_swap
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -18570,10 +18627,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_swap
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18628,21 +18685,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_filt
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -18661,7 +18718,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_filt
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -18673,10 +18730,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_filt
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18731,25 +18788,25 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_f
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
@@ -18784,10 +18841,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_ro_f
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18825,20 +18882,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
@@ -18846,7 +18903,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18884,20 +18941,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -18919,7 +18976,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -18957,20 +19014,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -19000,7 +19057,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19038,20 +19095,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -19100,7 +19157,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_empt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19140,30 +19197,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19203,27 +19261,28 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -19266,15 +19325,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm,
 		MANIFEST_CHECK_EMPTY_FAILED);
@@ -19283,10 +19342,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19343,21 +19402,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -19395,10 +19454,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19455,21 +19514,21 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -19503,10 +19562,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19546,20 +19605,20 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
@@ -19567,7 +19626,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_bypa
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19602,34 +19661,34 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19664,31 +19723,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init_pulse_reset (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -19726,29 +19785,29 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		MANIFEST_CHECK_EMPTY_FAILED);
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19800,22 +19859,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -19846,12 +19905,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19886,23 +19945,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
@@ -19910,7 +19969,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -19945,23 +20004,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -19983,7 +20042,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -20018,23 +20077,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -20064,7 +20123,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -20099,23 +20158,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -20164,7 +20223,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_not_dirt
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -20219,26 +20278,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -20265,12 +20324,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -20325,26 +20384,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -20377,12 +20436,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -20439,26 +20498,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -20468,7 +20527,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -20480,12 +20539,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -20540,31 +20599,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -20574,7 +20633,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -20586,12 +20645,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -20646,30 +20705,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -20679,7 +20739,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -20691,12 +20751,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -20751,31 +20811,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa),MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -20785,7 +20845,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -20797,12 +20857,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_va
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -20857,34 +20917,35 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -20899,12 +20960,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -20942,45 +21003,47 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -21035,34 +21098,35 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -21083,12 +21147,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -21145,30 +21209,30 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -21183,12 +21247,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -21228,41 +21292,42 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -21319,30 +21384,30 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -21363,12 +21428,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -21423,31 +21488,32 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -21462,12 +21528,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
@@ -21525,24 +21591,24 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		MANIFEST_CHECK_EMPTY_FAILED);
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -21553,7 +21619,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -21565,10 +21631,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -21623,22 +21689,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_sw
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -21650,18 +21716,18 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_sw
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -21673,12 +21739,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_sw
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -21733,22 +21799,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_fi
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -21767,7 +21833,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_fi
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -21779,12 +21845,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_fi
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -21839,26 +21905,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -21893,12 +21959,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ro
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -21953,31 +22019,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -21987,15 +22053,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -22007,12 +22073,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -22067,31 +22133,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 
@@ -22109,7 +22175,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -22121,12 +22187,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ac
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -22164,23 +22230,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, MANIFEST_MANAGER_CLEAR_ALL_FAILED);
 
@@ -22188,7 +22254,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -22226,23 +22292,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -22264,7 +22330,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -22302,23 +22368,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -22348,7 +22414,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -22386,23 +22452,23 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
 
@@ -22451,7 +22517,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_em
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -22508,26 +22574,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -22554,12 +22620,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -22616,26 +22682,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -22668,12 +22734,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -22730,31 +22796,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -22764,7 +22830,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -22776,12 +22842,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -22838,30 +22904,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -22871,7 +22938,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -22883,12 +22950,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -22945,31 +23012,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -22979,7 +23046,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -22991,12 +23058,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -23053,35 +23120,36 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -23096,12 +23164,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -23141,46 +23209,48 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&host.flash_mgr.mock,
+		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
-
-	status |= mock_expect (&host.flash_mgr.mock,
-		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -23237,35 +23307,36 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -23286,12 +23357,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -23348,22 +23419,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -23375,18 +23446,18 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -23398,12 +23469,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -23460,22 +23531,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -23494,7 +23565,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -23506,12 +23577,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -23568,26 +23639,26 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -23622,12 +23693,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -23684,31 +23755,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -23718,15 +23789,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -23738,12 +23809,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -23800,31 +23871,31 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RW_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (&host.pfm), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (false),
-		MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa),
+		MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -23842,7 +23913,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -23854,12 +23925,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_pr
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -23917,26 +23988,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -23951,12 +24023,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -23997,37 +24069,39 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -24085,26 +24159,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -24125,12 +24200,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -24188,19 +24263,19 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -24210,15 +24285,15 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -24230,10 +24305,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -24291,19 +24366,19 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -24321,7 +24396,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (NULL));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -24333,10 +24408,10 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -24395,27 +24470,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm_next), MOCK_ARG (true),
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -24430,12 +24505,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -24477,38 +24552,39 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm_next), MOCK_ARG (true),
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		HOST_FLASH_MGR_GET_RW_FAILED, MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -24567,27 +24643,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr,
-		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG (&host.pfm_next), MOCK_ARG (true),
+		HOST_FLASH_MGR_RW_REGIONS_FAILED, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm), MOCK_ARG (false), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 
@@ -24608,12 +24684,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -24672,22 +24748,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm_next), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -24699,18 +24775,18 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
 		&host.flash_mgr, HOST_FLASH_MGR_SWAP_FAILED, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (&host.pfm_mgr));
+		MOCK_ARG_PTR (&host.pfm_mgr));
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -24722,12 +24798,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -24786,22 +24862,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock,
 		host.flash_mgr.base.base.get_flash_read_write_regions, &host.flash_mgr, 0,
-		MOCK_ARG (&host.pfm_next), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 2, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 2, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -24820,7 +24896,7 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&host.pfm_mgr));
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
 		0);
@@ -24832,12 +24908,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_ch
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -24894,27 +24970,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (NULL), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true),
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -24937,12 +25013,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -24999,22 +25075,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -25053,12 +25129,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -25115,22 +25191,22 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm_next), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm_next.mock, 0);
@@ -25165,12 +25241,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -25210,37 +25286,39 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG (&host.pfm_next), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_NO_MEMORY, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm), MOCK_ARG (NULL),
-		MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -25297,27 +25375,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (NULL), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true),
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -25352,12 +25430,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 
@@ -25414,27 +25492,27 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 	rw_host.count = 1;
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		0);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG (&host.pfm_next),
-		MOCK_ARG (NULL), MOCK_ARG (&host.hash), MOCK_ARG (&host.rsa), MOCK_ARG (true),
+		&host.flash_mgr, HOST_FLASH_MGR_VALIDATE_RO_FAILED, MOCK_ARG_PTR (&host.pfm_next),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true),
 		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_only_flash,
-		&host.flash_mgr, 0, MOCK_ARG (&host.pfm), MOCK_ARG (NULL), MOCK_ARG (&host.hash),
-		MOCK_ARG (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR (&host.hash), MOCK_ARG_PTR (&host.rsa), MOCK_ARG (true), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&host.flash_mgr.mock, 5, &rw_host, sizeof (rw_host), -1);
 	status |= mock_expect_save_arg (&host.flash_mgr.mock, 5, 0);
 
@@ -25465,12 +25543,12 @@ static void host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_by
 		0);
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG (&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG (&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (false));
 

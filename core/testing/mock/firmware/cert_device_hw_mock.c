@@ -15,8 +15,8 @@ static int cert_device_hw_mock_verify_root_key (struct cert_device_hw *hw, const
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cert_device_hw_mock_verify_root_key, hw, MOCK_ARG_CALL (root_key),
-		MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (hash));
+	MOCK_RETURN (&mock->mock, cert_device_hw_mock_verify_root_key, hw, MOCK_ARG_PTR_CALL (root_key),
+		MOCK_ARG_CALL (key_length), MOCK_ARG_PTR_CALL (hash));
 }
 
 static int cert_device_hw_mock_is_root_key_trusted (struct cert_device_hw *hw, int root_id)
@@ -40,7 +40,7 @@ static int cert_device_hw_mock_get_minimum_key_length (struct cert_device_hw *hw
 	}
 
 	MOCK_RETURN (&mock->mock, cert_device_hw_mock_get_minimum_key_length, hw,
-		MOCK_ARG_CALL (key_length));
+		MOCK_ARG_PTR_CALL (key_length));
 }
 
 static int cert_device_hw_mock_get_revocation (struct cert_device_hw *hw, uint32_t *id)
@@ -51,7 +51,7 @@ static int cert_device_hw_mock_get_revocation (struct cert_device_hw *hw, uint32
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cert_device_hw_mock_get_revocation, hw, MOCK_ARG_CALL (id));
+	MOCK_RETURN (&mock->mock, cert_device_hw_mock_get_revocation, hw, MOCK_ARG_PTR_CALL (id));
 }
 
 static int cert_device_hw_mock_set_revocation (struct cert_device_hw *hw, uint32_t id)

@@ -14,7 +14,7 @@ static struct recovery_image* recovery_image_manager_mock_get_active_recovery_im
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct recovery_image*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct recovery_image*,
 		recovery_image_manager_mock_get_active_recovery_image, manager);
 }
 
@@ -41,7 +41,7 @@ static void recovery_image_manager_mock_free_recovery_image (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, recovery_image_manager_mock_free_recovery_image, manager,
-		MOCK_ARG_CALL (image));
+		MOCK_ARG_PTR_CALL (image));
 }
 
 static int recovery_image_manager_mock_activate_recovery_image (
@@ -66,7 +66,7 @@ static int recovery_image_manager_mock_write_recovery_image_data (
 	}
 
 	MOCK_RETURN (&mock->mock, recovery_image_manager_mock_write_recovery_image_data, manager,
-		MOCK_ARG_CALL (data), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static struct flash_updater* recovery_image_manager_mock_get_flash_update_manager (
@@ -78,7 +78,7 @@ static struct flash_updater* recovery_image_manager_mock_get_flash_update_manage
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct flash_updater*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct flash_updater*,
 		recovery_image_manager_mock_get_flash_update_manager, manager);
 }
 

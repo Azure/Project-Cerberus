@@ -16,7 +16,7 @@ static void pcd_observer_mock_on_pcd_activated (struct pcd_observer *observer, s
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, pcd_observer_mock_on_pcd_activated, observer,
-		MOCK_ARG_CALL (active));
+		MOCK_ARG_PTR_CALL (active));
 }
 
 static void pcd_observer_mock_on_pcd_verified (struct pcd_observer *observer, struct pcd *pending)
@@ -28,7 +28,7 @@ static void pcd_observer_mock_on_pcd_verified (struct pcd_observer *observer, st
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, pcd_observer_mock_on_pcd_verified, observer,
-		MOCK_ARG_CALL (pending));
+		MOCK_ARG_PTR_CALL (pending));
 }
 
 static void pcd_observer_mock_on_clear_active (struct pcd_observer *observer)

@@ -49,8 +49,8 @@ static int bmc_recovery_mock_on_host_cs1 (struct bmc_recovery *recovery, struct 
 		return 0;
 	}
 
-	MOCK_RETURN (&mock->mock, bmc_recovery_mock_on_host_cs1, recovery, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (rsa));
+	MOCK_RETURN (&mock->mock, bmc_recovery_mock_on_host_cs1, recovery, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (rsa));
 }
 
 static int bmc_recovery_mock_func_arg_count (void *func)

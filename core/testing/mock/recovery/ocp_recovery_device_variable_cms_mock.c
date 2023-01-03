@@ -31,7 +31,7 @@ static int ocp_recovery_device_variable_cms_mock_get_data (
 	}
 
 	MOCK_RETURN (&mock->mock, ocp_recovery_device_variable_cms_mock_get_data, cms,
-		MOCK_ARG_CALL (offset), MOCK_ARG_CALL (data), MOCK_ARG_CALL (length));
+		MOCK_ARG_CALL (offset), MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static int ocp_recovery_device_variable_cms_mock_func_arg_count (void *func)

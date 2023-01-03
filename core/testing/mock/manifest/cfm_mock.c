@@ -16,8 +16,9 @@ static int cfm_mock_verify (struct manifest *cfm, struct hash_engine *hash,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cfm_mock_verify, cfm, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (verification), MOCK_ARG_CALL (hash_out), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, cfm_mock_verify, cfm, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (verification), MOCK_ARG_PTR_CALL (hash_out),
+		MOCK_ARG_CALL (hash_length));
 }
 
 static int cfm_mock_get_id (struct manifest *cfm, uint32_t *id)
@@ -28,7 +29,7 @@ static int cfm_mock_get_id (struct manifest *cfm, uint32_t *id)
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cfm_mock_get_id, cfm, MOCK_ARG_CALL (id));
+	MOCK_RETURN (&mock->mock, cfm_mock_get_id, cfm, MOCK_ARG_PTR_CALL (id));
 }
 
 static int cfm_mock_get_platform_id (struct manifest *cfm, char **id, size_t length)
@@ -39,7 +40,7 @@ static int cfm_mock_get_platform_id (struct manifest *cfm, char **id, size_t len
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cfm_mock_get_platform_id, cfm, MOCK_ARG_CALL (id),
+	MOCK_RETURN (&mock->mock, cfm_mock_get_platform_id, cfm, MOCK_ARG_PTR_CALL (id),
 		MOCK_ARG_CALL (length));
 }
 
@@ -51,7 +52,7 @@ static void cfm_mock_free_platform_id (struct manifest *cfm, char *id)
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_platform_id, cfm, MOCK_ARG_CALL (id));
+	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_platform_id, cfm, MOCK_ARG_PTR_CALL (id));
 }
 
 static int cfm_mock_get_hash (struct manifest *cfm, struct hash_engine *hash, uint8_t *hash_out,
@@ -63,8 +64,8 @@ static int cfm_mock_get_hash (struct manifest *cfm, struct hash_engine *hash, ui
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cfm_mock_get_hash, cfm, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (hash_out), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, cfm_mock_get_hash, cfm, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (hash_out), MOCK_ARG_CALL (hash_length));
 }
 
 static int cfm_mock_get_signature (struct manifest *cfm, uint8_t *signature, size_t length)
@@ -75,7 +76,7 @@ static int cfm_mock_get_signature (struct manifest *cfm, uint8_t *signature, siz
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cfm_mock_get_signature, cfm, MOCK_ARG_CALL (signature),
+	MOCK_RETURN (&mock->mock, cfm_mock_get_signature, cfm, MOCK_ARG_PTR_CALL (signature),
 		MOCK_ARG_CALL (length));
 }
 
@@ -100,7 +101,7 @@ static int cfm_mock_get_component_pmr (struct cfm *cfm, uint32_t component_id, u
 	}
 
 	MOCK_RETURN (&mock->mock, cfm_mock_get_component_pmr, cfm, MOCK_ARG_CALL (component_id),
-		MOCK_ARG_CALL (pmr_id), MOCK_ARG_CALL (pmr));
+		MOCK_ARG_CALL (pmr_id), MOCK_ARG_PTR_CALL (pmr));
 }
 
 static int cfm_mock_get_component_pmr_digest (struct cfm *cfm, uint32_t component_id,
@@ -113,7 +114,7 @@ static int cfm_mock_get_component_pmr_digest (struct cfm *cfm, uint32_t componen
 	}
 
 	MOCK_RETURN (&mock->mock, cfm_mock_get_component_pmr_digest, cfm,
-		MOCK_ARG_CALL (component_id), MOCK_ARG_CALL (pmr_id), MOCK_ARG_CALL (pmr_digest));
+		MOCK_ARG_CALL (component_id), MOCK_ARG_CALL (pmr_id), MOCK_ARG_PTR_CALL (pmr_digest));
 }
 
 static void cfm_mock_free_component_pmr_digest (struct cfm *cfm, struct cfm_pmr_digest *pmr_digest)
@@ -125,7 +126,7 @@ static void cfm_mock_free_component_pmr_digest (struct cfm *cfm, struct cfm_pmr_
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_component_pmr_digest, cfm,
-		MOCK_ARG_CALL (pmr_digest));
+		MOCK_ARG_PTR_CALL (pmr_digest));
 }
 
 static int cfm_mock_buffer_supported_components (struct cfm *cfm, size_t offset, size_t length,
@@ -138,7 +139,7 @@ static int cfm_mock_buffer_supported_components (struct cfm *cfm, size_t offset,
 	}
 
 	MOCK_RETURN (&mock->mock, cfm_mock_buffer_supported_components, cfm, MOCK_ARG_CALL (offset),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (components));
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (components));
 }
 
 static int cfm_mock_get_component_device (struct cfm *cfm, uint32_t component_id,
@@ -151,7 +152,7 @@ static int cfm_mock_get_component_device (struct cfm *cfm, uint32_t component_id
 	}
 
 	MOCK_RETURN (&mock->mock, cfm_mock_get_component_device, cfm, MOCK_ARG_CALL (component_id),
-		MOCK_ARG_CALL (component));
+		MOCK_ARG_PTR_CALL (component));
 }
 
 static void cfm_mock_free_component_device (struct cfm *cfm, struct cfm_component_device *component)
@@ -162,7 +163,8 @@ static void cfm_mock_free_component_device (struct cfm *cfm, struct cfm_componen
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_component_device, cfm, MOCK_ARG_CALL (component));
+	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_component_device, cfm,
+		MOCK_ARG_PTR_CALL (component));
 }
 
 static int cfm_mock_get_next_measurement_or_measurement_data (struct cfm *cfm,
@@ -175,7 +177,7 @@ static int cfm_mock_get_next_measurement_or_measurement_data (struct cfm *cfm,
 	}
 
 	MOCK_RETURN (&mock->mock, cfm_mock_get_next_measurement_or_measurement_data, cfm,
-		MOCK_ARG_CALL (component_id), MOCK_ARG_CALL (container), MOCK_ARG_CALL (first));
+		MOCK_ARG_CALL (component_id), MOCK_ARG_PTR_CALL (container), MOCK_ARG_CALL (first));
 }
 
 static void cfm_mock_free_measurement_container (struct cfm *cfm,
@@ -188,7 +190,7 @@ static void cfm_mock_free_measurement_container (struct cfm *cfm,
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_measurement_container, cfm,
-		MOCK_ARG_CALL (container));
+		MOCK_ARG_PTR_CALL (container));
 }
 
 static int cfm_mock_get_root_ca_digest (struct cfm *cfm, uint32_t component_id,
@@ -201,7 +203,7 @@ static int cfm_mock_get_root_ca_digest (struct cfm *cfm, uint32_t component_id,
 	}
 
 	MOCK_RETURN (&mock->mock, cfm_mock_get_root_ca_digest, cfm, MOCK_ARG_CALL (component_id),
-		MOCK_ARG_CALL (root_ca_digest));
+		MOCK_ARG_PTR_CALL (root_ca_digest));
 }
 
 static void cfm_mock_free_root_ca_digest (struct cfm *cfm,
@@ -214,7 +216,7 @@ static void cfm_mock_free_root_ca_digest (struct cfm *cfm,
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_root_ca_digest, cfm,
-		MOCK_ARG_CALL (root_ca_digest));
+		MOCK_ARG_PTR_CALL (root_ca_digest));
 }
 
 static int cfm_mock_get_next_pfm (struct cfm *cfm, uint32_t component_id,
@@ -227,7 +229,7 @@ static int cfm_mock_get_next_pfm (struct cfm *cfm, uint32_t component_id,
 	}
 
 	MOCK_RETURN (&mock->mock, cfm_mock_get_next_pfm, cfm, MOCK_ARG_CALL (component_id),
-		MOCK_ARG_CALL (allowable_pfm), MOCK_ARG_CALL (first));
+		MOCK_ARG_PTR_CALL (allowable_pfm), MOCK_ARG_CALL (first));
 }
 
 static int cfm_mock_get_next_cfm (struct cfm *cfm, uint32_t component_id,
@@ -240,7 +242,7 @@ static int cfm_mock_get_next_cfm (struct cfm *cfm, uint32_t component_id,
 	}
 
 	MOCK_RETURN (&mock->mock, cfm_mock_get_next_cfm, cfm, MOCK_ARG_CALL (component_id),
-		MOCK_ARG_CALL (allowable_cfm), MOCK_ARG_CALL (first));
+		MOCK_ARG_PTR_CALL (allowable_cfm), MOCK_ARG_CALL (first));
 }
 
 static int cfm_mock_get_pcd (struct cfm *cfm, uint32_t component_id,
@@ -253,7 +255,7 @@ static int cfm_mock_get_pcd (struct cfm *cfm, uint32_t component_id,
 	}
 
 	MOCK_RETURN (&mock->mock, cfm_mock_get_pcd, cfm, MOCK_ARG_CALL (component_id),
-		MOCK_ARG_CALL (allowable_pcd));
+		MOCK_ARG_PTR_CALL (allowable_pcd));
 }
 
 static void cfm_mock_free_manifest (struct cfm *cfm, struct cfm_manifest *manifest)
@@ -264,7 +266,7 @@ static void cfm_mock_free_manifest (struct cfm *cfm, struct cfm_manifest *manife
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_manifest, cfm, MOCK_ARG_CALL (manifest));
+	MOCK_VOID_RETURN (&mock->mock, cfm_mock_free_manifest, cfm, MOCK_ARG_PTR_CALL (manifest));
 }
 
 static int cfm_mock_func_arg_count (void *func)

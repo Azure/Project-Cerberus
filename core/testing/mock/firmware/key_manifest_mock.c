@@ -15,7 +15,7 @@ static int key_manifest_mock_verify (const struct key_manifest *manifest, struct
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, key_manifest_mock_verify, manifest, MOCK_ARG_CALL (hash));
+	MOCK_RETURN (&mock->mock, key_manifest_mock_verify, manifest, MOCK_ARG_PTR_CALL (hash));
 }
 
 static int key_manifest_mock_is_allowed (const struct key_manifest *manifest)
@@ -60,7 +60,7 @@ static const struct key_manifest_public_key* key_manifest_mock_get_root_key (
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct key_manifest_public_key*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct key_manifest_public_key*,
 		key_manifest_mock_get_root_key, manifest);
 }
 
@@ -73,7 +73,7 @@ static const struct key_manifest_public_key* key_manifest_mock_get_app_key (
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct key_manifest_public_key*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct key_manifest_public_key*,
 		key_manifest_mock_get_app_key, manifest);
 }
 
@@ -86,7 +86,7 @@ static const struct key_manifest_public_key* key_manifest_mock_get_manifest_key 
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct key_manifest_public_key*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct key_manifest_public_key*,
 		key_manifest_mock_get_manifest_key, manifest);
 }
 

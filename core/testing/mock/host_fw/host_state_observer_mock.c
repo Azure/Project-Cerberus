@@ -18,7 +18,7 @@ static void host_state_observer_mock_on_active_pfm (struct host_state_observer *
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, host_state_observer_mock_on_active_pfm, observer,
-		MOCK_ARG_CALL (manager));
+		MOCK_ARG_PTR_CALL (manager));
 }
 
 static void host_state_observer_mock_on_read_only_flash (struct host_state_observer *observer,
@@ -31,7 +31,7 @@ static void host_state_observer_mock_on_read_only_flash (struct host_state_obser
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, host_state_observer_mock_on_read_only_flash, observer,
-		MOCK_ARG_CALL (manager));
+		MOCK_ARG_PTR_CALL (manager));
 }
 
 static void host_state_observer_mock_on_inactive_dirty (struct host_state_observer *observer,
@@ -44,7 +44,7 @@ static void host_state_observer_mock_on_inactive_dirty (struct host_state_observ
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, host_state_observer_mock_on_inactive_dirty, observer,
-		MOCK_ARG_CALL (manager));
+		MOCK_ARG_PTR_CALL (manager));
 }
 
 static void host_state_observer_mock_on_active_recovery_image (struct host_state_observer *observer,
@@ -57,7 +57,7 @@ static void host_state_observer_mock_on_active_recovery_image (struct host_state
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, host_state_observer_mock_on_active_recovery_image, observer,
-		MOCK_ARG_CALL (manager));
+		MOCK_ARG_PTR_CALL (manager));
 }
 
 static void host_state_observer_mock_on_pfm_dirty (struct host_state_observer *observer,
@@ -70,7 +70,7 @@ static void host_state_observer_mock_on_pfm_dirty (struct host_state_observer *o
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, host_state_observer_mock_on_pfm_dirty, observer,
-		MOCK_ARG_CALL (manager));
+		MOCK_ARG_PTR_CALL (manager));
 }
 
 static void host_state_observer_mock_on_run_time_validation (struct host_state_observer *observer,
@@ -83,7 +83,7 @@ static void host_state_observer_mock_on_run_time_validation (struct host_state_o
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, host_state_observer_mock_on_run_time_validation, observer,
-		MOCK_ARG_CALL (manager));
+		MOCK_ARG_PTR_CALL (manager));
 }
 
 static void host_state_observer_mock_on_bypass_mode (struct host_state_observer *observer,
@@ -96,7 +96,7 @@ static void host_state_observer_mock_on_bypass_mode (struct host_state_observer 
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, host_state_observer_mock_on_bypass_mode, observer,
-		MOCK_ARG_CALL (manager));
+		MOCK_ARG_PTR_CALL (manager));
 }
 
 static void host_state_observer_mock_on_unsupported_flash (struct host_state_observer *observer,
@@ -109,7 +109,7 @@ static void host_state_observer_mock_on_unsupported_flash (struct host_state_obs
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, host_state_observer_mock_on_unsupported_flash, observer,
-		MOCK_ARG_CALL (manager));
+		MOCK_ARG_PTR_CALL (manager));
 }
 
 static int host_state_observer_mock_func_arg_count (void *func)

@@ -16,8 +16,9 @@ static int manifest_mock_verify (struct manifest *manifest, struct hash_engine *
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, manifest_mock_verify, manifest, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (verification), MOCK_ARG_CALL (hash_out), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, manifest_mock_verify, manifest, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (verification), MOCK_ARG_PTR_CALL (hash_out),
+		MOCK_ARG_CALL (hash_length));
 }
 
 static int manifest_mock_get_id (struct manifest *manifest, uint32_t *id)
@@ -28,7 +29,7 @@ static int manifest_mock_get_id (struct manifest *manifest, uint32_t *id)
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, manifest_mock_get_id, manifest, MOCK_ARG_CALL (id));
+	MOCK_RETURN (&mock->mock, manifest_mock_get_id, manifest, MOCK_ARG_PTR_CALL (id));
 }
 
 static int manifest_mock_get_platform_id (struct manifest *manifest, char **id, size_t length)
@@ -39,7 +40,7 @@ static int manifest_mock_get_platform_id (struct manifest *manifest, char **id, 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, manifest_mock_get_platform_id, manifest, MOCK_ARG_CALL (id),
+	MOCK_RETURN (&mock->mock, manifest_mock_get_platform_id, manifest, MOCK_ARG_PTR_CALL (id),
 		MOCK_ARG_CALL (length));
 }
 
@@ -51,7 +52,8 @@ static void manifest_mock_free_platform_id (struct manifest *manifest, char *id)
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, manifest_mock_free_platform_id, manifest, MOCK_ARG_CALL (id));
+	MOCK_VOID_RETURN (&mock->mock, manifest_mock_free_platform_id, manifest,
+		MOCK_ARG_PTR_CALL (id));
 }
 
 static int manifest_mock_get_hash (struct manifest *manifest, struct hash_engine *hash,
@@ -63,11 +65,12 @@ static int manifest_mock_get_hash (struct manifest *manifest, struct hash_engine
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, manifest_mock_get_hash, manifest, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (hash_out), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, manifest_mock_get_hash, manifest, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (hash_out), MOCK_ARG_CALL (hash_length));
 }
 
-static int manifest_mock_get_signature (struct manifest *manifest, uint8_t *signature, size_t length)
+static int manifest_mock_get_signature (struct manifest *manifest, uint8_t *signature,
+	size_t length)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;
 
@@ -75,7 +78,7 @@ static int manifest_mock_get_signature (struct manifest *manifest, uint8_t *sign
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, manifest_mock_get_signature, manifest, MOCK_ARG_CALL (signature),
+	MOCK_RETURN (&mock->mock, manifest_mock_get_signature, manifest, MOCK_ARG_PTR_CALL (signature),
 		MOCK_ARG_CALL (length));
 }
 

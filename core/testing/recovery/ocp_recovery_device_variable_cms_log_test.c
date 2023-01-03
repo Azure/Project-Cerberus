@@ -232,7 +232,7 @@ static void ocp_recovery_device_variable_cms_log_test_get_data (CuTest *test)
 	ocp_recovery_device_variable_cms_log_testing_init (test, &cms);
 
 	status = mock_expect (&cms.log.mock, cms.log.base.read_contents, &cms.log, length,
-		MOCK_ARG (offset), MOCK_ARG (data), MOCK_ARG (length));
+		MOCK_ARG (offset), MOCK_ARG_PTR (data), MOCK_ARG (length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cms.test.base.get_data (&cms.test.base, offset, data, length);
@@ -254,7 +254,7 @@ static void ocp_recovery_device_variable_cms_log_test_get_data_non_zero_offset (
 	ocp_recovery_device_variable_cms_log_testing_init (test, &cms);
 
 	status = mock_expect (&cms.log.mock, cms.log.base.read_contents, &cms.log, length,
-		MOCK_ARG (offset), MOCK_ARG (data), MOCK_ARG (length));
+		MOCK_ARG (offset), MOCK_ARG_PTR (data), MOCK_ARG (length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cms.test.base.get_data (&cms.test.base, offset, data, length);
@@ -278,7 +278,7 @@ static void ocp_recovery_device_variable_cms_log_test_get_data_static_init (CuTe
 	ocp_recovery_device_variable_cms_log_testing_init_dependencies (test, &cms);
 
 	status = mock_expect (&cms.log.mock, cms.log.base.read_contents, &cms.log, length,
-		MOCK_ARG (offset), MOCK_ARG (data), MOCK_ARG (length));
+		MOCK_ARG (offset), MOCK_ARG_PTR (data), MOCK_ARG (length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base.get_data (&test_static.base, offset, data, length);
@@ -319,7 +319,7 @@ static void ocp_recovery_device_variable_cms_log_test_get_data_error (CuTest *te
 	ocp_recovery_device_variable_cms_log_testing_init (test, &cms);
 
 	status = mock_expect (&cms.log.mock, cms.log.base.read_contents, &cms.log,
-		LOGGING_READ_CONTENTS_FAILED, MOCK_ARG (offset), MOCK_ARG (data), MOCK_ARG (length));
+		LOGGING_READ_CONTENTS_FAILED, MOCK_ARG (offset), MOCK_ARG_PTR (data), MOCK_ARG (length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cms.test.base.get_data (&cms.test.base, offset, data, length);

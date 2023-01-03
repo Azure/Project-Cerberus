@@ -32,7 +32,7 @@ static int firmware_loader_mock_map_address (const struct firmware_loader *loade
 	}
 
 	MOCK_RETURN (&mock->mock, firmware_loader_mock_map_address, loader, MOCK_ARG_CALL (phy_addr),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (virt_addr));
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (virt_addr));
 }
 
 static void firmware_loader_mock_unmap_address (const struct firmware_loader *loader,
@@ -45,7 +45,7 @@ static void firmware_loader_mock_unmap_address (const struct firmware_loader *lo
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, firmware_loader_mock_unmap_address, loader,
-		MOCK_ARG_CALL (virt_addr));
+		MOCK_ARG_PTR_CALL (virt_addr));
 }
 
 static int firmware_loader_mock_load_image (const struct firmware_loader *loader,
@@ -59,10 +59,10 @@ static int firmware_loader_mock_load_image (const struct firmware_loader *loader
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, firmware_loader_mock_load_image, loader, MOCK_ARG_CALL (flash),
-		MOCK_ARG_CALL (src_addr), MOCK_ARG_CALL (length), MOCK_ARG_CALL (dest_addr),
-		MOCK_ARG_CALL (iv), MOCK_ARG_CALL (iv_length), MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (hash_algo), MOCK_ARG_CALL (digest), MOCK_ARG_CALL (digest_length));
+	MOCK_RETURN (&mock->mock, firmware_loader_mock_load_image, loader, MOCK_ARG_PTR_CALL (flash),
+		MOCK_ARG_CALL (src_addr), MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (dest_addr),
+		MOCK_ARG_PTR_CALL (iv), MOCK_ARG_CALL (iv_length), MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_CALL (hash_algo), MOCK_ARG_PTR_CALL (digest), MOCK_ARG_CALL (digest_length));
 }
 
 static int firmware_loader_mock_load_image_update_digest (const struct firmware_loader *loader,
@@ -76,9 +76,9 @@ static int firmware_loader_mock_load_image_update_digest (const struct firmware_
 	}
 
 	MOCK_RETURN (&mock->mock, firmware_loader_mock_load_image_update_digest, loader,
-		MOCK_ARG_CALL (flash), MOCK_ARG_CALL (src_addr), MOCK_ARG_CALL (length),
-		MOCK_ARG_CALL (dest_addr), MOCK_ARG_CALL (iv), MOCK_ARG_CALL (iv_length),
-		MOCK_ARG_CALL (hash));
+		MOCK_ARG_PTR_CALL (flash), MOCK_ARG_CALL (src_addr), MOCK_ARG_CALL (length),
+		MOCK_ARG_PTR_CALL (dest_addr), MOCK_ARG_PTR_CALL (iv), MOCK_ARG_CALL (iv_length),
+		MOCK_ARG_PTR_CALL (hash));
 }
 
 static int firmware_loader_mock_copy_image (const struct firmware_loader *loader,
@@ -91,10 +91,10 @@ static int firmware_loader_mock_copy_image (const struct firmware_loader *loader
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, firmware_loader_mock_copy_image, loader, MOCK_ARG_CALL (src_addr),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (dest_addr), MOCK_ARG_CALL (iv),
-		MOCK_ARG_CALL (iv_length), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (hash_algo),
-		MOCK_ARG_CALL (digest), MOCK_ARG_CALL (digest_length));
+	MOCK_RETURN (&mock->mock, firmware_loader_mock_copy_image, loader, MOCK_ARG_PTR_CALL (src_addr),
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (dest_addr), MOCK_ARG_PTR_CALL (iv),
+		MOCK_ARG_CALL (iv_length), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_algo),
+		MOCK_ARG_PTR_CALL (digest), MOCK_ARG_CALL (digest_length));
 }
 
 static int firmware_loader_mock_copy_image_update_digest (const struct firmware_loader *loader,
@@ -108,8 +108,8 @@ static int firmware_loader_mock_copy_image_update_digest (const struct firmware_
 	}
 
 	MOCK_RETURN (&mock->mock, firmware_loader_mock_copy_image_update_digest, loader,
-		MOCK_ARG_CALL (src_addr), MOCK_ARG_CALL (length), MOCK_ARG_CALL (dest_addr),
-		MOCK_ARG_CALL (iv), MOCK_ARG_CALL (iv_length), MOCK_ARG_CALL (hash));
+		MOCK_ARG_PTR_CALL (src_addr), MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (dest_addr),
+		MOCK_ARG_PTR_CALL (iv), MOCK_ARG_CALL (iv_length), MOCK_ARG_PTR_CALL (hash));
 }
 
 static int firmware_loader_mock_func_arg_count (void *func)

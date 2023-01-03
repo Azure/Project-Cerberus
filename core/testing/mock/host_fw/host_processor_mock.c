@@ -16,8 +16,8 @@ static int host_processor_mock_power_on_reset (struct host_processor *host,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, host_processor_mock_power_on_reset, host, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (rsa));
+	MOCK_RETURN (&mock->mock, host_processor_mock_power_on_reset, host, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (rsa));
 }
 
 static int host_processor_mock_soft_reset (struct host_processor *host, struct hash_engine *hash,
@@ -29,8 +29,8 @@ static int host_processor_mock_soft_reset (struct host_processor *host, struct h
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, host_processor_mock_soft_reset, host, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (rsa));
+	MOCK_RETURN (&mock->mock, host_processor_mock_soft_reset, host, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (rsa));
 }
 
 static int host_processor_mock_run_time_verification (struct host_processor *host,
@@ -42,8 +42,8 @@ static int host_processor_mock_run_time_verification (struct host_processor *hos
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, host_processor_mock_run_time_verification, host, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (rsa));
+	MOCK_RETURN (&mock->mock, host_processor_mock_run_time_verification, host,
+		MOCK_ARG_PTR_CALL (hash), MOCK_ARG_PTR_CALL (rsa));
 }
 
 static int host_processor_mock_flash_rollback (struct host_processor *host,
@@ -55,8 +55,8 @@ static int host_processor_mock_flash_rollback (struct host_processor *host,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, host_processor_mock_flash_rollback, host, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (rsa), MOCK_ARG_CALL (disable_bypass), MOCK_ARG_CALL (no_reset));
+	MOCK_RETURN (&mock->mock, host_processor_mock_flash_rollback, host, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (rsa), MOCK_ARG_CALL (disable_bypass), MOCK_ARG_CALL (no_reset));
 }
 
 static int host_processor_mock_recover_active_read_write_data (struct host_processor *host)

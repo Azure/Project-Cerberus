@@ -236,7 +236,7 @@ static void cfm_observer_pcr_test_on_cfm_activated (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
 		CFM_TESTING.manifest.hash_len, 2);
 
@@ -248,7 +248,7 @@ static void cfm_observer_pcr_test_on_cfm_activated (CuTest *test)
 	status |= mock_expect_output (&cfm.mock, 0, &cfm_platform_id, sizeof (cfm_platform_id), -1);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.free_platform_id, &cfm, 0,
-		MOCK_ARG (cfm_platform_id));
+		MOCK_ARG_PTR (cfm_platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -344,7 +344,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_sha384 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, SHA384_HASH_LENGTH,
-		MOCK_ARG (&hash),  MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash),  MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, &hash_out[5], SHA384_HASH_LENGTH, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
@@ -355,7 +355,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_sha384 (CuTest *test)
 	status |= mock_expect_output (&cfm.mock, 0, &cfm_platform_id, sizeof (cfm_platform_id), -1);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.free_platform_id, &cfm, 0,
-		MOCK_ARG (cfm_platform_id));
+		MOCK_ARG_PTR (cfm_platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -455,7 +455,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_sha512 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, SHA512_HASH_LENGTH,
-		MOCK_ARG (&hash),  MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash),  MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, &hash_out[5], SHA512_HASH_LENGTH, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
@@ -466,7 +466,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_sha512 (CuTest *test)
 	status |= mock_expect_output (&cfm.mock, 0, &cfm_platform_id, sizeof (cfm_platform_id), -1);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.free_platform_id, &cfm, 0,
-		MOCK_ARG (cfm_platform_id));
+		MOCK_ARG_PTR (cfm_platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -548,7 +548,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_hash_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, MANIFEST_GET_HASH_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -629,7 +629,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_get_id_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
 		CFM_TESTING.manifest.hash_len, 2);
 
@@ -719,7 +719,7 @@ static void cfm_observer_pcr_test_on_cfm_activated_get_platform_id_error (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
 		CFM_TESTING.manifest.hash_len, 2);
 
@@ -827,11 +827,12 @@ static void cfm_observer_pcr_test_record_measurement (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) &cfm);
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG (&cfm));
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG_PTR (&cfm));
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
 		CFM_TESTING.manifest.hash_len, 2);
 
@@ -843,7 +844,7 @@ static void cfm_observer_pcr_test_record_measurement (CuTest *test)
 	status |= mock_expect_output (&cfm.mock, 0, &cfm_platform_id, sizeof (cfm_platform_id), -1);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.free_platform_id, &cfm, 0,
-		MOCK_ARG (cfm_platform_id));
+		MOCK_ARG_PTR (cfm_platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -952,11 +953,12 @@ static void cfm_observer_pcr_test_record_measurement_sha384 (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) &cfm);
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG (&cfm));
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG_PTR (&cfm));
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, SHA384_HASH_LENGTH,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, &hash_out[5], SHA384_HASH_LENGTH, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
@@ -967,7 +969,7 @@ static void cfm_observer_pcr_test_record_measurement_sha384 (CuTest *test)
 	status |= mock_expect_output (&cfm.mock, 0, &cfm_platform_id, sizeof (cfm_platform_id), -1);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.free_platform_id, &cfm, 0,
-		MOCK_ARG (cfm_platform_id));
+		MOCK_ARG_PTR (cfm_platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1080,11 +1082,12 @@ static void cfm_observer_pcr_test_record_measurement_sha512 (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) &cfm);
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG (&cfm));
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG_PTR (&cfm));
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, SHA512_HASH_LENGTH,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, &hash_out[5], SHA512_HASH_LENGTH, 2);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
@@ -1095,7 +1098,7 @@ static void cfm_observer_pcr_test_record_measurement_sha512 (CuTest *test)
 	status |= mock_expect_output (&cfm.mock, 0, &cfm_platform_id, sizeof (cfm_platform_id), -1);
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.free_platform_id, &cfm, 0,
-		MOCK_ARG (cfm_platform_id));
+		MOCK_ARG_PTR (cfm_platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1196,7 +1199,8 @@ static void cfm_observer_pcr_test_record_measurement_no_active (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) NULL);
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1348,11 +1352,12 @@ static void cfm_observer_pcr_test_record_measurement_hash_error (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) &cfm);
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG (&cfm));
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG_PTR (&cfm));
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, MANIFEST_GET_HASH_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1431,11 +1436,12 @@ static void cfm_observer_pcr_test_record_measurement_get_id_error (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) &cfm);
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG (&cfm));
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG_PTR (&cfm));
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
 		CFM_TESTING.manifest.hash_len, 2);
 
@@ -1523,11 +1529,12 @@ static void cfm_observer_pcr_test_record_measurement_get_platform_id_error (CuTe
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager, (intptr_t) &cfm);
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG (&cfm));
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager, 0, MOCK_ARG_PTR (&cfm));
 
 	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
 		CFM_TESTING.manifest.hash_len, 2);
 

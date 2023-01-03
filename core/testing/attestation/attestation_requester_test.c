@@ -110,12 +110,12 @@ struct attestation_requester_testing {
 	uint8_t *dev_id_der;										/**< Buffer to hold RIoT device ID certificate */
 	uint8_t *ca_der;											/**< Buffer to hold RIoT root CA certificate */
 	uint8_t *int_der;											/**< Buffer to hold RIoT intermediate CA certificate */
-	bool version_unsupported;									/**< Flag indicating whether target doesnt support same protocol version as requestor */
-	bool get_cert_unsupported;									/**< Flag indicating whether target doesnt support get certificate command */
-	bool challenge_unsupported;									/**< Flag indicating whether target doesnt support challenge command */
-	bool meas_cap_unsupported;									/**< Flag indicating whether target doesnt support measurement capabilities */
-	bool measurement_spec_unsupported;							/**< Flag indicating whether target doesnt support DMTF measurement spec */
-	bool asymmetric_key_signature_alg_unsupported;				/**< Flag indicating whether target doesnt support expected asymmetric key signature algorithms  */
+	bool version_unsupported;									/**< Flag indicating whether target doesn,t support same protocol version as requestor */
+	bool get_cert_unsupported;									/**< Flag indicating whether target doesn,t support get certificate command */
+	bool challenge_unsupported;									/**< Flag indicating whether target doesn,t support challenge command */
+	bool meas_cap_unsupported;									/**< Flag indicating whether target doesn,t support measurement capabilities */
+	bool measurement_spec_unsupported;							/**< Flag indicating whether target doesn,t support DMTF measurement spec */
+	bool asymmetric_key_signature_alg_unsupported;				/**< Flag indicating whether target doesn,t support expected asymmetric key signature algorithms  */
 	bool rsp_len_invalid[2];									/**< Flag indicating whether target sends response with invalid length */
 	bool unsupported_operation;									/**< Flag indicating whether target requests unsupported operation */
 	bool expected_slot_num_empty;								/**< Flag indicating whether target sends response with empty expected slot number */
@@ -129,7 +129,7 @@ struct attestation_requester_testing {
 	bool unexpected_measurement_block;							/**< Flag indicating whether to respond with unexpected measurement block */
 	bool rsp_fail;												/**< Flag indicating whether to respond with a failure command code */
 	bool cerberus_discovery;									/**< Flag indicating whether to perform Cerberus device discovery */
-	bool spdm_discovery;										/**< Flag indicating whether to perfom SPDM device discovery */
+	bool spdm_discovery;										/**< Flag indicating whether to perform SPDM device discovery */
 	bool device_id_block_short;									/**< Flag indicating whether SPDM device ID measurement block contains all IDs */
 	bool device_id_fail;										/**< Flag indicating whether SPDM device ID measurement block contains failure completion code */
 	bool cert_rsp_too_large;									/**< Flag indicating whether certificate response will be larger than expected */
@@ -392,7 +392,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
  * @param test The test framework
  * @param testing The testing instances to initialize
  * @param init_attestation Boolean flag indicating whether to call attestation_requester_init
- * @param riot_no_root_ca Boolean flag indicating whether to intialize RIoT keystore with a root CA
+ * @param riot_no_root_ca Boolean flag indicating whether to initialize RIoT keystore with a root CA
  * @param rsa Boolean flag indicating whether RSA is to be supported
  * @param x509_mock Boolean flag indicating whether to use a mock x509 or mbedtls x509 engine
  * @param sha256 Boolean flag indicating whether to use sha256
@@ -487,10 +487,9 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 
 	if (init_attestation) {
 		status = mock_expect (&testing->cfm_manager.mock, testing->cfm_manager.base.get_active_cfm,
-			&testing->cfm_manager, (intptr_t) &testing->cfm.base);
+			&testing->cfm_manager, MOCK_RETURN_PTR (&testing->cfm.base));
 		status |= mock_expect (&testing->cfm_manager.mock, testing->cfm_manager.base.free_cfm,
-			&testing->cfm_manager, 0, MOCK_ARG_PTR_CONTAINS ((intptr_t) &testing->cfm.base,
-				sizeof (struct cfm*)));
+			&testing->cfm_manager, 0, MOCK_ARG_PTR (&testing->cfm.base));
 		CuAssertIntEquals (test, 0, status);
 
 		status = mock_expect (&testing->cfm.mock, testing->cfm.base.get_component_device,
@@ -678,7 +677,7 @@ static size_t attestation_requester_testing_generate_mctp_packets_from_payload (
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_cerberus_error_rsp_callback (
+static int64_t attestation_requester_testing_cerberus_error_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -741,7 +740,7 @@ static intptr_t attestation_requester_testing_cerberus_error_rsp_callback (
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_cerberus_device_capabilities_rsp_callback (
+static int64_t attestation_requester_testing_cerberus_device_capabilities_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -804,7 +803,7 @@ static intptr_t attestation_requester_testing_cerberus_device_capabilities_rsp_c
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_cerberus_get_digest_rsp_callback (
+static int64_t attestation_requester_testing_cerberus_get_digest_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -877,7 +876,7 @@ static intptr_t attestation_requester_testing_cerberus_get_digest_rsp_callback (
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_cerberus_get_certificate_rsp_callback (
+static int64_t attestation_requester_testing_cerberus_get_certificate_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	uint8_t msg[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN] = {0};
@@ -949,7 +948,7 @@ static intptr_t attestation_requester_testing_cerberus_get_certificate_rsp_callb
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_cerberus_challenge_rsp_callback (
+static int64_t attestation_requester_testing_cerberus_challenge_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -1696,7 +1695,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_certific
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_spdm_error_rsp_callback (
+static int64_t attestation_requester_testing_spdm_error_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -1774,7 +1773,7 @@ static intptr_t attestation_requester_testing_spdm_error_rsp_callback (
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_spdm_get_version_rsp_callback (
+static int64_t attestation_requester_testing_spdm_get_version_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -1851,7 +1850,7 @@ static intptr_t attestation_requester_testing_spdm_get_version_rsp_callback (
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_spdm_get_capabilities_rsp_callback (
+static int64_t attestation_requester_testing_spdm_get_capabilities_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -1940,7 +1939,7 @@ static intptr_t attestation_requester_testing_spdm_get_capabilities_rsp_callback
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_spdm_negotiate_algorithms_rsp_callback (
+static int64_t attestation_requester_testing_spdm_negotiate_algorithms_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -2012,7 +2011,7 @@ static intptr_t attestation_requester_testing_spdm_negotiate_algorithms_rsp_call
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_spdm_get_digests_rsp_callback (
+static int64_t attestation_requester_testing_spdm_get_digests_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -2096,7 +2095,7 @@ static intptr_t attestation_requester_testing_spdm_get_digests_rsp_callback (
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_spdm_get_certificate_rsp_callback (
+static int64_t attestation_requester_testing_spdm_get_certificate_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	uint8_t msg[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN] = {0};
@@ -2181,7 +2180,7 @@ static intptr_t attestation_requester_testing_spdm_get_certificate_rsp_callback 
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_spdm_challenge_rsp_callback (
+static int64_t attestation_requester_testing_spdm_challenge_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -2291,7 +2290,7 @@ static intptr_t attestation_requester_testing_spdm_challenge_rsp_callback (
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_spdm_get_measurements_rsp_callback (
+static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	uint8_t msg[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN] = {0};
@@ -2549,7 +2548,7 @@ static intptr_t attestation_requester_testing_spdm_get_measurements_rsp_callback
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_mctp_get_message_type_rsp_callback (
+static int64_t attestation_requester_testing_mctp_get_message_type_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -2624,7 +2623,7 @@ static intptr_t attestation_requester_testing_mctp_get_message_type_rsp_callback
  *
  * @return This function always returns 0
  */
-static intptr_t attestation_requester_testing_mctp_get_routing_table_entries_rsp_callback (
+static int64_t attestation_requester_testing_mctp_get_routing_table_entries_rsp_callback (
 	const struct mock_call *expected, const struct mock_call *called)
 {
 	struct attestation_requester_testing *testing = expected->context;
@@ -19865,10 +19864,9 @@ static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
-		&testing.cfm_manager, (intptr_t) &testing.cfm.base);
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
 	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
-		&testing.cfm_manager, 0, MOCK_ARG_PTR_CONTAINS ((intptr_t) &testing.cfm.base,
-			sizeof (struct cfm*)));
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
@@ -21788,10 +21786,9 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
-		&testing.cfm_manager, (intptr_t) &testing.cfm.base);
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
 	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
-		&testing.cfm_manager, 0, MOCK_ARG_PTR_CONTAINS ((intptr_t) &testing.cfm.base,
-			sizeof (struct cfm*)));
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device,
@@ -28077,10 +28074,9 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
-		&testing.cfm_manager, (intptr_t) &testing.cfm.base);
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
 	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
-		&testing.cfm_manager, 0, MOCK_ARG_PTR_CONTAINS ((intptr_t) &testing.cfm.base,
-			sizeof (struct cfm*)));
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
@@ -28099,10 +28095,9 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	component_device.transcript_hash_type = (enum hash_type) 4;
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
-		&testing.cfm_manager, (intptr_t) &testing.cfm.base);
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
 	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
-		&testing.cfm_manager, 0, MOCK_ARG_PTR_CONTAINS ((intptr_t) &testing.cfm.base,
-			sizeof (struct cfm*)));
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
@@ -29632,10 +29627,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
-		&testing.cfm_manager, (intptr_t) &testing.cfm.base);
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
 	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
-		&testing.cfm_manager, 0, MOCK_ARG_PTR_CONTAINS ((intptr_t) &testing.cfm.base,
-			sizeof (struct cfm*)));
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
@@ -29702,10 +29696,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
-		&testing.cfm_manager, (intptr_t) &testing.cfm.base);
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
 	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
-		&testing.cfm_manager, 0, MOCK_ARG_PTR_CONTAINS ((intptr_t) &testing.cfm.base,
-			sizeof (struct cfm*)));
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,

@@ -22,7 +22,8 @@ static void observer_mock_event_ptr_arg (struct observer_mock *observer, void *a
 		return;
 	}
 
-	MOCK_VOID_RETURN (&observer->mock, observer_mock_event_ptr_arg, observer, MOCK_ARG_CALL (arg));
+	MOCK_VOID_RETURN (&observer->mock, observer_mock_event_ptr_arg, observer,
+		MOCK_ARG_PTR_CALL (arg));
 }
 
 static int observer_mock_func_arg_count (void *func)

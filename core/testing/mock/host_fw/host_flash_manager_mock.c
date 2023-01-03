@@ -16,7 +16,7 @@ static struct spi_flash* host_flash_manager_mock_get_read_only_flash (
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct spi_flash*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct spi_flash*,
 		host_flash_manager_mock_get_read_only_flash, manager);
 }
 
@@ -29,7 +29,7 @@ static struct spi_flash* host_flash_manager_mock_get_read_write_flash (
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct spi_flash*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct spi_flash*,
 		host_flash_manager_mock_get_read_write_flash, manager);
 }
 
@@ -44,8 +44,8 @@ static int host_flash_manager_mock_validate_read_only_flash (struct host_flash_m
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_validate_read_only_flash, manager,
-		MOCK_ARG_CALL (pfm), MOCK_ARG_CALL (good_pfm), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (rsa),
-		MOCK_ARG_CALL (full_validation), MOCK_ARG_CALL (host_rw));
+		MOCK_ARG_PTR_CALL (pfm), MOCK_ARG_PTR_CALL (good_pfm), MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (rsa), MOCK_ARG_CALL (full_validation), MOCK_ARG_PTR_CALL (host_rw));
 }
 
 static int host_flash_manager_mock_validate_read_write_flash (struct host_flash_manager *manager,
@@ -59,7 +59,8 @@ static int host_flash_manager_mock_validate_read_write_flash (struct host_flash_
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_validate_read_write_flash, manager,
-		MOCK_ARG_CALL (pfm), MOCK_ARG_CALL (hash), MOCK_ARG_CALL (rsa), MOCK_ARG_CALL (host_rw));
+		MOCK_ARG_PTR_CALL (pfm), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_PTR_CALL (rsa),
+		MOCK_ARG_PTR_CALL (host_rw));
 }
 
 static int host_flash_manager_mock_get_flash_read_write_regions (struct host_flash_manager *manager,
@@ -72,7 +73,7 @@ static int host_flash_manager_mock_get_flash_read_write_regions (struct host_fla
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_get_flash_read_write_regions, manager,
-		MOCK_ARG_CALL (pfm), MOCK_ARG_CALL (rw_flash), MOCK_ARG_CALL (host_rw));
+		MOCK_ARG_PTR_CALL (pfm), MOCK_ARG_CALL (rw_flash), MOCK_ARG_PTR_CALL (host_rw));
 }
 
 static void host_flash_manager_mock_free_read_write_regions (struct host_flash_manager *manager,
@@ -85,7 +86,7 @@ static void host_flash_manager_mock_free_read_write_regions (struct host_flash_m
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, host_flash_manager_mock_free_read_write_regions, manager,
-		MOCK_ARG_CALL (host_rw));
+		MOCK_ARG_PTR_CALL (host_rw));
 }
 
 static int host_flash_manager_mock_config_spi_filter_flash_type (struct host_flash_manager *manager)
@@ -123,7 +124,7 @@ static int host_flash_manager_mock_swap_flash_devices (struct host_flash_manager
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_swap_flash_devices, manager,
-		MOCK_ARG_CALL (host_rw), MOCK_ARG_CALL (used_pending));
+		MOCK_ARG_PTR_CALL (host_rw), MOCK_ARG_PTR_CALL (used_pending));
 }
 
 static int host_flash_manager_mock_initialize_flash_protection (struct host_flash_manager *manager,
@@ -136,7 +137,7 @@ static int host_flash_manager_mock_initialize_flash_protection (struct host_flas
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_initialize_flash_protection, manager,
-		MOCK_ARG_CALL (host_rw));
+		MOCK_ARG_PTR_CALL (host_rw));
 }
 
 static int host_flash_manager_mock_restore_flash_read_write_regions (
@@ -149,7 +150,7 @@ static int host_flash_manager_mock_restore_flash_read_write_regions (
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_restore_flash_read_write_regions, manager,
-		MOCK_ARG_CALL (host_rw));
+		MOCK_ARG_PTR_CALL (host_rw));
 }
 
 static int host_flash_manager_mock_set_flash_for_rot_access (struct host_flash_manager *manager,
@@ -162,7 +163,7 @@ static int host_flash_manager_mock_set_flash_for_rot_access (struct host_flash_m
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_set_flash_for_rot_access, manager,
-		MOCK_ARG_CALL (control));
+		MOCK_ARG_PTR_CALL (control));
 }
 
 static int host_flash_manager_mock_set_flash_for_host_access (struct host_flash_manager *manager,
@@ -175,7 +176,7 @@ static int host_flash_manager_mock_set_flash_for_host_access (struct host_flash_
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_set_flash_for_host_access, manager,
-		MOCK_ARG_CALL (control));
+		MOCK_ARG_PTR_CALL (control));
 }
 
 static int host_flash_manager_mock_host_has_flash_access (struct host_flash_manager *manager,
@@ -188,7 +189,7 @@ static int host_flash_manager_mock_host_has_flash_access (struct host_flash_mana
 	}
 
 	MOCK_RETURN (&mock->mock, host_flash_manager_mock_host_has_flash_access, manager,
-		MOCK_ARG_CALL (control));
+		MOCK_ARG_PTR_CALL (control));
 }
 
 static int host_flash_manager_mock_func_arg_count (void *func)

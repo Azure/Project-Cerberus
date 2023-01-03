@@ -275,7 +275,7 @@ static void observable_test_notify_observers_with_ptr_one_observer (CuTest *test
 	status = observable_add_observer (&observable, &observer);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer.mock, observer.event_ptr_arg, &observer, 0, MOCK_ARG (arg));
+	status = mock_expect (&observer.mock, observer.event_ptr_arg, &observer, 0, MOCK_ARG_PTR (arg));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -307,7 +307,7 @@ static void observable_test_notify_observers_with_ptr_twice (CuTest *test)
 	status = observable_add_observer (&observable, &observer);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer.mock, observer.event_ptr_arg, &observer, 0, MOCK_ARG (arg));
+	status = mock_expect (&observer.mock, observer.event_ptr_arg, &observer, 0, MOCK_ARG_PTR (arg));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -318,7 +318,7 @@ static void observable_test_notify_observers_with_ptr_twice (CuTest *test)
 	status = mock_validate (&observer.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer.mock, observer.event_ptr_arg, &observer, 0, MOCK_ARG (arg));
+	status = mock_expect (&observer.mock, observer.event_ptr_arg, &observer, 0, MOCK_ARG_PTR (arg));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -364,9 +364,12 @@ static void observable_test_notify_observers_with_ptr_multiple_observers (CuTest
 	status = observable_add_observer (&observable, &observer3);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer2.mock, observer2.event_ptr_arg, &observer2, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0, MOCK_ARG (arg));
+	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer2.mock, observer2.event_ptr_arg, &observer2, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0,
+		MOCK_ARG_PTR (arg));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -433,7 +436,8 @@ static void observable_test_notify_observers_with_ptr_argument_null (CuTest *tes
 	status = observable_add_observer (&observable, &observer);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer.mock, observer.event_ptr_arg, &observer, 0, MOCK_ARG (NULL));
+	status = mock_expect (&observer.mock, observer.event_ptr_arg, &observer, 0,
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -510,9 +514,12 @@ static void observable_test_add_observer_same_twice (CuTest *test)
 	status = observable_add_observer (&observable, &observer2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer2.mock, observer2.event_ptr_arg, &observer2, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0, MOCK_ARG (arg));
+	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer2.mock, observer2.event_ptr_arg, &observer2, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0,
+		MOCK_ARG_PTR (arg));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -590,9 +597,12 @@ static void observable_test_remove_observer (CuTest *test)
 	status = observable_add_observer (&observable, &observer3);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer2.mock, observer2.event_ptr_arg, &observer2, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0, MOCK_ARG (arg));
+	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer2.mock, observer2.event_ptr_arg, &observer2, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0,
+		MOCK_ARG_PTR (arg));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -612,8 +622,10 @@ static void observable_test_remove_observer (CuTest *test)
 	status = observable_remove_observer (&observable, &observer2);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0, MOCK_ARG (arg));
+	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0,
+		MOCK_ARG_PTR (arg));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -651,7 +663,7 @@ static void observable_test_remove_observer_only_one (CuTest *test)
 	status = observable_add_observer (&observable, &observer);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer.mock, observer.event_ptr_arg, &observer, 0, MOCK_ARG (arg));
+	status = mock_expect (&observer.mock, observer.event_ptr_arg, &observer, 0, MOCK_ARG_PTR (arg));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -739,9 +751,12 @@ static void observable_test_remove_observer_not_registered (CuTest *test)
 	status = observable_add_observer (&observable, &observer3);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer2.mock, observer2.event_ptr_arg, &observer2, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0, MOCK_ARG (arg));
+	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer2.mock, observer2.event_ptr_arg, &observer2, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0,
+		MOCK_ARG_PTR (arg));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -761,9 +776,12 @@ static void observable_test_remove_observer_not_registered (CuTest *test)
 	status = observable_remove_observer (&observable, &observer4);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer2.mock, observer2.event_ptr_arg, &observer2, 0, MOCK_ARG (arg));
-	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0, MOCK_ARG (arg));
+	status = mock_expect (&observer1.mock, observer1.event_ptr_arg, &observer1, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer2.mock, observer2.event_ptr_arg, &observer2, 0,
+		MOCK_ARG_PTR (arg));
+	status |= mock_expect (&observer3.mock, observer3.event_ptr_arg, &observer3, 0,
+		MOCK_ARG_PTR (arg));
 
 	CuAssertIntEquals (test, 0, status);
 

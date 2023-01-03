@@ -1364,8 +1364,8 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_0 (CuTest 
 	error_packet.length = sizeof (error_data);
 
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.generate_error_packet,
-		&cmd.primary_handler, 0, MOCK_ARG (&error_packet), MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
-		MOCK_ARG (0), MOCK_ARG (0));
+		&cmd.primary_handler, 0, MOCK_ARG_PTR (&error_packet),
+		MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
 	status |= mock_expect_output_deep_copy (&cmd.primary_handler.mock, 0, &error_packet,
 		sizeof (error_packet), cmd_interface_mock_copy_request);
 
@@ -1421,7 +1421,7 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_1 (CuTest 
 
 	status = mock_expect (&cmd.secondary_handler.mock,
 		cmd.secondary_handler.base.generate_error_packet, &cmd.secondary_handler, 0,
-		MOCK_ARG (&error_packet), MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0),
+		MOCK_ARG_PTR (&error_packet), MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0),
 		MOCK_ARG (1));
 	status |= mock_expect_output_deep_copy (&cmd.secondary_handler.mock, 0, &error_packet,
 		sizeof (error_packet), cmd_interface_mock_copy_request);
@@ -1474,7 +1474,7 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_0_fail (Cu
 	setup_cmd_interface_dual_cmd_set_test (test, &cmd);
 
 	status = mock_expect (&cmd.primary_handler.mock, cmd.primary_handler.base.generate_error_packet,
-		&cmd.primary_handler, CMD_HANDLER_NO_MEMORY, MOCK_ARG (&error_packet),
+		&cmd.primary_handler, CMD_HANDLER_NO_MEMORY, MOCK_ARG_PTR (&error_packet),
 		MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1498,7 +1498,7 @@ static void cmd_interface_dual_cmd_set_test_generate_error_packet_set_1_fail (Cu
 
 	status = mock_expect (&cmd.secondary_handler.mock,
 		cmd.secondary_handler.base.generate_error_packet, &cmd.secondary_handler,
-		CMD_HANDLER_NO_MEMORY, MOCK_ARG (&error_packet), MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
+		CMD_HANDLER_NO_MEMORY, MOCK_ARG_PTR (&error_packet), MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
 		MOCK_ARG (0), MOCK_ARG (1));
 
 	CuAssertIntEquals (test, 0, status);

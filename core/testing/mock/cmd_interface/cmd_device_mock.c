@@ -14,7 +14,7 @@ static int cmd_device_mock_get_uuid (const struct cmd_device *device, uint8_t *b
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cmd_device_mock_get_uuid, device, MOCK_ARG_CALL (buffer),
+	MOCK_RETURN (&mock->mock, cmd_device_mock_get_uuid, device, MOCK_ARG_PTR_CALL (buffer),
 		MOCK_ARG_CALL (buf_len));
 }
 
@@ -39,7 +39,7 @@ static int cmd_device_mock_get_reset_counter (const struct cmd_device *device, u
 	}
 
 	MOCK_RETURN (&mock->mock, cmd_device_mock_get_reset_counter, device, MOCK_ARG_CALL (type),
-		MOCK_ARG_CALL (port), MOCK_ARG_CALL (counter));
+		MOCK_ARG_CALL (port), MOCK_ARG_PTR_CALL (counter));
 }
 
 static int cmd_device_mock_get_heap_stats (const struct cmd_device *device,
@@ -51,7 +51,7 @@ static int cmd_device_mock_get_heap_stats (const struct cmd_device *device,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cmd_device_mock_get_heap_stats, device, MOCK_ARG_CALL (heap));
+	MOCK_RETURN (&mock->mock, cmd_device_mock_get_heap_stats, device, MOCK_ARG_PTR_CALL (heap));
 }
 
 static int cmd_device_mock_func_arg_count (void *func)

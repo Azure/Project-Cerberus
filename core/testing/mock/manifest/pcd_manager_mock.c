@@ -16,7 +16,8 @@ static struct pcd* pcd_manager_mock_get_active_pcd (const struct pcd_manager *ma
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct pcd*, pcd_manager_mock_get_active_pcd, manager);
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct pcd*, pcd_manager_mock_get_active_pcd,
+		manager);
 }
 
 static void pcd_manager_mock_free_pcd (const struct pcd_manager *manager, struct pcd *pcd)
@@ -27,7 +28,7 @@ static void pcd_manager_mock_free_pcd (const struct pcd_manager *manager, struct
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, pcd_manager_mock_free_pcd, manager, MOCK_ARG_CALL (pcd));
+	MOCK_VOID_RETURN (&mock->mock, pcd_manager_mock_free_pcd, manager, MOCK_ARG_PTR_CALL (pcd));
 }
 
 static int pcd_manager_mock_activate_pending_manifest (const struct manifest_manager *manager)
@@ -62,8 +63,8 @@ static int pcd_manager_mock_write_pending_data (const struct manifest_manager *m
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_manager_mock_write_pending_data, manager, MOCK_ARG_CALL (data),
-		MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, pcd_manager_mock_write_pending_data, manager,
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static int pcd_manager_mock_verify_pending_manifest (const struct manifest_manager *manager)

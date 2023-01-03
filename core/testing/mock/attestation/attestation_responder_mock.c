@@ -16,8 +16,8 @@ static int attestation_responder_mock_get_digests (struct attestation_responder 
 	}
 
 	MOCK_RETURN (&mock->mock, attestation_responder_mock_get_digests, attestation,
-		MOCK_ARG_CALL (slot_num), MOCK_ARG_CALL (buf), MOCK_ARG_CALL (buf_len),
-		MOCK_ARG_CALL (num_cert));
+		MOCK_ARG_CALL (slot_num), MOCK_ARG_PTR_CALL (buf), MOCK_ARG_CALL (buf_len),
+		MOCK_ARG_PTR_CALL (num_cert));
 }
 
 static int attestation_responder_mock_get_certificate (struct attestation_responder *attestation,
@@ -30,7 +30,7 @@ static int attestation_responder_mock_get_certificate (struct attestation_respon
 	}
 
 	MOCK_RETURN (&mock->mock, attestation_responder_mock_get_certificate, attestation,
-		MOCK_ARG_CALL (slot_num), MOCK_ARG_CALL (cert_num), MOCK_ARG_CALL (cert));
+		MOCK_ARG_CALL (slot_num), MOCK_ARG_CALL (cert_num), MOCK_ARG_PTR_CALL (cert));
 }
 
 static int attestation_responder_mock_challenge_response (struct attestation_responder *attestation,
@@ -43,7 +43,7 @@ static int attestation_responder_mock_challenge_response (struct attestation_res
 	}
 
 	MOCK_RETURN (&mock->mock, attestation_responder_mock_challenge_response, attestation,
-		MOCK_ARG_CALL (buf), MOCK_ARG_CALL (buf_len));
+		MOCK_ARG_PTR_CALL (buf), MOCK_ARG_CALL (buf_len));
 }
 
 static int attestation_responder_mock_aux_attestation_unseal (
@@ -60,11 +60,11 @@ static int attestation_responder_mock_aux_attestation_unseal (
 	}
 
 	MOCK_RETURN (&mock->mock, attestation_responder_mock_aux_attestation_unseal, attestation,
-		MOCK_ARG_CALL (hash), MOCK_ARG_CALL (key_type), MOCK_ARG_CALL (seed),
+		MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (key_type), MOCK_ARG_PTR_CALL (seed),
 		MOCK_ARG_CALL (seed_length), MOCK_ARG_CALL (seed_type), MOCK_ARG_CALL (seed_param),
-		MOCK_ARG_CALL (hmac), MOCK_ARG_CALL (hmac_type), MOCK_ARG_CALL (ciphertext),
-		MOCK_ARG_CALL (cipher_length), MOCK_ARG_CALL (sealing), MOCK_ARG_CALL (pcr_count),
-		MOCK_ARG_CALL (key), MOCK_ARG_CALL (key_length));
+		MOCK_ARG_PTR_CALL (hmac), MOCK_ARG_CALL (hmac_type), MOCK_ARG_PTR_CALL (ciphertext),
+		MOCK_ARG_CALL (cipher_length), MOCK_ARG_PTR_CALL (sealing), MOCK_ARG_CALL (pcr_count),
+		MOCK_ARG_PTR_CALL (key), MOCK_ARG_CALL (key_length));
 }
 
 static int attestation_responder_mock_aux_decrypt (struct attestation_responder *attestation,
@@ -78,8 +78,8 @@ static int attestation_responder_mock_aux_decrypt (struct attestation_responder 
 	}
 
 	MOCK_RETURN (&mock->mock, attestation_responder_mock_aux_decrypt, attestation,
-		MOCK_ARG_CALL (encrypted), MOCK_ARG_CALL (len_encrypted), MOCK_ARG_CALL (label),
-		MOCK_ARG_CALL (len_label), MOCK_ARG_CALL (pad_hash), MOCK_ARG_CALL (decrypted),
+		MOCK_ARG_PTR_CALL (encrypted), MOCK_ARG_CALL (len_encrypted), MOCK_ARG_PTR_CALL (label),
+		MOCK_ARG_CALL (len_label), MOCK_ARG_CALL (pad_hash), MOCK_ARG_PTR_CALL (decrypted),
 		MOCK_ARG_CALL (len_decrypted));
 }
 
@@ -93,8 +93,8 @@ static int attestation_responder_mock_generate_ecdh_seed (struct attestation_res
 	}
 
 	MOCK_RETURN (&mock->mock, attestation_responder_mock_generate_ecdh_seed, attestation,
-		MOCK_ARG_CALL (pub_key), MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (hash_seed),
-		MOCK_ARG_CALL (seed), MOCK_ARG_CALL (seed_length));
+		MOCK_ARG_PTR_CALL (pub_key), MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (hash_seed),
+		MOCK_ARG_PTR_CALL (seed), MOCK_ARG_CALL (seed_length));
 }
 
 static int attestation_responder_mock_func_arg_count (void *func)

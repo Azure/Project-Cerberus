@@ -594,7 +594,7 @@ static void host_processor_dual_test_needs_config_recovery (CuTest *test)
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.host_has_flash_access,
-		&host.flash_mgr, 1, MOCK_ARG(&host.control));
+		&host.flash_mgr, 1, MOCK_ARG_PTR (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host.test.base.needs_config_recovery (&host.test.base);
@@ -613,7 +613,7 @@ static void host_processor_dual_test_needs_config_recovery_no_host_access (CuTes
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.host_has_flash_access,
-		&host.flash_mgr, 0, MOCK_ARG(&host.control));
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host.test.base.needs_config_recovery (&host.test.base);
@@ -647,7 +647,7 @@ static void host_processor_dual_test_needs_config_recovery_check_access_error (C
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.host_has_flash_access,
-		&host.flash_mgr, HOST_FLASH_MGR_CHECK_ACCESS_FAILED, MOCK_ARG(&host.control));
+		&host.flash_mgr, HOST_FLASH_MGR_CHECK_ACCESS_FAILED, MOCK_ARG_PTR (&host.control));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host.test.base.needs_config_recovery (&host.test.base);
@@ -666,9 +666,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm 
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -691,9 +691,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -716,9 +716,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm_
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -742,9 +742,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -767,9 +767,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm_
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -795,9 +795,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -823,9 +823,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm_
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -852,9 +852,9 @@ static void host_processor_dual_test_get_next_reset_verification_actions_no_pfm_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -875,12 +875,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -903,12 +903,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -931,12 +931,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -960,12 +960,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -989,12 +989,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1020,12 +1020,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1051,12 +1051,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1088,12 +1088,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1122,12 +1122,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1160,12 +1160,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1191,12 +1191,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1223,12 +1223,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1255,12 +1255,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1293,12 +1293,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1328,12 +1328,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1367,12 +1367,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_active_
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1396,12 +1396,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1424,12 +1424,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1455,12 +1455,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1484,12 +1484,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1516,12 +1516,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1547,12 +1547,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1581,12 +1581,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1613,12 +1613,12 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1639,14 +1639,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_processor_dual_testing_init (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1669,14 +1669,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1699,14 +1699,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1730,14 +1730,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1761,14 +1761,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1794,14 +1794,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1827,14 +1827,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_run_time_validation (&host.host_state, HOST_STATE_PREVALIDATED_FLASH);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1866,14 +1866,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1905,14 +1905,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 		HOST_STATE_PREVALIDATED_FLASH_AND_PFM);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1948,14 +1948,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1981,14 +1981,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2015,14 +2015,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2049,14 +2049,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2089,14 +2089,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2124,14 +2124,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_pfm_dirty (&host.host_state, false);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2165,14 +2165,14 @@ static void host_processor_dual_test_get_next_reset_verification_actions_pending
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm);
+		MOCK_RETURN_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		(intptr_t) &host.pfm_next);
+		MOCK_RETURN_PTR (&host.pfm_next));
 
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm));
+		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG(&host.pfm_next));
+		MOCK_ARG_PTR (&host.pfm_next));
 
 	CuAssertIntEquals (test, 0, status);
 

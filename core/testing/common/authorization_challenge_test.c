@@ -145,7 +145,7 @@ static void authorization_challenge_test_init_key_error (CuTest *test)
 
 	status = mock_expect (&ecc.mock, ecc.base.init_key_pair, &ecc, ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	status = authorization_challenge_init (&auth, &rng.base, &hash.base, &ecc.base, ECC_PRIVKEY_DER,
@@ -187,14 +187,14 @@ static void authorization_challenge_test_init_sig_length_error (CuTest *test)
 
 	status = mock_expect (&ecc.mock, ecc.base.init_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	status |= mock_expect (&ecc.mock, ecc.base.get_signature_max_length, &ecc,
 		ECC_ENGINE_SIG_LENGTH_FAILED, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -331,7 +331,7 @@ static void authorization_challenge_test_init_with_tag_key_error (CuTest *test)
 
 	status = mock_expect (&ecc.mock, ecc.base.init_key_pair, &ecc, ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	status = authorization_challenge_init (&auth, &rng.base, &hash.base, &ecc.base, ECC_PRIVKEY_DER,
@@ -373,14 +373,14 @@ static void authorization_challenge_test_init_with_tag_sig_length_error (CuTest 
 
 	status = mock_expect (&ecc.mock, ecc.base.init_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	status |= mock_expect (&ecc.mock, ecc.base.get_signature_max_length, &ecc,
 		ECC_ENGINE_SIG_LENGTH_FAILED, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1645,7 +1645,7 @@ static void authorization_challenge_test_authorize_no_nonce_sign_error (CuTest *
 
 	status = mock_expect (&ecc.mock, ecc.base.init_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	status |= mock_expect (&ecc.mock, ecc.base.get_signature_max_length, &ecc, 73,
@@ -1677,7 +1677,7 @@ static void authorization_challenge_test_authorize_no_nonce_sign_error (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	authorization_challenge_release (&auth);
@@ -1862,7 +1862,7 @@ static void authorization_challenge_test_authorize_regenerate_nonce_sign_error (
 
 	status = mock_expect (&ecc.mock, ecc.base.init_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	status |= mock_expect (&ecc.mock, ecc.base.get_signature_max_length, &ecc, 73,
@@ -1917,7 +1917,7 @@ static void authorization_challenge_test_authorize_regenerate_nonce_sign_error (
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	authorization_challenge_release (&auth);

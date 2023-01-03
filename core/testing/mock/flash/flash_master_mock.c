@@ -22,8 +22,8 @@ static int flash_master_mock_xfer (const struct flash_master *spi, const struct 
 
 	MOCK_RETURN (&mock->mock, flash_master_mock_xfer, spi, MOCK_ARG_CALL (xfer->cmd),
 		MOCK_ARG_CALL (xfer->address), MOCK_ARG_CALL (xfer->dummy_bytes),
-		MOCK_ARG_CALL (xfer->mode_bytes), MOCK_ARG_CALL (xfer->data), MOCK_ARG_CALL (xfer->length),
-		MOCK_ARG_CALL (xfer->flags));
+		MOCK_ARG_CALL (xfer->mode_bytes), MOCK_ARG_PTR_CALL (xfer->data),
+		MOCK_ARG_CALL (xfer->length), MOCK_ARG_CALL (xfer->flags));
 }
 
 static uint32_t flash_master_mock_capabilities (const struct flash_master *spi)
@@ -215,7 +215,7 @@ int flash_master_mock_expect_xfer (struct flash_master_mock *mock, intptr_t retu
 	struct flash_xfer xfer)
 {
 	struct mock_expect_arg data =
-		(xfer.data != (void*) -1) ? MOCK_ARG (xfer.data) : MOCK_ARG_NOT_NULL;
+		(xfer.data != (void*) -1) ? MOCK_ARG_PTR (xfer.data) : MOCK_ARG_NOT_NULL;
 
 	if (mock == NULL) {
 		return MOCK_INVALID_ARGUMENT;
@@ -310,7 +310,7 @@ int flash_master_mock_expect_rx_xfer_ext (struct flash_master_mock *mock, intptr
 	const uint8_t *rx_data, size_t rx_length, bool is_tmp, struct flash_xfer xfer)
 {
 	struct mock_expect_arg data =
-		(xfer.data != (void*) -1) ? MOCK_ARG (xfer.data) : MOCK_ARG_NOT_NULL;
+		(xfer.data != (void*) -1) ? MOCK_ARG_PTR (xfer.data) : MOCK_ARG_NOT_NULL;
 	int status;
 
 	if ((mock == NULL) || (rx_data == NULL) || (rx_length == 0)) {

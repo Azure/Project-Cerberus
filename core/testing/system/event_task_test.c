@@ -371,7 +371,7 @@ static void event_task_test_submit_event (CuTest *test)
 		sizeof (event.context_ptr), -1);
 
 	status |= mock_expect (&event.task.mock, event.task.base.notify, &event.task, 0,
-		MOCK_ARG (&event.handler1.base));
+		MOCK_ARG_PTR (&event.handler1.base));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -407,7 +407,7 @@ static void event_task_test_submit_event_cast_value (CuTest *test)
 		sizeof (event.context_ptr), -1);
 
 	status |= mock_expect (&event.task.mock, event.task.base.notify, &event.task, 0,
-		MOCK_ARG (&event.handler1.base));
+		MOCK_ARG_PTR (&event.handler1.base));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -440,7 +440,7 @@ static void event_task_test_submit_event_no_data (CuTest *test)
 		sizeof (event.context_ptr), -1);
 
 	status |= mock_expect (&event.task.mock, event.task.base.notify, &event.task, 0,
-		MOCK_ARG (&event.handler1.base));
+		MOCK_ARG_PTR (&event.handler1.base));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -472,7 +472,7 @@ static void event_task_test_submit_event_no_status_out (CuTest *test)
 		sizeof (event.context_ptr), -1);
 
 	status |= mock_expect (&event.task.mock, event.task.base.notify, &event.task, 0,
-		MOCK_ARG (&event.handler1.base));
+		MOCK_ARG_PTR (&event.handler1.base));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -611,7 +611,7 @@ static void event_task_test_submit_event_notify_error (CuTest *test)
 		sizeof (event.context_ptr), -1);
 
 	status |= mock_expect (&event.task.mock, event.task.base.notify, &event.task,
-		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG (&event.handler1.base));
+		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG_PTR (&event.handler1.base));
 
 	CuAssertIntEquals (test, 0, status);
 

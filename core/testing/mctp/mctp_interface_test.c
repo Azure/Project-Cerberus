@@ -188,7 +188,7 @@ static void complete_mctp_interface_with_interface_mock_test (CuTest *test,
  *
  * @return This function always returns 0
  */
-static intptr_t mctp_interface_testing_process_packet_callback (const struct mock_call *expected,
+static int64_t mctp_interface_testing_process_packet_callback (const struct mock_call *expected,
 	const struct mock_call *called)
 {
 	struct mctp_interface_test_callback_context *context = expected->context;

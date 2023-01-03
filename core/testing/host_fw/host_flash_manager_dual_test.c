@@ -1497,7 +1497,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs0 (CuTest *t
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -1507,13 +1507,13 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs0 (CuTest *t
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -1623,7 +1623,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs1 (CuTest *t
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -1633,13 +1633,13 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs1 (CuTest *t
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -2140,7 +2140,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs0_full_valid
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -2150,13 +2150,13 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs0_full_valid
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -2271,7 +2271,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs1_full_valid
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -2281,13 +2281,13 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs1_full_valid
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -2403,7 +2403,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_full_validatio
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -2413,13 +2413,13 @@ static void host_flash_manager_dual_test_validate_read_only_flash_full_validatio
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -2943,7 +2943,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs0_good_pfm (
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -2953,19 +2953,19 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs0_good_pfm (
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		&manager.pfm_good, 0, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
@@ -3072,7 +3072,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs1_good_pfm (
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -3082,19 +3082,19 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs1_good_pfm (
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		&manager.pfm_good, 0, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
@@ -3627,7 +3627,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs0_good_pfm_n
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -3637,19 +3637,19 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs0_good_pfm_n
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		&manager.pfm_good, 0, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
 	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
@@ -3780,7 +3780,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs1_good_pfm_n
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -3790,19 +3790,19 @@ static void host_flash_manager_dual_test_validate_read_only_flash_cs1_good_pfm_n
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		&manager.pfm_good, 0, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
 	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
@@ -4212,7 +4212,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_full_
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -4222,13 +4222,13 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_full_
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -4354,7 +4354,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_pfm_version_er
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (3));
@@ -4595,7 +4595,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_pfm_images_err
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -4605,7 +4605,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_pfm_images_err
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm,
-		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
+		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
@@ -4670,7 +4670,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_pfm_rw_error (
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -4680,13 +4680,13 @@ static void host_flash_manager_dual_test_validate_read_only_flash_pfm_rw_error (
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
+		PFM_GET_READ_WRITE_FAILED, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
@@ -4735,7 +4735,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_flash_version_
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -4820,7 +4820,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_flash_image_er
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -4830,13 +4830,13 @@ static void host_flash_manager_dual_test_validate_read_only_flash_flash_image_er
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -4927,7 +4927,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_full_flash_ima
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -4937,13 +4937,13 @@ static void host_flash_manager_dual_test_validate_read_only_flash_full_flash_ima
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -5014,7 +5014,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_v
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (3));
@@ -5280,7 +5280,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_flash
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -5336,7 +5336,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_i
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -5346,7 +5346,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_i
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm,
-		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
+		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
@@ -5415,7 +5415,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_r
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -5425,13 +5425,13 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_pfm_r
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
+		PFM_GET_READ_WRITE_FAILED, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
@@ -5515,7 +5515,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_good_
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -5525,19 +5525,19 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_good_
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
-		&manager.pfm_good, PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
+		&manager.pfm_good, PFM_GET_FW_IMAGES_FAILED, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
@@ -5663,7 +5663,7 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_flash
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -5673,19 +5673,19 @@ static void host_flash_manager_dual_test_validate_read_only_flash_good_pfm_flash
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list1, sizeof (img_list1), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
 	status |= mock_expect (&manager.pfm_good.mock, manager.pfm_good.base.get_firmware_images,
-		&manager.pfm_good, 0, MOCK_ARG (NULL),
+		&manager.pfm_good, 0, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm_good.mock, 2, &img_list2, sizeof (img_list2), -1);
 	status |= mock_expect_save_arg (&manager.pfm_good.mock, 2, 1);
@@ -5779,7 +5779,7 @@ static void host_flash_manager_dual_test_validate_read_write_flash_cs1 (CuTest *
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -5789,13 +5789,13 @@ static void host_flash_manager_dual_test_validate_read_write_flash_cs1 (CuTest *
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -5910,7 +5910,7 @@ static void host_flash_manager_dual_test_validate_read_write_flash_cs0 (CuTest *
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -5920,13 +5920,13 @@ static void host_flash_manager_dual_test_validate_read_write_flash_cs0 (CuTest *
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -6041,7 +6041,7 @@ static void host_flash_manager_dual_test_validate_read_write_flash_not_blank_byt
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -6051,13 +6051,13 @@ static void host_flash_manager_dual_test_validate_read_write_flash_not_blank_byt
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -6592,7 +6592,7 @@ static void host_flash_manager_dual_test_validate_read_write_flash_pfm_version_e
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (3));
@@ -6839,7 +6839,7 @@ static void host_flash_manager_dual_test_validate_read_write_flash_pfm_images_er
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -6849,7 +6849,7 @@ static void host_flash_manager_dual_test_validate_read_write_flash_pfm_images_er
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm,
-		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG (NULL),
+		PFM_GET_FW_IMAGES_FAILED, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
@@ -6915,7 +6915,7 @@ static void host_flash_manager_dual_test_validate_read_write_flash_pfm_rw_error 
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -6925,13 +6925,13 @@ static void host_flash_manager_dual_test_validate_read_write_flash_pfm_rw_error 
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
+		PFM_GET_READ_WRITE_FAILED, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware_images, &manager.pfm,
@@ -6981,7 +6981,7 @@ static void host_flash_manager_dual_test_validate_read_write_flash_version_error
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -7067,7 +7067,7 @@ static void host_flash_manager_dual_test_validate_read_write_flash_verify_error 
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 3);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -7077,13 +7077,13 @@ static void host_flash_manager_dual_test_validate_read_write_flash_verify_error 
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
-		MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &img_list, sizeof (img_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
@@ -7139,7 +7139,7 @@ static void host_flash_manager_dual_test_free_read_write_regions_null (CuTest *t
 	rw_host.count = 1;
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.free_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (rw_list));
+		0, MOCK_ARG_PTR (rw_list));
 	CuAssertIntEquals (test, 0, status);
 
 	manager.test.base.free_read_write_regions (NULL, &rw_host);
@@ -10873,7 +10873,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_c
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -10883,7 +10883,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_c
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
@@ -10968,7 +10968,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_c
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -10978,7 +10978,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_c
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
@@ -11337,7 +11337,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_c
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -11347,7 +11347,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_c
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
@@ -11432,7 +11432,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_c
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -11442,7 +11442,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_c
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 1);
@@ -11825,7 +11825,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_pfm_versio
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		PFM_GET_VERSIONS_FAILED, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		PFM_GET_VERSIONS_FAILED, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_firmware, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (2));
@@ -12007,7 +12007,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_ro_flash_v
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -12063,7 +12063,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_rw_flash_v
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -12118,7 +12118,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_pfm_rw_err
 	status |= mock_expect_save_arg (&manager.pfm.mock, 0, 2);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_supported_versions, &manager.pfm,
-		0, MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
@@ -12128,7 +12128,7 @@ static void host_flash_manager_dual_test_get_flash_read_write_regions_pfm_rw_err
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
-		PFM_GET_READ_WRITE_FAILED, MOCK_ARG (NULL),
+		PFM_GET_READ_WRITE_FAILED, MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS (version_exp, strlen (version_exp) + 1), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,

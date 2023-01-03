@@ -16,7 +16,7 @@ static int firmware_image_mock_load (const struct firmware_image *fw, const stru
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, firmware_image_mock_load, fw, MOCK_ARG_CALL (flash),
+	MOCK_RETURN (&mock->mock, firmware_image_mock_load, fw, MOCK_ARG_PTR_CALL (flash),
 		MOCK_ARG_CALL (base_addr));
 }
 
@@ -28,7 +28,7 @@ static int firmware_image_mock_verify (const struct firmware_image *fw, struct h
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, firmware_image_mock_verify, fw, MOCK_ARG_CALL (hash));
+	MOCK_RETURN (&mock->mock, firmware_image_mock_verify, fw, MOCK_ARG_PTR_CALL (hash));
 }
 
 static int firmware_image_mock_get_image_size (const struct firmware_image *fw)
@@ -51,7 +51,7 @@ static const struct key_manifest* firmware_image_mock_get_key_manifest (
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct key_manifest*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct key_manifest*,
 		firmware_image_mock_get_key_manifest, fw);
 }
 
@@ -64,7 +64,7 @@ static const struct firmware_header* firmware_image_mock_get_firmware_header (
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct firmware_header*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct firmware_header*,
 		firmware_image_mock_get_firmware_header, fw);
 }
 

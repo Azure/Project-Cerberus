@@ -16,8 +16,8 @@ static int cmd_background_mock_unseal_start (const struct cmd_background *cmd,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cmd_background_mock_unseal_start, cmd, MOCK_ARG_CALL (unseal_request),
-		MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, cmd_background_mock_unseal_start, cmd,
+		MOCK_ARG_PTR_CALL (unseal_request), MOCK_ARG_CALL (length));
 }
 
 static int cmd_background_mock_unseal_result (const struct cmd_background *cmd, uint8_t *key,
@@ -29,8 +29,8 @@ static int cmd_background_mock_unseal_result (const struct cmd_background *cmd, 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cmd_background_mock_unseal_result, cmd, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (unseal_status));
+	MOCK_RETURN (&mock->mock, cmd_background_mock_unseal_result, cmd, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (key_length), MOCK_ARG_PTR_CALL (unseal_status));
 }
 
 static int cmd_background_mock_reset_bypass (const struct cmd_background *cmd)

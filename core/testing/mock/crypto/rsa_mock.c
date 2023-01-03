@@ -15,7 +15,7 @@ static int rsa_mock_generate_key (struct rsa_engine *engine, struct rsa_private_
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, rsa_mock_generate_key, engine, MOCK_ARG_CALL (key),
+	MOCK_RETURN (&mock->mock, rsa_mock_generate_key, engine, MOCK_ARG_PTR_CALL (key),
 		MOCK_ARG_CALL (bits));
 }
 
@@ -28,8 +28,8 @@ static int rsa_mock_init_private_key (struct rsa_engine *engine, struct rsa_priv
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, rsa_mock_init_private_key, engine, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (der), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, rsa_mock_init_private_key, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
 static void rsa_mock_release_key (struct rsa_engine *engine, struct rsa_private_key *key)
@@ -40,7 +40,7 @@ static void rsa_mock_release_key (struct rsa_engine *engine, struct rsa_private_
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, rsa_mock_release_key, engine, MOCK_ARG_CALL (key));
+	MOCK_VOID_RETURN (&mock->mock, rsa_mock_release_key, engine, MOCK_ARG_PTR_CALL (key));
 }
 
 static int rsa_mock_get_private_key_der (struct rsa_engine *engine,
@@ -52,8 +52,8 @@ static int rsa_mock_get_private_key_der (struct rsa_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, rsa_mock_get_private_key_der, engine, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (der), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, rsa_mock_get_private_key_der, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_PTR_CALL (length));
 }
 
 static int rsa_mock_decrypt (struct rsa_engine *engine, const struct rsa_private_key *key,
@@ -66,9 +66,9 @@ static int rsa_mock_decrypt (struct rsa_engine *engine, const struct rsa_private
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, rsa_mock_decrypt, engine, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (encrypted), MOCK_ARG_CALL (in_length), MOCK_ARG_CALL (label),
-		MOCK_ARG_CALL (label_length), MOCK_ARG_CALL (pad_hash), MOCK_ARG_CALL (decrypted),
+	MOCK_RETURN (&mock->mock, rsa_mock_decrypt, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (encrypted), MOCK_ARG_CALL (in_length), MOCK_ARG_PTR_CALL (label),
+		MOCK_ARG_CALL (label_length), MOCK_ARG_CALL (pad_hash), MOCK_ARG_PTR_CALL (decrypted),
 		MOCK_ARG_CALL (out_length));
 }
 
@@ -81,8 +81,8 @@ static int rsa_mock_init_public_key (struct rsa_engine *engine, struct rsa_publi
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, rsa_mock_init_public_key, engine, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (der), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, rsa_mock_init_public_key, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
 static int rsa_mock_get_public_key_der (struct rsa_engine *engine,
@@ -94,8 +94,8 @@ static int rsa_mock_get_public_key_der (struct rsa_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, rsa_mock_get_public_key_der, engine, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (der), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, rsa_mock_get_public_key_der, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_PTR_CALL (length));
 }
 
 static int rsa_mock_sig_verify (struct rsa_engine *engine, const struct rsa_public_key *key,
@@ -107,8 +107,8 @@ static int rsa_mock_sig_verify (struct rsa_engine *engine, const struct rsa_publ
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, rsa_mock_sig_verify, engine, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (signature), MOCK_ARG_CALL (sig_length), MOCK_ARG_CALL (match),
+	MOCK_RETURN (&mock->mock, rsa_mock_sig_verify, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (signature), MOCK_ARG_CALL (sig_length), MOCK_ARG_PTR_CALL (match),
 		MOCK_ARG_CALL (match_length));
 }
 

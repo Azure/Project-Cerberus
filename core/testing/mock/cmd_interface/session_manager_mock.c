@@ -7,7 +7,7 @@
 #include "session_manager_mock.h"
 
 
-static int session_manager_mock_add_session (struct session_manager *session, uint8_t eid, 
+static int session_manager_mock_add_session (struct session_manager *session, uint8_t eid,
 	const uint8_t *device_nonce, const uint8_t *cerberus_nonce)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
@@ -17,10 +17,10 @@ static int session_manager_mock_add_session (struct session_manager *session, ui
 	}
 
 	MOCK_RETURN (&mock->mock, session_manager_mock_add_session, session, MOCK_ARG_CALL (eid),
-		MOCK_ARG_CALL (device_nonce), MOCK_ARG_CALL (cerberus_nonce));
+		MOCK_ARG_PTR_CALL (device_nonce), MOCK_ARG_PTR_CALL (cerberus_nonce));
 }
 
-static int session_manager_mock_establish_session (struct session_manager *session, 
+static int session_manager_mock_establish_session (struct session_manager *session,
 	struct cmd_interface_msg *request)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
@@ -29,11 +29,11 @@ static int session_manager_mock_establish_session (struct session_manager *sessi
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, session_manager_mock_establish_session, session, 
-		MOCK_ARG_CALL (request));
+	MOCK_RETURN (&mock->mock, session_manager_mock_establish_session, session,
+		MOCK_ARG_PTR_CALL (request));
 }
 
-static int session_manager_mock_decrypt_message (struct session_manager *session, 
+static int session_manager_mock_decrypt_message (struct session_manager *session,
 	struct cmd_interface_msg *request)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
@@ -42,11 +42,11 @@ static int session_manager_mock_decrypt_message (struct session_manager *session
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, session_manager_mock_decrypt_message, session, 
-		MOCK_ARG_CALL (request));
+	MOCK_RETURN (&mock->mock, session_manager_mock_decrypt_message, session,
+		MOCK_ARG_PTR_CALL (request));
 }
 
-static int session_manager_mock_encrypt_message (struct session_manager *session, 
+static int session_manager_mock_encrypt_message (struct session_manager *session,
 	struct cmd_interface_msg *request)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
@@ -55,11 +55,11 @@ static int session_manager_mock_encrypt_message (struct session_manager *session
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, session_manager_mock_encrypt_message, session, 
-		MOCK_ARG_CALL (request));
+	MOCK_RETURN (&mock->mock, session_manager_mock_encrypt_message, session,
+		MOCK_ARG_PTR_CALL (request));
 }
 
-static int session_manager_mock_is_session_established (struct session_manager *session, 
+static int session_manager_mock_is_session_established (struct session_manager *session,
 	uint8_t eid)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
@@ -68,7 +68,7 @@ static int session_manager_mock_is_session_established (struct session_manager *
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, session_manager_mock_is_session_established, session, 
+	MOCK_RETURN (&mock->mock, session_manager_mock_is_session_established, session,
 		MOCK_ARG_CALL (eid));
 }
 
@@ -83,7 +83,7 @@ static int session_manager_mock_get_pairing_state (struct session_manager *sessi
 	MOCK_RETURN (&mock->mock, session_manager_mock_get_pairing_state, session, MOCK_ARG_CALL (eid));
 }
 
-static int session_manager_mock_reset_session (struct session_manager *session, uint8_t eid, 
+static int session_manager_mock_reset_session (struct session_manager *session, uint8_t eid,
 	uint8_t *hmac, size_t hmac_len)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
@@ -92,11 +92,11 @@ static int session_manager_mock_reset_session (struct session_manager *session, 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, session_manager_mock_reset_session, session, MOCK_ARG_CALL (eid), 
-		MOCK_ARG_CALL (hmac), MOCK_ARG_CALL (hmac_len));
+	MOCK_RETURN (&mock->mock, session_manager_mock_reset_session, session, MOCK_ARG_CALL (eid),
+		MOCK_ARG_PTR_CALL (hmac), MOCK_ARG_CALL (hmac_len));
 }
 
-static int session_manager_mock_setup_paired_session (struct session_manager *session, uint8_t eid, 
+static int session_manager_mock_setup_paired_session (struct session_manager *session, uint8_t eid,
 	size_t pairing_key_len, uint8_t *pairing_key_hmac, size_t pairing_key_hmac_len)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
@@ -105,12 +105,12 @@ static int session_manager_mock_setup_paired_session (struct session_manager *se
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, session_manager_mock_setup_paired_session, session, 
-		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (pairing_key_len), MOCK_ARG_CALL (pairing_key_hmac), 
+	MOCK_RETURN (&mock->mock, session_manager_mock_setup_paired_session, session,
+		MOCK_ARG_CALL (eid), MOCK_ARG_CALL (pairing_key_len), MOCK_ARG_PTR_CALL (pairing_key_hmac),
 		MOCK_ARG_CALL (pairing_key_hmac_len));
 }
 
-static int session_manager_mock_session_sync (struct session_manager *session, uint8_t eid, 
+static int session_manager_mock_session_sync (struct session_manager *session, uint8_t eid,
 	uint32_t rn_req, uint8_t *hmac, size_t hmac_len)
 {
 	struct session_manager_mock *mock = (struct session_manager_mock*) session;
@@ -119,24 +119,24 @@ static int session_manager_mock_session_sync (struct session_manager *session, u
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, session_manager_mock_session_sync, session, MOCK_ARG_CALL (eid), 
-		MOCK_ARG_CALL (rn_req), MOCK_ARG_CALL (hmac), MOCK_ARG_CALL (hmac_len));
+	MOCK_RETURN (&mock->mock, session_manager_mock_session_sync, session, MOCK_ARG_CALL (eid),
+		MOCK_ARG_CALL (rn_req), MOCK_ARG_PTR_CALL (hmac), MOCK_ARG_CALL (hmac_len));
 }
 
 static int session_manager_mock_func_arg_count (void *func)
 {
-	if ((func == session_manager_mock_is_session_established) || 
-		(func == session_manager_mock_get_pairing_state) || 
-		(func == session_manager_mock_decrypt_message) || 
-		(func == session_manager_mock_encrypt_message) || 
+	if ((func == session_manager_mock_is_session_established) ||
+		(func == session_manager_mock_get_pairing_state) ||
+		(func == session_manager_mock_decrypt_message) ||
+		(func == session_manager_mock_encrypt_message) ||
 		(func == session_manager_mock_establish_session)) {
 		return 1;
 	}
-	else if ((func == session_manager_mock_add_session) || 
+	else if ((func == session_manager_mock_add_session) ||
 		(func == session_manager_mock_reset_session)) {
 		return 3;
 	}
-	else if ((func == session_manager_mock_setup_paired_session) || 
+	else if ((func == session_manager_mock_setup_paired_session) ||
 		(func == session_manager_mock_session_sync)) {
 		return 4;
 	}
@@ -201,7 +201,7 @@ static const char* session_manager_mock_arg_name_map (void *func, int arg)
 				return "request";
 		}
 	}
-	else if ((func == session_manager_mock_is_session_established) || 
+	else if ((func == session_manager_mock_is_session_established) ||
 			 (func == session_manager_mock_get_pairing_state)) {
 		switch (arg) {
 			case 0:

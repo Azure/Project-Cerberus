@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "i2c_master_mock.h"
 
-static int i2c_master_mock_write (struct i2c_master_interface *i2c, uint16_t slave_addr, 
+static int i2c_master_mock_write (struct i2c_master_interface *i2c, uint16_t slave_addr,
 	uint8_t *data, size_t len)
 {
 	struct i2c_master_mock *mock = (struct i2c_master_mock*) i2c;
@@ -15,7 +15,7 @@ static int i2c_master_mock_write (struct i2c_master_interface *i2c, uint16_t sla
 	}
 
 	MOCK_RETURN (&mock->mock, i2c_master_mock_write, i2c, MOCK_ARG_CALL (slave_addr),
-		MOCK_ARG_CALL (data), MOCK_ARG_CALL (len));
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (len));
 }
 
 static int i2c_master_mock_write_reg (struct i2c_master_interface *i2c, uint16_t slave_addr,
@@ -28,7 +28,7 @@ static int i2c_master_mock_write_reg (struct i2c_master_interface *i2c, uint16_t
 	}
 
 	MOCK_RETURN (&mock->mock, i2c_master_mock_write_reg, i2c, MOCK_ARG_CALL (slave_addr),
-		MOCK_ARG_CALL (reg_addr), MOCK_ARG_CALL (reg_addr_len), MOCK_ARG_CALL (data),
+		MOCK_ARG_CALL (reg_addr), MOCK_ARG_CALL (reg_addr_len), MOCK_ARG_PTR_CALL (data),
 		MOCK_ARG_CALL (len));
 }
 
@@ -42,7 +42,7 @@ static int i2c_master_mock_read_reg (struct i2c_master_interface *i2c, uint16_t 
 	}
 
 	MOCK_RETURN (&mock->mock, i2c_master_mock_read_reg, i2c, MOCK_ARG_CALL (slave_addr),
-		MOCK_ARG_CALL (reg_addr), MOCK_ARG_CALL (reg_addr_len), MOCK_ARG_CALL (data),
+		MOCK_ARG_CALL (reg_addr), MOCK_ARG_CALL (reg_addr_len), MOCK_ARG_PTR_CALL (data),
 		MOCK_ARG_CALL (len));
 }
 
@@ -170,6 +170,25 @@ void i2c_master_mock_release (struct i2c_master_mock *mock)
 }
 
 /**
+ * Validate that all expectations were met then release the mock instance
+ *
+ * @param mock The I2C master mock interface to validate and release
+ *
+ * @return Validation status, 0 if expectations met or an error code.
+ */
+int i2c_master_mock_validate_and_release (struct i2c_master_mock *mock)
+{
+	int status = 1;
+
+	if (mock != NULL) {
+		status = mock_validate (&mock->mock);
+		i2c_master_mock_release (mock);
+	}
+
+	return status;
+}
+
+/**
  * Create a mock TX transfer expectation
  *
  * @param mock I2C master mock interface to add expectation to
@@ -216,7 +235,7 @@ int i2c_master_mock_expect_rx_xfer (struct i2c_master_mock *mock, intptr_t retur
 	int status;
 
 	struct mock_expect_arg exp_data =
-		(data != (void*) -1) ? MOCK_ARG (data) : MOCK_ARG_NOT_NULL;
+		(data != (void*) -1) ? MOCK_ARG_PTR (data) : MOCK_ARG_NOT_NULL;
 
 	if ((mock == NULL) || (rx_data == NULL) || (rx_length == 0)) {
 		return MOCK_INVALID_ARGUMENT;
@@ -231,23 +250,4 @@ int i2c_master_mock_expect_rx_xfer (struct i2c_master_mock *mock, intptr_t retur
 	}
 
 	return mock_expect_output (&mock->mock, 3, rx_data, rx_length, 4);
-}
-
-/**
- * Validate that all expectations were met then release the mock instance
- *
- * @param mock The I2C master mock interface to validate and release
- *
- * @return Validation status, 0 if expectations met or an error code.
- */
-int i2c_master_mock_validate_and_release (struct i2c_master_mock *mock)
-{
-	int status = 1;
-
-	if (mock != NULL) {
-		status = mock_validate (&mock->mock);
-		i2c_master_mock_release (mock);
-	}
-
-	return status;
 }

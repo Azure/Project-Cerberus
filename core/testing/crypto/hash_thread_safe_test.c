@@ -93,8 +93,8 @@ static void hash_thread_safe_test_calculate_sha1 (CuTest *test)
 	status = hash_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.calculate_sha1, &mock, 0, MOCK_ARG (message),
-		MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+	status = mock_expect (&mock.mock, mock.base.calculate_sha1, &mock, 0, MOCK_ARG_PTR (message),
+		MOCK_ARG (strlen (message)), MOCK_ARG_PTR (hash), MOCK_ARG (sizeof (hash)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha1 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -128,7 +128,8 @@ static void hash_thread_safe_test_calculate_sha1_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.calculate_sha1, &mock, HASH_ENGINE_SHA1_FAILED,
-		MOCK_ARG (message), MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+		MOCK_ARG_PTR (message), MOCK_ARG (strlen (message)), MOCK_ARG_PTR (hash),
+		MOCK_ARG (sizeof (hash)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha1 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -281,8 +282,8 @@ static void hash_thread_safe_test_calculate_sha256 (CuTest *test)
 	status = hash_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.calculate_sha256, &mock, 0, MOCK_ARG (message),
-		MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+	status = mock_expect (&mock.mock, mock.base.calculate_sha256, &mock, 0, MOCK_ARG_PTR (message),
+		MOCK_ARG (strlen (message)), MOCK_ARG_PTR (hash), MOCK_ARG (sizeof (hash)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha256 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -316,7 +317,8 @@ static void hash_thread_safe_test_calculate_sha256_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.calculate_sha256, &mock, HASH_ENGINE_SHA256_FAILED,
-		MOCK_ARG (message), MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+		MOCK_ARG_PTR (message), MOCK_ARG (strlen (message)), MOCK_ARG_PTR (hash),
+		MOCK_ARG (sizeof (hash)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha256 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -470,8 +472,8 @@ static void hash_thread_safe_test_calculate_sha384 (CuTest *test)
 	status = hash_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.calculate_sha384, &mock, 0, MOCK_ARG (message),
-		MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+	status = mock_expect (&mock.mock, mock.base.calculate_sha384, &mock, 0, MOCK_ARG_PTR (message),
+		MOCK_ARG (strlen (message)), MOCK_ARG_PTR (hash), MOCK_ARG (sizeof (hash)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha384 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -505,7 +507,8 @@ static void hash_thread_safe_test_calculate_sha384_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.calculate_sha384, &mock, HASH_ENGINE_SHA384_FAILED,
-		MOCK_ARG (message), MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+		MOCK_ARG_PTR (message), MOCK_ARG (strlen (message)), MOCK_ARG_PTR (hash),
+		MOCK_ARG (sizeof (hash)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha384 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -659,8 +662,8 @@ static void hash_thread_safe_test_calculate_sha512 (CuTest *test)
 	status = hash_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.calculate_sha512, &mock, 0, MOCK_ARG (message),
-		MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+	status = mock_expect (&mock.mock, mock.base.calculate_sha512, &mock, 0, MOCK_ARG_PTR (message),
+		MOCK_ARG (strlen (message)), MOCK_ARG_PTR (hash), MOCK_ARG (sizeof (hash)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha512 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -694,7 +697,8 @@ static void hash_thread_safe_test_calculate_sha512_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.calculate_sha512, &mock, HASH_ENGINE_SHA512_FAILED,
-		MOCK_ARG (message), MOCK_ARG (strlen (message)), MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+		MOCK_ARG_PTR (message), MOCK_ARG (strlen (message)), MOCK_ARG_PTR (hash),
+		MOCK_ARG (sizeof (hash)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha512 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -848,7 +852,7 @@ static void hash_thread_safe_test_update (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.start_sha256, &mock, 0);
-	status = mock_expect (&mock.mock, mock.base.update, &mock, 0, MOCK_ARG (message),
+	status = mock_expect (&mock.mock, mock.base.update, &mock, 0, MOCK_ARG_PTR (message),
 		MOCK_ARG (strlen (message)));
 	status |= mock_expect (&mock.mock, mock.base.cancel, &mock, 0);
 
@@ -889,7 +893,7 @@ static void hash_thread_safe_test_update_error (CuTest *test)
 
 	status = mock_expect (&mock.mock, mock.base.start_sha256, &mock, 0);
 	status = mock_expect (&mock.mock, mock.base.update, &mock, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG (message), MOCK_ARG (strlen (message)));
+		MOCK_ARG_PTR (message), MOCK_ARG (strlen (message)));
 	status |= mock_expect (&mock.mock, mock.base.cancel, &mock, 0);
 
 	CuAssertIntEquals (test, 0, status);
@@ -966,7 +970,7 @@ static void hash_thread_safe_test_finish (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.start_sha256, &mock, 0);
-	status |= mock_expect (&mock.mock, mock.base.finish, &mock, 0, MOCK_ARG (hash),
+	status |= mock_expect (&mock.mock, mock.base.finish, &mock, 0, MOCK_ARG_PTR (hash),
 		MOCK_ARG (sizeof (hash)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1004,7 +1008,7 @@ static void hash_thread_safe_test_finish_error (CuTest *test)
 
 	status = mock_expect (&mock.mock, mock.base.start_sha256, &mock, 0);
 	status = mock_expect (&mock.mock, mock.base.finish, &mock, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG (hash), MOCK_ARG (sizeof (hash)));
+		MOCK_ARG_PTR (hash), MOCK_ARG (sizeof (hash)));
 	status |= mock_expect (&mock.mock, mock.base.cancel, &mock, 0);
 
 	CuAssertIntEquals (test, 0, status);

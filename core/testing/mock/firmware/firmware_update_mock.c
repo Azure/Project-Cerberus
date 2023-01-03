@@ -16,8 +16,8 @@ int firmware_update_mock_finalize_image (const struct firmware_update *updater,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, firmware_update_mock_finalize_image, updater, MOCK_ARG_CALL (flash),
-		MOCK_ARG_CALL (address));
+	MOCK_RETURN (&mock->mock, firmware_update_mock_finalize_image, updater,
+		MOCK_ARG_PTR_CALL (flash), MOCK_ARG_CALL (address));
 }
 
 int firmware_update_mock_verify_boot_image (const struct firmware_update *updater,
@@ -30,7 +30,7 @@ int firmware_update_mock_verify_boot_image (const struct firmware_update *update
 	}
 
 	MOCK_RETURN (&mock->mock, firmware_update_mock_verify_boot_image, updater,
-		MOCK_ARG_CALL (flash), MOCK_ARG_CALL (address));
+		MOCK_ARG_PTR_CALL (flash), MOCK_ARG_CALL (address));
 }
 
 static int firmware_update_mock_func_arg_count (void *func)

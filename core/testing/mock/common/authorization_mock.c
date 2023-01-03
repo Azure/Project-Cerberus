@@ -16,8 +16,8 @@ static int authorization_mock_authorize (struct authorization *auth, uint8_t **t
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, authorization_mock_authorize, auth, MOCK_ARG_CALL (token),
-		MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, authorization_mock_authorize, auth, MOCK_ARG_PTR_CALL (token),
+		MOCK_ARG_PTR_CALL (length));
 }
 
 static int authorization_mock_func_arg_count (void *func)

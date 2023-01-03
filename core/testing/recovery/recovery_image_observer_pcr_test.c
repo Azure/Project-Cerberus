@@ -143,7 +143,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.get_hash, &image, 0, MOCK_ARG (&hash.base),
+	status = mock_expect (&image.mock, image.base.get_hash, &image, 0, MOCK_ARG_PTR (&hash.base),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&image.mock, 1, RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN, 2);
 
@@ -200,7 +200,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated_hash_er
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&image.mock, image.base.get_hash, &image, RECOVERY_IMAGE_GET_HASH_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -262,12 +262,12 @@ static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.mock, manager.base.get_active_recovery_image, &manager,
-		(intptr_t) &image);
+		MOCK_RETURN_PTR (&image));
 
 	status |= mock_expect (&manager.mock, manager.base.free_recovery_image, &manager, 0,
-		MOCK_ARG (&image));
+		MOCK_ARG_PTR (&image));
 
-	status |= mock_expect (&image.mock, image.base.get_hash, &image, 0, MOCK_ARG (&hash),
+	status |= mock_expect (&image.mock, image.base.get_hash, &image, 0, MOCK_ARG_PTR (&hash),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&image.mock, 1, RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN, 2);
 
@@ -331,7 +331,7 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.mock, manager.base.get_active_recovery_image, &manager,
-		(intptr_t) NULL);
+		MOCK_RETURN_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	recovery_image_observer_pcr_record_measurement (&observer, &manager.base);
@@ -438,13 +438,13 @@ static void recovery_image_observer_pcr_test_record_measurement_hash_error (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.mock, manager.base.get_active_recovery_image, &manager,
-		(intptr_t) &image);
+		MOCK_RETURN_PTR (&image));
 
 	status |= mock_expect (&manager.mock, manager.base.free_recovery_image, &manager, 0,
-		MOCK_ARG (&image));
+		MOCK_ARG_PTR (&image));
 
 	status |= mock_expect (&image.mock, image.base.get_hash, &image, RECOVERY_IMAGE_GET_HASH_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&image.mock, 1, RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN, 2);
 
 	CuAssertIntEquals (test, 0, status);
@@ -505,7 +505,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&image.mock, image.base.get_hash, &image, 0, MOCK_ARG (&hash.base),
+	status = mock_expect (&image.mock, image.base.get_hash, &image, 0, MOCK_ARG_PTR (&hash.base),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&image.mock, 1, RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN, 2);
 

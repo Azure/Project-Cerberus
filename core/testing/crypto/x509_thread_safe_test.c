@@ -99,9 +99,10 @@ static void x509_thread_safe_test_create_csr (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.create_csr, &mock, 0, MOCK_ARG (ECC_PRIVKEY_DER),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA),
-		MOCK_ARG (X509_EKU_OID), MOCK_ARG (NULL), MOCK_ARG (&csr), MOCK_ARG (&length));
+	status = mock_expect (&mock.mock, mock.base.create_csr, &mock, 0,
+		MOCK_ARG_PTR (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN),
+		MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (X509_EKU_OID),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&csr), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -135,9 +136,9 @@ static void x509_thread_safe_test_create_csr_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.create_csr, &mock, X509_ENGINE_CSR_FAILED,
-		MOCK_ARG (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG (X509_SUBJECT_NAME),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG (X509_EKU_OID), MOCK_ARG (NULL), MOCK_ARG (&csr),
-		MOCK_ARG (&length));
+		MOCK_ARG_PTR (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN),
+		MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (X509_EKU_OID),
+		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&csr), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -200,9 +201,9 @@ static void x509_thread_safe_test_create_self_signed_certificate (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.create_self_signed_certificate, &mock, 0,
-		MOCK_ARG (&cert), MOCK_ARG (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG (X509_SERIAL_NUM), MOCK_ARG (X509_SERIAL_NUM_LEN), MOCK_ARG (X509_SUBJECT_NAME),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG (NULL));
+		MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN),
+		MOCK_ARG_PTR (X509_SERIAL_NUM), MOCK_ARG (X509_SERIAL_NUM_LEN),
+		MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -236,9 +237,10 @@ static void x509_thread_safe_test_create_self_signed_certificate_error (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.create_self_signed_certificate, &mock,
-		X509_ENGINE_SELF_SIGNED_FAILED, MOCK_ARG (&cert), MOCK_ARG (ECC_PRIVKEY_DER),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG (X509_SERIAL_NUM), MOCK_ARG (X509_SERIAL_NUM_LEN),
-		MOCK_ARG (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA), MOCK_ARG (NULL));
+		X509_ENGINE_SELF_SIGNED_FAILED, MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (ECC_PRIVKEY_DER),
+		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_PTR (X509_SERIAL_NUM),
+		MOCK_ARG (X509_SERIAL_NUM_LEN), MOCK_ARG_PTR (X509_SUBJECT_NAME),
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -303,10 +305,11 @@ static void x509_thread_safe_test_create_ca_signed_certificate (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.create_ca_signed_certificate, &mock, 0,
-		MOCK_ARG (&cert), MOCK_ARG (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN),
-		MOCK_ARG (X509_CA2_SERIAL_NUM), MOCK_ARG (X509_CA2_SERIAL_NUM_LEN),
-		MOCK_ARG (X509_CA2_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA), MOCK_ARG (RSA_PRIVKEY_DER),
-		MOCK_ARG (RSA_PRIVKEY_DER_LEN), MOCK_ARG (&ca_cert), MOCK_ARG (NULL));
+		MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN),
+		MOCK_ARG_PTR (X509_CA2_SERIAL_NUM), MOCK_ARG (X509_CA2_SERIAL_NUM_LEN),
+		MOCK_ARG_PTR (X509_CA2_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA),
+		MOCK_ARG_PTR (RSA_PRIVKEY_DER), MOCK_ARG (RSA_PRIVKEY_DER_LEN), MOCK_ARG_PTR (&ca_cert),
+		MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -341,11 +344,11 @@ static void x509_thread_safe_test_create_ca_signed_certificate_error (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.create_ca_signed_certificate, &mock,
-		X509_ENGINE_CA_SIGNED_FAILED, MOCK_ARG (&cert), MOCK_ARG (ECC_PRIVKEY_DER),
-		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG (X509_CA2_SERIAL_NUM),
-		MOCK_ARG (X509_CA2_SERIAL_NUM_LEN), MOCK_ARG (X509_CA2_SUBJECT_NAME),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG (RSA_PRIVKEY_DER), MOCK_ARG (RSA_PRIVKEY_DER_LEN),
-		MOCK_ARG (&ca_cert), MOCK_ARG (NULL));
+		X509_ENGINE_CA_SIGNED_FAILED, MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (ECC_PRIVKEY_DER),
+		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_PTR (X509_CA2_SERIAL_NUM),
+		MOCK_ARG (X509_CA2_SERIAL_NUM_LEN), MOCK_ARG_PTR (X509_CA2_SUBJECT_NAME),
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (RSA_PRIVKEY_DER), MOCK_ARG (RSA_PRIVKEY_DER_LEN),
+		MOCK_ARG_PTR (&ca_cert), MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -409,8 +412,8 @@ static void x509_thread_safe_test_load_certificate (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.load_certificate, &mock, 0, MOCK_ARG (&cert),
-		MOCK_ARG (X509_CERTSS_ECC_CA_DER), MOCK_ARG (X509_CERTSS_ECC_CA_DER_LEN));
+	status = mock_expect (&mock.mock, mock.base.load_certificate, &mock, 0, MOCK_ARG_PTR (&cert),
+		MOCK_ARG_PTR (X509_CERTSS_ECC_CA_DER), MOCK_ARG (X509_CERTSS_ECC_CA_DER_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -443,7 +446,8 @@ static void x509_thread_safe_test_load_certificate_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.load_certificate, &mock, X509_ENGINE_LOAD_FAILED,
-		MOCK_ARG (&cert), MOCK_ARG (X509_CERTSS_ECC_CA_DER), MOCK_ARG (X509_CERTSS_ECC_CA_DER_LEN));
+		MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (X509_CERTSS_ECC_CA_DER),
+		MOCK_ARG (X509_CERTSS_ECC_CA_DER_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -504,7 +508,8 @@ static void x509_thread_safe_test_release_certificate (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.release_certificate, &mock, 0, MOCK_ARG (&cert));
+	status = mock_expect (&mock.mock, mock.base.release_certificate, &mock, 0,
+		MOCK_ARG_PTR (&cert));
 	CuAssertIntEquals (test, 0, status);
 
 	engine.base.release_certificate (&engine.base, &cert);
@@ -563,8 +568,8 @@ static void x509_thread_safe_test_get_certificate_der (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.get_certificate_der, &mock, 0, MOCK_ARG (&cert),
-		MOCK_ARG (&der), MOCK_ARG (&length));
+	status = mock_expect (&mock.mock, mock.base.get_certificate_der, &mock, 0, MOCK_ARG_PTR (&cert),
+		MOCK_ARG_PTR (&der), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
@@ -598,7 +603,8 @@ static void x509_thread_safe_test_get_certificate_der_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_certificate_der, &mock,
-		X509_ENGINE_CERT_DER_FAILED, MOCK_ARG (&cert), MOCK_ARG (&der), MOCK_ARG (&length));
+		X509_ENGINE_CERT_DER_FAILED, MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (&der),
+		MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
@@ -660,7 +666,7 @@ static void x509_thread_safe_test_get_certificate_version (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_certificate_version, &mock, X509_VERSION_3,
-		MOCK_ARG (&cert));
+		MOCK_ARG_PTR (&cert));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_version (&engine.base, &cert);
@@ -692,7 +698,7 @@ static void x509_thread_safe_test_get_certificate_version_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_certificate_version, &mock,
-		X509_ENGINE_VERSION_FAILED, MOCK_ARG (&cert));
+		X509_ENGINE_VERSION_FAILED, MOCK_ARG_PTR (&cert));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_version (&engine.base, &cert);
@@ -753,7 +759,7 @@ static void x509_thread_safe_test_get_serial_number (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_serial_number, &mock, X509_SERIAL_NUM_LEN,
-		MOCK_ARG (&cert), MOCK_ARG (serial), MOCK_ARG (sizeof (serial)));
+		MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (serial), MOCK_ARG (sizeof (serial)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_serial_number (&engine.base, &cert, serial, sizeof (serial));
@@ -786,7 +792,7 @@ static void x509_thread_safe_test_get_serial_number_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_serial_number, &mock,
-		X509_ENGINE_SERIAL_NUM_FAILED, MOCK_ARG (&cert), MOCK_ARG (serial),
+		X509_ENGINE_SERIAL_NUM_FAILED, MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (serial),
 		MOCK_ARG (sizeof (serial)));
 	CuAssertIntEquals (test, 0, status);
 
@@ -848,7 +854,7 @@ static void x509_thread_safe_test_get_public_key_type (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_public_key_type, &mock, X509_PUBLIC_KEY_ECC,
-		MOCK_ARG (&cert));
+		MOCK_ARG_PTR (&cert));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_public_key_type (&engine.base, &cert);
@@ -880,7 +886,7 @@ static void x509_thread_safe_test_get_public_key_type_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_public_key_type, &mock,
-		X509_ENGINE_KEY_TYPE_FAILED, MOCK_ARG (&cert));
+		X509_ENGINE_KEY_TYPE_FAILED, MOCK_ARG_PTR (&cert));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_public_key_type (&engine.base, &cert);
@@ -940,7 +946,7 @@ static void x509_thread_safe_test_get_public_key_length (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_public_key_length, &mock, 256,
-		MOCK_ARG (&cert));
+		MOCK_ARG_PTR (&cert));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_public_key_length (&engine.base, &cert);
@@ -972,7 +978,7 @@ static void x509_thread_safe_test_get_public_key_length_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_public_key_length, &mock,
-		X509_ENGINE_KEY_LENGTH_FAILED, MOCK_ARG (&cert));
+		X509_ENGINE_KEY_LENGTH_FAILED, MOCK_ARG_PTR (&cert));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_public_key_length (&engine.base, &cert);
@@ -1033,8 +1039,8 @@ static void x509_thread_safe_test_get_public_key (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.get_public_key, &mock, 0, MOCK_ARG (&cert),
-		MOCK_ARG (&der), MOCK_ARG (&length));
+	status = mock_expect (&mock.mock, mock.base.get_public_key, &mock, 0, MOCK_ARG_PTR (&cert),
+		MOCK_ARG_PTR (&der), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_public_key (&engine.base, &cert, &der, &length);
@@ -1068,7 +1074,7 @@ static void x509_thread_safe_test_get_public_key_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_public_key, &mock, X509_ENGINE_KEY_FAILED,
-		MOCK_ARG (&cert), MOCK_ARG (&der), MOCK_ARG (&length));
+		MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (&der), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_public_key (&engine.base, &cert, &der, &length);
@@ -1129,7 +1135,8 @@ static void x509_thread_safe_test_init_ca_cert_store (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.init_ca_cert_store, &mock, 0, MOCK_ARG (&store));
+	status = mock_expect (&mock.mock, mock.base.init_ca_cert_store, &mock, 0,
+		MOCK_ARG_PTR (&store));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -1161,7 +1168,7 @@ static void x509_thread_safe_test_init_ca_cert_store_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.init_ca_cert_store, &mock,
-		X509_ENGINE_INIT_STORE_FAILED, MOCK_ARG (&store));
+		X509_ENGINE_INIT_STORE_FAILED, MOCK_ARG_PTR (&store));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -1220,7 +1227,8 @@ static void x509_thread_safe_test_release_ca_cert_store (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.release_ca_cert_store, &mock, 0, MOCK_ARG (&store));
+	status = mock_expect (&mock.mock, mock.base.release_ca_cert_store, &mock, 0,
+		MOCK_ARG_PTR (&store));
 	CuAssertIntEquals (test, 0, status);
 
 	engine.base.release_ca_cert_store (&engine.base, &store);
@@ -1277,8 +1285,8 @@ static void x509_thread_safe_test_add_root_ca (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.add_root_ca, &mock, 0, MOCK_ARG (&store),
-		MOCK_ARG (X509_CERTSS_ECC_CA_DER), MOCK_ARG (X509_CERTSS_ECC_CA_DER_LEN));
+	status = mock_expect (&mock.mock, mock.base.add_root_ca, &mock, 0, MOCK_ARG_PTR (&store),
+		MOCK_ARG_PTR (X509_CERTSS_ECC_CA_DER), MOCK_ARG (X509_CERTSS_ECC_CA_DER_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.add_root_ca (&engine.base, &store, X509_CERTSS_ECC_CA_DER,
@@ -1311,7 +1319,7 @@ static void x509_thread_safe_test_add_root_ca_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.add_root_ca, &mock, X509_ENGINE_ROOT_CA_FAILED,
-		MOCK_ARG (&store), MOCK_ARG (X509_CERTSS_ECC_CA_DER),
+		MOCK_ARG_PTR (&store), MOCK_ARG_PTR (X509_CERTSS_ECC_CA_DER),
 		MOCK_ARG (X509_CERTSS_ECC_CA_DER_LEN));
 	CuAssertIntEquals (test, 0, status);
 
@@ -1373,8 +1381,9 @@ static void x509_thread_safe_test_add_intermediate_ca (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.add_intermediate_ca, &mock, 0, MOCK_ARG (&store),
-		MOCK_ARG (X509_CERTCA_ECC_CA_DER), MOCK_ARG (X509_CERTCA_ECC_CA_DER_LEN));
+	status = mock_expect (&mock.mock, mock.base.add_intermediate_ca, &mock, 0,
+		MOCK_ARG_PTR (&store), MOCK_ARG_PTR (X509_CERTCA_ECC_CA_DER),
+		MOCK_ARG (X509_CERTCA_ECC_CA_DER_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.add_intermediate_ca (&engine.base, &store, X509_CERTCA_ECC_CA_DER,
@@ -1407,7 +1416,7 @@ static void x509_thread_safe_test_add_intermediate_ca_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.add_intermediate_ca, &mock,
-		X509_ENGINE_INTER_CA_FAILED, MOCK_ARG (&store), MOCK_ARG (X509_CERTCA_ECC_CA_DER),
+		X509_ENGINE_INTER_CA_FAILED, MOCK_ARG_PTR (&store), MOCK_ARG_PTR (X509_CERTCA_ECC_CA_DER),
 		MOCK_ARG (X509_CERTCA_ECC_CA_DER_LEN));
 	CuAssertIntEquals (test, 0, status);
 
@@ -1470,8 +1479,8 @@ static void x509_thread_safe_test_authenticate (CuTest *test)
 	status = x509_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.authenticate, &mock, 0, MOCK_ARG (&cert),
-		MOCK_ARG (&store));
+	status = mock_expect (&mock.mock, mock.base.authenticate, &mock, 0, MOCK_ARG_PTR (&cert),
+		MOCK_ARG_PTR (&store));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -1504,7 +1513,7 @@ static void x509_thread_safe_test_authenticate_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.authenticate, &mock, X509_ENGINE_AUTH_FAILED,
-		MOCK_ARG (&cert), MOCK_ARG (&store));
+		MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (&store));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);

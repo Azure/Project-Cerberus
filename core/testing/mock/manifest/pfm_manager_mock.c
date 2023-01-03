@@ -16,7 +16,8 @@ static struct pfm* pfm_manager_mock_get_active_pfm (const struct pfm_manager *ma
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct pfm*, pfm_manager_mock_get_active_pfm, manager);
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct pfm*, pfm_manager_mock_get_active_pfm,
+		manager);
 }
 
 static struct pfm* pfm_manager_mock_get_pending_pfm (const struct pfm_manager *manager)
@@ -27,7 +28,8 @@ static struct pfm* pfm_manager_mock_get_pending_pfm (const struct pfm_manager *m
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, struct pfm*, pfm_manager_mock_get_pending_pfm, manager);
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct pfm*, pfm_manager_mock_get_pending_pfm,
+		manager);
 }
 
 static void pfm_manager_mock_free_pfm (const struct pfm_manager *manager, struct pfm *pfm)
@@ -38,7 +40,7 @@ static void pfm_manager_mock_free_pfm (const struct pfm_manager *manager, struct
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, pfm_manager_mock_free_pfm, manager, MOCK_ARG_CALL (pfm));
+	MOCK_VOID_RETURN (&mock->mock, pfm_manager_mock_free_pfm, manager, MOCK_ARG_PTR_CALL (pfm));
 }
 
 static int pfm_manager_mock_activate_pending_manifest (const struct manifest_manager *manager)
@@ -74,8 +76,8 @@ static int pfm_manager_mock_write_pending_data (const struct manifest_manager *m
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pfm_manager_mock_write_pending_data, manager, MOCK_ARG_CALL (data),
-		MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, pfm_manager_mock_write_pending_data, manager,
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static int pfm_manager_mock_verify_pending_manifest (const struct manifest_manager *manager)

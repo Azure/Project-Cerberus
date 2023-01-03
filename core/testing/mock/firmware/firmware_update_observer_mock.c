@@ -17,7 +17,7 @@ static void firmware_update_observer_mock_on_update_start (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, firmware_update_observer_mock_on_update_start, observer,
-		MOCK_ARG_CALL (update_allowed));
+		MOCK_ARG_PTR_CALL (update_allowed));
 }
 
 static int firmware_update_observer_mock_func_arg_count (void *func)

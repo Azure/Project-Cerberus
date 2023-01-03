@@ -3386,7 +3386,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored (CuTest *test
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -3426,7 +3426,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_ecc (CuTest *
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -3470,7 +3470,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_sha384 (CuTes
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, sizeof (pfm_hash), MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, sizeof (pfm_hash), MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, pfm_hash, sizeof (pfm_hash), 2);
 
@@ -3513,7 +3513,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_sha512 (CuTes
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, sizeof (pfm_hash), MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, sizeof (pfm_hash), MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, pfm_hash, sizeof (pfm_hash), 2);
 
@@ -3553,7 +3553,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_match_default
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -3597,7 +3597,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_match_default
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -3706,7 +3706,7 @@ static void manifest_verification_test_on_pfm_activated_static_init_key_stored (
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -3807,7 +3807,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_hash_error (C
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, MANIFEST_GET_HASH_FAILED, MOCK_ARG (&verification.hash),
+		&verification.pfm, MANIFEST_GET_HASH_FAILED, MOCK_ARG_PTR (&verification.hash),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 
 	status |= mock_expect (&verification.log.mock, verification.log.base.create_entry,
@@ -3843,7 +3843,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_signature_err
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -3884,7 +3884,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_set_key_error
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -3932,7 +3932,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_verify_error 
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -3985,7 +3985,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_save_error (C
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4049,7 +4049,7 @@ static void manifest_verification_test_on_cfm_activated_key_stored (CuTest *test
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.cfm.mock, verification.cfm.base.base.get_hash,
-		&verification.cfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.cfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.cfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4089,7 +4089,7 @@ static void manifest_verification_test_on_cfm_activated_key_stored_match_default
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.cfm.mock, verification.cfm.base.base.get_hash,
-		&verification.cfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.cfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.cfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4148,7 +4148,7 @@ static void manifest_verification_test_on_pcd_activated_key_stored (CuTest *test
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pcd.mock, verification.pcd.base.base.get_hash,
-		&verification.pcd, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pcd, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pcd.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4188,7 +4188,7 @@ static void manifest_verification_test_on_pcd_activated_key_stored_match_default
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pcd.mock, verification.pcd.base.base.get_hash,
-		&verification.pcd, SIG_HASH_LEN, MOCK_ARG (&verification.hash),	MOCK_ARG_NOT_NULL,
+		&verification.pcd, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash),	MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pcd.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4265,7 +4265,7 @@ static void manifest_verification_test_after_default_activated_verify_signature 
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4351,7 +4351,7 @@ static void manifest_verification_test_after_default_activated_on_pfm_activated 
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4404,7 +4404,7 @@ static void manifest_verification_test_after_default_activated_on_update_start (
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4461,7 +4461,7 @@ static void manifest_verification_test_after_default_activated_hash_error_verify
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, MANIFEST_GET_HASH_FAILED, MOCK_ARG (&verification.hash),
+		&verification.pfm, MANIFEST_GET_HASH_FAILED, MOCK_ARG_PTR (&verification.hash),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 
 	CuAssertIntEquals (test, 0, status);
@@ -4540,7 +4540,7 @@ static void manifest_verification_test_after_default_activated_hash_error_on_upd
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, MANIFEST_GET_HASH_FAILED, MOCK_ARG (&verification.hash),
+		&verification.pfm, MANIFEST_GET_HASH_FAILED, MOCK_ARG_PTR (&verification.hash),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 
 	CuAssertIntEquals (test, 0, status);
@@ -4576,7 +4576,7 @@ static void manifest_verification_test_after_default_activated_signature_error_v
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4660,7 +4660,7 @@ static void manifest_verification_test_after_default_activated_signature_error_o
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4701,7 +4701,7 @@ static void manifest_verification_test_after_default_activated_set_key_error_ver
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4792,7 +4792,7 @@ static void manifest_verification_test_after_default_activated_set_key_error_on_
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4840,7 +4840,7 @@ static void manifest_verification_test_after_default_activated_verify_error_veri
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4936,7 +4936,7 @@ static void manifest_verification_test_after_default_activated_verify_error_on_u
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -4989,7 +4989,7 @@ static void manifest_verification_test_after_default_activated_save_error_verify
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -5078,7 +5078,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_pfm
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -5183,7 +5183,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_pfm
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -5297,7 +5297,7 @@ static void manifest_verification_test_after_default_activated_save_error_twice_
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -5428,7 +5428,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -5536,7 +5536,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -5653,7 +5653,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -5736,7 +5736,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 	debug_log = NULL;
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 
@@ -5810,7 +5810,7 @@ static void manifest_verification_test_after_default_activated_match_stored (CuT
 		HASH_TYPE_SHA256);
 
 	status = mock_expect (&verification.pfm.mock, verification.pfm.base.base.get_hash,
-		&verification.pfm, SIG_HASH_LEN, MOCK_ARG (&verification.hash), MOCK_ARG_NOT_NULL,
+		&verification.pfm, SIG_HASH_LEN, MOCK_ARG_PTR (&verification.hash), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&verification.pfm.mock, 1, SIG_HASH_TEST, SIG_HASH_LEN, 2);
 

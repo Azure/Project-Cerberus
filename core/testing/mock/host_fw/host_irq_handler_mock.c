@@ -17,7 +17,7 @@ static int host_irq_handler_mock_power_on (struct host_irq_handler *handler, boo
 	}
 
 	MOCK_RETURN (&mock->mock, host_irq_handler_mock_power_on, handler,
-		MOCK_ARG_CALL (allow_unsecure), MOCK_ARG_CALL (hash));
+		MOCK_ARG_CALL (allow_unsecure), MOCK_ARG_PTR_CALL (hash));
 }
 
 static int host_irq_handler_mock_enter_reset (struct host_irq_handler *handler)

@@ -468,7 +468,7 @@ static void flash_hash_contents_test_hash_finish_error (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (sizeof (data)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG (hash_actual), MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_PTR (hash_actual), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
 	CuAssertIntEquals (test, 0, status);
@@ -7570,7 +7570,7 @@ static void flash_hash_noncontiguous_contents_test_hash_finish_error (CuTest *te
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (sizeof (data)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG (hash_actual), MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_PTR (hash_actual), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
 	CuAssertIntEquals (test, 0, status);
@@ -15227,7 +15227,7 @@ static void flash_hash_noncontiguous_contents_at_offset_test_hash_finish_error (
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (sizeof (data)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG (hash_actual), MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_PTR (hash_actual), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
 	CuAssertIntEquals (test, 0, status);

@@ -17,7 +17,7 @@ static int keystore_mock_save_key (struct keystore *store, int id, const uint8_t
 	}
 
 	MOCK_RETURN (&mock->mock, keystore_mock_save_key, store, MOCK_ARG_CALL (id),
-		MOCK_ARG_CALL (key), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (key), MOCK_ARG_CALL (length));
 }
 
 static int keystore_mock_load_key (struct keystore *store, int id, uint8_t **key, size_t *length)
@@ -29,7 +29,7 @@ static int keystore_mock_load_key (struct keystore *store, int id, uint8_t **key
 	}
 
 	MOCK_RETURN (&mock->mock, keystore_mock_load_key, store, MOCK_ARG_CALL (id),
-		MOCK_ARG_CALL (key), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (key), MOCK_ARG_PTR_CALL (length));
 }
 
 static int keystore_mock_erase_key (struct keystore *store, int id)

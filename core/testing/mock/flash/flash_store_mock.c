@@ -17,7 +17,7 @@ static int flash_store_mock_write (struct flash_store *flash, int id, const uint
 	}
 
 	MOCK_RETURN (&mock->mock, flash_store_mock_write, flash, MOCK_ARG_CALL (id),
-		MOCK_ARG_CALL (data), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static int flash_store_mock_read (struct flash_store *flash, int id, uint8_t *data, size_t length)
@@ -29,7 +29,7 @@ static int flash_store_mock_read (struct flash_store *flash, int id, uint8_t *da
 	}
 
 	MOCK_RETURN (&mock->mock, flash_store_mock_read, flash, MOCK_ARG_CALL (id),
-		MOCK_ARG_CALL (data), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static int flash_store_mock_erase (struct flash_store *flash, int id)

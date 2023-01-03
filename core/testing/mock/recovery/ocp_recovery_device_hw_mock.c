@@ -17,7 +17,7 @@ static int ocp_recovery_device_hw_mock_get_device_id (
 	}
 
 	MOCK_RETURN (&mock->mock, ocp_recovery_device_hw_mock_get_device_id, recovery_hw,
-		MOCK_ARG_CALL (id));
+		MOCK_ARG_PTR_CALL (id));
 }
 
 static void ocp_recovery_device_hw_mock_get_device_status (
@@ -33,7 +33,8 @@ static void ocp_recovery_device_hw_mock_get_device_status (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, ocp_recovery_device_hw_mock_get_device_status, recovery_hw,
-		MOCK_ARG_CALL (status_code), MOCK_ARG_CALL (reason_code), MOCK_ARG_CALL (vendor));
+		MOCK_ARG_PTR_CALL (status_code), MOCK_ARG_PTR_CALL (reason_code),
+		MOCK_ARG_PTR_CALL (vendor));
 }
 
 static void ocp_recovery_device_hw_mock_reset_device (
@@ -73,7 +74,7 @@ static int ocp_recovery_device_hw_mock_activate_recovery (
 	}
 
 	MOCK_RETURN (&mock->mock, ocp_recovery_device_hw_mock_activate_recovery, recovery_hw,
-		MOCK_ARG_CALL (recovery), MOCK_ARG_CALL (is_auth_error));
+		MOCK_ARG_PTR_CALL (recovery), MOCK_ARG_PTR_CALL (is_auth_error));
 }
 
 static int ocp_recovery_device_hw_mock_func_arg_count (void *func)

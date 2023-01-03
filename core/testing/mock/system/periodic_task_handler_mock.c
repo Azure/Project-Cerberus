@@ -27,7 +27,7 @@ static const platform_clock* periodic_task_handler_mock_get_next_execution (
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, const platform_clock*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, const platform_clock*,
 		periodic_task_handler_mock_get_next_execution, handler);
 }
 

@@ -256,7 +256,7 @@ static void riot_core_common_test_generate_device_id (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -265,7 +265,7 @@ static void riot_core_common_test_generate_device_id (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -312,7 +312,7 @@ static void riot_core_common_test_generate_device_id (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -576,7 +576,7 @@ static void riot_core_common_test_generate_device_id_cdi_hash_error (CuTest *tes
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG (RIOT_CORE_CDI + 1), MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
+		MOCK_ARG_PTR (RIOT_CORE_CDI + 1), MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
@@ -647,7 +647,7 @@ static void riot_core_common_test_generate_device_id_cdi_hash_finish_error (CuTe
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_FINISH_FAILED,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
@@ -721,7 +721,7 @@ static void riot_core_common_test_generate_device_id_key_pair_error (CuTest *tes
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -731,7 +731,7 @@ static void riot_core_common_test_generate_device_id_key_pair_error (CuTest *tes
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc,
 		ECC_ENGINE_DERIVED_KEY_FAILED,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -800,7 +800,7 @@ static void riot_core_common_test_generate_device_id_der_error (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -809,7 +809,7 @@ static void riot_core_common_test_generate_device_id_der_error (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -835,7 +835,7 @@ static void riot_core_common_test_generate_device_id_der_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -896,7 +896,7 @@ static void riot_core_common_test_generate_device_id_serial_hmac_error (CuTest *
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -905,7 +905,7 @@ static void riot_core_common_test_generate_device_id_serial_hmac_error (CuTest *
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -935,7 +935,7 @@ static void riot_core_common_test_generate_device_id_serial_hmac_error (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -996,7 +996,7 @@ static void riot_core_common_test_generate_device_id_subject_name_error (CuTest 
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -1005,7 +1005,7 @@ static void riot_core_common_test_generate_device_id_subject_name_error (CuTest 
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -1041,7 +1041,7 @@ static void riot_core_common_test_generate_device_id_subject_name_error (CuTest 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1102,7 +1102,7 @@ static void riot_core_common_test_generate_device_id_cert_error (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -1111,7 +1111,7 @@ static void riot_core_common_test_generate_device_id_cert_error (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -1158,7 +1158,7 @@ static void riot_core_common_test_generate_device_id_cert_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1227,7 +1227,7 @@ static void riot_core_common_test_get_device_id_csr (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -1236,7 +1236,7 @@ static void riot_core_common_test_get_device_id_csr (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -1287,9 +1287,9 @@ static void riot_core_common_test_get_device_id_csr (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot_tcb, sizeof (riot_tcb)), MOCK_ARG (&out),
-		MOCK_ARG (&out_length));
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR_CONTAINS_TMP (&riot_tcb, sizeof (riot_tcb)), MOCK_ARG_PTR (&out),
+		MOCK_ARG_PTR (&out_length));
 	status |= mock_expect_output (&x509.mock, 6, &csr, sizeof (csr), -1);
 	status |= mock_expect_output (&x509.mock, 7, &csr_length, sizeof (csr_length), -1);
 
@@ -1313,7 +1313,7 @@ static void riot_core_common_test_get_device_id_csr (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -1386,7 +1386,7 @@ static void riot_core_common_test_get_device_id_csr_with_oid (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -1395,7 +1395,7 @@ static void riot_core_common_test_get_device_id_csr_with_oid (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -1448,8 +1448,8 @@ static void riot_core_common_test_get_device_id_csr_with_oid (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
 		MOCK_ARG (X509_CERT_CA),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CERBERUS, strlen (RIOT_CORE_CERBERUS) + 1),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot_tcb, sizeof (riot_tcb)), MOCK_ARG (&out),
-		MOCK_ARG (&out_length));
+		MOCK_ARG_PTR_CONTAINS_TMP (&riot_tcb, sizeof (riot_tcb)), MOCK_ARG_PTR (&out),
+		MOCK_ARG_PTR (&out_length));
 	status |= mock_expect_output (&x509.mock, 6, &csr, sizeof (csr), -1);
 	status |= mock_expect_output (&x509.mock, 7, &csr_length, sizeof (csr_length), -1);
 
@@ -1473,7 +1473,7 @@ static void riot_core_common_test_get_device_id_csr_with_oid (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -1546,7 +1546,7 @@ static void riot_core_common_test_get_device_id_csr_null (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -1555,7 +1555,7 @@ static void riot_core_common_test_get_device_id_csr_null (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -1623,7 +1623,7 @@ static void riot_core_common_test_get_device_id_csr_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -1741,7 +1741,7 @@ static void riot_core_common_test_get_device_id_csr_error (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -1750,7 +1750,7 @@ static void riot_core_common_test_get_device_id_csr_error (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -1801,9 +1801,9 @@ static void riot_core_common_test_get_device_id_csr_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG (NULL),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot_tcb, sizeof (riot_tcb)), MOCK_ARG (&out),
-		MOCK_ARG (&out_length));
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
+		MOCK_ARG_PTR_CONTAINS_TMP (&riot_tcb, sizeof (riot_tcb)), MOCK_ARG_PTR (&out),
+		MOCK_ARG_PTR (&out_length));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1823,7 +1823,7 @@ static void riot_core_common_test_get_device_id_csr_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -1894,7 +1894,7 @@ static void riot_core_common_test_get_device_id_cert (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -1903,7 +1903,7 @@ static void riot_core_common_test_get_device_id_cert (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -1951,7 +1951,7 @@ static void riot_core_common_test_get_device_id_cert (CuTest *test)
 
 	/* Encode the certificate. */
 	status = mock_expect (&x509.mock, x509.base.get_certificate_der, &x509, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&out), MOCK_ARG (&out_length));
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&out), MOCK_ARG_PTR (&out_length));
 	status |= mock_expect_output (&x509.mock, 1, &cert, sizeof (cert), -1);
 	status |= mock_expect_output (&x509.mock, 2, &cert_length, sizeof (cert_length), -1);
 
@@ -1975,7 +1975,7 @@ static void riot_core_common_test_get_device_id_cert (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -2042,7 +2042,7 @@ static void riot_core_common_test_get_device_id_cert_null (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -2051,7 +2051,7 @@ static void riot_core_common_test_get_device_id_cert_null (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -2119,7 +2119,7 @@ static void riot_core_common_test_get_device_id_cert_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -2247,7 +2247,7 @@ static void riot_core_common_test_get_device_id_cert_error (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -2256,7 +2256,7 @@ static void riot_core_common_test_get_device_id_cert_error (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -2304,8 +2304,8 @@ static void riot_core_common_test_get_device_id_cert_error (CuTest *test)
 
 	/* Encode the certificate. */
 	status = mock_expect (&x509.mock, x509.base.get_certificate_der, &x509,
-		X509_ENGINE_CERT_DER_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG (&out),
-		MOCK_ARG (&out_length));
+		X509_ENGINE_CERT_DER_FAILED, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&out),
+		MOCK_ARG_PTR (&out_length));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2325,7 +2325,7 @@ static void riot_core_common_test_get_device_id_cert_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -2395,7 +2395,7 @@ static void riot_core_common_test_generate_alias_key (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -2404,7 +2404,7 @@ static void riot_core_common_test_generate_alias_key (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -2465,7 +2465,7 @@ static void riot_core_common_test_generate_alias_key (CuTest *test)
 	/* Derive the Alias key. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 1);
 
 	/* Generate the Alias key X.509 certificate. */
@@ -2515,11 +2515,11 @@ static void riot_core_common_test_generate_alias_key (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1));
 
@@ -2583,7 +2583,7 @@ static void riot_core_common_test_generate_alias_key_null (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -2592,7 +2592,7 @@ static void riot_core_common_test_generate_alias_key_null (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -2668,7 +2668,7 @@ static void riot_core_common_test_generate_alias_key_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -2732,7 +2732,7 @@ static void riot_core_common_test_generate_alias_key_invalid_fwid_hash (CuTest *
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -2741,7 +2741,7 @@ static void riot_core_common_test_generate_alias_key_invalid_fwid_hash (CuTest *
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -2810,7 +2810,7 @@ static void riot_core_common_test_generate_alias_key_invalid_fwid_hash (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -2943,7 +2943,7 @@ static void riot_core_common_test_generate_alias_key_alias_kdf_error (CuTest *te
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -2952,7 +2952,7 @@ static void riot_core_common_test_generate_alias_key_alias_kdf_error (CuTest *te
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -3027,7 +3027,7 @@ static void riot_core_common_test_generate_alias_key_alias_kdf_error (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -3091,7 +3091,7 @@ static void riot_core_common_test_generate_alias_key_key_pair_error (CuTest *tes
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -3100,7 +3100,7 @@ static void riot_core_common_test_generate_alias_key_key_pair_error (CuTest *tes
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -3162,7 +3162,7 @@ static void riot_core_common_test_generate_alias_key_key_pair_error (CuTest *tes
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc,
 		ECC_ENGINE_DERIVED_KEY_FAILED,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3182,7 +3182,7 @@ static void riot_core_common_test_generate_alias_key_key_pair_error (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -3246,7 +3246,7 @@ static void riot_core_common_test_generate_alias_key_der_error (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -3255,7 +3255,7 @@ static void riot_core_common_test_generate_alias_key_der_error (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -3316,7 +3316,7 @@ static void riot_core_common_test_generate_alias_key_der_error (CuTest *test)
 	/* Derive the Alias key. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 1);
 
 	/* Generate the Alias key X.509 certificate. */
@@ -3342,11 +3342,11 @@ static void riot_core_common_test_generate_alias_key_der_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3414,7 +3414,7 @@ static void riot_core_common_test_generate_alias_key_serial_hmac_error (CuTest *
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -3423,7 +3423,7 @@ static void riot_core_common_test_generate_alias_key_serial_hmac_error (CuTest *
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -3484,7 +3484,7 @@ static void riot_core_common_test_generate_alias_key_serial_hmac_error (CuTest *
 	/* Derive the Alias key. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 1);
 
 	/* Generate the Alias key X.509 certificate. */
@@ -3514,11 +3514,11 @@ static void riot_core_common_test_generate_alias_key_serial_hmac_error (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3586,7 +3586,7 @@ static void riot_core_common_test_generate_alias_key_subject_name_error (CuTest 
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -3595,7 +3595,7 @@ static void riot_core_common_test_generate_alias_key_subject_name_error (CuTest 
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -3656,7 +3656,7 @@ static void riot_core_common_test_generate_alias_key_subject_name_error (CuTest 
 	/* Derive the Alias key. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 1);
 
 	/* Generate the Alias key X.509 certificate. */
@@ -3692,11 +3692,11 @@ static void riot_core_common_test_generate_alias_key_subject_name_error (CuTest 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3764,7 +3764,7 @@ static void riot_core_common_test_generate_alias_key_cert_error (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -3773,7 +3773,7 @@ static void riot_core_common_test_generate_alias_key_cert_error (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -3834,7 +3834,7 @@ static void riot_core_common_test_generate_alias_key_cert_error (CuTest *test)
 	/* Derive the Alias key. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 1);
 
 	/* Generate the Alias key X.509 certificate. */
@@ -3884,11 +3884,11 @@ static void riot_core_common_test_generate_alias_key_cert_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3958,7 +3958,7 @@ static void riot_core_common_test_get_alias_key (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -3967,7 +3967,7 @@ static void riot_core_common_test_get_alias_key (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -4028,7 +4028,7 @@ static void riot_core_common_test_get_alias_key (CuTest *test)
 	/* Derive the Alias key. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 1);
 
 	/* Generate the Alias key X.509 certificate. */
@@ -4088,11 +4088,11 @@ static void riot_core_common_test_get_alias_key (CuTest *test)
 	platform_free (out);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1));
 
@@ -4164,7 +4164,7 @@ static void riot_core_common_test_get_alias_key_null (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -4173,7 +4173,7 @@ static void riot_core_common_test_get_alias_key_null (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -4234,7 +4234,7 @@ static void riot_core_common_test_get_alias_key_null (CuTest *test)
 	/* Derive the Alias key. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 1);
 
 	/* Generate the Alias key X.509 certificate. */
@@ -4293,11 +4293,11 @@ static void riot_core_common_test_get_alias_key_null (CuTest *test)
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1));
 
@@ -4362,7 +4362,7 @@ static void riot_core_common_test_get_alias_key_no_alias_key (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -4371,7 +4371,7 @@ static void riot_core_common_test_get_alias_key_no_alias_key (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -4433,7 +4433,7 @@ static void riot_core_common_test_get_alias_key_no_alias_key (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -4511,7 +4511,7 @@ static void riot_core_common_test_get_alias_key_cert (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -4520,7 +4520,7 @@ static void riot_core_common_test_get_alias_key_cert (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -4581,7 +4581,7 @@ static void riot_core_common_test_get_alias_key_cert (CuTest *test)
 	/* Derive the Alias key. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 1);
 
 	/* Generate the Alias key X.509 certificate. */
@@ -4632,7 +4632,7 @@ static void riot_core_common_test_get_alias_key_cert (CuTest *test)
 
 	/* Encode the certificate. */
 	status = mock_expect (&x509.mock, x509.base.get_certificate_der, &x509, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG (&out), MOCK_ARG (&out_length));
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (&out), MOCK_ARG_PTR (&out_length));
 	status |= mock_expect_output (&x509.mock, 1, &cert, sizeof (cert), -1);
 	status |= mock_expect_output (&x509.mock, 2, &cert_length, sizeof (cert_length), -1);
 
@@ -4658,11 +4658,11 @@ static void riot_core_common_test_get_alias_key_cert (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1));
 
@@ -4734,7 +4734,7 @@ static void riot_core_common_test_get_alias_key_cert_null (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -4743,7 +4743,7 @@ static void riot_core_common_test_get_alias_key_cert_null (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -4804,7 +4804,7 @@ static void riot_core_common_test_get_alias_key_cert_null (CuTest *test)
 	/* Derive the Alias key. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 1);
 
 	/* Generate the Alias key X.509 certificate. */
@@ -4875,11 +4875,11 @@ static void riot_core_common_test_get_alias_key_cert_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1));
 
@@ -4944,7 +4944,7 @@ static void riot_core_common_test_get_alias_key_cert_no_alias_key (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -4953,7 +4953,7 @@ static void riot_core_common_test_get_alias_key_cert_no_alias_key (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -5015,7 +5015,7 @@ static void riot_core_common_test_get_alias_key_cert_no_alias_key (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 
@@ -5087,7 +5087,7 @@ static void riot_core_common_test_get_alias_key_cert_error (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI, 1), MOCK_ARG (1));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (RIOT_CORE_CDI + 1),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (RIOT_CORE_CDI + 1),
 		MOCK_ARG (RIOT_CORE_CDI_LEN - 1));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SHA256_HASH_LENGTH));
@@ -5096,7 +5096,7 @@ static void riot_core_common_test_get_alias_key_cert_error (CuTest *test)
 	/* Derive the Device ID. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CDI_HASH, RIOT_CORE_CDI_HASH_LEN),
-		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_CDI_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 0);
 
 	/* Generate the Device ID X.509 certificate. */
@@ -5157,7 +5157,7 @@ static void riot_core_common_test_get_alias_key_cert_error (CuTest *test)
 	/* Derive the Alias key. */
 	status |= mock_expect (&ecc.mock, ecc.base.generate_derived_key_pair, &ecc, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_FWID_KDF, RIOT_CORE_FWID_KDF_LEN),
-		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (NULL));
+		MOCK_ARG (RIOT_CORE_FWID_KDF_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	status |= mock_expect_save_arg (&ecc.mock, 2, 1);
 
 	/* Generate the Alias key X.509 certificate. */
@@ -5208,8 +5208,8 @@ static void riot_core_common_test_get_alias_key_cert_error (CuTest *test)
 
 	/* Encode the certificate. */
 	status = mock_expect (&x509.mock, x509.base.get_certificate_der, &x509,
-		X509_ENGINE_CERT_DER_FAILED, MOCK_ARG_SAVED_ARG (1), MOCK_ARG (&out),
-		MOCK_ARG (&out_length));
+		X509_ENGINE_CERT_DER_FAILED, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR (&out),
+		MOCK_ARG_PTR (&out_length));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5229,11 +5229,11 @@ static void riot_core_common_test_get_alias_key_cert_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (0));
 	status |= mock_expect (&ecc.mock, ecc.base.release_key_pair, &ecc, 0, MOCK_ARG_SAVED_ARG (1),
-		MOCK_ARG (NULL));
+		MOCK_ARG_PTR (NULL));
 	status |= mock_expect (&x509.mock, x509.base.release_certificate, &x509, 0,
 		MOCK_ARG_SAVED_ARG (1));
 

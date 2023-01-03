@@ -15,7 +15,7 @@ static int aes_mock_set_key (struct aes_engine *engine, const uint8_t *key, size
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, aes_mock_set_key, engine, MOCK_ARG_CALL (key),
+	MOCK_RETURN (&mock->mock, aes_mock_set_key, engine, MOCK_ARG_PTR_CALL (key),
 		MOCK_ARG_CALL (length));
 }
 
@@ -29,9 +29,9 @@ static int aes_mock_encrypt_data (struct aes_engine *engine, const uint8_t *plai
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, aes_mock_encrypt_data, engine, MOCK_ARG_CALL (plaintext),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (iv), MOCK_ARG_CALL (iv_length),
-		MOCK_ARG_CALL (ciphertext), MOCK_ARG_CALL (out_length), MOCK_ARG_CALL (tag),
+	MOCK_RETURN (&mock->mock, aes_mock_encrypt_data, engine, MOCK_ARG_PTR_CALL (plaintext),
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (iv), MOCK_ARG_CALL (iv_length),
+		MOCK_ARG_PTR_CALL (ciphertext), MOCK_ARG_CALL (out_length), MOCK_ARG_PTR_CALL (tag),
 		MOCK_ARG_CALL (tag_length));
 }
 
@@ -45,9 +45,9 @@ static int aes_mock_decrypt_data (struct aes_engine *engine, const uint8_t *ciph
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, aes_mock_decrypt_data, engine, MOCK_ARG_CALL (ciphertext),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (tag), MOCK_ARG_CALL (iv), MOCK_ARG_CALL (iv_length),
-		MOCK_ARG_CALL (plaintext), MOCK_ARG_CALL (out_length));
+	MOCK_RETURN (&mock->mock, aes_mock_decrypt_data, engine, MOCK_ARG_PTR_CALL (ciphertext),
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (tag), MOCK_ARG_PTR_CALL (iv),
+		MOCK_ARG_CALL (iv_length), MOCK_ARG_PTR_CALL (plaintext), MOCK_ARG_CALL (out_length));
 }
 
 static int aes_mock_func_arg_count (void *func)

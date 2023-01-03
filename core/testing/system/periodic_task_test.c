@@ -285,7 +285,7 @@ static void periodic_task_test_execute_next_handler (CuTest *test)
 	periodic_task_testing_init_dependencies (test, &periodic);
 
 	status = mock_expect (&periodic.handler1.mock, periodic.handler1.base.get_next_execution,
-		&periodic.handler1.base, (intptr_t) &periodic.time_500ms);
+		&periodic.handler1.base, MOCK_RETURN_PTR (&periodic.time_500ms));
 
 	status |= mock_expect (&periodic.handler1.mock, periodic.handler1.base.execute,
 		&periodic.handler1.base, 0);
@@ -319,7 +319,7 @@ static void periodic_task_test_execute_next_handler_null_execution_time (CuTest 
 	periodic_task_testing_init_dependencies (test, &periodic);
 
 	status = mock_expect (&periodic.handler1.mock, periodic.handler1.base.get_next_execution,
-		&periodic.handler1.base, (intptr_t) NULL);
+		&periodic.handler1.base, MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&periodic.handler1.mock, periodic.handler1.base.execute,
 		&periodic.handler1.base, 0);
@@ -354,13 +354,13 @@ static void periodic_task_test_execute_next_handler_multiple (CuTest *test)
 	periodic_task_testing_init_dependencies (test, &periodic);
 
 	status = mock_expect (&periodic.handler1.mock, periodic.handler1.base.get_next_execution,
-		&periodic.handler1.base, (intptr_t) &periodic.time_1000ms);
+		&periodic.handler1.base, MOCK_RETURN_PTR (&periodic.time_1000ms));
 	status |= mock_expect (&periodic.handler2.mock, periodic.handler2.base.get_next_execution,
-		&periodic.handler2.base, (intptr_t) &periodic.time_1500ms);
+		&periodic.handler2.base, MOCK_RETURN_PTR (&periodic.time_1500ms));
 	status |= mock_expect (&periodic.handler3.mock, periodic.handler3.base.get_next_execution,
-		&periodic.handler3.base, (intptr_t) &periodic.time_500ms);
+		&periodic.handler3.base, MOCK_RETURN_PTR (&periodic.time_500ms));
 	status |= mock_expect (&periodic.handler4.mock, periodic.handler4.base.get_next_execution,
-		&periodic.handler4.base, (intptr_t) &periodic.time_2000ms);
+		&periodic.handler4.base, MOCK_RETURN_PTR (&periodic.time_2000ms));
 
 	status |= mock_expect (&periodic.handler3.mock, periodic.handler3.base.execute,
 		&periodic.handler3.base, 0);
@@ -396,13 +396,13 @@ static void periodic_task_test_execute_next_handler_multiple_same_timeout (CuTes
 	periodic_task_testing_init_dependencies (test, &periodic);
 
 	status = mock_expect (&periodic.handler1.mock, periodic.handler1.base.get_next_execution,
-		&periodic.handler1.base, (intptr_t) &periodic.time_1500ms);
+		&periodic.handler1.base, MOCK_RETURN_PTR (&periodic.time_1500ms));
 	status |= mock_expect (&periodic.handler2.mock, periodic.handler2.base.get_next_execution,
-		&periodic.handler2.base, (intptr_t) &periodic.time_500ms);
+		&periodic.handler2.base, MOCK_RETURN_PTR (&periodic.time_500ms));
 	status |= mock_expect (&periodic.handler3.mock, periodic.handler3.base.get_next_execution,
-		&periodic.handler3.base, (intptr_t) &periodic.time_2000ms);
+		&periodic.handler3.base, MOCK_RETURN_PTR (&periodic.time_2000ms));
 	status |= mock_expect (&periodic.handler4.mock, periodic.handler4.base.get_next_execution,
-		&periodic.handler4.base, (intptr_t) &periodic.time_500ms);
+		&periodic.handler4.base, MOCK_RETURN_PTR (&periodic.time_500ms));
 
 	status |= mock_expect (&periodic.handler2.mock, periodic.handler2.base.execute,
 		&periodic.handler2.base, 0);
@@ -438,13 +438,13 @@ static void periodic_task_test_execute_next_handler_multiple_null_execution_time
 	periodic_task_testing_init_dependencies (test, &periodic);
 
 	status = mock_expect (&periodic.handler1.mock, periodic.handler1.base.get_next_execution,
-		&periodic.handler1.base, (intptr_t) &periodic.time_1000ms);
+		&periodic.handler1.base, MOCK_RETURN_PTR (&periodic.time_1000ms));
 	status |= mock_expect (&periodic.handler2.mock, periodic.handler2.base.get_next_execution,
-		&periodic.handler2.base, (intptr_t) &periodic.time_500ms);
+		&periodic.handler2.base, MOCK_RETURN_PTR (&periodic.time_500ms));
 	status |= mock_expect (&periodic.handler3.mock, periodic.handler3.base.get_next_execution,
-		&periodic.handler3.base, (intptr_t) NULL);
+		&periodic.handler3.base, MOCK_RETURN_PTR (NULL));
 	status |= mock_expect (&periodic.handler4.mock, periodic.handler4.base.get_next_execution,
-		&periodic.handler4.base, (intptr_t) NULL);
+		&periodic.handler4.base, MOCK_RETURN_PTR (NULL));
 
 	status |= mock_expect (&periodic.handler3.mock, periodic.handler3.base.execute,
 		&periodic.handler3.base, 0);
@@ -479,13 +479,13 @@ static void periodic_task_test_execute_next_handler_expired_timeout (CuTest *tes
 	periodic_task_testing_init_dependencies (test, &periodic);
 
 	status = mock_expect (&periodic.handler1.mock, periodic.handler1.base.get_next_execution,
-		&periodic.handler1.base, (intptr_t) &periodic.time_1000ms);
+		&periodic.handler1.base, MOCK_RETURN_PTR (&periodic.time_1000ms));
 	status |= mock_expect (&periodic.handler2.mock, periodic.handler2.base.get_next_execution,
-		&periodic.handler2.base, (intptr_t) &periodic.time_1500ms);
+		&periodic.handler2.base, MOCK_RETURN_PTR (&periodic.time_1500ms));
 	status |= mock_expect (&periodic.handler3.mock, periodic.handler3.base.get_next_execution,
-		&periodic.handler3.base, (intptr_t) &periodic.time_500ms);
+		&periodic.handler3.base, MOCK_RETURN_PTR (&periodic.time_500ms));
 	status |= mock_expect (&periodic.handler4.mock, periodic.handler4.base.get_next_execution,
-		&periodic.handler4.base, (intptr_t) &periodic.time_2000ms);
+		&periodic.handler4.base, MOCK_RETURN_PTR (&periodic.time_2000ms));
 
 	status |= mock_expect (&periodic.handler3.mock, periodic.handler3.base.execute,
 		&periodic.handler3.base, 0);
@@ -564,11 +564,11 @@ static void periodic_task_test_execute_next_handler_multiple_with_null_handler (
 	periodic_task_testing_init_dependencies (test, &periodic);
 
 	status = mock_expect (&periodic.handler1.mock, periodic.handler1.base.get_next_execution,
-		&periodic.handler1.base, (intptr_t) &periodic.time_500ms);
+		&periodic.handler1.base, MOCK_RETURN_PTR (&periodic.time_500ms));
 	status |= mock_expect (&periodic.handler2.mock, periodic.handler2.base.get_next_execution,
-		&periodic.handler2.base, (intptr_t) &periodic.time_1500ms);
+		&periodic.handler2.base, MOCK_RETURN_PTR (&periodic.time_1500ms));
 	status |= mock_expect (&periodic.handler4.mock, periodic.handler4.base.get_next_execution,
-		&periodic.handler4.base, (intptr_t) &periodic.time_2000ms);
+		&periodic.handler4.base, MOCK_RETURN_PTR (&periodic.time_2000ms));
 
 	status |= mock_expect (&periodic.handler1.mock, periodic.handler1.base.execute,
 		&periodic.handler1.base, 0);

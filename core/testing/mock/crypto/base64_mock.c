@@ -16,8 +16,8 @@ static int base64_mock_encode (struct base64_engine *engine, const uint8_t *data
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, base64_mock_encode, engine, MOCK_ARG_CALL (data),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (encoded), MOCK_ARG_CALL (enc_length));
+	MOCK_RETURN (&mock->mock, base64_mock_encode, engine, MOCK_ARG_PTR_CALL (data),
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (encoded), MOCK_ARG_CALL (enc_length));
 }
 
 static int base64_mock_func_arg_count (void *func)

@@ -162,7 +162,7 @@ static void signature_verification_ecc_test_init_private_key_error (CuTest *test
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect (&ecc.mock, ecc.base.init_key_pair, &ecc, ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -325,7 +325,7 @@ static void signature_verification_ecc_test_static_init_private_key_error (CuTes
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect (&ecc.mock, ecc.base.init_key_pair, &ecc, ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -820,7 +820,7 @@ static void signature_verification_ecc_test_set_verification_key_private_key_err
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect (&ecc.mock, ecc.base.init_key_pair, &ecc, ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1031,7 +1031,7 @@ static void signature_verification_ecc_test_is_key_valid_private_key_error (CuTe
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect (&ecc.mock, ecc.base.init_key_pair, &ecc, ECC_ENGINE_KEY_PAIR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN), MOCK_ARG (ECC_PUBKEY_DER_LEN),
-		MOCK_ARG (NULL), MOCK_ARG_NOT_NULL);
+		MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 

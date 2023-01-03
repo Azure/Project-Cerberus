@@ -32,7 +32,7 @@ static int recovery_image_cmd_interface_mock_update_recovery_image (
 	}
 
 	MOCK_RETURN (&mock->mock, recovery_image_cmd_interface_mock_update_recovery_image, cmd,
-		MOCK_ARG_CALL (data), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static int recovery_image_cmd_interface_mock_activate_recovery_image (

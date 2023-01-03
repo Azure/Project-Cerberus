@@ -18,7 +18,7 @@ static int cmd_channel_mock_receive_packet (struct cmd_channel *channel, struct 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cmd_channel_mock_receive_packet, channel, MOCK_ARG_CALL (packet),
+	MOCK_RETURN (&mock->mock, cmd_channel_mock_receive_packet, channel, MOCK_ARG_PTR_CALL (packet),
 		MOCK_ARG_CALL (ms_timeout));
 }
 
@@ -30,7 +30,7 @@ static int cmd_channel_mock_send_packet (struct cmd_channel *channel, struct cmd
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cmd_channel_mock_send_packet, channel, MOCK_ARG_CALL (packet));
+	MOCK_RETURN (&mock->mock, cmd_channel_mock_send_packet, channel, MOCK_ARG_PTR_CALL (packet));
 }
 
 static int cmd_channel_mock_func_arg_count (void *func)

@@ -1668,7 +1668,7 @@ static void app_image_test_load_and_verify_update_hash_image_error (CuTest *test
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (4));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG (load_data), MOCK_ARG (APP_IMAGE_DATA_LENGTH - 4));
+		MOCK_ARG_PTR (load_data), MOCK_ARG (APP_IMAGE_DATA_LENGTH - 4));
 
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
@@ -1724,10 +1724,10 @@ static void app_image_test_load_and_verify_update_finish_hash_error (CuTest *tes
 	status |= mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (4));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (load_data),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (load_data),
 		MOCK_ARG (APP_IMAGE_DATA_LENGTH - 4));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG (hash_out), MOCK_ARG (sizeof (hash_out)));
+		MOCK_ARG_PTR (hash_out), MOCK_ARG (sizeof (hash_out)));
 
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 
@@ -3183,7 +3183,7 @@ static void app_image_test_load_and_verify_with_header_hash_image_error (CuTest 
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (4));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
-		MOCK_ARG (load_data),
+		MOCK_ARG_PTR (load_data),
 		MOCK_ARG (APP_IMAGE_HEADER_DATA_LENGTH - 4 - APP_IMAGE_HEADER_LENGTH));
 
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
@@ -3252,10 +3252,10 @@ static void app_image_test_load_and_verify_with_header_finish_hash_error (CuTest
 		MOCK_ARG (APP_IMAGE_HEADER_LENGTH));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (4));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG (load_data),
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR (load_data),
 		MOCK_ARG (APP_IMAGE_HEADER_DATA_LENGTH - 4 - APP_IMAGE_HEADER_LENGTH));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, HASH_ENGINE_FINISH_FAILED,
-		MOCK_ARG (hash_out), MOCK_ARG (sizeof (hash_out)));
+		MOCK_ARG_PTR (hash_out), MOCK_ARG (sizeof (hash_out)));
 
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 

@@ -17,7 +17,8 @@ static int cmd_interface_mock_process_request (struct cmd_interface *intf,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cmd_interface_mock_process_request, intf, MOCK_ARG_CALL (request));
+	MOCK_RETURN (&mock->mock, cmd_interface_mock_process_request, intf,
+		MOCK_ARG_PTR_CALL (request));
 }
 
 static int cmd_interface_mock_process_response (struct cmd_interface *intf,
@@ -29,7 +30,8 @@ static int cmd_interface_mock_process_response (struct cmd_interface *intf,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, cmd_interface_mock_process_response, intf, MOCK_ARG_CALL (response));
+	MOCK_RETURN (&mock->mock, cmd_interface_mock_process_response, intf,
+		MOCK_ARG_PTR_CALL (response));
 }
 
 static int cmd_interface_mock_generate_error_packet (struct cmd_interface *intf,
@@ -42,7 +44,7 @@ static int cmd_interface_mock_generate_error_packet (struct cmd_interface *intf,
 	}
 
 	MOCK_RETURN (&mock->mock, cmd_interface_mock_generate_error_packet, intf,
-		MOCK_ARG_CALL (request), MOCK_ARG_CALL (error_code), MOCK_ARG_CALL (error_data),
+		MOCK_ARG_PTR_CALL (request), MOCK_ARG_CALL (error_code), MOCK_ARG_CALL (error_data),
 		MOCK_ARG_CALL (cmd_set));
 }
 
@@ -51,7 +53,7 @@ static int cmd_interface_mock_func_arg_count (void *func)
 	if (func == cmd_interface_mock_generate_error_packet) {
 		return 4;
 	}
-	else if ((func == cmd_interface_mock_process_request) || 
+	else if ((func == cmd_interface_mock_process_request) ||
 			(func == cmd_interface_mock_process_response)) {
 		return 1;
 	}
@@ -242,9 +244,9 @@ void cmd_interface_mock_save_request (const struct mock_arg *expected, struct mo
 
 	if (call->ptr_value != NULL) {
 		call->ptr_value_len = expected->ptr_value_len;
-		memcpy (call->ptr_value, (void*) call->value, call->ptr_value_len);
+		memcpy (call->ptr_value, (void*) ((uintptr_t) call->value), call->ptr_value_len);
 
-		req_orig = (struct cmd_interface_msg*) call->value;
+		req_orig = (struct cmd_interface_msg*) ((uintptr_t) call->value);
 		req_copy = (struct cmd_interface_msg*) call->ptr_value;
 
 		req_copy->data = platform_malloc (req_orig->length);
@@ -281,10 +283,10 @@ void cmd_interface_mock_copy_request (const struct mock_arg *expected, struct mo
 	size_t out_len)
 {
 	const struct cmd_interface_msg *req_orig = expected->out_data;
-	struct cmd_interface_msg *req_copy = (struct cmd_interface_msg*) call->value;
+	struct cmd_interface_msg *req_copy = (struct cmd_interface_msg*) ((uintptr_t) call->value);
 	void *data_tmp = req_copy->data;
 
-	memcpy ((void*) call->value, expected->out_data, out_len);
+	memcpy ((void*) ((uintptr_t) call->value), expected->out_data, out_len);
 
 	req_copy->data = data_tmp;
 	memcpy (req_copy->data, req_orig->data, req_orig->length);

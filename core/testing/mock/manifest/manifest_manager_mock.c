@@ -41,7 +41,7 @@ static int manifest_manager_mock_write_pending_data (const struct manifest_manag
 	}
 
 	MOCK_RETURN (&mock->mock, manifest_manager_mock_write_pending_data, manager,
-		MOCK_ARG_CALL (data), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static int manifest_manager_mock_verify_pending_manifest (const struct manifest_manager *manager)

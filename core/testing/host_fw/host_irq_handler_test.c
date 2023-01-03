@@ -173,8 +173,8 @@ static void host_irq_handler_test_enter_reset (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.mock, recovery.base.on_host_reset, &recovery, 0);
-	status |= mock_expect (&host.mock, host.base.soft_reset, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+	status |= mock_expect (&host.mock, host.base.soft_reset, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -215,8 +215,8 @@ static void host_irq_handler_test_enter_reset_no_recovery (CuTest *test)
 	status = host_irq_handler_init (&handler, &host.base, &hash.base, &rsa.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status |= mock_expect (&host.mock, host.base.soft_reset, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+	status |= mock_expect (&host.mock, host.base.soft_reset, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -301,7 +301,7 @@ static void host_irq_handler_test_enter_reset_host_error (CuTest *test)
 
 	status = mock_expect (&recovery.mock, recovery.base.on_host_reset, &recovery, 0);
 	status |= mock_expect (&host.mock, host.base.soft_reset, &host,
-		HOST_PROCESSOR_SOFT_RESET_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		HOST_PROCESSOR_SOFT_RESET_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -580,8 +580,8 @@ static void host_irq_handler_test_assert_cs1 (CuTest *test)
 	status = host_irq_handler_init (&handler, &host.base, &hash.base, &rsa.base, &recovery.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&recovery.mock, recovery.base.on_host_cs1, &recovery, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+	status = mock_expect (&recovery.mock, recovery.base.on_host_cs1, &recovery, 0,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -702,7 +702,7 @@ static void host_irq_handler_test_assert_cs1_recovery_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&recovery.mock, recovery.base.on_host_cs1, &recovery,
-		BMC_RECOVERY_CS1_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		BMC_RECOVERY_CS1_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -747,8 +747,8 @@ static void host_irq_handler_test_power_on (CuTest *test)
 	status = host_irq_handler_init (&handler, &host.base, &hash.base, &rsa.base, &recovery.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+	status = mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -797,8 +797,8 @@ static void host_irq_handler_test_power_on_alternate_hash (CuTest *test)
 	status = host_irq_handler_init (&handler, &host.base, &hash.base, &rsa.base, &recovery.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG (&hash2),
-		MOCK_ARG (&rsa));
+	status = mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG_PTR (&hash2),
+		MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -845,9 +845,9 @@ static void host_irq_handler_test_power_on_validation_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, RSA_ENGINE_BAD_SIGNATURE,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
-	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
+	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -893,9 +893,9 @@ static void host_irq_handler_test_power_on_blank_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, FLASH_UTIL_UNEXPECTED_VALUE,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
-	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
+	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -941,9 +941,9 @@ static void host_irq_handler_test_power_on_unknown_version (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&hash), MOCK_ARG (&rsa));
-	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
+	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -989,9 +989,9 @@ static void host_irq_handler_test_power_on_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
-	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
+	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1037,12 +1037,12 @@ static void host_irq_handler_test_power_on_flash_rollback (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (true), MOCK_ARG (true));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (true), MOCK_ARG (true));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1092,12 +1092,12 @@ static void host_irq_handler_test_power_on_flash_rollback_alternate_hash (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash2), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash2), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash2), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash2), MOCK_ARG_PTR (&rsa));
 
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash2),
-		MOCK_ARG (&rsa), MOCK_ARG (true), MOCK_ARG (true));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash2),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (true), MOCK_ARG (true));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1144,14 +1144,14 @@ static void host_irq_handler_test_power_on_flash_rollback_validation_fail (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, RSA_ENGINE_BAD_SIGNATURE,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true), MOCK_ARG (true));
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (true), MOCK_ARG (true));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true), MOCK_ARG (true));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (true), MOCK_ARG (true));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1197,14 +1197,14 @@ static void host_irq_handler_test_power_on_flash_rollback_blank_fail (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, FLASH_UTIL_UNEXPECTED_VALUE,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true), MOCK_ARG (true));
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (true), MOCK_ARG (true));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true), MOCK_ARG (true));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (true), MOCK_ARG (true));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1250,15 +1250,15 @@ static void host_irq_handler_test_power_on_flash_rollback_unknown_version (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
-		MOCK_ARG (true));
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (true), MOCK_ARG (true));
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa),
+		MOCK_ARG (true), MOCK_ARG (true));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (true), MOCK_ARG (true));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1304,15 +1304,15 @@ static void host_irq_handler_test_power_on_flash_rollback_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (true), MOCK_ARG (true));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (true), MOCK_ARG (true));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1358,12 +1358,12 @@ static void host_irq_handler_test_power_on_flash_rollback_no_rollback (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, HOST_PROCESSOR_NO_ROLLBACK,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true), MOCK_ARG (true));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true), MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (true));
 
@@ -1411,12 +1411,12 @@ static void host_irq_handler_test_power_on_flash_rollback_rollback_dirty (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_DIRTY, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_DIRTY, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (true));
@@ -1465,15 +1465,15 @@ static void host_irq_handler_test_power_on_apply_recovery_image (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (true));
@@ -1526,15 +1526,15 @@ static void host_irq_handler_test_power_on_apply_recovery_image_alternate_hash (
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash2), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash2), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash2), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash2), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash2), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash2), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash2), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash2), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (true));
@@ -1584,15 +1584,15 @@ static void host_irq_handler_test_power_on_apply_recovery_image_error (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
@@ -1643,15 +1643,15 @@ static void host_irq_handler_test_power_on_apply_recovery_image_retry_error (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
@@ -1703,15 +1703,15 @@ static void host_irq_handler_test_power_on_apply_recovery_image_unsupported (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
@@ -1761,15 +1761,15 @@ static void host_irq_handler_test_power_on_apply_recovery_image_no_image (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
@@ -1820,15 +1820,15 @@ static void host_irq_handler_test_power_on_apply_recovery_image_unsupported_allo
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
@@ -1881,15 +1881,15 @@ static void host_irq_handler_test_power_on_apply_recovery_image_no_image_allow_u
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
@@ -1941,15 +1941,15 @@ static void host_irq_handler_test_power_on_bypass_mode (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
@@ -2003,15 +2003,15 @@ static void host_irq_handler_test_power_on_bypass_mode_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
@@ -2067,15 +2067,15 @@ static void host_irq_handler_test_power_on_bypass_mode_retry_error (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 	status |= mock_expect (&host.mock, host.base.power_on_reset, &host, HOST_PROCESSOR_POR_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (true),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (true),
 		MOCK_ARG (true));
 
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
@@ -2181,8 +2181,8 @@ static void host_irq_handler_test_set_host (CuTest *test)
 
 	/* Check that the new instance will be called in response to an event. */
 	status = mock_expect (&recovery.mock, recovery.base.on_host_reset, &recovery, 0);
-	status |= mock_expect (&host_new.mock, host_new.base.soft_reset, &host_new, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+	status |= mock_expect (&host_new.mock, host_new.base.soft_reset, &host_new, 0,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	CuAssertIntEquals (test, 0, status);
 

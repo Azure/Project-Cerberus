@@ -516,12 +516,12 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_with_good_re
 	firmware_update_set_recovery_good (&handler.updater, true);
 
 	status = mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -532,19 +532,19 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_with_good_re
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw, 5);
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
-		(intptr_t) &handler.manifest);
+		MOCK_RETURN_PTR (&handler.manifest));
 	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
 		&handler.manifest, 0);
 
@@ -597,20 +597,20 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_with_bad_rec
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
-		(intptr_t) &handler.manifest);
+		MOCK_RETURN_PTR (&handler.manifest));
 	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
 		&handler.manifest, 0);
 
@@ -681,9 +681,9 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_with_bad_rec
 	firmware_update_set_recovery_good (&handler.updater, true);
 
 	status = mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw,
-		FIRMWARE_IMAGE_BAD_SIGNATURE, MOCK_ARG (&handler.hash));
+		FIRMWARE_IMAGE_BAD_SIGNATURE, MOCK_ARG_PTR (&handler.hash));
 
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_fail, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -694,20 +694,20 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_with_bad_rec
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
-		(intptr_t) &handler.manifest);
+		MOCK_RETURN_PTR (&handler.manifest));
 	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
 		&handler.manifest, 0);
 
@@ -782,9 +782,9 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_after_recove
 		MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 
@@ -846,7 +846,7 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_after_recove
 		MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw,
-		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_done, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -897,12 +897,12 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_revocation_f
 	firmware_update_set_recovery_good (&handler.updater, true);
 
 	status = mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -913,7 +913,7 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_revocation_f
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw,
-		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 
 	/* Lock for state update: UPDATE_STATUS_VERIFY_FAILURE */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -966,12 +966,12 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_keep_recover
 	firmware_update_set_recovery_good (&handler.updater, true);
 
 	status = mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (recovery_data));
 
@@ -987,19 +987,19 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_keep_recover
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw, 5);
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
-		(intptr_t) &handler.manifest);
+		MOCK_RETURN_PTR (&handler.manifest));
 	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
 		&handler.manifest, 0);
 
@@ -1053,20 +1053,20 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_keep_recover
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
-		(intptr_t) &handler.manifest);
+		MOCK_RETURN_PTR (&handler.manifest));
 	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
 		&handler.manifest, 0);
 
@@ -1138,12 +1138,12 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_keep_recover
 	firmware_update_set_recovery_good (&handler.updater, true);
 
 	status = mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw,
-		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		FIRMWARE_IMAGE_LOAD_FAILED, MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry_fail, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -1154,20 +1154,20 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_keep_recover
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
-		(intptr_t) &handler.manifest);
+		MOCK_RETURN_PTR (&handler.manifest));
 	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
 		&handler.manifest, 0);
 
@@ -1243,9 +1243,9 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_keep_recover
 		MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 
@@ -1299,12 +1299,12 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_static_init_
 	firmware_update_set_recovery_good (&handler.updater, true);
 
 	status = mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	status |= mock_expect (&handler.log.mock, handler.log.base.create_entry, &handler.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -1315,19 +1315,19 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_static_init_
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw, 5);
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
-		(intptr_t) &handler.manifest);
+		MOCK_RETURN_PTR (&handler.manifest));
 	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
 		&handler.manifest, 0);
 
@@ -1385,20 +1385,20 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_static_init_
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
-		(intptr_t) &handler.manifest);
+		MOCK_RETURN_PTR (&handler.manifest));
 	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
 		&handler.manifest, 0);
 
@@ -1478,9 +1478,9 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_static_init_
 		MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 
@@ -1537,12 +1537,12 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_static_init_
 	firmware_update_set_recovery_good (&handler.updater, true);
 
 	status = mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (recovery_data));
 
@@ -1558,19 +1558,19 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_static_init_
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw, 5);
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
-		(intptr_t) &handler.manifest);
+		MOCK_RETURN_PTR (&handler.manifest));
 	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
 		&handler.manifest, 0);
 
@@ -1628,20 +1628,20 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_static_init_
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_CHECK_REVOCATION */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_key_manifest, &handler.fw,
-		(intptr_t) &handler.manifest);
+		MOCK_RETURN_PTR (&handler.manifest));
 	status |= mock_expect (&handler.manifest.mock, handler.manifest.base.revokes_old_manifest,
 		&handler.manifest, 0);
 
@@ -1721,9 +1721,9 @@ static void firmware_update_handler_revoke_after_reset_test_prepare_static_init_
 		MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x40000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x40000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 
@@ -1790,13 +1790,13 @@ static void firmware_update_handler_revoke_after_reset_test_execute_run_update (
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x30000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x30000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (staging_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_SAVING_STATE */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1809,7 +1809,7 @@ static void firmware_update_handler_revoke_after_reset_test_execute_run_update (
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 	status |= flash_mock_expect_erase_copy_verify (&handler.flash, &handler.flash, 0x20000, 0x10000,
@@ -1888,9 +1888,9 @@ static void firmware_update_handler_revoke_after_reset_test_execute_run_update_f
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x30000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x30000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw,
-		FIRMWARE_IMAGE_BAD_SIGNATURE, MOCK_ARG (&handler.hash));
+		FIRMWARE_IMAGE_BAD_SIGNATURE, MOCK_ARG_PTR (&handler.hash));
 
 	/* Lock for state update: UPDATE_STATUS_INVALID_IMAGE */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1965,13 +1965,13 @@ static void firmware_update_handler_revoke_after_reset_test_execute_run_update_k
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x30000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x30000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (staging_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_SAVING_STATE */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -1984,7 +1984,7 @@ static void firmware_update_handler_revoke_after_reset_test_execute_run_update_k
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 	status |= flash_mock_expect_erase_copy_verify (&handler.flash, &handler.flash, 0x20000, 0x10000,
@@ -2069,13 +2069,13 @@ static void firmware_update_handler_revoke_after_reset_test_execute_run_update_s
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x30000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x30000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (staging_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_SAVING_STATE */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -2088,7 +2088,7 @@ static void firmware_update_handler_revoke_after_reset_test_execute_run_update_s
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 	status |= flash_mock_expect_erase_copy_verify (&handler.flash, &handler.flash, 0x20000, 0x10000,
@@ -2173,13 +2173,13 @@ static void firmware_update_handler_revoke_after_reset_test_execute_run_update_s
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x30000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x30000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.verify, &handler.fw, 0,
-		MOCK_ARG (&handler.hash));
+		MOCK_ARG_PTR (&handler.hash));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (staging_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
-		(intptr_t) &handler.header);
+		MOCK_RETURN_PTR (&handler.header));
 
 	/* Lock for state update: UPDATE_STATUS_SAVING_STATE */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
@@ -2192,7 +2192,7 @@ static void firmware_update_handler_revoke_after_reset_test_execute_run_update_s
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
 
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.load, &handler.fw, 0,
-		MOCK_ARG (&handler.flash), MOCK_ARG (0x10000));
+		MOCK_ARG_PTR (&handler.flash), MOCK_ARG (0x10000));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_image_size, &handler.fw,
 		sizeof (active_data));
 	status |= flash_mock_expect_erase_copy_verify (&handler.flash, &handler.flash, 0x20000, 0x10000,

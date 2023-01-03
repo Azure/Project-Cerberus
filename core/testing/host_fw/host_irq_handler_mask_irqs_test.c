@@ -213,8 +213,8 @@ static void host_irq_handler_mask_irqs_test_enter_reset (CuTest *test)
 		MOCK_ARG (false));
 
 	status |= mock_expect (&recovery.mock, recovery.base.on_host_reset, &recovery, 0);
-	status |= mock_expect (&host.mock, host.base.soft_reset, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+	status |= mock_expect (&host.mock, host.base.soft_reset, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&control.mock, control.base.enable_notifications, &control, 0,
 		MOCK_ARG (true));
@@ -269,8 +269,8 @@ static void host_irq_handler_mask_irqs_test_enter_reset_no_recovery (CuTest *tes
 	status = mock_expect (&control.mock, control.base.enable_notifications, &control, 0,
 		MOCK_ARG (false));
 
-	status |= mock_expect (&host.mock, host.base.soft_reset, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+	status |= mock_expect (&host.mock, host.base.soft_reset, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&control.mock, control.base.enable_notifications, &control, 0,
 		MOCK_ARG (true));
@@ -377,7 +377,7 @@ static void host_irq_handler_mask_irqs_test_enter_reset_host_error (CuTest *test
 
 	status |= mock_expect (&recovery.mock, recovery.base.on_host_reset, &recovery, 0);
 	status |= mock_expect (&host.mock, host.base.soft_reset, &host,
-		HOST_PROCESSOR_SOFT_RESET_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		HOST_PROCESSOR_SOFT_RESET_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&control.mock, control.base.enable_notifications, &control, 0,
 		MOCK_ARG (true));
@@ -718,8 +718,8 @@ static void host_irq_handler_mask_irqs_test_assert_cs1 (CuTest *test)
 	status = mock_expect (&control.mock, control.base.enable_notifications, &control, 0,
 		MOCK_ARG (false));
 
-	status |= mock_expect (&recovery.mock, recovery.base.on_host_cs1, &recovery, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa));
+	status |= mock_expect (&recovery.mock, recovery.base.on_host_cs1, &recovery, 0,
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&control.mock, control.base.enable_notifications, &control, 0,
 		MOCK_ARG (true));
@@ -877,7 +877,7 @@ static void host_irq_handler_mask_irqs_test_assert_cs1_recovery_error (CuTest *t
 		MOCK_ARG (false));
 
 	status |= mock_expect (&recovery.mock, recovery.base.on_host_cs1, &recovery,
-		BMC_RECOVERY_CS1_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa));
+		BMC_RECOVERY_CS1_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa));
 
 	status |= mock_expect (&control.mock, control.base.enable_notifications, &control, 0,
 		MOCK_ARG (true));

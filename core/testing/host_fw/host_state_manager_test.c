@@ -301,7 +301,7 @@ static void host_state_manager_test_save_read_only_flash_cs0 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	ro = host_state_manager_get_read_only_flash (&manager);
@@ -369,7 +369,7 @@ static void host_state_manager_test_save_read_only_flash_cs1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	ro = host_state_manager_get_read_only_flash (&manager);
@@ -501,7 +501,7 @@ static void host_state_manager_test_save_read_only_flash_same_cs (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	ro = host_state_manager_get_read_only_flash (&manager);
@@ -858,7 +858,7 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_inactive_dirty (&manager);
@@ -926,7 +926,7 @@ static void host_state_manager_test_save_inactive_dirty_dirty (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_inactive_dirty (&manager);
@@ -994,7 +994,7 @@ static void host_state_manager_test_save_inactive_dirty_same_state (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_inactive_dirty (&manager);
@@ -1065,9 +1065,9 @@ static void host_state_manager_test_save_inactive_dirty_dirty_with_prevalidated_
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1146,9 +1146,9 @@ static void host_state_manager_test_save_inactive_dirty_dirty_with_prevalidated_
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1227,7 +1227,7 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalida
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_inactive_dirty (&manager);
@@ -1305,7 +1305,7 @@ static void host_state_manager_test_save_inactive_dirty_not_dirty_with_prevalida
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_inactive_dirty (&manager);
@@ -1668,7 +1668,7 @@ static void host_state_manager_test_save_active_pfm_region1 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_active_pfm, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	active = manager.base.get_active_manifest (&manager.base, 0);
@@ -1736,7 +1736,7 @@ static void host_state_manager_test_save_active_pfm_region2 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_active_pfm, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	active = manager.base.get_active_manifest (&manager.base, 0);
@@ -1868,7 +1868,7 @@ static void host_state_manager_test_save_active_pfm_same_region (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_active_pfm, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	active = manager.base.get_active_manifest (&manager.base, 0);
@@ -2185,9 +2185,9 @@ static void host_state_manager_test_set_pfm_dirty (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2263,7 +2263,7 @@ static void host_state_manager_test_set_pfm_dirty_dirty_with_prevalidated_flash 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_pfm_dirty (&manager);
@@ -2340,9 +2340,9 @@ static void host_state_manager_test_set_pfm_dirty_dirty_with_prevalidated_flash_
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2419,7 +2419,7 @@ static void host_state_manager_test_set_pfm_dirty_not_dirty_with_prevalidated_fl
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_pfm_dirty (&manager);
@@ -2496,7 +2496,7 @@ static void host_state_manager_test_set_pfm_dirty_not_dirty_with_prevalidated_fl
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	dirty = host_state_manager_is_pfm_dirty (&manager);
@@ -2692,11 +2692,11 @@ static void host_state_manager_test_set_run_time_validation (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status = mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status = mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3022,7 +3022,7 @@ static void host_state_manager_test_save_active_recovery_image_region1 (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_active_recovery_image, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_active_recovery_image (&manager);
@@ -3090,7 +3090,7 @@ static void host_state_manager_test_save_active_recovery_image_region2 (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_active_recovery_image, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_active_recovery_image (&manager);
@@ -3223,7 +3223,7 @@ static void host_state_manager_test_save_active_recovery_image_same_region (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_active_recovery_image, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_active_recovery_image (&manager);
@@ -3413,21 +3413,21 @@ static void host_state_manager_test_restore_default_state (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_active_pfm, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_active_recovery_image, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_bypass_mode, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_unsupported_flash, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3493,21 +3493,21 @@ static void host_state_manager_test_restore_default_state_no_change (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_active_pfm, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_inactive_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_active_recovery_image, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_pfm_dirty, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_run_time_validation, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_bypass_mode, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_unsupported_flash, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3743,9 +3743,9 @@ static void host_state_manager_test_set_bypass_mode (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_bypass_mode, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_bypass_mode, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3938,9 +3938,9 @@ static void host_state_manager_test_set_unsupported_flash (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_unsupported_flash, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	status |= mock_expect (&observer.mock, observer.base.on_unsupported_flash, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4207,7 +4207,7 @@ static void host_state_manager_test_remove_observer_null (CuTest *test)
 	CuAssertIntEquals (test, OBSERVABLE_INVALID_ARGUMENT, status);
 
 	status = mock_expect (&observer.mock, observer.base.on_read_only_flash, &observer, 0,
-		MOCK_ARG (&manager));
+		MOCK_ARG_PTR (&manager));
 	CuAssertIntEquals (test, 0, status);
 
 	ro = host_state_manager_get_read_only_flash (&manager);

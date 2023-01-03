@@ -740,8 +740,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_rollback (CuTest *test)
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -819,7 +819,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_rollback_error (CuTest *tes
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
 	status = mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
 		MOCK_ARG (false));
 
 	status |= mock_expect (&control.mock, control.base.hold_processor_in_reset, &control, 0,
@@ -903,8 +903,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image (CuTest *tes
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -993,8 +993,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_error (CuTes
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -1090,8 +1090,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_recovery (CuTest *tes
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -1191,8 +1191,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery (CuTest *tes
 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1260,8 +1260,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_unsupported_rw_recovery (Cu
 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_RW_RECOVERY_UNSUPPORTED);
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1330,7 +1330,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, HOST_PROCESSOR_NO_ROLLBACK,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1400,7 +1400,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_dirty_rollba
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_DIRTY, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
+		HOST_PROCESSOR_ROLLBACK_DIRTY, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
 		MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
@@ -1471,7 +1471,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_bad_sig_roll
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
+		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
 		MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
@@ -1542,7 +1542,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_bad_hash_rol
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
+		HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
 		MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
@@ -1614,7 +1614,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_blank_fail_r
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
+		FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
 		MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
@@ -1685,8 +1685,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_unknown_roll
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
-		MOCK_ARG (false));
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa),
+		MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
@@ -1757,7 +1757,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback_
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, HOST_PROCESSOR_NO_ROLLBACK,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
 		HOST_PROCESSOR_NO_RECOVERY_IMAGE, MOCK_ARG (false));
 
@@ -1834,7 +1834,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback_
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, HOST_PROCESSOR_NO_ROLLBACK,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
 		HOST_PROCESSOR_RECOVERY_UNSUPPORTED, MOCK_ARG (false));
 
@@ -1921,7 +1921,7 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_auth_error_r
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
 	status = mock_expect (&host.mock, host.base.flash_rollback, &host, RSA_ENGINE_BAD_SIGNATURE,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
 		HOST_PROCESSOR_RECOVERY_IMG_FAILED, MOCK_ARG (false));
 
@@ -2022,8 +2022,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_min_wdt_1 (C
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2144,8 +2144,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_min_wdt_2 (C
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2337,8 +2337,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_no_recov
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2366,8 +2366,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_no_recov
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2379,8 +2379,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_no_recov
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2458,8 +2458,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_unsuppor
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2487,8 +2487,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_unsuppor
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2500,8 +2500,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_unsuppor
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2579,8 +2579,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_recovery
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2698,8 +2698,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_timeout_after_recovery_imag
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2735,8 +2735,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_timeout_after_recovery_imag
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2814,8 +2814,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_timeout_after_no_recovery_i
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -2857,8 +2857,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_timeout_after_no_recovery_i
 
 	recovery.state = BMC_RECOVERY_STATE_IN_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -3231,8 +3231,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_rollback (CuTest *test)
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -3310,7 +3310,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_rollback_error (CuTest *t
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
 	status = mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
+		HOST_PROCESSOR_ROLLBACK_FAILED, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
 		MOCK_ARG (false));
 
 	status |= mock_expect (&control.mock, control.base.hold_processor_in_reset, &control, 0,
@@ -3394,8 +3394,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image (CuTest *t
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -3484,8 +3484,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_error (CuT
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -3581,8 +3581,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_recovery (CuTest *t
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -3682,8 +3682,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery (CuTest *t
 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3751,8 +3751,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_unsupported_rw_recovery (
 
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_RW_RECOVERY_UNSUPPORTED);
-	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3821,7 +3821,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollbac
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, HOST_PROCESSOR_NO_ROLLBACK,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
@@ -3891,7 +3891,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_dirty_roll
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_PROCESSOR_ROLLBACK_DIRTY, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
+		HOST_PROCESSOR_ROLLBACK_DIRTY, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
 		MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
@@ -3963,7 +3963,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_bad_sig_ro
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
+		RSA_ENGINE_BAD_SIGNATURE, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
 		MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
@@ -4035,7 +4035,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_bad_hash_r
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
+		HOST_FW_UTIL_BAD_IMAGE_HASH, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
 		MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
@@ -4107,7 +4107,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_blank_fail
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
+		FLASH_UTIL_UNEXPECTED_VALUE, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false),
 		MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
@@ -4179,8 +4179,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_unknown_ro
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host,
-		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false),
-		MOCK_ARG (false));
+		HOST_FW_UTIL_UNSUPPORTED_VERSION, MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa),
+		MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host, 0, MOCK_ARG (false));
 
 	CuAssertIntEquals (test, 0, status);
@@ -4251,7 +4251,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollbac
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, HOST_PROCESSOR_NO_ROLLBACK,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
 		HOST_PROCESSOR_NO_RECOVERY_IMAGE, MOCK_ARG (false));
 
@@ -4328,7 +4328,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollbac
 	status = mock_expect (&host.mock, host.base.recover_active_read_write_data, &host,
 		HOST_PROCESSOR_NO_ACTIVE_RW_DATA);
 	status |= mock_expect (&host.mock, host.base.flash_rollback, &host, HOST_PROCESSOR_NO_ROLLBACK,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
 		HOST_PROCESSOR_RECOVERY_UNSUPPORTED, MOCK_ARG (false));
 
@@ -4415,7 +4415,7 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_auth_error
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
 	status = mock_expect (&host.mock, host.base.flash_rollback, &host, RSA_ENGINE_BAD_SIGNATURE,
-		MOCK_ARG (&hash), MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	status |= mock_expect (&host.mock, host.base.apply_recovery_image, &host,
 		HOST_PROCESSOR_RECOVERY_IMG_FAILED, MOCK_ARG (false));
 
@@ -4516,8 +4516,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_min_wdt_1 
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -4638,8 +4638,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_min_wdt_2 
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -4831,8 +4831,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_no_rec
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -4860,8 +4860,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_no_rec
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -4873,8 +4873,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_no_rec
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -4952,8 +4952,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_unsupp
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -4981,8 +4981,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_unsupp
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -4994,8 +4994,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_unsupp
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -5073,8 +5073,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_recove
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -5192,8 +5192,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_timeout_after_recovery_im
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -5229,8 +5229,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_timeout_after_recovery_im
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -5308,8 +5308,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_timeout_after_no_recovery
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);
@@ -5351,8 +5351,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_timeout_after_no_recovery
 
 	recovery.state = BMC_RECOVERY_STATE_EXIT_RESET;
 
-	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG (&hash),
-		MOCK_ARG (&rsa), MOCK_ARG (false), MOCK_ARG (false));
+	status = mock_expect (&host.mock, host.base.flash_rollback, &host, 0, MOCK_ARG_PTR (&hash),
+		MOCK_ARG_PTR (&rsa), MOCK_ARG (false), MOCK_ARG (false));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery.on_host_cs1 (&recovery, &hash.base, &rsa.base);

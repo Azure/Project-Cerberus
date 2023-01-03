@@ -83,7 +83,7 @@ static void rng_thread_safe_test_generate_random_buffer (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.generate_random_buffer, &mock, 0, MOCK_ARG (32),
-		MOCK_ARG (buffer));
+		MOCK_ARG_PTR (buffer));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_random_buffer (&engine.base, 32, buffer);
@@ -115,7 +115,7 @@ static void rng_thread_safe_test_generate_random_buffer_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.generate_random_buffer, &mock,
-		RNG_ENGINE_RANDOM_FAILED, MOCK_ARG (32), MOCK_ARG (buffer));
+		RNG_ENGINE_RANDOM_FAILED, MOCK_ARG (32), MOCK_ARG_PTR (buffer));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_random_buffer (&engine.base, 32, buffer);

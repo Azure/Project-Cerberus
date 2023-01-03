@@ -243,7 +243,7 @@ static void pcd_observer_pcr_test_on_pcd_activated (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 
@@ -255,7 +255,7 @@ static void pcd_observer_pcr_test_on_pcd_activated (CuTest *test)
 	status |= mock_expect_output (&pcd.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.free_platform_id, &pcd, 0,
-		MOCK_ARG (platform_id));
+		MOCK_ARG_PTR (platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -358,7 +358,7 @@ static void pcd_observer_pcr_test_on_pcd_activated_sha384 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, SHA384_HASH_LENGTH,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pcd.mock, 1, &hash_out[5], SHA384_HASH_LENGTH, 2);
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
@@ -369,7 +369,7 @@ static void pcd_observer_pcr_test_on_pcd_activated_sha384 (CuTest *test)
 	status |= mock_expect_output (&pcd.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.free_platform_id, &pcd, 0,
-		MOCK_ARG (platform_id));
+		MOCK_ARG_PTR (platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -476,7 +476,7 @@ static void pcd_observer_pcr_test_on_pcd_activated_sha512 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, SHA512_HASH_LENGTH,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pcd.mock, 1, &hash_out[5], SHA512_HASH_LENGTH, 2);
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
@@ -487,7 +487,7 @@ static void pcd_observer_pcr_test_on_pcd_activated_sha512 (CuTest *test)
 	status |= mock_expect_output (&pcd.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.free_platform_id, &pcd, 0,
-		MOCK_ARG (platform_id));
+		MOCK_ARG_PTR (platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -576,7 +576,7 @@ static void pcd_observer_pcr_test_on_pcd_activated_hash_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, MANIFEST_GET_HASH_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -664,7 +664,7 @@ static void pcd_observer_pcr_test_on_pcd_activated_get_id_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 
@@ -762,7 +762,7 @@ static void pcd_observer_pcr_test_on_pcd_activated_get_platform_id_error (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 
@@ -870,11 +870,12 @@ static void pcd_observer_pcr_test_record_measurement (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager, (intptr_t) &pcd);
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG (&pcd));
+	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
+		MOCK_RETURN_PTR (&pcd));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG_PTR (&pcd));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 
@@ -886,7 +887,7 @@ static void pcd_observer_pcr_test_record_measurement (CuTest *test)
 	status |= mock_expect_output (&pcd.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.free_platform_id, &pcd, 0,
-		MOCK_ARG (platform_id));
+		MOCK_ARG_PTR (platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -995,11 +996,12 @@ static void pcd_observer_pcr_test_record_measurement_sha384 (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager, (intptr_t) &pcd);
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG (&pcd));
+	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
+		MOCK_RETURN_PTR (&pcd));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG_PTR (&pcd));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, SHA384_HASH_LENGTH,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pcd.mock, 1, &hash_out[5], SHA384_HASH_LENGTH, 2);
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
@@ -1010,7 +1012,7 @@ static void pcd_observer_pcr_test_record_measurement_sha384 (CuTest *test)
 	status |= mock_expect_output (&pcd.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.free_platform_id, &pcd, 0,
-		MOCK_ARG (platform_id));
+		MOCK_ARG_PTR (platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1123,11 +1125,12 @@ static void pcd_observer_pcr_test_record_measurement_sha512 (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager, (intptr_t) &pcd);
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG (&pcd));
+	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
+		MOCK_RETURN_PTR (&pcd));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG_PTR (&pcd));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, SHA512_HASH_LENGTH,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pcd.mock, 1, &hash_out[5], SHA512_HASH_LENGTH, 2);
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_id, &pcd, 0, MOCK_ARG_NOT_NULL);
@@ -1138,7 +1141,7 @@ static void pcd_observer_pcr_test_record_measurement_sha512 (CuTest *test)
 	status |= mock_expect_output (&pcd.mock, 0, &platform_id, sizeof (platform_id), -1);
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.free_platform_id, &pcd, 0,
-		MOCK_ARG (platform_id));
+		MOCK_ARG_PTR (platform_id));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1239,7 +1242,8 @@ static void pcd_observer_pcr_test_record_measurement_no_active (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager, (intptr_t) NULL);
+	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1414,11 +1418,12 @@ static void pcd_observer_pcr_test_record_measurement_hash_error (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager, (intptr_t) &pcd);
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG (&pcd));
+	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
+		MOCK_RETURN_PTR (&pcd));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG_PTR (&pcd));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, MANIFEST_GET_HASH_FAILED,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1512,11 +1517,12 @@ static void pcd_observer_pcr_test_record_measurement_get_id_error (CuTest *test)
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager, (intptr_t) &pcd);
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG (&pcd));
+	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
+		MOCK_RETURN_PTR (&pcd));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG_PTR (&pcd));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 
@@ -1620,11 +1626,12 @@ static void pcd_observer_pcr_test_record_measurement_get_platform_id_error (CuTe
 		SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager, (intptr_t) &pcd);
-	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG (&pcd));
+	status = mock_expect (&manager.mock, manager.base.get_active_pcd, &manager,
+		MOCK_RETURN_PTR (&pcd));
+	status |= mock_expect (&manager.mock, manager.base.free_pcd, &manager, 0, MOCK_ARG_PTR (&pcd));
 
 	status |= mock_expect (&pcd.mock, pcd.base.base.get_hash, &pcd, PCD_TESTING.manifest.hash_len,
-		MOCK_ARG (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_PTR (&hash), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
 	status |= mock_expect_output (&pcd.mock, 1, PCD_TESTING.manifest.hash,
 		PCD_TESTING.manifest.hash_len, 2);
 

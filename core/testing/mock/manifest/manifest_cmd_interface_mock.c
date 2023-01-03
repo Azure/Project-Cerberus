@@ -29,8 +29,8 @@ static int manifest_cmd_interface_mock_store_manifest (struct manifest_cmd_inter
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, manifest_cmd_interface_mock_store_manifest, cmd, MOCK_ARG_CALL (data),
-		MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, manifest_cmd_interface_mock_store_manifest, cmd,
+		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
 static int manifest_cmd_interface_mock_finish_manifest (struct manifest_cmd_interface *cmd,

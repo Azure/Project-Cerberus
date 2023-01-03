@@ -17,9 +17,10 @@ static int x509_mock_create_csr (struct x509_engine *engine, const uint8_t *priv
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_create_csr, engine, MOCK_ARG_CALL (priv_key),
-		MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (name), MOCK_ARG_CALL (type), MOCK_ARG_CALL (eku),
-		MOCK_ARG_CALL (dice), MOCK_ARG_CALL (csr), MOCK_ARG_CALL (csr_length));
+	MOCK_RETURN (&mock->mock, x509_mock_create_csr, engine, MOCK_ARG_PTR_CALL (priv_key),
+		MOCK_ARG_CALL (key_length), MOCK_ARG_PTR_CALL (name), MOCK_ARG_CALL (type),
+		MOCK_ARG_PTR_CALL (eku), MOCK_ARG_PTR_CALL (dice), MOCK_ARG_PTR_CALL (csr),
+		MOCK_ARG_PTR_CALL (csr_length));
 }
 
 static int x509_mock_create_self_signed_certificate (struct x509_engine *engine,
@@ -34,14 +35,14 @@ static int x509_mock_create_self_signed_certificate (struct x509_engine *engine,
 	}
 
 	MOCK_RETURN (&mock->mock, x509_mock_create_self_signed_certificate, engine,
-		MOCK_ARG_CALL (cert), MOCK_ARG_CALL (priv_key), MOCK_ARG_CALL (key_length),
-		MOCK_ARG_CALL (serial_num),  MOCK_ARG_CALL (serial_length), MOCK_ARG_CALL (name),
-		MOCK_ARG_CALL (type), MOCK_ARG_CALL (dice));
+		MOCK_ARG_PTR_CALL (cert), MOCK_ARG_PTR_CALL (priv_key), MOCK_ARG_CALL (key_length),
+		MOCK_ARG_PTR_CALL (serial_num),  MOCK_ARG_CALL (serial_length), MOCK_ARG_PTR_CALL (name),
+		MOCK_ARG_CALL (type), MOCK_ARG_PTR_CALL (dice));
 }
 
 static int x509_mock_create_ca_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
-	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
+	size_t serial_length, const char *name, int type, const uint8_t *ca_priv_key,
 	size_t ca_key_length, const struct x509_certificate *ca_cert,
 	const struct x509_dice_tcbinfo *dice)
 {
@@ -52,10 +53,10 @@ static int x509_mock_create_ca_signed_certificate (struct x509_engine *engine,
 	}
 
 	MOCK_RETURN (&mock->mock, x509_mock_create_ca_signed_certificate, engine,
-		MOCK_ARG_CALL (cert), MOCK_ARG_CALL (key), MOCK_ARG_CALL (key_length),
-		MOCK_ARG_CALL (serial_num),  MOCK_ARG_CALL (serial_length), MOCK_ARG_CALL (name),
-		MOCK_ARG_CALL (type), MOCK_ARG_CALL (ca_priv_key), MOCK_ARG_CALL (ca_key_length),
-		MOCK_ARG_CALL (ca_cert), MOCK_ARG_CALL (dice));
+		MOCK_ARG_PTR_CALL (cert), MOCK_ARG_PTR_CALL (key), MOCK_ARG_CALL (key_length),
+		MOCK_ARG_PTR_CALL (serial_num),  MOCK_ARG_CALL (serial_length), MOCK_ARG_PTR_CALL (name),
+		MOCK_ARG_CALL (type), MOCK_ARG_PTR_CALL (ca_priv_key), MOCK_ARG_CALL (ca_key_length),
+		MOCK_ARG_PTR_CALL (ca_cert), MOCK_ARG_PTR_CALL (dice));
 }
 
 static int x509_mock_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
@@ -67,8 +68,8 @@ static int x509_mock_load_certificate (struct x509_engine *engine, struct x509_c
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_load_certificate, engine, MOCK_ARG_CALL (cert),
-		MOCK_ARG_CALL (der), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, x509_mock_load_certificate, engine, MOCK_ARG_PTR_CALL (cert),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
 static void x509_mock_release_certificate (struct x509_engine *engine,
@@ -80,7 +81,7 @@ static void x509_mock_release_certificate (struct x509_engine *engine,
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, x509_mock_release_certificate, engine, MOCK_ARG_CALL (cert));
+	MOCK_VOID_RETURN (&mock->mock, x509_mock_release_certificate, engine, MOCK_ARG_PTR_CALL (cert));
 }
 
 static int x509_mock_get_certificate_der (struct x509_engine *engine,
@@ -92,8 +93,8 @@ static int x509_mock_get_certificate_der (struct x509_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_get_certificate_der, engine, MOCK_ARG_CALL (cert),
-		MOCK_ARG_CALL (der), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, x509_mock_get_certificate_der, engine, MOCK_ARG_PTR_CALL (cert),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_PTR_CALL (length));
 }
 
 static int x509_mock_get_certificate_version (struct x509_engine *engine,
@@ -105,7 +106,7 @@ static int x509_mock_get_certificate_version (struct x509_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_get_certificate_version, engine, MOCK_ARG_CALL (cert));
+	MOCK_RETURN (&mock->mock, x509_mock_get_certificate_version, engine, MOCK_ARG_PTR_CALL (cert));
 }
 
 static int x509_mock_get_serial_number (struct x509_engine *engine,
@@ -117,8 +118,8 @@ static int x509_mock_get_serial_number (struct x509_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_get_serial_number, engine, MOCK_ARG_CALL (cert),
-		MOCK_ARG_CALL (serial_num), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, x509_mock_get_serial_number, engine, MOCK_ARG_PTR_CALL (cert),
+		MOCK_ARG_PTR_CALL (serial_num), MOCK_ARG_CALL (length));
 }
 
 static int x509_mock_get_public_key_type (struct x509_engine *engine,
@@ -130,7 +131,7 @@ static int x509_mock_get_public_key_type (struct x509_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_get_public_key_type, engine, MOCK_ARG_CALL (cert));
+	MOCK_RETURN (&mock->mock, x509_mock_get_public_key_type, engine, MOCK_ARG_PTR_CALL (cert));
 }
 
 static int x509_mock_get_public_key_length (struct x509_engine *engine,
@@ -142,7 +143,7 @@ static int x509_mock_get_public_key_length (struct x509_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_get_public_key_length, engine, MOCK_ARG_CALL (cert));
+	MOCK_RETURN (&mock->mock, x509_mock_get_public_key_length, engine, MOCK_ARG_PTR_CALL (cert));
 }
 
 static int x509_mock_get_public_key (struct x509_engine *engine,
@@ -154,8 +155,8 @@ static int x509_mock_get_public_key (struct x509_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_get_public_key, engine, MOCK_ARG_CALL (cert),
-		MOCK_ARG_CALL (key), MOCK_ARG_CALL (key_length));
+	MOCK_RETURN (&mock->mock, x509_mock_get_public_key, engine, MOCK_ARG_PTR_CALL (cert),
+		MOCK_ARG_PTR_CALL (key), MOCK_ARG_PTR_CALL (key_length));
 }
 
 static int x509_mock_init_ca_cert_store (struct x509_engine *engine, struct x509_ca_certs *store)
@@ -167,7 +168,7 @@ static int x509_mock_init_ca_cert_store (struct x509_engine *engine, struct x509
 	}
 
 	MOCK_RETURN (&mock->mock, x509_mock_init_ca_cert_store, engine,
-		MOCK_ARG_CALL (store));
+		MOCK_ARG_PTR_CALL (store));
 }
 
 static void x509_mock_release_ca_cert_store (struct x509_engine *engine,
@@ -180,7 +181,7 @@ static void x509_mock_release_ca_cert_store (struct x509_engine *engine,
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, x509_mock_release_ca_cert_store, engine,
-		MOCK_ARG_CALL (store));
+		MOCK_ARG_PTR_CALL (store));
 }
 
 static int x509_mock_add_root_ca (struct x509_engine *engine, struct x509_ca_certs *store,
@@ -192,8 +193,8 @@ static int x509_mock_add_root_ca (struct x509_engine *engine, struct x509_ca_cer
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_add_root_ca, engine, MOCK_ARG_CALL (store),
-		MOCK_ARG_CALL (der), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, x509_mock_add_root_ca, engine, MOCK_ARG_PTR_CALL (store),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
 static int x509_mock_add_intermediate_ca (struct x509_engine *engine,
@@ -205,8 +206,8 @@ static int x509_mock_add_intermediate_ca (struct x509_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_add_intermediate_ca, engine, MOCK_ARG_CALL (store),
-		MOCK_ARG_CALL (der), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, x509_mock_add_intermediate_ca, engine, MOCK_ARG_PTR_CALL (store),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
 static int x509_mock_authenticate (struct x509_engine *engine, const struct x509_certificate *cert,
@@ -218,8 +219,8 @@ static int x509_mock_authenticate (struct x509_engine *engine, const struct x509
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, x509_mock_authenticate, engine, MOCK_ARG_CALL (cert),
-		MOCK_ARG_CALL (store));
+	MOCK_RETURN (&mock->mock, x509_mock_authenticate, engine, MOCK_ARG_PTR_CALL (cert),
+		MOCK_ARG_PTR_CALL (store));
 }
 
 static int x509_mock_func_arg_count (void *func)

@@ -33,7 +33,7 @@ static void mctp_control_protocol_observer_mock_on_get_message_type_response (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, mctp_control_protocol_observer_mock_on_get_message_type_response,
-		observer, MOCK_ARG_CALL (response));
+		observer, MOCK_ARG_PTR_CALL (response));
 }
 
 static void mctp_control_protocol_observer_mock_on_get_routing_table_entries_response (
@@ -48,7 +48,7 @@ static void mctp_control_protocol_observer_mock_on_get_routing_table_entries_res
 
 	MOCK_VOID_RETURN (&mock->mock,
 		mctp_control_protocol_observer_mock_on_get_routing_table_entries_response, observer,
-		MOCK_ARG_CALL (response));
+		MOCK_ARG_PTR_CALL (response));
 }
 
 static void mctp_control_protocol_observer_mock_on_discovery_notify_response (
@@ -62,7 +62,7 @@ static void mctp_control_protocol_observer_mock_on_discovery_notify_response (
 	}
 
 	MOCK_VOID_RETURN (&mock->mock, mctp_control_protocol_observer_mock_on_discovery_notify_response,
-		observer, MOCK_ARG_CALL (response));
+		observer, MOCK_ARG_PTR_CALL (response));
 }
 
 static void mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response (
@@ -77,7 +77,7 @@ static void mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response (
 
 	MOCK_VOID_RETURN (&mock->mock,
 		mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response, observer,
-		MOCK_ARG_CALL (response));
+		MOCK_ARG_PTR_CALL (response));
 }
 
 static int mctp_control_protocol_observer_mock_func_arg_count (void *func)

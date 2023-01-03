@@ -15,7 +15,7 @@ static int logging_mock_create_entry (const struct logging *logging, uint8_t *en
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, logging_mock_create_entry, logging, MOCK_ARG_CALL (entry),
+	MOCK_RETURN (&mock->mock, logging_mock_create_entry, logging, MOCK_ARG_PTR_CALL (entry),
 		MOCK_ARG_CALL (length));
 }
 
@@ -62,7 +62,7 @@ static int logging_mock_read_contents (const struct logging *logging, uint32_t o
 	}
 
 	MOCK_RETURN (&mock->mock, logging_mock_read_contents, logging, MOCK_ARG_CALL (offset),
-		MOCK_ARG_CALL (contents), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (contents), MOCK_ARG_CALL (length));
 }
 
 static int logging_mock_func_arg_count (void *func)

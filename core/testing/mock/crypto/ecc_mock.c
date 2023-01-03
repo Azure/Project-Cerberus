@@ -18,8 +18,8 @@ static int ecc_mock_init_key_pair (struct ecc_engine *engine, const uint8_t *key
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_init_key_pair, engine, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (priv_key), MOCK_ARG_CALL (pub_key));
+	MOCK_RETURN (&mock->mock, ecc_mock_init_key_pair, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_CALL (key_length), MOCK_ARG_PTR_CALL (priv_key), MOCK_ARG_PTR_CALL (pub_key));
 }
 
 static int ecc_mock_init_public_key (struct ecc_engine *engine, const uint8_t *key,
@@ -31,8 +31,8 @@ static int ecc_mock_init_public_key (struct ecc_engine *engine, const uint8_t *k
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_init_public_key, engine, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (pub_key));
+	MOCK_RETURN (&mock->mock, ecc_mock_init_public_key, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_CALL (key_length), MOCK_ARG_PTR_CALL (pub_key));
 }
 
 static int ecc_mock_generate_derived_key_pair (struct ecc_engine *engine, const uint8_t *priv,
@@ -44,8 +44,8 @@ static int ecc_mock_generate_derived_key_pair (struct ecc_engine *engine, const 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_generate_derived_key_pair, engine, MOCK_ARG_CALL (priv),
-		MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (priv_key), MOCK_ARG_CALL (pub_key));
+	MOCK_RETURN (&mock->mock, ecc_mock_generate_derived_key_pair, engine, MOCK_ARG_PTR_CALL (priv),
+		MOCK_ARG_CALL (key_length), MOCK_ARG_PTR_CALL (priv_key), MOCK_ARG_PTR_CALL (pub_key));
 }
 
 static int ecc_mock_generate_key_pair (struct ecc_engine *engine, size_t key_length,
@@ -58,7 +58,7 @@ static int ecc_mock_generate_key_pair (struct ecc_engine *engine, size_t key_len
 	}
 
 	MOCK_RETURN (&mock->mock, ecc_mock_generate_key_pair, engine, MOCK_ARG_CALL (key_length),
-		MOCK_ARG_CALL (priv_key), MOCK_ARG_CALL (pub_key));
+		MOCK_ARG_PTR_CALL (priv_key), MOCK_ARG_PTR_CALL (pub_key));
 }
 
 static void ecc_mock_release_key_pair (struct ecc_engine *engine, struct ecc_private_key *priv_key,
@@ -70,8 +70,8 @@ static void ecc_mock_release_key_pair (struct ecc_engine *engine, struct ecc_pri
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, ecc_mock_release_key_pair, engine, MOCK_ARG_CALL (priv_key),
-		MOCK_ARG_CALL (pub_key));
+	MOCK_VOID_RETURN (&mock->mock, ecc_mock_release_key_pair, engine, MOCK_ARG_PTR_CALL (priv_key),
+		MOCK_ARG_PTR_CALL (pub_key));
 }
 
 static int ecc_mock_get_signature_max_length (struct ecc_engine *engine,
@@ -83,7 +83,7 @@ static int ecc_mock_get_signature_max_length (struct ecc_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_get_signature_max_length, engine, MOCK_ARG_CALL (key));
+	MOCK_RETURN (&mock->mock, ecc_mock_get_signature_max_length, engine, MOCK_ARG_PTR_CALL (key));
 }
 
 static int ecc_mock_get_private_key_der (struct ecc_engine *engine,
@@ -95,8 +95,8 @@ static int ecc_mock_get_private_key_der (struct ecc_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_get_private_key_der, engine, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (der), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, ecc_mock_get_private_key_der, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_PTR_CALL (length));
 }
 
 static int ecc_mock_get_public_key_der (struct ecc_engine *engine, const struct ecc_public_key *key,
@@ -108,8 +108,8 @@ static int ecc_mock_get_public_key_der (struct ecc_engine *engine, const struct 
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_get_public_key_der, engine, MOCK_ARG_CALL (key),
-		MOCK_ARG_CALL (der), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, ecc_mock_get_public_key_der, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (der), MOCK_ARG_PTR_CALL (length));
 }
 
 static int ecc_mock_sign (struct ecc_engine *engine, struct ecc_private_key *key,
@@ -121,8 +121,9 @@ static int ecc_mock_sign (struct ecc_engine *engine, struct ecc_private_key *key
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_sign, engine, MOCK_ARG_CALL (key), MOCK_ARG_CALL (digest),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (signature), MOCK_ARG_CALL (sig_length));
+	MOCK_RETURN (&mock->mock, ecc_mock_sign, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (digest), MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (signature),
+		MOCK_ARG_CALL (sig_length));
 }
 
 static int ecc_mock_verify (struct ecc_engine *engine, struct ecc_public_key *key,
@@ -134,8 +135,9 @@ static int ecc_mock_verify (struct ecc_engine *engine, struct ecc_public_key *ke
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_verify, engine, MOCK_ARG_CALL (key), MOCK_ARG_CALL (digest),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (signature), MOCK_ARG_CALL (sig_length));
+	MOCK_RETURN (&mock->mock, ecc_mock_verify, engine, MOCK_ARG_PTR_CALL (key),
+		MOCK_ARG_PTR_CALL (digest), MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (signature),
+		MOCK_ARG_CALL (sig_length));
 }
 
 static int ecc_mock_get_shared_secret_max_length (struct ecc_engine *engine,
@@ -147,7 +149,8 @@ static int ecc_mock_get_shared_secret_max_length (struct ecc_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_get_shared_secret_max_length, engine, MOCK_ARG_CALL (key));
+	MOCK_RETURN (&mock->mock, ecc_mock_get_shared_secret_max_length, engine,
+		MOCK_ARG_PTR_CALL (key));
 }
 
 static int ecc_mock_compute_shared_secret (struct ecc_engine *engine,
@@ -160,8 +163,8 @@ static int ecc_mock_compute_shared_secret (struct ecc_engine *engine,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, ecc_mock_compute_shared_secret, engine, MOCK_ARG_CALL (priv_key),
-		MOCK_ARG_CALL (pub_key), MOCK_ARG_CALL (secret), MOCK_ARG_CALL (length));
+	MOCK_RETURN (&mock->mock, ecc_mock_compute_shared_secret, engine, MOCK_ARG_PTR_CALL (priv_key),
+		MOCK_ARG_PTR_CALL (pub_key), MOCK_ARG_PTR_CALL (secret), MOCK_ARG_CALL (length));
 }
 
 static int ecc_mock_func_arg_count (void *func)

@@ -25,7 +25,7 @@ static void mock_alloc_and_copy (const struct mock_arg *expected, struct mock_ar
 
 	if (call->ptr_value != NULL) {
 		call->ptr_value_len = expected->ptr_value_len;
-		memcpy (call->ptr_value, (void*) call->value, call->ptr_value_len);
+		memcpy (call->ptr_value, (void*) ((uintptr_t) call->value), call->ptr_value_len);
 	}
 }
 
@@ -60,7 +60,7 @@ static int mock_alloc_and_copy_arg_data (const void *arg_data, size_t arg_length
 static void mock_copy_output_data (const struct mock_arg *expected, struct mock_arg *call,
 	size_t out_len)
 {
-	memcpy ((void*) call->value, expected->out_data, out_len);
+	memcpy ((void*) ((uintptr_t) call->value), expected->out_data, out_len);
 }
 
 /**
@@ -79,7 +79,7 @@ static void mock_free_call (struct mock_call *call)
 			}
 
 			if (call->argv[i].flags & MOCK_ARG_FLAG_ALLOCATED) {
-				call->argv[i].free ((void*) call->argv[i].value);
+				call->argv[i].free ((void*) ((uintptr_t) call->argv[i].value));
 			}
 
 			if (call->argv[i].flags & MOCK_ARG_FLAG_OUT_ALLOCATED) {
@@ -104,7 +104,7 @@ static void mock_free_call (struct mock_call *call)
  *
  * @return 0 if the expectation was successfully added or an error code.
  */
-int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t return_val, ...)
+int mock_expect (struct mock *mock, void *func_call, void *instance, int64_t return_val, ...)
 {
 	struct mock_call *expectation;
 	struct mock_expect_arg arg;
@@ -156,12 +156,12 @@ int mock_expect (struct mock *mock, void *func_call, void *instance, intptr_t re
 
 		if (arg.flags & MOCK_ARG_FLAG_ALLOCATED) {
 			if (arg.copy != NULL) {
-				status = arg.copy ((void*) arg.value, arg.ptr_value_len,
+				status = arg.copy ((void*) ((uintptr_t) arg.value), arg.ptr_value_len,
 					(void**) &expectation->argv[i].value);
 			}
 			else {
-				status = mock_alloc_and_copy_arg_data ((void*) arg.value, arg.ptr_value_len,
-					(void**) &expectation->argv[i].value);
+				status = mock_alloc_and_copy_arg_data ((void*) ((uintptr_t) arg.value),
+					arg.ptr_value_len, (void**) &expectation->argv[i].value);
 			}
 			if (status != 0) {
 				mock_free_call (expectation);
@@ -641,12 +641,13 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 							arg_name);
 
 						if (expected->validate) {
-							fail |= expected->validate (prefix, (void*) expected->value,
-								actual->ptr_value);
+							fail |= expected->validate (prefix,
+								(void*) ((uintptr_t) expected->value), actual->ptr_value);
 						}
 						else {
-							fail |= testing_validate_array_prefix ((void*) expected->value,
-								actual->ptr_value, expected->ptr_value_len, prefix);
+							fail |= testing_validate_array_prefix (
+								(void*) ((uintptr_t) expected->value), actual->ptr_value,
+								expected->ptr_value_len, prefix);
 						}
 					}
 				}
@@ -877,7 +878,7 @@ void mock_set_name (struct mock *mock, const char *name)
  * @param func The function that was called.
  * @param instance The instance the function was called against.
  * @param args The number of arguments passed to the function.
- * @param ... A list of intptr_t arguments from the function.
+ * @param ... A list of int64_t arguments from the function.
  *
  * @return The new call instance or null.
  */
@@ -908,7 +909,7 @@ struct mock_call* mock_allocate_call (const void *func, const void *instance, si
 
 	va_start (arg_list, args);
 	for (i = 0; i < args; i++) {
-		call->argv[i].value = va_arg (arg_list, intptr_t);
+		call->argv[i].value = va_arg (arg_list, int64_t);
 	}
 	va_end (arg_list);
 
@@ -942,13 +943,13 @@ static void mock_push_call (struct mock *mock, struct mock_call *call)
  *
  * @return The result of the function execution.
  */
-intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call)
+int64_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 {
 	struct mock_call *expected;
-	intptr_t status = 0;
+	int64_t status = 0;
 	int i;
 	size_t out_len;
-	intptr_t value_ptr;
+	int64_t value_ptr;
 	bool update_value;
 
 
@@ -974,7 +975,7 @@ intptr_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 
 			/* Dereference pointer parameters. */
 			if ((call->argv[i].value != 0) && (expected->argv[i].flags & MOCK_ARG_FLAG_PTR_PTR)) {
-				value_ptr = (intptr_t) (*((int**) call->argv[i].value));
+				value_ptr = (int64_t) ((uintptr_t) (*((int**) ((uintptr_t) call->argv[i].value))));
 
 				if ((expected->argv[i].out_data == NULL) ||
 					(expected->argv[i].flags & MOCK_ARG_FLAG_OUT_PTR_PTR)) {

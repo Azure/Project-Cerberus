@@ -18,7 +18,7 @@ static int signature_verification_mock_verify_signature (
 	}
 
 	MOCK_RETURN (&mock->mock, signature_verification_mock_verify_signature, verification,
-		MOCK_ARG_CALL (digest), MOCK_ARG_CALL (length), MOCK_ARG_CALL (signature),
+		MOCK_ARG_PTR_CALL (digest), MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (signature),
 		MOCK_ARG_CALL (sig_length));
 }
 
@@ -32,7 +32,7 @@ static int signature_verification_mock_set_verification_key (
 	}
 
 	MOCK_RETURN (&mock->mock, signature_verification_mock_set_verification_key, verification,
-		MOCK_ARG_CALL (key), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (key), MOCK_ARG_CALL (length));
 }
 
 static int signature_verification_mock_is_key_valid (
@@ -45,7 +45,7 @@ static int signature_verification_mock_is_key_valid (
 	}
 
 	MOCK_RETURN (&mock->mock, signature_verification_mock_is_key_valid, verification,
-		MOCK_ARG_CALL (key), MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (key), MOCK_ARG_CALL (length));
 }
 
 static int signature_verification_mock_func_arg_count (void *func)

@@ -83,8 +83,8 @@ static void base64_thread_safe_test_encode (CuTest *test)
 	status = base64_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.encode, &mock, 0, MOCK_ARG (BASE64_DATA_BLOCK),
-		MOCK_ARG (BASE64_DATA_BLOCK_LEN), MOCK_ARG (out), MOCK_ARG (sizeof (out)));
+	status = mock_expect (&mock.mock, mock.base.encode, &mock, 0, MOCK_ARG_PTR (BASE64_DATA_BLOCK),
+		MOCK_ARG (BASE64_DATA_BLOCK_LEN), MOCK_ARG_PTR (out), MOCK_ARG (sizeof (out)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.encode (&engine.base, BASE64_DATA_BLOCK, BASE64_DATA_BLOCK_LEN, out,
@@ -117,7 +117,7 @@ static void base64_thread_safe_test_encode_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.encode, &mock, BASE64_ENGINE_ENCODE_FAILED,
-		MOCK_ARG (BASE64_DATA_BLOCK), MOCK_ARG (BASE64_DATA_BLOCK_LEN), MOCK_ARG (out),
+		MOCK_ARG_PTR (BASE64_DATA_BLOCK), MOCK_ARG (BASE64_DATA_BLOCK_LEN), MOCK_ARG_PTR (out),
 		MOCK_ARG (sizeof (out)));
 	CuAssertIntEquals (test, 0, status);
 

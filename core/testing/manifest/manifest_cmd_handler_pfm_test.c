@@ -671,7 +671,7 @@ static void manifest_cmd_handler_pfm_test_activation (CuTest *test)
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, 0, MOCK_ARG (&handler.hash), MOCK_ARG (&handler.rsa));
+		&handler.host, 0, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa));
 	CuAssertIntEquals (test, 0, status);
 
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
@@ -696,7 +696,7 @@ static void manifest_cmd_handler_pfm_test_activation_prevalidated_flash (CuTest 
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, 0, MOCK_ARG (&handler.hash), MOCK_ARG (&handler.rsa));
+		&handler.host, 0, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa));
 	CuAssertIntEquals (test, 0, status);
 
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
@@ -723,7 +723,7 @@ static void manifest_cmd_handler_pfm_test_activation_prevalidated_flash_and_pfm 
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, 0, MOCK_ARG (&handler.hash), MOCK_ARG (&handler.rsa));
+		&handler.host, 0, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa));
 	CuAssertIntEquals (test, 0, status);
 
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
@@ -751,8 +751,8 @@ static void manifest_cmd_handler_pfm_test_activation_nothing_to_verify (CuTest *
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, HOST_PROCESSOR_NOTHING_TO_VERIFY, MOCK_ARG (&handler.hash),
-		MOCK_ARG (&handler.rsa));
+		&handler.host, HOST_PROCESSOR_NOTHING_TO_VERIFY, MOCK_ARG_PTR (&handler.hash),
+		MOCK_ARG_PTR (&handler.rsa));
 	CuAssertIntEquals (test, 0, status);
 
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
@@ -791,8 +791,8 @@ static void manifest_cmd_handler_pfm_test_activation_verify_failure_no_config_re
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG (&handler.hash),
-		MOCK_ARG (&handler.rsa));
+		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG_PTR (&handler.hash),
+		MOCK_ARG_PTR (&handler.rsa));
 
 	status |= mock_expect (&handler.host.mock, handler.host.base.needs_config_recovery,
 		&handler.host, 0);
@@ -847,8 +847,8 @@ static void manifest_cmd_handler_pfm_test_activation_verify_failure_with_config_
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG (&handler.hash),
-		MOCK_ARG (&handler.rsa));
+		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG_PTR (&handler.hash),
+		MOCK_ARG_PTR (&handler.rsa));
 
 	status |= mock_expect (&handler.host.mock, handler.host.base.needs_config_recovery,
 		&handler.host, 1);
@@ -863,8 +863,8 @@ static void manifest_cmd_handler_pfm_test_activation_verify_failure_with_config_
 
 	/* Retry */
 	status |= mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG (&handler.hash),
-		MOCK_ARG (&handler.rsa));
+		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG_PTR (&handler.hash),
+		MOCK_ARG_PTR (&handler.rsa));
 
 	status |= mock_expect (&handler.host.mock, handler.host.base.needs_config_recovery,
 		&handler.host, 0);
@@ -919,8 +919,8 @@ static void manifest_cmd_handler_pfm_test_activation_verify_failure_with_config_
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG (&handler.hash),
-		MOCK_ARG (&handler.rsa));
+		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG_PTR (&handler.hash),
+		MOCK_ARG_PTR (&handler.rsa));
 
 	status |= mock_expect (&handler.host.mock, handler.host.base.needs_config_recovery,
 		&handler.host, HOST_PROCESSOR_NEEDS_RECOVERY_FAILED);
@@ -935,8 +935,8 @@ static void manifest_cmd_handler_pfm_test_activation_verify_failure_with_config_
 
 	/* Retry */
 	status |= mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG (&handler.hash),
-		MOCK_ARG (&handler.rsa));
+		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG_PTR (&handler.hash),
+		MOCK_ARG_PTR (&handler.rsa));
 
 	status |= mock_expect (&handler.host.mock, handler.host.base.needs_config_recovery,
 		&handler.host, 0);
@@ -983,8 +983,8 @@ static void manifest_cmd_handler_pfm_test_activation_success_after_config_recove
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG (&handler.hash),
-		MOCK_ARG (&handler.rsa));
+		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG_PTR (&handler.hash),
+		MOCK_ARG_PTR (&handler.rsa));
 
 	status |= mock_expect (&handler.host.mock, handler.host.base.needs_config_recovery,
 		&handler.host, 1);
@@ -999,8 +999,8 @@ static void manifest_cmd_handler_pfm_test_activation_success_after_config_recove
 
 	/* Retry failure */
 	status |= mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG (&handler.hash),
-		MOCK_ARG (&handler.rsa));
+		&handler.host, HOST_PROCESSOR_RUN_TIME_FAILED, MOCK_ARG_PTR (&handler.hash),
+		MOCK_ARG_PTR (&handler.rsa));
 
 	status |= mock_expect (&handler.host.mock, handler.host.base.needs_config_recovery,
 		&handler.host, 1);
@@ -1015,8 +1015,8 @@ static void manifest_cmd_handler_pfm_test_activation_success_after_config_recove
 
 	/* Retry success */
 	status |= mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, 0, MOCK_ARG (&handler.hash),
-		MOCK_ARG (&handler.rsa));
+		&handler.host, 0, MOCK_ARG_PTR (&handler.hash),
+		MOCK_ARG_PTR (&handler.rsa));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1045,7 +1045,7 @@ static void manifest_cmd_handler_pfm_test_activation_static_init (CuTest *test)
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);
 
 	status = mock_expect (&handler.host.mock, handler.host.base.run_time_verification,
-		&handler.host, 0, MOCK_ARG (&handler.hash), MOCK_ARG (&handler.rsa));
+		&handler.host, 0, MOCK_ARG_PTR (&handler.hash), MOCK_ARG_PTR (&handler.rsa));
 	CuAssertIntEquals (test, 0, status);
 
 	manifest_cmd_handler_pfm_testing_log_filter_config (test, &handler);

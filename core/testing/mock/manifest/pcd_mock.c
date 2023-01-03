@@ -16,8 +16,9 @@ static int pcd_mock_verify (struct manifest *pcd, struct hash_engine *hash,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_mock_verify, pcd, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (verification), MOCK_ARG_CALL (hash_out), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, pcd_mock_verify, pcd, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (verification), MOCK_ARG_PTR_CALL (hash_out),
+		MOCK_ARG_CALL (hash_length));
 }
 
 static int pcd_mock_get_id (struct manifest *pcd, uint32_t *id)
@@ -28,7 +29,7 @@ static int pcd_mock_get_id (struct manifest *pcd, uint32_t *id)
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_mock_get_id, pcd, MOCK_ARG_CALL (id));
+	MOCK_RETURN (&mock->mock, pcd_mock_get_id, pcd, MOCK_ARG_PTR_CALL (id));
 }
 
 static int pcd_mock_get_platform_id (struct manifest *pcd, char **id, size_t length)
@@ -39,7 +40,7 @@ static int pcd_mock_get_platform_id (struct manifest *pcd, char **id, size_t len
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_mock_get_platform_id, pcd, MOCK_ARG_CALL (id),
+	MOCK_RETURN (&mock->mock, pcd_mock_get_platform_id, pcd, MOCK_ARG_PTR_CALL (id),
 		MOCK_ARG_CALL (length));
 }
 
@@ -51,7 +52,7 @@ static void pcd_mock_free_platform_id (struct manifest *pcd, char *id)
 		return;
 	}
 
-	MOCK_VOID_RETURN (&mock->mock, pcd_mock_free_platform_id, pcd, MOCK_ARG_CALL (id));
+	MOCK_VOID_RETURN (&mock->mock, pcd_mock_free_platform_id, pcd, MOCK_ARG_PTR_CALL (id));
 }
 
 static int pcd_mock_get_hash (struct manifest *pcd, struct hash_engine *hash, uint8_t *hash_out,
@@ -63,8 +64,8 @@ static int pcd_mock_get_hash (struct manifest *pcd, struct hash_engine *hash, ui
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_mock_get_hash, pcd, MOCK_ARG_CALL (hash),
-		MOCK_ARG_CALL (hash_out), MOCK_ARG_CALL (hash_length));
+	MOCK_RETURN (&mock->mock, pcd_mock_get_hash, pcd, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_PTR_CALL (hash_out), MOCK_ARG_CALL (hash_length));
 }
 
 static int pcd_mock_get_signature (struct manifest *pcd, uint8_t *signature, size_t length)
@@ -75,7 +76,7 @@ static int pcd_mock_get_signature (struct manifest *pcd, uint8_t *signature, siz
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_mock_get_signature, pcd, MOCK_ARG_CALL (signature),
+	MOCK_RETURN (&mock->mock, pcd_mock_get_signature, pcd, MOCK_ARG_PTR_CALL (signature),
 		MOCK_ARG_CALL (length));
 }
 
@@ -100,7 +101,7 @@ static int pcd_mock_get_next_mctp_bridge_component (struct pcd *pcd,
 	}
 
 	MOCK_RETURN (&mock->mock, pcd_mock_get_next_mctp_bridge_component, pcd,
-		MOCK_ARG_CALL (component), MOCK_ARG_CALL (first));
+		MOCK_ARG_PTR_CALL (component), MOCK_ARG_CALL (first));
 }
 
 static int pcd_mock_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
@@ -111,7 +112,7 @@ static int pcd_mock_get_rot_info (struct pcd *pcd, struct pcd_rot_info *info)
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_mock_get_rot_info, pcd, MOCK_ARG_CALL (info));
+	MOCK_RETURN (&mock->mock, pcd_mock_get_rot_info, pcd, MOCK_ARG_PTR_CALL (info));
 }
 
 static int pcd_mock_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd_port_info *info)
@@ -123,7 +124,7 @@ static int pcd_mock_get_port_info (struct pcd *pcd, uint8_t port_id, struct pcd_
 	}
 
 	MOCK_RETURN (&mock->mock, pcd_mock_get_port_info, pcd, MOCK_ARG_CALL (port_id),
-		MOCK_ARG_CALL (info));
+		MOCK_ARG_PTR_CALL (info));
 }
 
 static int pcd_mock_get_power_controller_info (struct pcd *pcd,
@@ -135,7 +136,7 @@ static int pcd_mock_get_power_controller_info (struct pcd *pcd,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_mock_get_power_controller_info, pcd, MOCK_ARG_CALL (info));
+	MOCK_RETURN (&mock->mock, pcd_mock_get_power_controller_info, pcd, MOCK_ARG_PTR_CALL (info));
 }
 
 static int pcd_mock_func_arg_count (void *func)

@@ -91,7 +91,7 @@ static void rsa_thread_safe_test_generate_key (CuTest *test)
 	status = rsa_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.generate_key, &mock, 0, MOCK_ARG (&key),
+	status = mock_expect (&mock.mock, mock.base.generate_key, &mock, 0, MOCK_ARG_PTR (&key),
 		MOCK_ARG (2048));
 	CuAssertIntEquals (test, 0, status);
 
@@ -124,7 +124,7 @@ static void rsa_thread_safe_test_generate_key_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.generate_key, &mock, RSA_ENGINE_GENERATE_KEY_FAILED,
-		MOCK_ARG (&key), MOCK_ARG (2048));
+		MOCK_ARG_PTR (&key), MOCK_ARG (2048));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.generate_key (&engine.base, &key, 2048);
@@ -183,8 +183,8 @@ static void rsa_thread_safe_test_init_private_key (CuTest *test)
 	status = rsa_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.init_private_key, &mock, 0, MOCK_ARG (&key),
-		MOCK_ARG (RSA_PRIVKEY_DER), MOCK_ARG (RSA_PRIVKEY_DER_LEN));
+	status = mock_expect (&mock.mock, mock.base.init_private_key, &mock, 0, MOCK_ARG_PTR (&key),
+		MOCK_ARG_PTR (RSA_PRIVKEY_DER), MOCK_ARG (RSA_PRIVKEY_DER_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_private_key (&engine.base, &key, RSA_PRIVKEY_DER,
@@ -217,7 +217,7 @@ static void rsa_thread_safe_test_init_private_key_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.init_private_key, &mock, RSA_ENGINE_NOT_PRIVATE_KEY,
-		MOCK_ARG (&key), MOCK_ARG (RSA_PRIVKEY_DER), MOCK_ARG (RSA_PRIVKEY_DER_LEN));
+		MOCK_ARG_PTR (&key), MOCK_ARG_PTR (RSA_PRIVKEY_DER), MOCK_ARG (RSA_PRIVKEY_DER_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_private_key (&engine.base, &key, RSA_PRIVKEY_DER,
@@ -278,8 +278,8 @@ static void rsa_thread_safe_test_init_public_key (CuTest *test)
 	status = rsa_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.init_public_key, &mock, 0, MOCK_ARG (&key),
-		MOCK_ARG (RSA_PUBKEY_DER), MOCK_ARG (RSA_PUBKEY_DER_LEN));
+	status = mock_expect (&mock.mock, mock.base.init_public_key, &mock, 0, MOCK_ARG_PTR (&key),
+		MOCK_ARG_PTR (RSA_PUBKEY_DER), MOCK_ARG (RSA_PUBKEY_DER_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_public_key (&engine.base, &key, RSA_PUBKEY_DER, RSA_PUBKEY_DER_LEN);
@@ -311,7 +311,7 @@ static void rsa_thread_safe_test_init_public_key_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.init_public_key, &mock,
-		RSA_ENGINE_PUBLIC_KEY_FAILED, MOCK_ARG (&key), MOCK_ARG (RSA_PUBKEY_DER),
+		RSA_ENGINE_PUBLIC_KEY_FAILED, MOCK_ARG_PTR (&key), MOCK_ARG_PTR (RSA_PUBKEY_DER),
 		MOCK_ARG (RSA_PUBKEY_DER_LEN));
 	CuAssertIntEquals (test, 0, status);
 
@@ -371,7 +371,7 @@ static void rsa_thread_safe_test_release_key (CuTest *test)
 	status = rsa_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.release_key, &mock, 0, MOCK_ARG (&key));
+	status = mock_expect (&mock.mock, mock.base.release_key, &mock, 0, MOCK_ARG_PTR (&key));
 	CuAssertIntEquals (test, 0, status);
 
 	engine.base.release_key (&engine.base, &key);
@@ -430,8 +430,8 @@ static void rsa_thread_safe_test_get_private_key_der (CuTest *test)
 	status = rsa_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.get_private_key_der, &mock, 0, MOCK_ARG (&key),
-		MOCK_ARG (&der), MOCK_ARG (&length));
+	status = mock_expect (&mock.mock, mock.base.get_private_key_der, &mock, 0, MOCK_ARG_PTR (&key),
+		MOCK_ARG_PTR (&der), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_private_key_der (&engine.base, &key, &der, &length);
@@ -465,7 +465,8 @@ static void rsa_thread_safe_test_get_private_key_der_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_private_key_der, &mock,
-		RSA_ENGINE_PRIVATE_KEY_DER_FAILED, MOCK_ARG (&key), MOCK_ARG (&der), MOCK_ARG (&length));
+		RSA_ENGINE_PRIVATE_KEY_DER_FAILED, MOCK_ARG_PTR (&key), MOCK_ARG_PTR (&der),
+		MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_private_key_der (&engine.base, &key, &der, &length);
@@ -528,8 +529,8 @@ static void rsa_thread_safe_test_get_public_key_der (CuTest *test)
 	status = rsa_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.get_public_key_der, &mock, 0, MOCK_ARG (&key),
-		MOCK_ARG (&der), MOCK_ARG (&length));
+	status = mock_expect (&mock.mock, mock.base.get_public_key_der, &mock, 0, MOCK_ARG_PTR (&key),
+		MOCK_ARG_PTR (&der), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_public_key_der (&engine.base, &key, &der, &length);
@@ -563,7 +564,8 @@ static void rsa_thread_safe_test_get_public_key_der_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.get_public_key_der, &mock,
-		RSA_ENGINE_PUBLIC_KEY_DER_FAILED, MOCK_ARG (&key), MOCK_ARG (&der), MOCK_ARG (&length));
+		RSA_ENGINE_PUBLIC_KEY_DER_FAILED, MOCK_ARG_PTR (&key), MOCK_ARG_PTR (&der),
+		MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_public_key_der (&engine.base, &key, &der, &length);
@@ -625,10 +627,10 @@ static void rsa_thread_safe_test_decrypt (CuTest *test)
 	status = rsa_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.decrypt, &mock, 4, MOCK_ARG (&key),
-		MOCK_ARG (RSA_LABEL_ENCRYPT_TEST), MOCK_ARG (RSA_ENCRYPT_LEN), MOCK_ARG (RSA_ENCRYPT_LABEL),
-		MOCK_ARG (RSA_ENCRYPT_LABEL_LEN), MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG (message),
-		MOCK_ARG (sizeof (message)));
+	status = mock_expect (&mock.mock, mock.base.decrypt, &mock, 4, MOCK_ARG_PTR (&key),
+		MOCK_ARG_PTR (RSA_LABEL_ENCRYPT_TEST), MOCK_ARG (RSA_ENCRYPT_LEN),
+		MOCK_ARG_PTR (RSA_ENCRYPT_LABEL), MOCK_ARG (RSA_ENCRYPT_LABEL_LEN),
+		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_PTR (message), MOCK_ARG (sizeof (message)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.decrypt (&engine.base, &key, RSA_LABEL_ENCRYPT_TEST, RSA_ENCRYPT_LEN,
@@ -663,9 +665,9 @@ static void rsa_thread_safe_test_decrypt_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.decrypt, &mock, RSA_ENGINE_DECRYPT_FAILED,
-		MOCK_ARG (&key), MOCK_ARG (RSA_LABEL_ENCRYPT_TEST), MOCK_ARG (RSA_ENCRYPT_LEN),
-		MOCK_ARG (RSA_ENCRYPT_LABEL), MOCK_ARG (RSA_ENCRYPT_LABEL_LEN), MOCK_ARG (HASH_TYPE_SHA1),
-		MOCK_ARG (message), MOCK_ARG (sizeof (message)));
+		MOCK_ARG_PTR (&key), MOCK_ARG_PTR (RSA_LABEL_ENCRYPT_TEST), MOCK_ARG (RSA_ENCRYPT_LEN),
+		MOCK_ARG_PTR (RSA_ENCRYPT_LABEL), MOCK_ARG (RSA_ENCRYPT_LABEL_LEN),
+		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_PTR (message), MOCK_ARG (sizeof (message)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.decrypt (&engine.base, &key, RSA_LABEL_ENCRYPT_TEST, RSA_ENCRYPT_LEN,
@@ -729,9 +731,9 @@ static void rsa_thread_safe_test_sig_verify (CuTest *test)
 	status = rsa_thread_safe_init (&engine, &mock.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&mock.mock, mock.base.sig_verify, &mock, 0, MOCK_ARG (&RSA_PUBLIC_KEY),
-		MOCK_ARG (RSA_SIGNATURE_TEST), MOCK_ARG (RSA_ENCRYPT_LEN), MOCK_ARG (SIG_HASH_TEST),
-		MOCK_ARG (SIG_HASH_LEN));
+	status = mock_expect (&mock.mock, mock.base.sig_verify, &mock, 0,
+		MOCK_ARG_PTR (&RSA_PUBLIC_KEY), MOCK_ARG_PTR (RSA_SIGNATURE_TEST),
+		MOCK_ARG (RSA_ENCRYPT_LEN), MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
@@ -764,8 +766,8 @@ static void rsa_thread_safe_test_sig_verify_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&mock.mock, mock.base.sig_verify, &mock, RSA_ENGINE_BAD_SIGNATURE,
-		MOCK_ARG (&RSA_PUBLIC_KEY), MOCK_ARG (RSA_SIGNATURE_TEST), MOCK_ARG (RSA_ENCRYPT_LEN),
-		MOCK_ARG (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		MOCK_ARG_PTR (&RSA_PUBLIC_KEY), MOCK_ARG_PTR (RSA_SIGNATURE_TEST),
+		MOCK_ARG (RSA_ENCRYPT_LEN), MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,

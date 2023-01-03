@@ -64,7 +64,7 @@ int firmware_update_control_mock_write_staging (const struct firmware_update_con
 	}
 
 	MOCK_RETURN (&mock->mock, firmware_update_control_mock_write_staging, update,
-		MOCK_ARG_CALL (buf), MOCK_ARG_CALL (buf_len));
+		MOCK_ARG_PTR_CALL (buf), MOCK_ARG_CALL (buf_len));
 }
 
 static int firmware_update_control_mock_func_arg_count (void *func)

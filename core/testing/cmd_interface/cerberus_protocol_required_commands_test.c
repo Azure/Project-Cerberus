@@ -304,16 +304,16 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest 
 	cert_buf[62] = 0xCC;
 	cert_buf[63] = 0xDD;
 
-	status = mock_expect (&attestation->mock, attestation->base.get_digests,
-		attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
-		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&attestation->mock, attestation->base.get_digests, attestation, 64,
+		MOCK_ARG (0), MOCK_ARG_PTR (&request.data[sizeof (*resp)]), MOCK_ARG (max),
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
 	status |= mock_expect_output (&attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&session->mock, session->base.reset_session, session, 0,
-		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG (NULL), MOCK_ARG (0));
+		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -373,9 +373,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	cert_buf[62] = 0xCC;
 	cert_buf[63] = 0xDD;
 
-	status = mock_expect (&attestation->mock, attestation->base.get_digests,
-		attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
-		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&attestation->mock, attestation->base.get_digests, attestation, 64,
+		MOCK_ARG (0), MOCK_ARG_PTR (&request.data[sizeof (*resp)]), MOCK_ARG (max),
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
 	status |= mock_expect_output (&attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
 
@@ -438,9 +438,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	cert_buf[62] = 0xCC;
 	cert_buf[63] = 0xDD;
 
-	status = mock_expect (&attestation->mock, attestation->base.get_digests,
-		attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
-		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&attestation->mock, attestation->base.get_digests, attestation, 64,
+		MOCK_ARG (0), MOCK_ARG_PTR (&request.data[sizeof (*resp)]), MOCK_ARG (max),
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
 	status |= mock_expect_output (&attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
 
@@ -502,9 +502,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	cert_buf[62] = 0xCC;
 	cert_buf[63] = 0xDD;
 
-	status = mock_expect (&attestation->mock, attestation->base.get_digests,
-		attestation, 64, MOCK_ARG (1), MOCK_ARG (&request.data[sizeof (*resp)]),
-		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&attestation->mock, attestation->base.get_digests, attestation, 64,
+		MOCK_ARG (1), MOCK_ARG_PTR (&request.data[sizeof (*resp)]), MOCK_ARG (max),
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
 	status |= mock_expect_output (&attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
 
@@ -566,9 +566,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	cert_buf[62] = 0xCC;
 	cert_buf[63] = 0xDD;
 
-	status = mock_expect (&attestation->mock, attestation->base.get_digests,
-		attestation, 64, MOCK_ARG (0), MOCK_ARG (&request.data[sizeof (*resp)]),
-		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&attestation->mock, attestation->base.get_digests, attestation, 64,
+		MOCK_ARG (0), MOCK_ARG_PTR (&request.data[sizeof (*resp)]), MOCK_ARG (max),
+		MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&attestation->mock, 1, cert_buf, sizeof (cert_buf), -1);
 	status |= mock_expect_output (&attestation->mock, 3, &num_cert, sizeof (num_cert), -1);
 
@@ -623,9 +623,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&attestation->mock, attestation->base.get_digests,
-		attestation, ATTESTATION_INVALID_SLOT_NUM, MOCK_ARG (2),
-		MOCK_ARG (&request.data[sizeof (*resp)]), MOCK_ARG (max), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&attestation->mock, attestation->base.get_digests, attestation,
+		ATTESTATION_INVALID_SLOT_NUM, MOCK_ARG (2), MOCK_ARG_PTR (&request.data[sizeof (*resp)]),
+		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -673,9 +673,9 @@ void cerberus_protocol_required_commands_testing_process_get_certificate_digest_
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	status = mock_expect (&attestation->mock, attestation->base.get_digests,
-		attestation, ATTESTATION_CERT_NOT_AVAILABLE, MOCK_ARG (1),
-		MOCK_ARG (&request.data[sizeof (*resp)]), MOCK_ARG (max), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&attestation->mock, attestation->base.get_digests, attestation,
+		ATTESTATION_CERT_NOT_AVAILABLE, MOCK_ARG (1), MOCK_ARG_PTR (&request.data[sizeof (*resp)]),
+		MOCK_ARG (max), MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1630,12 +1630,12 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response 
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.reset_session, session, 0,
-		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG (NULL), MOCK_ARG (0));
+		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&attestation->mock, attestation->base.get_digests,
 		attestation, 64, MOCK_ARG (0),
-		MOCK_ARG (
+		MOCK_ARG_PTR (
 			&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
 		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -1804,7 +1804,7 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 
 	status = mock_expect (&attestation->mock, attestation->base.get_digests,
 		attestation, 64, MOCK_ARG (0),
-		MOCK_ARG (
+		MOCK_ARG_PTR (
 			&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
 		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -1902,12 +1902,12 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mock_expect (&session->mock, session->base.reset_session, session, 0,
-		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG (NULL), MOCK_ARG (0));
+		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&attestation->mock, attestation->base.get_digests,
 		attestation, 64, MOCK_ARG (0),
-		MOCK_ARG (
+		MOCK_ARG_PTR (
 			&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
 		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -2076,7 +2076,7 @@ void cerberus_protocol_required_commands_testing_process_get_challenge_response_
 
 	status = mock_expect (&attestation->mock, attestation->base.get_digests,
 		attestation, 64, MOCK_ARG (0),
-		MOCK_ARG (
+		MOCK_ARG_PTR (
 			&digest_request.data[sizeof (struct cerberus_protocol_get_certificate_digest_response)]),
 		MOCK_ARG (max_digest), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
