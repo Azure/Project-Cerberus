@@ -110,12 +110,12 @@ struct attestation_requester_testing {
 	uint8_t *dev_id_der;										/**< Buffer to hold RIoT device ID certificate */
 	uint8_t *ca_der;											/**< Buffer to hold RIoT root CA certificate */
 	uint8_t *int_der;											/**< Buffer to hold RIoT intermediate CA certificate */
-	bool version_unsupported;									/**< Flag indicating whether target doesn,t support same protocol version as requestor */
-	bool get_cert_unsupported;									/**< Flag indicating whether target doesn,t support get certificate command */
-	bool challenge_unsupported;									/**< Flag indicating whether target doesn,t support challenge command */
-	bool meas_cap_unsupported;									/**< Flag indicating whether target doesn,t support measurement capabilities */
-	bool measurement_spec_unsupported;							/**< Flag indicating whether target doesn,t support DMTF measurement spec */
-	bool asymmetric_key_signature_alg_unsupported;				/**< Flag indicating whether target doesn,t support expected asymmetric key signature algorithms  */
+	bool version_unsupported;									/**< Flag indicating whether target doesn't support same protocol version as requestor */
+	bool get_cert_unsupported;									/**< Flag indicating whether target doesn't support get certificate command */
+	bool challenge_unsupported;									/**< Flag indicating whether target doesn't support challenge command */
+	bool meas_cap_unsupported;									/**< Flag indicating whether target doesn't support measurement capabilities */
+	bool measurement_spec_unsupported;							/**< Flag indicating whether target doesn't support DMTF measurement spec */
+	bool asymmetric_key_signature_alg_unsupported;				/**< Flag indicating whether target doesn't support expected asymmetric key signature algorithms  */
 	bool rsp_len_invalid[2];									/**< Flag indicating whether target sends response with invalid length */
 	bool unsupported_operation;									/**< Flag indicating whether target requests unsupported operation */
 	bool expected_slot_num_empty;								/**< Flag indicating whether target sends response with empty expected slot number */
