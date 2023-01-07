@@ -12,11 +12,11 @@
 #include "mbedtls/ecdsa.h"
 #include "mbedtls/ecdh.h"
 #include "mbedtls/bignum.h"
-#include "logging/debug_log.h"
 #include "crypto/crypto_logging.h"
 #include "crypto/ecc_der_util.h"
 #include "crypto/hash.h"
 #include "common/unused.h"
+
 
 /**
  * Get the mbedTLS ECC key pair instance for a public or private key instance.

@@ -276,7 +276,7 @@ static void ecc_der_decode_private_key_test_malformed_not_sequence (CuTest *test
 	der[0] = 0x03;
 
 	status = ecc_der_decode_private_key (der, sizeof (der), priv_key, sizeof (priv_key));
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_private_key_test_malformed_sequence_too_long (CuTest *test)
@@ -308,7 +308,7 @@ static void ecc_der_decode_private_key_test_malformed_not_integer (CuTest *test)
 	der[2] = 0x03;
 
 	status = ecc_der_decode_private_key (der, sizeof (der), priv_key, sizeof (priv_key));
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_private_key_test_malformed_integer_too_long (CuTest *test)
@@ -372,7 +372,7 @@ static void ecc_der_decode_private_key_test_malformed_not_octet_string (CuTest *
 	der[5] = 0x03;
 
 	status = ecc_der_decode_private_key (der, sizeof (der), priv_key, sizeof (priv_key));
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_private_key_test_malformed_octet_string_too_long (CuTest *test)
@@ -420,7 +420,7 @@ static void ecc_der_decode_private_key_test_malformed_not_explicit_parameters (C
 	der[39] = 0x03;
 
 	status = ecc_der_decode_private_key (der, sizeof (der), priv_key, sizeof (priv_key));
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_private_key_test_malformed_explicit_parameters_too_long (CuTest *test)
@@ -452,7 +452,7 @@ static void ecc_der_decode_private_key_test_malformed_not_oid (CuTest *test)
 	der[41] = 0x03;
 
 	status = ecc_der_decode_private_key (der, sizeof (der), priv_key, sizeof (priv_key));
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_private_key_test_malformed_oid_too_long (CuTest *test)
@@ -1112,7 +1112,7 @@ static void ecc_der_decode_public_key_test_malformed_not_sequence (CuTest *test)
 
 	status = ecc_der_decode_public_key (der, sizeof (der), pub_key_x, pub_key_y,
 		ECC_KEY_LENGTH_256);
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_public_key_test_malformed_sequence_too_long (CuTest *test)
@@ -1148,7 +1148,7 @@ static void ecc_der_decode_public_key_test_malformed_algo_not_sequence (CuTest *
 
 	status = ecc_der_decode_public_key (der, sizeof (der), pub_key_x, pub_key_y,
 		ECC_KEY_LENGTH_256);
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_public_key_test_malformed_algo_sequence_too_long (CuTest *test)
@@ -1184,7 +1184,7 @@ static void ecc_der_decode_public_key_test_malformed_algo_not_oid (CuTest *test)
 
 	status = ecc_der_decode_public_key (der, sizeof (der), pub_key_x, pub_key_y,
 		ECC_KEY_LENGTH_256);
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_public_key_test_malformed_algo_oid_too_long (CuTest *test)
@@ -1256,7 +1256,7 @@ static void ecc_der_decode_public_key_test_malformed_curve_not_oid (CuTest *test
 
 	status = ecc_der_decode_public_key (der, sizeof (der), pub_key_x, pub_key_y,
 		ECC_KEY_LENGTH_256);
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_public_key_test_malformed_curve_oid_too_long (CuTest *test)
@@ -1410,7 +1410,7 @@ static void ecc_der_decode_public_key_test_malformed_not_bit_string (CuTest *tes
 
 	status = ecc_der_decode_public_key (der, sizeof (der), pub_key_x, pub_key_y,
 		ECC_KEY_LENGTH_256);
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_public_key_test_malformed_bit_string_too_long (CuTest *test)
@@ -1911,7 +1911,7 @@ static void ecc_der_decode_ecdsa_signature_test_malformed_not_sequence (CuTest *
 	der[0] = 0x03;
 
 	status = ecc_der_decode_ecdsa_signature (der, sizeof (der), sig_r, sig_s, ECC_KEY_LENGTH_256);
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_ecdsa_signature_test_malformed_sequence_too_long (CuTest *test)
@@ -1945,7 +1945,7 @@ static void ecc_der_decode_ecdsa_signature_test_malformed_r_not_integer (CuTest 
 	der[2] = 0x03;
 
 	status = ecc_der_decode_ecdsa_signature (der, sizeof (der), sig_r, sig_s, ECC_KEY_LENGTH_256);
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_ecdsa_signature_test_malformed_r_integer_too_long (CuTest *test)
@@ -2014,7 +2014,7 @@ static void ecc_der_decode_ecdsa_signature_test_malformed_s_not_integer (CuTest 
 	der[37] = 0x03;
 
 	status = ecc_der_decode_ecdsa_signature (der, sizeof (der), sig_r, sig_s, ECC_KEY_LENGTH_256);
-	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
 }
 
 static void ecc_der_decode_ecdsa_signature_test_malformed_s_integer_too_long (CuTest *test)

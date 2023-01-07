@@ -9,6 +9,15 @@
 #include "crypto/ecc.h"
 
 
+/* Maximum lengths of DER-encoded ECDSA signatures.
+ * Sequence -> 2 bytes overhead (3 for ECC521)
+ *	BIT STRING (r) -> 2 bytes overhead (3 if MSB is 1)
+ *	BIT STRING (s) -> 2 bytes overhead (3 if MSB is 1) */
+#define	ECC_TESTING_ECC256_DSA_MAX_LENGTH		72
+#define	ECC_TESTING_ECC384_DSA_MAX_LENGTH		104
+#define	ECC_TESTING_ECC521_DSA_MAX_LENGTH		141
+
+
 extern const uint8_t ECC_PRIVKEY[];
 extern const size_t ECC_PRIVKEY_LEN;
 
@@ -56,14 +65,34 @@ extern const size_t ECC_SIG_TEST2_RAW_LEN;
 extern const uint8_t ECC_SIGNATURE_NOPE[];
 extern const size_t ECC_SIG_NOPE_LEN;
 
+extern const struct ecc_ecdsa_signature ECC_SIGNATURE_NOPE_STRUCT;
+
+extern const uint8_t ECC_SIGNATURE_NOPE_RAW[];
+extern const size_t ECC_SIG_NOPE_RAW_LEN;
+
 extern const uint8_t ECC_SIGNATURE_BAD[];
 extern const size_t ECC_SIG_BAD_LEN;
+
+extern const struct ecc_ecdsa_signature ECC_SIGNATURE_BAD_STRUCT;
+
+extern const uint8_t ECC_SIGNATURE_BAD_RAW[];
+extern const size_t ECC_SIG_BAD_RAW_LEN;
 
 extern const uint8_t ECC_DH_SECRET[];
 extern const size_t ECC_DH_SECRET_LEN;
 
 extern const uint8_t ECC_PRIVKEY_LEADING_ZERO[];
 extern const size_t ECC_PRIVKEY_LEADING_ZERO_LEN;
+
+extern const uint8_t ECC_PUBKEY_LEADING_ZERO[];
+extern const size_t ECC_PUBKEY_LEADING_ZERO_LEN;
+
+extern const uint8_t ECC_PUBKEY_LEADING_ZERO_SHA1[];
+extern const uint8_t ECC_PUBKEY_LEADING_ZERO_SHA256[];
+extern const uint8_t ECC_PUBKEY_LEADING_ZERO_SHA384[];
+extern const uint8_t ECC_PUBKEY_LEADING_ZERO_SHA512[];
+
+extern const struct ecc_point_public_key ECC_PUBKEY_LEADING_ZERO_POINT;
 
 extern const char ECC_PUBKEY_LEADING_ZERO_PEM[];
 extern const size_t ECC_PUBKEY_LEADING_ZERO_PEM_LEN;

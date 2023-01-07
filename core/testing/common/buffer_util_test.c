@@ -1005,6 +1005,57 @@ static void buffer_compare_dwords_test_one_null_non_zero_length (CuTest *test)
 	CuAssertIntEquals (test, BUFFER_UTIL_DATA_MISMATCH, status);
 }
 
+static void buffer_zerioze_test (CuTest *test)
+{
+	uint8_t buffer[32];
+	uint8_t zero[32] = {0};
+	size_t i;
+	int status;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (buffer); i++) {
+		buffer[i] = i;
+	}
+
+	buffer_zeroize (buffer, sizeof (buffer));
+
+	status = testing_validate_array (buffer, zero, sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void buffer_zerioze_test_zero_length (CuTest *test)
+{
+	uint8_t buffer[32];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (buffer); i++) {
+		buffer[i] = i;
+	}
+
+	buffer_zeroize (buffer, 0);
+
+	for (i = 0; i < sizeof (buffer); i++) {
+		CuAssertIntEquals (test, i, buffer[i]);
+	}
+}
+
+static void buffer_zerioze_test_null (CuTest *test)
+{
+	uint8_t buffer[32];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (buffer); i++) {
+		buffer[i] = i;
+	}
+
+	buffer_zeroize (NULL, sizeof (buffer));
+}
+
 
 TEST_SUITE_START (buffer_util);
 
@@ -1057,5 +1108,8 @@ TEST (buffer_compare_dwords_test_match_both_null_zero_length);
 TEST (buffer_compare_dwords_test_match_both_null_non_zero_length);
 TEST (buffer_compare_dwords_test_one_null_zero_length);
 TEST (buffer_compare_dwords_test_one_null_non_zero_length);
+TEST (buffer_zerioze_test);
+TEST (buffer_zerioze_test_zero_length);
+TEST (buffer_zerioze_test_null);
 
 TEST_SUITE_END;

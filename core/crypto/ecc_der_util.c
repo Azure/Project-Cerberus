@@ -57,12 +57,16 @@ static int ecc_der_get_next_tag (uint8_t type, const uint8_t **der, size_t *leng
 	const uint8_t *pos = *der;
 	uint8_t header_len;
 
-	if ((*length < 3) || (pos[0] != type)) {
+	if (*length < 3) {
 		/* While 2 bytes is enough for the short length representation, we will always have more
 		 * data overall after a tag, so even in the case of a 2 byte header, not enough space for
 		 * more data is an error.  Just check the length once here to avoid needing repeated length
 		 * checks. */
 		return ECC_DER_UTIL_MALFORMED;
+	}
+
+	if (pos[0] != type) {
+		return ECC_DER_UTIL_UNEXPECTED_TAG;
 	}
 
 	if (pos[1] < 0x80) {
@@ -74,7 +78,7 @@ static int ecc_der_get_next_tag (uint8_t type, const uint8_t **der, size_t *leng
 		header_len = 3;
 	}
 	else {
-		/* We will never get an ASN.1 sequence that needs for that a single length byte.  If we do,
+		/* We will never get an ASN.1 sequence that needs more than a single length byte.  If we do,
 		 * there is no point parsing it any further since it does not represent an ECC private
 		 * key.
 		 *

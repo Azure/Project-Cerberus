@@ -131,6 +131,7 @@ enum {
 	ECC_DER_UTIL_SMALL_DER_BUFFER = ECC_DER_UTIL_ERROR (0x07),			/**< A DER output buffer is not large enough for the encoded data. */
 	ECC_DER_UTIL_UNSUPPORTED_ALGORITHM = ECC_DER_UTIL_ERROR (0x08),		/**< A public key uses an unsupported algorithm. */
 	ECC_DER_UTIL_SIG_TOO_LONG = ECC_DER_UTIL_ERROR (0x09),				/**< The encoded signature is too long for the key length. */
+	ECC_DER_UTIL_UNEXPECTED_TAG = ECC_DER_UTIL_ERROR (0x0a),			/**< The encoded data contained a tag not correct for ASN.1 sequence. */
 };
 
 

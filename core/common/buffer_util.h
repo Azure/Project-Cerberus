@@ -32,6 +32,8 @@ void buffer_reverse_copy (uint8_t *dest, const uint8_t *src, size_t length);
 int buffer_compare (const uint8_t *buf1, const uint8_t *buf2, size_t length);
 int buffer_compare_dwords (const uint32_t *buf1, const uint32_t *buf2, size_t dwords);
 
+void buffer_zeroize (void *buffer, size_t length);
+
 
 #define	BUFFER_UTIL_ERROR(code)		ROT_ERROR (ROT_MODULE_BUFFER_UTIL, code)
 

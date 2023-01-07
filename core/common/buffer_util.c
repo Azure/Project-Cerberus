@@ -171,3 +171,24 @@ int buffer_compare_dwords (const uint32_t *buf1, const uint32_t *buf2, size_t dw
 
 	return (match == 0xffffffff) ? 0 : BUFFER_UTIL_DATA_MISMATCH;
 }
+
+/* Set up a pointer to abstract memset calls from the compiler.  This is not foolproof, but is the
+ * default approach used by mbedTLS.  A better alternative is to use memset_s, but compiler support
+ * for that seems to be poor.
+ *
+ * Reference:  http://www.daemonology.net/blog/2014-09-04-how-to-zero-a-buffer.html */
+static void* (*const volatile memset_ptr) (void*, int, size_t) = memset;
+
+/**
+ * Clear a buffer by filling it with zeros.  This is not necessarily achieved in the most efficient
+ * way, but is implemented in a way that should keep it from getting optimized out by compilers.
+ *
+ * @param buffer The buffer to clear.
+ * @param length Length of the buffer.
+ */
+void buffer_zeroize (void *buffer, size_t length)
+{
+	if (buffer) {
+		memset_ptr (buffer, 0, length);
+	}
+}

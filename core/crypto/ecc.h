@@ -41,6 +41,15 @@ struct ecc_public_key {
 
 #pragma pack(push,1)
 /**
+ * Defines a structure to hold the raw value (i.e. not ASN.1/DER encoded) for an ECC private key.
+ * No curve information is stored.  The curve is implied based on the key length.
+ */
+struct ecc_raw_private_key {
+	uint8_t d[ECC_MAX_KEY_LENGTH];			/**< The integer used as the private key. */
+	size_t key_length;						/**< Length of the private key. */
+};
+
+/**
  * Defines a structure to hold the X and Y values for a point on a curve that represents an ECC
  * public key.  No curve information is stored.  The curve is implied based on the key length.
  */

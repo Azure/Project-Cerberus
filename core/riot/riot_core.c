@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include "riot_core.h"
+#include "common/buffer_util.h"
 
 
 /**
@@ -12,8 +13,5 @@
  */
 void riot_core_clear (void *data, size_t length)
 {
-	volatile uint8_t *clear = data;
-	while (length--) {
-		*clear++ = 0;
-	}
+	buffer_zeroize (data, length);
 }

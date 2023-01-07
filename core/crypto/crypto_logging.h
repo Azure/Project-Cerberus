@@ -4,6 +4,9 @@
 #ifndef CRYPTO_LOGGING_H_
 #define CRYPTO_LOGGING_H_
 
+#include "logging/debug_log.h"
+
+
 /**
  * Cerberus crypto log messages.
  */

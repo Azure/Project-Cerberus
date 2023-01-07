@@ -15,15 +15,6 @@
 TEST_SUITE_LABEL ("ecc_mbedtls");
 
 
-/* Maximum lengths of DER-encoded ECDSA signatures.
- * Sequence -> 2 bytes overhead (3 for ECC521)
- *	BIT STRING (r) -> 2 bytes overhead (3 if MSB is 1)
- *	BIT STRING (s) -> 2 bytes overhead (3 if MSB is 1) */
-#define	ECC256_DSA_MAX_LENGTH		72
-#define	ECC384_DSA_MAX_LENGTH		104
-#define	ECC521_DSA_MAX_LENGTH		141
-
-
 /*******************
  * Test cases
  *******************/
@@ -347,7 +338,7 @@ static void ecc_mbedtls_test_private_key_init_key_pair_and_sign (CuTest *test)
 	struct ecc_engine_mbedtls engine;
 	struct ecc_private_key priv_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -362,6 +353,7 @@ static void ecc_mbedtls_test_private_key_init_key_pair_and_sign (CuTest *test)
 	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (status));
+	CuAssertTrue (test, status <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 	CuAssertPtrEquals (test, NULL, priv_key.context);
@@ -374,7 +366,7 @@ static void ecc_mbedtls_test_public_key_init_key_pair_and_sign (CuTest *test)
 	struct ecc_engine_mbedtls engine;
 	struct ecc_public_key pub_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -403,7 +395,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify (CuTest *test)
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -419,6 +411,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify (CuTest *test)
 	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
 	CuAssertIntEquals (test, 0, status);
@@ -437,7 +430,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_no_pubkey (CuTest
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -453,6 +446,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_no_pubkey (CuTest
 	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
 	CuAssertIntEquals (test, 0, status);
@@ -471,7 +465,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_extra_buffer (CuT
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 	uint8_t privkey[ECC_PRIVKEY_DER_LEN * 2];
 
 	TEST_START;
@@ -490,6 +484,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_extra_buffer (CuT
 	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
 	CuAssertIntEquals (test, 0, status);
@@ -509,7 +504,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p384 (CuTest *tes
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC384_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC384_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -525,6 +520,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p384 (CuTest *tes
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC384_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
 		out_len);
@@ -544,7 +540,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p384_no_pubkey (C
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC384_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC384_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -560,6 +556,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p384_no_pubkey (C
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC384_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
 		out_len);
@@ -579,7 +576,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p384_extra_buffer
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC384_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC384_DSA_MAX_LENGTH * 2];
 	uint8_t privkey[ECC384_PRIVKEY_DER_LEN * 2];
 
 	TEST_START;
@@ -598,6 +595,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p384_extra_buffer
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC384_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
 		out_len);
@@ -619,7 +617,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p521 (CuTest *tes
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC521_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -635,6 +633,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p521 (CuTest *tes
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		out_len);
@@ -654,7 +653,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p521_no_pubkey (C
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC521_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -670,6 +669,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p521_no_pubkey (C
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		out_len);
@@ -689,7 +689,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p521_no_leading_z
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC521_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -705,6 +705,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p521_no_leading_z
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		out_len);
@@ -724,7 +725,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p521_extra_buffer
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC521_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
 	uint8_t privkey[ECC521_PRIVKEY_DER_LEN * 2];
 
 	TEST_START;
@@ -743,6 +744,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_and_verify_p521_extra_buffer
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		out_len);
@@ -762,7 +764,7 @@ static void ecc_mbedtls_test_init_key_pair_and_sign_with_public_key (CuTest *tes
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -844,7 +846,6 @@ static void ecc_mbedtls_test_init_key_pair_with_public_key (CuTest *test)
 	status = engine.base.init_key_pair (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, NULL,
 		&pub_key);
 	CuAssertTrue (test, (status < 0));
-	CuAssertPtrEquals (test, NULL, pub_key.context);
 
 	ecc_mbedtls_release (&engine);
 }
@@ -863,7 +864,6 @@ static void ecc_mbedtls_test_init_key_pair_with_rsa_key (CuTest *test)
 	status = engine.base.init_key_pair (&engine.base, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, NULL,
 		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_NOT_EC_KEY, status);
-	CuAssertPtrEquals (test, NULL, pub_key.context);
 
 	ecc_mbedtls_release (&engine);
 }
@@ -1102,7 +1102,6 @@ static void ecc_mbedtls_test_init_public_key_with_private_key (CuTest *test)
 	status = engine.base.init_public_key (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
 		&pub_key);
 	CuAssertTrue (test, (status < 0));
-	CuAssertPtrEquals (test, NULL, pub_key.context);
 
 	ecc_mbedtls_release (&engine);
 }
@@ -1121,7 +1120,6 @@ static void ecc_mbedtls_test_init_public_key_with_rsa_key (CuTest *test)
 	status = engine.base.init_public_key (&engine.base, RSA_PUBKEY_DER, RSA_PUBKEY_DER_LEN,
 		&pub_key);
 	CuAssertIntEquals (test, ECC_ENGINE_NOT_EC_KEY, status);
-	CuAssertPtrEquals (test, NULL, pub_key.context);
 
 	ecc_mbedtls_release (&engine);
 }
@@ -1239,7 +1237,7 @@ static void ecc_mbedtls_test_private_key_generate_derived_key_pair_and_sign (CuT
 	struct ecc_engine_mbedtls engine;
 	struct ecc_private_key priv_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1254,6 +1252,7 @@ static void ecc_mbedtls_test_private_key_generate_derived_key_pair_and_sign (CuT
 	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (status));
+	CuAssertTrue (test, status <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -1265,7 +1264,7 @@ static void ecc_mbedtls_test_public_key_generate_derived_key_pair_and_sign (CuTe
 	struct ecc_engine_mbedtls engine;
 	struct ecc_public_key pub_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1293,7 +1292,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_and_verify (CuTe
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1309,6 +1308,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_and_verify (CuTe
 	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
 	CuAssertIntEquals (test, 0, status);
@@ -1326,7 +1326,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_and_verify_p384 
 	int status;
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 #endif
 
 	TEST_START;
@@ -1344,6 +1344,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_and_verify_p384 
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC384_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
 		out_len);
@@ -1365,7 +1366,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_and_verify_p521 
 	int status;
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	int out_len;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 #endif
 
 	TEST_START;
@@ -1383,6 +1384,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_and_verify_p521 
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		out_len);
@@ -1402,7 +1404,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_with_public_key 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1512,7 +1514,7 @@ static void ecc_mbedtls_test_private_key_generate_key_pair_and_sign (CuTest *tes
 	struct ecc_engine_mbedtls engine;
 	struct ecc_private_key priv_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1526,6 +1528,7 @@ static void ecc_mbedtls_test_private_key_generate_key_pair_and_sign (CuTest *tes
 	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (status));
+	CuAssertTrue (test, status <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -1537,7 +1540,7 @@ static void ecc_mbedtls_test_public_key_generate_key_pair_and_sign (CuTest *test
 	struct ecc_engine_mbedtls engine;
 	struct ecc_public_key pub_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1564,7 +1567,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify (CuTest *test
 	struct ecc_public_key pub_key;
 	int status;
 	int out_len;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1579,6 +1582,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify (CuTest *test
 	out_len = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC256_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SIG_HASH_TEST, SIG_HASH_LEN, out, out_len);
 	CuAssertIntEquals (test, 0, status);
@@ -1596,7 +1600,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p384 (CuTest 
 	int status;
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 #endif
 
 	TEST_START;
@@ -1613,6 +1617,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p384 (CuTest 
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC384_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA384_TEST_HASH, SHA384_HASH_LENGTH, out,
 		out_len);
@@ -1634,7 +1639,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p521 (CuTest 
 	int status;
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	int out_len;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 #endif
 
 	TEST_START;
@@ -1642,7 +1647,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p521 (CuTest 
 	status = ecc_mbedtls_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_256, &priv_key, &pub_key);
+	status = engine.base.generate_key_pair (&engine.base, ECC_KEY_LENGTH_521, &priv_key, &pub_key);
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, priv_key.context);
@@ -1651,6 +1656,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p521 (CuTest 
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
+	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		out_len);
@@ -1670,7 +1676,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_with_public_key (CuTest 
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1749,7 +1755,7 @@ static void ecc_mbedtls_test_sign_null (CuTest *test)
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1791,7 +1797,7 @@ static void ecc_mbedtls_test_sign_small_buffer (CuTest *test)
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1803,7 +1809,7 @@ static void ecc_mbedtls_test_sign_small_buffer (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sign (&engine.base, &priv_key, SIG_HASH_TEST, SIG_HASH_LEN, out,
-		ECC256_DSA_MAX_LENGTH - 1);
+		ECC_TESTING_ECC256_DSA_MAX_LENGTH - 1);
 	CuAssertIntEquals (test, ECC_ENGINE_SIG_BUFFER_TOO_SMALL, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
@@ -1817,7 +1823,7 @@ static void ecc_mbedtls_test_sign_unknown_hash (CuTest *test)
 	struct ecc_private_key priv_key;
 	struct ecc_public_key pub_key;
 	int status;
-	uint8_t out[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -1829,7 +1835,7 @@ static void ecc_mbedtls_test_sign_unknown_hash (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sign (&engine.base, &priv_key, SHA1_TEST_HASH, SHA1_HASH_LENGTH, out,
-		ECC256_DSA_MAX_LENGTH);
+		ECC_TESTING_ECC256_DSA_MAX_LENGTH);
 	CuAssertIntEquals (test, ECC_ENGINE_UNSUPPORTED_HASH_TYPE, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, &pub_key);
@@ -1928,7 +1934,7 @@ static void ecc_mbedtls_test_get_signature_max_length (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_signature_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC256_DSA_MAX_LENGTH, status);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -1952,7 +1958,7 @@ static void ecc_mbedtls_test_get_signature_max_length_p384 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_signature_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC384_DSA_MAX_LENGTH, status);
+	CuAssertIntEquals (test, ECC_TESTING_ECC384_DSA_MAX_LENGTH, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -1977,7 +1983,7 @@ static void ecc_mbedtls_test_get_signature_max_length_p521 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_signature_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC521_DSA_MAX_LENGTH, status);
+	CuAssertIntEquals (test, ECC_TESTING_ECC521_DSA_MAX_LENGTH, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -2001,7 +2007,7 @@ static void ecc_mbedtls_test_get_signature_max_length_derived_key (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_signature_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC256_DSA_MAX_LENGTH, status);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -2023,7 +2029,7 @@ static void ecc_mbedtls_test_get_signature_max_length_random_key (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_signature_max_length (&engine.base, &priv_key);
-	CuAssertIntEquals (test, ECC256_DSA_MAX_LENGTH, status);
+	CuAssertIntEquals (test, ECC_TESTING_ECC256_DSA_MAX_LENGTH, status);
 
 	engine.base.release_key_pair (&engine.base, &priv_key, NULL);
 
@@ -2370,7 +2376,7 @@ static void ecc_mbedtls_test_compute_shared_secret_different_keys (CuTest *test)
 	int out_len2;
 	uint8_t out1[ECC_KEY_LENGTH_256 * 2];
 	uint8_t out2[ECC_KEY_LENGTH_256 * 2];
-	uint8_t sign[ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t sign[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
 
 	TEST_START;
 
@@ -2937,7 +2943,7 @@ static void ecc_mbedtls_test_get_public_key_der_private_key (CuTest *test)
 	struct ecc_engine_mbedtls engine;
 	struct ecc_private_key priv_key;
 	int status;
-	uint8_t *der = (uint8_t*) &status;;
+	uint8_t *der = (uint8_t*) &status;
 	size_t length;
 
 	TEST_START;
