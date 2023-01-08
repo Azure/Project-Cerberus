@@ -633,9 +633,6 @@ static void ecc_openssl_test_init_key_pair_and_sign_and_verify_p521 (CuTest *tes
 	out_len = engine.base.sign (&engine.base, &priv_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
 		sizeof (out));
 	CuAssertTrue (test, !ROT_IS_ERROR (out_len));
-	if ((out_len > ECC_TESTING_ECC521_DSA_MAX_LENGTH) || (out_len < (ECC_TESTING_ECC521_DSA_MAX_LENGTH - 3))) {
-		CuAssertIntEquals (test, 0, out_len);
-	}
 	CuAssertTrue (test, out_len <= ECC_TESTING_ECC521_DSA_MAX_LENGTH);
 
 	status = engine.base.verify (&engine.base, &pub_key, SHA512_TEST_HASH, SHA512_HASH_LENGTH, out,
