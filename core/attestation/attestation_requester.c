@@ -760,8 +760,6 @@ static int attestation_requester_get_digests_rsp_post_processing (
 	transcript_hash_len = hash_get_hash_length (attestation->state->txn.transcript_hash_type);
 
 	rsp_len = spdm_get_digests_resp_length (rsp, transcript_hash_len);
-	digest = spdm_get_digests_resp_digest (rsp, attestation->state->txn.slot_num,
-		transcript_hash_len);
 
 	if (attestation->state->txn.msg_buffer_len != rsp_len) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
@@ -780,6 +778,9 @@ static int attestation_requester_get_digests_rsp_post_processing (
 		return ATTESTATION_REQUESTED_SLOT_NUM_EMPTY;
 	}
 	else {
+		digest = spdm_get_digests_resp_digest (rsp, attestation->state->txn.slot_num,
+			transcript_hash_len);
+
 		attestation->state->txn.cached_cert_valid = false;
 
 		status = device_manager_compare_cert_chain_digest (attestation->device_mgr, device_eid,

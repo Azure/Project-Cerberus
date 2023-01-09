@@ -24,6 +24,7 @@
 
 
 int common_math_get_num_bits_set (uint8_t byte);
+int common_math_get_num_bits_set_before_index (uint8_t byte, uint8_t index);
 
 
 #endif //COMMON_MATH_H_

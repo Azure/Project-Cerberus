@@ -386,7 +386,7 @@ struct spdm_get_digests_response {
  * @param digest_len Size of each certificate chain digest
  */
 #define	spdm_get_digests_resp_digest(resp, slot_num, digest_len) \
-	(spdm_get_digests_resp_digests (resp) + slot_num * digest_len)
+	(spdm_get_digests_resp_digests (resp) + (common_math_get_num_bits_set_before_index (resp->slot_mask, slot_num) * digest_len))
 
 /**
  * SPDM get certificate request format

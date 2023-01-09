@@ -37,12 +37,22 @@ static void common_math_test_get_num_bits_set (CuTest *test)
 
 	TEST_START;
 
-	status = common_math_get_num_bits_set (0);
-	CuAssertIntEquals (test, 0, status);
-
 	for (i = 0; i < 256; ++i) {
 		status = common_math_get_num_bits_set (i);
 		CuAssertIntEquals (test, num_bits[i], status);
+	}
+}
+
+static void common_math_test_get_num_bits_set_before_index (CuTest *test)
+{
+	int status;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < 8; ++i) {
+		status = common_math_get_num_bits_set_before_index (0xff, i);
+		CuAssertIntEquals (test, i, status);
 	}
 }
 
@@ -50,5 +60,6 @@ static void common_math_test_get_num_bits_set (CuTest *test)
 TEST_SUITE_START (common_math);
 
 TEST (common_math_test_get_num_bits_set);
+TEST (common_math_test_get_num_bits_set_before_index);
 
 TEST_SUITE_END;
