@@ -87,7 +87,7 @@ int manifest_cmd_handler_pfm_init (struct manifest_cmd_handler_pfm *handler,
 	int status;
 
 	if ((handler == NULL) || (host == NULL) || (host_state == NULL) || (hash == NULL) ||
-		(rsa == NULL) || (filter == NULL)) {
+		(rsa == NULL)) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
@@ -122,7 +122,7 @@ int manifest_cmd_handler_pfm_init (struct manifest_cmd_handler_pfm *handler,
 int manifest_cmd_handler_pfm_init_state (const struct manifest_cmd_handler_pfm *handler)
 {
 	if ((handler == NULL) || (handler->host == NULL) || (handler->host_state == NULL) ||
-		(handler->hash == NULL) || (handler->rsa == NULL) || (handler->filter == NULL)) {
+		(handler->hash == NULL) || (handler->rsa == NULL)) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
