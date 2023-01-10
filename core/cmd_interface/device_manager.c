@@ -119,8 +119,8 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	if (num_responder_devices != 0) {
 		mgr->attestation_status = platform_malloc (num_responder_devices);
 		if (mgr->attestation_status == NULL) {
-			platform_free (mgr->entries);
-			return DEVICE_MGR_NO_MEMORY;
+			status = DEVICE_MGR_NO_MEMORY;
+			goto free_entries;
 		}
 	}
 
@@ -153,9 +153,20 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	status = device_manager_update_device_state (mgr, DEVICE_MANAGER_SELF_DEVICE_NUM,
 		DEVICE_MANAGER_NOT_ATTESTABLE);
 	if (status != 0) {
-		platform_free (mgr->entries);
-		platform_free (mgr->attestation_status);
+		goto error_exit;
 	}
+
+	status = observable_init (&mgr->observable);
+	if (status != 0) {
+		goto error_exit;
+	}
+
+	return 0;
+
+error_exit:
+	platform_free (mgr->attestation_status);
+free_entries:
+	platform_free (mgr->entries);
 
 	return status;
 }
@@ -219,7 +230,44 @@ void device_manager_release (struct device_manager *mgr)
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 		device_manager_clear_unidentified_devices (mgr);
 #endif
+		observable_release (&mgr->observable);
 	}
+}
+
+/**
+ * Add an observer for device manager events.
+ *
+ * @param mgr Device manager instance to use.
+ * @param observer The observer to add.
+ *
+ * @return 0 if the observer was successfully added or an error code.
+ */
+int device_manager_add_observer (struct device_manager *mgr,
+	struct device_manager_observer *observer)
+{
+	if ((mgr == NULL) || (observer == NULL)) {
+		return DEVICE_MANAGER_OBSERVER_INVALID_ARGUMENT;
+	}
+
+	return observable_add_observer (&mgr->observable, observer);
+}
+
+/**
+ * Remove an observer from device manager events.
+ *
+ * @param mgr Device manager instance to deregister from.
+ * @param observer The observer to remove.
+ *
+ * @return 0 if the observer was successfully removed or an error code.
+ */
+int device_manager_remove_observer (struct device_manager *mgr,
+	struct device_manager_observer *observer)
+{
+	if ((mgr == NULL) || (observer == NULL)) {
+		return DEVICE_MANAGER_OBSERVER_INVALID_ARGUMENT;
+	}
+
+	return observable_remove_observer (&mgr->observable, observer);
 }
 
 /**
@@ -326,6 +374,9 @@ int device_manager_update_device_eid (struct device_manager *mgr, int device_num
 	}
 
 	mgr->entries[device_num].eid = eid;
+
+	observable_notify_observers_with_ptr (&mgr->observable,
+		offsetof (struct device_manager_observer, on_set_eid), &eid);
 
 	return 0;
 }

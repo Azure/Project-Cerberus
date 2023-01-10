@@ -7,10 +7,12 @@
 #include <stdint.h>
 #include "attestation/attestation.h"
 #include "common/certificate.h"
+#include "common/observable.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
 #include "status/rot_status.h"
+#include "cmd_interface/device_manager_observer.h"
 
 
 // Reserved device manager table entry numbers
@@ -214,6 +216,7 @@ struct device_manager {
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 	struct device_manager_unidentified_entry *unidentified;		/**< Unidentified device circular linked list. */
 #endif
+	struct observable observable;								/**< Observer manager for the interface. */
 };
 
 
@@ -226,6 +229,11 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 int device_manager_init_ac_rot (struct device_manager *mgr, int num_requester_devices,
 	uint8_t bus_role);
 void device_manager_release (struct device_manager *mgr);
+
+int device_manager_add_observer (struct device_manager *mgr,
+	struct device_manager_observer *observer);
+int device_manager_remove_observer (struct device_manager *mgr,
+	struct device_manager_observer *observer);
 
 int device_manager_get_device_num (struct device_manager *mgr, uint8_t eid);
 int device_manager_get_device_addr (struct device_manager *mgr, int device_num);

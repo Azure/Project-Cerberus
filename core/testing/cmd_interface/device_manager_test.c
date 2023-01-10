@@ -10,6 +10,7 @@
 #include "cmd_interface/device_manager.h"
 #include "mctp/mctp_base_protocol.h"
 #include "testing/crypto/x509_testing.h"
+#include "testing/mock/cmd_interface/device_manager_observer_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 
 
@@ -105,6 +106,114 @@ static void device_manager_test_init_ac_rot_invalid_arg (CuTest *test)
 static void device_manager_test_release_null (CuTest *test)
 {
 	device_manager_release (NULL);
+}
+
+static void device_manager_test_add_device_manager_observer (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_observer_mock observer;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_add_device_manager_observer_invalid_arg (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_observer_mock observer;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_observer (NULL, &observer.base);
+	CuAssertIntEquals (test, DEVICE_MANAGER_OBSERVER_INVALID_ARGUMENT, status);
+
+	status = device_manager_add_observer (&manager, NULL);
+	CuAssertIntEquals (test, DEVICE_MANAGER_OBSERVER_INVALID_ARGUMENT, status);
+
+	status = device_manager_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_remove_device_manager_observer (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_observer_mock observer;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_remove_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_remove_device_manager_observer_invalid_arg (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_observer_mock observer;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_remove_observer (NULL, &observer.base);
+	CuAssertIntEquals (test, DEVICE_MANAGER_OBSERVER_INVALID_ARGUMENT, status);
+
+	status = device_manager_remove_observer (&manager, NULL);
+	CuAssertIntEquals (test, DEVICE_MANAGER_OBSERVER_INVALID_ARGUMENT, status);
+
+	status = device_manager_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_device_capabilities (CuTest *test)
@@ -1202,6 +1311,78 @@ static void device_manager_test_update_device_eid_invalid_device (CuTest *test)
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_device_eid_notify_observers (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_observer_mock observer;
+	int status;
+	uint8_t eid = 0xAA;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_set_eid, &observer, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&eid, sizeof(eid)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (&manager, 0, eid);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_eid (&manager, 0);
+	CuAssertIntEquals (test, eid, status);
+
+	status = device_manager_remove_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void device_manager_test_update_device_eid_removed_observer (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_observer_mock observer;
+	int status;
+	int eid = 0xAA;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_observer_mock_init (&observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&observer.mock, observer.base.on_set_eid, &observer, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&eid, sizeof(eid)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_remove_observer (&manager, &observer.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_eid (&manager, 0, eid);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_eid (&manager, 0);
+	CuAssertIntEquals (test, eid, status);
+
+	status = device_manager_observer_mock_validate_and_release (&observer);
+	CuAssertIntEquals (test, 1, status);
 }
 
 static void device_manager_test_get_max_message_len_local_device (CuTest *test)
@@ -5552,6 +5733,10 @@ TEST (device_manager_test_init_invalid_arg);
 TEST (device_manager_test_init_ac_rot);
 TEST (device_manager_test_init_ac_rot_invalid_arg);
 TEST (device_manager_test_release_null);
+TEST (device_manager_test_add_device_manager_observer);
+TEST (device_manager_test_add_device_manager_observer_invalid_arg);
+TEST (device_manager_test_remove_device_manager_observer);
+TEST (device_manager_test_remove_device_manager_observer_invalid_arg);
 TEST (device_manager_test_get_device_capabilities);
 TEST (device_manager_test_get_device_capabilities_init_ac_rot);
 TEST (device_manager_test_get_device_capabilities_master_pa_rot);
@@ -5602,6 +5787,8 @@ TEST (device_manager_test_get_device_num_null);
 TEST (device_manager_test_get_device_num_invalid_eid);
 TEST (device_manager_test_update_device_eid);
 TEST (device_manager_test_update_device_eid_init_ac_rot);
+TEST (device_manager_test_update_device_eid_notify_observers);
+TEST (device_manager_test_update_device_eid_removed_observer);
 TEST (device_manager_test_update_device_eid_invalid_arg);
 TEST (device_manager_test_update_device_eid_invalid_device);
 TEST (device_manager_test_get_max_message_len_local_device);
