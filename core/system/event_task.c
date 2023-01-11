@@ -80,6 +80,10 @@ int event_task_submit_event (const struct event_task *task,
 		return EVENT_TASK_INVALID_ARGUMENT;
 	}
 
+	if (length > EVENT_TASK_CONTEXT_BUFFER_LENGTH) {
+		return EVENT_TASK_TOO_MUCH_DATA;
+	}
+
 	status = task->get_event_context (task, &context);
 	if (status == 0) {
 		/* The context was successfully acquired.  Indicate that notification has started. */

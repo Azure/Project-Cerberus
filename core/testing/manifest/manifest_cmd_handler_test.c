@@ -621,6 +621,52 @@ static void manifest_cmd_handler_test_store_manifest (CuTest *test)
 	manifest_cmd_handler_testing_validate_and_release (test, &handler);
 }
 
+static void manifest_cmd_handler_test_store_manifest_max_payload (CuTest *test)
+{
+	struct manifest_cmd_handler_testing handler;
+	int status;
+	uint8_t manifest_data[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (manifest_data); i++) {
+		manifest_data[i] = i;
+	}
+
+	manifest_cmd_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
+		sizeof (handler.context_ptr), -1);
+
+	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
+		MOCK_ARG_PTR (&handler.test.base_event));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.store_manifest (&handler.test.base_cmd, manifest_data,
+		sizeof (manifest_data));
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MANIFEST_CMD_HANDLER_ACTION_STORE, handler.context.action);
+	CuAssertIntEquals (test, sizeof (manifest_data), handler.context.buffer_length);
+
+	status = testing_validate_array (manifest_data, handler.context.event_buffer,
+		sizeof (manifest_data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.get_status (&handler.test.base_cmd);
+	CuAssertIntEquals (test, MANIFEST_CMD_STATUS_STARTING, status);
+
+	manifest_cmd_handler_testing_validate_and_release (test, &handler);
+}
+
 static void manifest_cmd_handler_test_store_manifest_static_init (CuTest *test)
 {
 	struct manifest_cmd_handler_testing handler;
@@ -682,6 +728,23 @@ static void manifest_cmd_handler_test_store_manifest_null (CuTest *test)
 	status = handler.test.base_cmd.store_manifest (&handler.test.base_cmd, NULL,
 		sizeof (manifest_data));
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	manifest_cmd_handler_testing_validate_and_release (test, &handler);
+}
+
+static void manifest_cmd_handler_test_store_manifest_too_much_data (CuTest *test)
+{
+	struct manifest_cmd_handler_testing handler;
+	int status;
+	uint8_t manifest_data[EVENT_TASK_CONTEXT_BUFFER_LENGTH + 1];
+
+	TEST_START;
+
+	manifest_cmd_handler_testing_init (test, &handler);
+
+	status = handler.test.base_cmd.store_manifest (&handler.test.base_cmd, manifest_data,
+		sizeof (manifest_data));
+	CuAssertIntEquals (test, MANIFEST_MANAGER_TOO_MUCH_DATA, status);
 
 	manifest_cmd_handler_testing_validate_and_release (test, &handler);
 }
@@ -2130,8 +2193,10 @@ TEST (manifest_cmd_handler_test_prepare_manifest_task_busy);
 TEST (manifest_cmd_handler_test_prepare_manifest_get_context_error);
 TEST (manifest_cmd_handler_test_prepare_manifest_notify_error);
 TEST (manifest_cmd_handler_test_store_manifest);
+TEST (manifest_cmd_handler_test_store_manifest_max_payload);
 TEST (manifest_cmd_handler_test_store_manifest_static_init);
 TEST (manifest_cmd_handler_test_store_manifest_null);
+TEST (manifest_cmd_handler_test_store_manifest_too_much_data);
 TEST (manifest_cmd_handler_test_store_manifest_no_task);
 TEST (manifest_cmd_handler_test_store_manifest_task_busy);
 TEST (manifest_cmd_handler_test_store_manifest_get_context_error);

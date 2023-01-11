@@ -46,6 +46,10 @@ static int manifest_cmd_handler_submit_event (const struct manifest_cmd_handler 
 			 * could be using the status. */
 			status = MANIFEST_MANAGER_TASK_BUSY;
 		}
+		else if (status == EVENT_TASK_TOO_MUCH_DATA) {
+			/* Do not change the command status, since we don't know that state of the task. */
+			return MANIFEST_MANAGER_TOO_MUCH_DATA;
+		}
 		else if (status == EVENT_TASK_NO_TASK) {
 			handler->state->status = MANIFEST_CMD_STATUS_TASK_NOT_RUNNING;
 			status = MANIFEST_MANAGER_NO_TASK;

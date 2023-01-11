@@ -512,6 +512,26 @@ static void event_task_test_submit_event_null (CuTest *test)
 	event_task_testing_validate_and_release_dependencies (test, &event);
 }
 
+static void event_task_test_submit_event_too_much_data (CuTest *test)
+{
+	struct event_task_testing event;
+	int status;
+	uint32_t action = 1;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY + 1];
+	int event_status = 1122;
+
+	TEST_START;
+
+	event_task_testing_init_dependencies (test, &event);
+
+	status = event_task_submit_event (&event.task.base, &event.handler1.base, action, data,
+		sizeof (data), 1234, &event_status);
+	CuAssertIntEquals (test, EVENT_TASK_TOO_MUCH_DATA, status);
+	CuAssertIntEquals (test, 1122, event_status);
+
+	event_task_testing_validate_and_release_dependencies (test, &event);
+}
+
 static void event_task_test_submit_event_no_task (CuTest *test)
 {
 	struct event_task_testing event;
@@ -644,6 +664,7 @@ TEST (event_task_test_submit_event_cast_value);
 TEST (event_task_test_submit_event_no_data);
 TEST (event_task_test_submit_event_no_status_out);
 TEST (event_task_test_submit_event_null);
+TEST (event_task_test_submit_event_too_much_data);
 TEST (event_task_test_submit_event_no_task);
 TEST (event_task_test_submit_event_task_busy);
 TEST (event_task_test_submit_event_get_context_error);

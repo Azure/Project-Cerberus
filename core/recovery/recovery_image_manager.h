@@ -175,6 +175,7 @@ enum {
 	RECOVERY_IMAGE_MANAGER_CLEAR_FAILED = RECOVERY_IMAGE_MANAGER_ERROR (0x0b),		/**< Failed to clear the recovery image region. */
 	RECOVERY_IMAGE_MANAGER_WRITE_FAILED = RECOVERY_IMAGE_MANAGER_ERROR (0x0c),		/**< Failed to write recovery image data. */
 	RECOVERY_IMAGE_MANAGER_ERASE_ALL_FAILED = RECOVERY_IMAGE_MANAGER_ERROR (0x0d),	/**< Failed to erase all recovery image regions. */
+	RECOVERY_IMAGE_MANAGER_TOO_MUCH_DATA = RECOVERY_IMAGE_MANAGER_ERROR (0x0e),		/**< Too much data was sent in a single request. */
 };
 
 

@@ -75,6 +75,7 @@ static void cmd_background_handler_testing_init_dependencies_and_certs (CuTest *
 {
 	int status;
 
+	debug_log = NULL;
 	if (valid_cert_chain) {
 		config_reset_testing_init_attestation_keys_valid_cert_chain (test, &handler->keys);
 	}
@@ -830,6 +831,58 @@ static void cmd_background_handler_test_unseal_start (CuTest *test)
 	cmd_background_handler_testing_validate_and_release (test, &handler);
 }
 
+static void cmd_background_handler_test_unseal_start_max_message (CuTest *test)
+{
+	struct cmd_background_handler_testing handler;
+	int status;
+	uint8_t unseal_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t key[AES256_KEY_LENGTH];
+	size_t key_length = sizeof (key);
+	uint32_t result;
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (unseal_data); i++) {
+		unseal_data[i] = i;
+	}
+
+	cmd_background_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
+		sizeof (handler.context_ptr), -1);
+
+	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
+		MOCK_ARG_PTR (&handler.test.base_event));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.unseal_start (&handler.test.base_cmd, unseal_data,
+		sizeof (unseal_data));
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_RUN_UNSEAL, handler.context.action);
+	CuAssertIntEquals (test, sizeof (unseal_data), handler.context.buffer_length);
+
+	status = testing_validate_array (unseal_data, handler.context.event_buffer,
+		sizeof (unseal_data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.unseal_result (&handler.test.base_cmd, key, &key_length,
+		&result);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, ATTESTATION_CMD_STATUS_RUNNING, result);
+	CuAssertIntEquals (test, 0, key_length);
+
+	cmd_background_handler_testing_validate_and_release (test, &handler);
+}
+
 static void cmd_background_handler_test_unseal_start_static_init (CuTest *test)
 {
 	struct cmd_background_handler_testing handler;
@@ -948,7 +1001,7 @@ static void cmd_background_handler_test_unseal_start_data_too_long (CuTest *test
 	cmd_background_handler_testing_init (test, &handler);
 
 	status = handler.test.base_cmd.unseal_start (&handler.test.base_cmd, unseal_data,
-		CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG + 1);
+		EVENT_TASK_CONTEXT_BUFFER_LENGTH + 1);
 	CuAssertIntEquals (test, CMD_BACKGROUND_INPUT_TOO_BIG, status);
 
 	cmd_background_handler_testing_validate_and_release (test, &handler);
@@ -5583,6 +5636,7 @@ TEST (cmd_background_handler_test_get_riot_cert_chain_state_static_init_valid_ce
 TEST (cmd_background_handler_test_get_riot_cert_chain_state_null);
 #ifdef CMD_ENABLE_UNSEAL
 TEST (cmd_background_handler_test_unseal_start);
+TEST (cmd_background_handler_test_unseal_start_max_message);
 TEST (cmd_background_handler_test_unseal_start_static_init);
 TEST (cmd_background_handler_test_unseal_start_null);
 TEST (cmd_background_handler_test_unseal_start_no_unseal_support);

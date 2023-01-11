@@ -221,6 +221,7 @@ enum {
 	FIRMWARE_UPDATE_NO_RECOVERY_IMAGE = FIRMWARE_UPDATE_ERROR (0x0f),	/**< There is no recovery image available for the operation. */
 	FIRMWARE_UPDATE_RESTORE_NOT_NEEDED = FIRMWARE_UPDATE_ERROR (0x10),	/**< An image restore operation was not necessary. */
 	FIRMWARE_UPDATE_INVALID_BOOT_IMAGE = FIRMWARE_UPDATE_ERROR (0x11),	/**< The boot image is not valid based on additional verification. */
+	FIRMWARE_UPDATE_TOO_MUCH_DATA = FIRMWARE_UPDATE_ERROR (0x12),		/**< Too much data was sent in a single request. */
 };
 
 

@@ -42,7 +42,7 @@ void cmd_background_handler_set_status (const struct cmd_background_handler *han
  * @param starting_status Event status to report when the task is ready to receive a notification.
  * @param no_task_status Event status to report when the task is not running.
  * @param error_status Event status for general errors.
- * @param status_out Optional output for starting status reporting.
+ * @param status_out Optional output for asynchronous status reporting.
  *
  * @return 0 if the task was notified successfully or an error code.
  */
@@ -59,6 +59,10 @@ static int cmd_background_handler_submit_event (const struct cmd_background_hand
 			/* Do not change the command status when the task is busy.  Something is running, which
 			 * could be using the status. */
 			status = CMD_BACKGROUND_TASK_BUSY;
+		}
+		else if (status == EVENT_TASK_TOO_MUCH_DATA) {
+			/* Do not change the command status, since we don't know that state of the task. */
+			return CMD_BACKGROUND_INPUT_TOO_BIG;
 		}
 		else if (status == EVENT_TASK_NO_TASK) {
 			status = CMD_BACKGROUND_NO_TASK;
@@ -87,10 +91,6 @@ int cmd_background_handler_unseal_start (const struct cmd_background *cmd,
 
 	if ((handler->attestation == NULL) || (handler->hash == NULL)) {
 		return CMD_BACKGROUND_UNSUPPORTED_REQUEST;
-	}
-
-	if (length > CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG) {
-		return CMD_BACKGROUND_INPUT_TOO_BIG;
 	}
 
 	return cmd_background_handler_submit_event (handler, CMD_BACKGROUND_HANDLER_ACTION_RUN_UNSEAL,

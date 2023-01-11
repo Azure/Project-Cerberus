@@ -43,6 +43,10 @@ static int firmware_update_handler_submit_event (const struct firmware_update_ha
 			 * could be using the update status. */
 			status = FIRMWARE_UPDATE_TASK_BUSY;
 		}
+		else if (status == EVENT_TASK_TOO_MUCH_DATA) {
+			/* Do not change the command status, since we don't know that state of the task. */
+			return FIRMWARE_UPDATE_TOO_MUCH_DATA;
+		}
 		else if (status == EVENT_TASK_NO_TASK) {
 			handler->state->update_status = UPDATE_STATUS_TASK_NOT_RUNNING;
 			status = FIRMWARE_UPDATE_NO_TASK;

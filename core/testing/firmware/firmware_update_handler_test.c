@@ -1356,6 +1356,52 @@ static void firmware_update_handler_test_write_staging (CuTest *test)
 	firmware_update_handler_testing_validate_and_release (test, &handler);
 }
 
+static void firmware_update_handler_test_write_staging_max_payload (CuTest *test)
+{
+	struct firmware_update_handler_testing handler;
+	int status;
+	uint8_t staging_data[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i <= sizeof (staging_data); i++) {
+		staging_data[i] = i;
+	}
+
+	firmware_update_handler_testing_init (test, &handler, 0, 0, 0, false);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
+		sizeof (handler.context_ptr), -1);
+
+	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
+		MOCK_ARG_PTR (&handler.test.base_event));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_ctrl.write_staging (&handler.test.base_ctrl, staging_data,
+		sizeof (staging_data));
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, FIRMWARE_UPDATE_HANDLER_ACTION_WRITE_STAGING, handler.context.action);
+	CuAssertIntEquals (test, sizeof (staging_data), handler.context.buffer_length);
+
+	status = testing_validate_array (staging_data, handler.context.event_buffer,
+		sizeof (staging_data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_ctrl.get_status (&handler.test.base_ctrl);
+	CuAssertIntEquals (test, UPDATE_STATUS_STARTING, status);
+
+	firmware_update_handler_testing_validate_and_release (test, &handler);
+}
+
 static void firmware_update_handler_test_write_staging_keep_recovery_updated (CuTest *test)
 {
 	struct firmware_update_handler_testing handler;
@@ -1504,6 +1550,23 @@ static void firmware_update_handler_test_write_staging_null (CuTest *test)
 	status = handler.test.base_ctrl.write_staging (&handler.test.base_ctrl, NULL,
 		sizeof (staging_data));
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
+
+	firmware_update_handler_testing_validate_and_release (test, &handler);
+}
+
+static void firmware_update_handler_test_write_staging_too_much_data (CuTest *test)
+{
+	struct firmware_update_handler_testing handler;
+	int status;
+	uint8_t staging_data[EVENT_TASK_CONTEXT_BUFFER_LENGTH + 1];
+
+	TEST_START;
+
+	firmware_update_handler_testing_init (test, &handler, 0, 0, 0, false);
+
+	status = handler.test.base_ctrl.write_staging (&handler.test.base_ctrl, staging_data,
+		sizeof (staging_data));
+	CuAssertIntEquals (test, FIRMWARE_UPDATE_TOO_MUCH_DATA, status);
 
 	firmware_update_handler_testing_validate_and_release (test, &handler);
 }
@@ -3656,10 +3719,12 @@ TEST (firmware_update_handler_test_prepare_staging_task_busy);
 TEST (firmware_update_handler_test_prepare_staging_get_context_error);
 TEST (firmware_update_handler_test_prepare_staging_notify_error);
 TEST (firmware_update_handler_test_write_staging);
+TEST (firmware_update_handler_test_write_staging_max_payload);
 TEST (firmware_update_handler_test_write_staging_keep_recovery_updated);
 TEST (firmware_update_handler_test_write_staging_static_init);
 TEST (firmware_update_handler_test_write_staging_static_init_keep_recovery_updated);
 TEST (firmware_update_handler_test_write_staging_null);
+TEST (firmware_update_handler_test_write_staging_too_much_data);
 TEST (firmware_update_handler_test_write_staging_no_task);
 TEST (firmware_update_handler_test_write_staging_task_busy);
 TEST (firmware_update_handler_test_write_staging_get_context_error);

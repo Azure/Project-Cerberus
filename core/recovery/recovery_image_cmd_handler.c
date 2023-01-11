@@ -47,6 +47,10 @@ static int recovery_image_cmd_handler_submit_event (
 			 * could be using the status. */
 			status = RECOVERY_IMAGE_MANAGER_TASK_BUSY;
 		}
+		else if (status == EVENT_TASK_TOO_MUCH_DATA) {
+			/* Do not change the command status, since we don't know that state of the task. */
+			return RECOVERY_IMAGE_MANAGER_TOO_MUCH_DATA;
+		}
 		else if (status == EVENT_TASK_NO_TASK) {
 			handler->state->status = RECOVERY_IMAGE_CMD_STATUS_TASK_NOT_RUNNING;
 			status = RECOVERY_IMAGE_MANAGER_NO_TASK;

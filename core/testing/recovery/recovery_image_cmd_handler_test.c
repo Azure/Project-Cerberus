@@ -582,6 +582,51 @@ static void recovery_image_cmd_handler_test_update_recovery_image (CuTest *test)
 	recovery_image_cmd_handler_testing_validate_and_release (test, &handler);
 }
 
+static void recovery_image_cmd_handler_test_update_recovery_image_max_payload (CuTest *test)
+{
+	struct recovery_image_cmd_handler_testing handler;
+	int status;
+	uint8_t image_data[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (image_data); i++) {
+		image_data[i] = i;
+	}
+
+	recovery_image_cmd_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
+		sizeof (handler.context_ptr), -1);
+
+	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
+		MOCK_ARG_PTR (&handler.test.base_event));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.update_recovery_image (&handler.test.base_cmd, image_data,
+		sizeof (image_data));
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_CMD_HANDLER_ACTION_UPDATE, handler.context.action);
+	CuAssertIntEquals (test, sizeof (image_data), handler.context.buffer_length);
+
+	status = testing_validate_array (image_data, handler.context.event_buffer, sizeof (image_data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
+	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.get_status (&handler.test.base_cmd);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_CMD_STATUS_STARTING, status);
+
+	recovery_image_cmd_handler_testing_validate_and_release (test, &handler);
+}
+
 static void recovery_image_cmd_handler_test_update_recovery_image_static_init (CuTest *test)
 {
 	struct recovery_image_cmd_handler_testing handler;
@@ -642,6 +687,23 @@ static void recovery_image_cmd_handler_test_update_recovery_image_null (CuTest *
 	status = handler.test.base_cmd.update_recovery_image (&handler.test.base_cmd, NULL,
 		sizeof (image_data));
 	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT, status);
+
+	recovery_image_cmd_handler_testing_validate_and_release (test, &handler);
+}
+
+static void recovery_image_cmd_handler_test_update_recovery_image_too_much_data (CuTest *test)
+{
+	struct recovery_image_cmd_handler_testing handler;
+	int status;
+	uint8_t image_data[EVENT_TASK_CONTEXT_BUFFER_LENGTH + 1];
+
+	TEST_START;
+
+	recovery_image_cmd_handler_testing_init (test, &handler);
+
+	status = handler.test.base_cmd.update_recovery_image (&handler.test.base_cmd, image_data,
+		sizeof (image_data));
+	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_TOO_MUCH_DATA, status);
 
 	recovery_image_cmd_handler_testing_validate_and_release (test, &handler);
 }
@@ -1565,8 +1627,10 @@ TEST (recovery_image_cmd_handler_test_prepare_recovery_image_task_busy);
 TEST (recovery_image_cmd_handler_test_prepare_recovery_image_get_context_error);
 TEST (recovery_image_cmd_handler_test_prepare_recovery_image_notify_error);
 TEST (recovery_image_cmd_handler_test_update_recovery_image);
+TEST (recovery_image_cmd_handler_test_update_recovery_image_max_payload);
 TEST (recovery_image_cmd_handler_test_update_recovery_image_static_init);
 TEST (recovery_image_cmd_handler_test_update_recovery_image_null);
+TEST (recovery_image_cmd_handler_test_update_recovery_image_too_much_data);
 TEST (recovery_image_cmd_handler_test_update_recovery_image_no_task);
 TEST (recovery_image_cmd_handler_test_update_recovery_image_task_busy);
 TEST (recovery_image_cmd_handler_test_update_recovery_image_get_context_error);

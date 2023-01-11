@@ -14,12 +14,17 @@
 struct event_task_handler;
 
 /**
+ * The amount of data that can be stored in an event context for handling notifications.
+ */
+#define	EVENT_TASK_CONTEXT_BUFFER_LENGTH		MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY
+
+/**
  * Execution context that can be used by event handlers.
  */
 struct event_task_context {
-	uint32_t action;												/**< An opaque identifier for the action to be performed. */
-	uint8_t event_buffer[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];	/**< Buffer for data that will processed by the event handler. */
-	size_t buffer_length;											/**< The amount of data contained in the event data buffer.. */
+	uint32_t action;										/**< An opaque identifier for the action to be performed. */
+	uint8_t event_buffer[EVENT_TASK_CONTEXT_BUFFER_LENGTH];	/**< Buffer for data that will processed by the event handler. */
+	size_t buffer_length;									/**< The amount of data contained in the event data buffer.. */
 };
 
 /**
@@ -143,6 +148,7 @@ enum {
 	EVENT_TASK_BUSY = EVENT_TASK_ERROR (0x07),					/**< The task is busy performing an operation. */
 	EVENT_TASK_UNKNOWN_HANDLER = EVENT_TASK_ERROR (0x08),		/**< The handler is not known to the task. */
 	EVENT_TASK_NOT_READY = EVENT_TASK_ERROR (0x09),				/**< The handler was not prepared to be notified. */
+	EVENT_TASK_TOO_MUCH_DATA = EVENT_TASK_ERROR (0x0a),			/**< An event was submitted with too much data. */
 };
 
 
