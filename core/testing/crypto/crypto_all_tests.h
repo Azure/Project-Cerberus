@@ -57,6 +57,12 @@ static void add_all_crypto_tests (CuSuite *suite)
 	!defined TESTING_SKIP_ECC_DER_UTIL_SUITE
 	TESTING_RUN_SUITE (ecc_der_util);
 #endif
+#if (defined TESTING_RUN_ECC_ECC_HW_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_ECC_ECC_HW_SUITE
+	TESTING_RUN_SUITE (ecc_ecc_hw);
+#endif
 #if (defined TESTING_RUN_ECC_MBEDTLS_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

@@ -115,6 +115,7 @@ enum {
 	ROT_MODULE_PERIODIC_TASK = 0x0067,					/**< Task for periodic execution. */
 	ROT_MODULE_FIRMWARE_LOADER = 0x0068,				/**< Handler to load firmware images into memory. */
 	ROT_MODULE_DEVICE_MANAGER_OBSERVER = 0x0069,		/**< Observers for device manager events. */
+	ROT_MODULE_ECC_HW = 0x006a,							/**< Driver interface for ECC accelerator hardware. */
 };
 
 
