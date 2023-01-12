@@ -5,6 +5,7 @@
 #define IMAGE_HEADER_H_
 
 #include <stdint.h>
+#include "crypto/hash.h"
 #include "flash/flash.h"
 
 
@@ -13,7 +14,7 @@
  * The base header information.
  */
 struct image_header_info {
-	uint16_t length;			/**< The total length of the header, including the length bytes.*/
+	uint16_t length;			/**< The total length of the header, including the length bytes. */
 	uint16_t format;			/**< The format of the header data. */
 	uint32_t marker;			/**< The marker for a valid header. */
 };
@@ -36,6 +37,10 @@ void image_header_release (struct image_header *header);
 int image_header_load_data (struct image_header *header, const struct flash *flash, uint32_t addr);
 
 int image_header_get_length (const struct image_header *header);
+
+int image_header_hash_header (const struct image_header *header, struct hash_engine *hash,
+	enum hash_type type, uint8_t *digest, size_t length);
+int image_header_hash_update_header (const struct image_header *header, struct hash_engine *hash);
 
 
 #define	IMAGE_HEADER_ERROR(code)		ROT_ERROR (ROT_MODULE_IMAGE_HEADER, code)

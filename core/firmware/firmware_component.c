@@ -44,10 +44,16 @@ struct firmware_component_header {
 	((struct firmware_component_header*) (img->header.data))->format##x
 
 /**
- * Get the expected length for a firmware component header format.
+ * The expected length for a format 0 firmware component header.
  */
 #define	FW_COMPONENT_HDR_LENGTH_V0		\
 	((sizeof (struct firmware_component_header_format0)) + (sizeof (struct image_header_info)))
+
+/**
+ * The expected length for a format 1 firmware component header.
+ */
+#define	FW_COMPONENT_HDR_LENGTH_V1		\
+	(FW_COMPONENT_HDR_LENGTH_V0 + sizeof (struct firmware_component_header_format1))
 
 /**
  * Minimum length for a component header with an unknown format.  It must be at least as long as the
@@ -97,8 +103,7 @@ int firmware_component_init (struct firmware_component *image, const struct flas
 			break;
 
 		case 1:
-			if (image->header.info.length !=
-				(FW_COMPONENT_HDR_LENGTH_V0 + sizeof (struct firmware_component_header_format1))) {
+			if (image->header.info.length != FW_COMPONENT_HDR_LENGTH_V1) {
 				return FIRMWARE_COMPONENT_BAD_HEADER;
 			}
 			break;
@@ -259,13 +264,14 @@ static int firmware_component_prepare_for_verification (const struct firmware_co
  * @param image The image being hashed.
  * @param hash The hash engine to use for image hashing.
  * @param digest_type The hash algorithm that should be used for the component.
+ * @param header Additional header data to include in the component hash.  If there is no data in
+ * memory, this can be null.  If additional header data is needed, it will be read from flash.
  *
  * @return 0 if the component hash was successfully started or an error code.
  */
 static int firmware_component_start_component_hash (const struct firmware_component *image,
-	struct hash_engine *hash, enum hash_type digest_type)
+	struct hash_engine *hash, enum hash_type digest_type, const struct image_header *header)
 {
-	uint8_t *header;
 	int status;
 
 	status = hash_start_new_hash (hash, digest_type);
@@ -273,22 +279,15 @@ static int firmware_component_start_component_hash (const struct firmware_compon
 		return status;
 	}
 
-	if (image->offset) {
-		header = platform_malloc (image->offset);
-		if (header == NULL) {
-			status = FIRMWARE_COMPONENT_NO_MEMORY;
-			goto exit;
-		}
-
-		status = image->flash->read (image->flash, image->start_addr, header, image->offset);
-		if (status == 0) {
-			status = hash->update (hash, header, image->offset);
-		}
-
-		platform_free (header);
-		if (status != 0) {
-			goto exit;
-		}
+	if (header) {
+		status = image_header_hash_update_header (header, hash);
+	}
+	else if (image->offset) {
+		status = flash_hash_update_contents (image->flash, image->start_addr, image->offset,
+			hash);
+	}
+	if (status != 0) {
+		goto exit;
 	}
 
 	status = hash->update (hash, (uint8_t*) &image->header.info, sizeof (struct image_header_info));
@@ -455,6 +454,9 @@ int firmware_component_load (const struct firmware_component *image, uint8_t *lo
  *
  * Any load address specified in the component header will be ignored.
  *
+ * Any extra header data on the component will be read from flash for verification purposes, then
+ * discarded.
+ *
  * @param image The image to load.
  * @param load_addr The memory location where the image should be loaded.
  * @param max_length The largest firmware component that can be loaded.
@@ -475,6 +477,46 @@ int firmware_component_load (const struct firmware_component *image, uint8_t *lo
  */
 int firmware_component_load_and_verify (const struct firmware_component *image, uint8_t *load_addr,
 	size_t max_length, struct hash_engine *hash, const struct signature_verification *verification,
+	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
+	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
+{
+	return firmware_component_load_and_verify_with_header (image, load_addr, max_length, NULL, hash,
+		verification, expected_version, hash_out, hash_length, hash_type, load_length);
+}
+
+/**
+ * Load the component from flash into memory.  Verify the integrity of the image in memory.
+ *
+ * The component includes additional header data that must be included as part of component
+ * verification.  This additional header can be preloaded into memory.  If the header is already in
+ * memory, it is not required for the component instance to have been initialized with
+ * firmware_component_init_with_header for the header to be included as part of verification.
+ *
+ * Any load address specified in the component header will be ignored.
+ *
+ * @param image The image to load.
+ * @param load_addr The memory location where the image should be loaded.
+ * @param max_length The largest firmware component that can be loaded.
+ * @param header Additional header data that must be included as part of the component verification.
+ * If this is null, additional header data will be read from flash for verification and discarded.
+ * @param hash The hash engine to use for image validation.
+ * @param verification Context to use for signature verification.
+ * @param expected_version Specify a build version number for the component for verification to
+ * succeed.  If there is no version requirement, set this to null.  Components that do not report a
+ * build version in the header will always fail verification if there is an expected version
+ * specified.  If the version does not match, nothing will be loaded into memory.
+ * @param hash_out Optional output parameter that will contain the calculated hash of the component
+ * image.  This can be null if the image hash does not need to be returned.
+ * @param hash_length The length of the hash output buffer.
+ * @param hash_type Optional output for the type of hash used to verify the component.
+ * @param load_length Optional output parameter that will contain the amount of data loaded to the
+ * destination address.
+ *
+ * @return 0 if the component was loaded to memory and verified as good or an error code.
+ */
+int firmware_component_load_and_verify_with_header (const struct firmware_component *image,
+	uint8_t *load_addr, size_t max_length, const struct image_header *header,
+	struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
@@ -500,7 +542,7 @@ int firmware_component_load_and_verify (const struct firmware_component *image, 
 		return status;
 	}
 
-	status = firmware_component_start_component_hash (image, hash, digest_type);
+	status = firmware_component_start_component_hash (image, hash, digest_type, header);
 	if (status != 0) {
 		goto error_exit;
 	}
@@ -584,11 +626,19 @@ int firmware_component_load_to_memory (const struct firmware_component *image,
 /**
  * Load the component from flash into memory.  Verify the integrity of the image in memory.
  *
- * Any load address specified in the component header will be ignored.
+ * The address where the component will be loaded will be determined from the component header.  If
+ * the component header does not provide a valid load address, the operation will fail.
+ *
+ * If the image on flash is encrypted, the data loaded into memory will be decrypted.
+ *
+ * Any extra header data on the component will be read from flash for verification purposes, then
+ * discarded.
  *
  * @param image The image to load.
- * @param load_addr The memory location where the image should be loaded.
- * @param max_length The largest firmware component that can be loaded.
+ * @param loader The handler for loading the image data into memory.
+ * @param iv The IV to use for decrypting an encrypted image.  If the image is not encrypted,
+ * this should be null.
+ * @param iv_length Length of the IV data.  This will be ignored if the IV is null.
  * @param hash The hash engine to use for image validation.
  * @param verification Context to use for signature verification.
  * @param expected_version Specify a build version number for the component for verification to
@@ -607,6 +657,52 @@ int firmware_component_load_to_memory (const struct firmware_component *image,
 int firmware_component_load_to_memory_and_verify (const struct firmware_component *image,
 	const struct firmware_loader *loader, const uint8_t *iv, size_t iv_length,
 	struct hash_engine *hash, const struct signature_verification *verification,
+	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
+	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
+{
+	return firmware_component_load_to_memory_and_verify_with_header (image, loader, iv, iv_length,
+		NULL, hash, verification, expected_version, hash_out, hash_length, hash_type, load_length);
+}
+
+/**
+ * Load the component from flash into memory.  Verify the integrity of the image in memory.
+ *
+ * The component includes additional header data that must be included as part of component
+ * verification.  This additional header can be preloaded into memory.  If the header is already in
+ * memory, it is not required for the component instance to have been initialized with
+ * firmware_component_init_with_header for the header to be included as part of verification.
+ *
+ * The address where the component will be loaded will be determined from the component header.  If
+ * the component header does not provide a valid load address, the operation will fail.
+ *
+ * If the image on flash is encrypted, the data loaded into memory will be decrypted.
+ *
+ * @param image The image to load.
+ * @param loader The handler for loading the image data into memory.
+ * @param iv The IV to use for decrypting an encrypted image.  If the image is not encrypted,
+ * this should be null.
+ * @param iv_length Length of the IV data.  This will be ignored if the IV is null.
+ * @param header Additional header data that must be included as part of the component verification.
+ * If this is null, additional header data will be read from flash for verification and discarded.
+ * @param hash The hash engine to use for image validation.
+ * @param verification Context to use for signature verification.
+ * @param expected_version Specify a build version number for the component for verification to
+ * succeed.  If there is no version requirement, set this to null.  Components that do not report a
+ * build version in the header will always fail verification if there is an expected version
+ * specified.  If the version does not match, nothing will be loaded into memory.
+ * @param hash_out Optional output parameter that will contain the calculated hash of the component
+ * image.  This can be null if the image hash does not need to be returned.
+ * @param hash_length The length of the hash output buffer.
+ * @param hash_type Optional output for the type of hash used to verify the component.
+ * @param load_length Optional output parameter that will contain the amount of data loaded to the
+ * destination address.
+ *
+ * @return 0 if the component was loaded to memory and verified as good or an error code.
+ */
+int firmware_component_load_to_memory_and_verify_with_header (
+	const struct firmware_component *image, const struct firmware_loader *loader, const uint8_t *iv,
+	size_t iv_length, const struct image_header *header, struct hash_engine *hash,
+	const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
@@ -639,7 +735,7 @@ int firmware_component_load_to_memory_and_verify (const struct firmware_componen
 		return status;
 	}
 
-	status = firmware_component_start_component_hash (image, hash, digest_type);
+	status = firmware_component_start_component_hash (image, hash, digest_type, header);
 	if (status != 0) {
 		goto error_exit;
 	}

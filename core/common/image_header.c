@@ -79,7 +79,6 @@ int image_header_load_data (struct image_header *header, const struct flash *fla
 		return IMAGE_HEADER_INVALID_ARGUMENT;
 	}
 
-	header->data = NULL;
 	length = header->info.length - sizeof (header->info);
 	header->data = platform_malloc (length);
 	if (header->data == NULL) {
@@ -110,4 +109,75 @@ int image_header_get_length (const struct image_header *header)
 	else {
 		return 0;
 	}
+}
+
+/**
+ * Calculate the digest for the image header.  This digest will be calculated over the entire
+ * header, which includes both the base header information as well as the variable header data.
+ *
+ * @param header The header to hash.
+ * @param hash Hash engine to use for calculating the digest.
+ * @param type The hash algorithm to use.
+ * @param digest Output for the calculated digest.
+ * @param length Length of the output buffer.
+ *
+ * @return 0 if the header was hashed successfully or an error code.
+ */
+int image_header_hash_header (const struct image_header *header, struct hash_engine *hash,
+	enum hash_type type, uint8_t *digest, size_t length)
+{
+	int status;
+
+	if ((header == NULL) || (hash == NULL) || (digest == NULL) || (length == 0)) {
+		return IMAGE_HEADER_INVALID_ARGUMENT;
+	}
+
+	status = hash_start_new_hash (hash, type);
+	if (status != 0) {
+		return status;
+	}
+
+	status = image_header_hash_update_header (header, hash);
+	if (status != 0) {
+		goto error;
+	}
+
+	status = hash->finish (hash, digest, length);
+	if (status != 0) {
+		goto error;
+	}
+
+	return 0;
+
+error:
+	hash->cancel (hash);
+	return status;
+}
+
+/**
+ * Update an active hash with the image header data.  The hash will be updated with entire header,
+ * which includes both the base header information as well as the variable header data.
+ *
+ * The hash context must already be started prior to this call.  The hashing context will not be
+ * canceled on failure.
+ *
+ * @param header The header to hash.
+ * @param hash Hash engine that should be updated with the header data.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int image_header_hash_update_header (const struct image_header *header, struct hash_engine *hash)
+{
+	int status;
+
+	if ((header == NULL) || (hash == NULL)) {
+		return IMAGE_HEADER_INVALID_ARGUMENT;
+	}
+
+	status = hash->update (hash, (uint8_t*) &header->info, sizeof (header->info));
+	if (status != 0) {
+		return status;
+	}
+
+	return hash->update (hash, header->data, header->info.length - sizeof (header->info));
 }

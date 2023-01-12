@@ -48,12 +48,23 @@ int firmware_component_load_and_verify (const struct firmware_component *image, 
 	size_t max_length, struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length);
+int firmware_component_load_and_verify_with_header (const struct firmware_component *image,
+	uint8_t *load_addr, size_t max_length, const struct image_header *header,
+	struct hash_engine *hash, const struct signature_verification *verification,
+	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
+	size_t hash_length, enum hash_type *hash_type, size_t *load_length);
 
 int firmware_component_load_to_memory (const struct firmware_component *image,
 	const struct firmware_loader *loader, const uint8_t *iv, size_t iv_length, size_t *load_length);
 int firmware_component_load_to_memory_and_verify (const struct firmware_component *image,
 	const struct firmware_loader *loader, const uint8_t *iv, size_t iv_length,
 	struct hash_engine *hash, const struct signature_verification *verification,
+	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
+	size_t hash_length, enum hash_type *hash_type, size_t *load_length);
+int firmware_component_load_to_memory_and_verify_with_header (
+	const struct firmware_component *image, const struct firmware_loader *loader, const uint8_t *iv,
+	size_t iv_length, const struct image_header *header, struct hash_engine *hash,
+	const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length);
 
