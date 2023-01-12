@@ -1044,16 +1044,9 @@ static void buffer_zerioze_test_zero_length (CuTest *test)
 
 static void buffer_zerioze_test_null (CuTest *test)
 {
-	uint8_t buffer[32];
-	size_t i;
-
 	TEST_START;
 
-	for (i = 0; i < sizeof (buffer); i++) {
-		buffer[i] = i;
-	}
-
-	buffer_zeroize (NULL, sizeof (buffer));
+	buffer_zeroize (NULL, 32);
 }
 
 
