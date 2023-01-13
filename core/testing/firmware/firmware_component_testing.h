@@ -9,14 +9,24 @@
 
 
 /**
- * Length of the format 0 component header.
+ * Total length of the format 0 component header.
  */
-#define	FW_COMPONENT_HDR_LENGTH			(14 - IMAGE_HEADER_BASE_LEN)
+#define	FW_COMPONENT_HDR_TOTAL_LEN		14
 
 /**
- * Length of the format 1 component header.
+ * Length of the format 0 component header data.
  */
-#define	FW_COMPONENT_HDR_V1_LENGTH		(31 - IMAGE_HEADER_BASE_LEN)
+#define	FW_COMPONENT_HDR_LENGTH			(FW_COMPONENT_HDR_TOTAL_LEN - IMAGE_HEADER_BASE_LEN)
+
+/**
+ * Total length of the format 0 component header.
+ */
+#define	FW_COMPONENT_HDR_V1_TOTAL_LEN	31
+
+/**
+ * Length of the format 1 component header data.
+ */
+#define	FW_COMPONENT_HDR_V1_LENGTH		(FW_COMPONENT_HDR_V1_TOTAL_LEN - IMAGE_HEADER_BASE_LEN)
 
 /**
  * Length of the component signature.
