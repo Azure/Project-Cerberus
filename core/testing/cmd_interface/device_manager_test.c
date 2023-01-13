@@ -1347,6 +1347,8 @@ static void device_manager_test_update_device_eid_notify_observers (CuTest *test
 
 	status = device_manager_observer_mock_validate_and_release (&observer);
 	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_update_device_eid_removed_observer (CuTest *test)
@@ -1383,6 +1385,8 @@ static void device_manager_test_update_device_eid_removed_observer (CuTest *test
 
 	status = device_manager_observer_mock_validate_and_release (&observer);
 	CuAssertIntEquals (test, 1, status);
+
+	device_manager_release (&manager);
 }
 
 static void device_manager_test_get_max_message_len_local_device (CuTest *test)

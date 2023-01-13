@@ -22515,7 +22515,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	uint32_t component_id = 55;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
-	uint8_t digest3[SHA256_HASH_LENGTH * 2];
+	uint8_t digest3[SHA256_HASH_LENGTH];
 	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
 	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
 	int status;
@@ -22531,7 +22531,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
 		digest2[i] = i * 2;
-		digest3[i + SHA256_HASH_LENGTH] = 50 + i;
+		digest3[i] = 50 + i;
 	}
 
 	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
@@ -22548,8 +22548,9 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_AUX_SLOT_NUM, component_id);
 
-	testing.slot_num[0] = testing.slot_num[1] = ATTESTATION_AUX_SLOT_NUM;
-	testing.slot_mask = (1 << ATTESTATION_AUX_SLOT_NUM) | (1 << (ATTESTATION_AUX_SLOT_NUM + 1));
+	testing.slot_num[0] = ATTESTATION_AUX_SLOT_NUM;
+	testing.slot_num[1] = ATTESTATION_AUX_SLOT_NUM;
+	testing.slot_mask = (1 << ATTESTATION_AUX_SLOT_NUM) | (1 << (ATTESTATION_AUX_SLOT_NUM + 2));
 
 	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
 
