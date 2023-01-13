@@ -42,6 +42,7 @@
 
 TEST_SUITE_LABEL ("attestation_requester");
 
+
 static struct riot_keys keys = {
 	.devid_cert = RIOT_CORE_DEVID_CERT,
 	.devid_cert_length = 0,
@@ -3432,7 +3433,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_digests_with
 {
 	const size_t hash_len_multiplier =
 		non_contiguous_slot_mask ? common_math_get_num_bits_set (testing->slot_mask) : 1;
-	uint8_t rsp_buf[sizeof (struct spdm_get_digests_response) + HASH_MAX_HASH_LEN * hash_len_multiplier];
+	const size_t rsp_buf_length = sizeof (struct spdm_get_digests_response) +
+		(HASH_MAX_HASH_LEN * hash_len_multiplier);
+	uint8_t rsp_buf[rsp_buf_length];
 	struct spdm_get_digests_response *rsp = (struct spdm_get_digests_response*) &rsp_buf;
 	struct spdm_get_digests_request req;
 	size_t hash_len;
@@ -3516,8 +3519,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_digests_with
  * @param length Remaining length to request.
  */
 static void attestation_requester_testing_send_and_receive_spdm_get_certificate (CuTest *test,
-	bool get_rsp, bool rsp_fail, bool unexpected_rsp, bool non_contiguous_slot_mask, uint8_t msg_tag,
-	struct attestation_requester_testing *testing, uint16_t cert_buffer_offset, uint16_t length)
+	bool get_rsp, bool rsp_fail, bool unexpected_rsp, bool non_contiguous_slot_mask,
+	uint8_t msg_tag, struct attestation_requester_testing *testing, uint16_t cert_buffer_offset,
+	uint16_t length)
 {
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
@@ -3612,8 +3616,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
  * @param offset Offset to utilize in response.
  */
 static void attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (
-	CuTest *test, bool hash_update_fail, bool non_contiguous_slot_mask, struct attestation_requester_testing *testing,
-	uint8_t msg_tag, uint16_t portion_length, uint16_t offset)
+	CuTest *test, bool hash_update_fail, bool non_contiguous_slot_mask,
+	struct attestation_requester_testing *testing, uint8_t msg_tag, uint16_t portion_length,
+	uint16_t offset)
 {
 	struct spdm_get_certificate_request req;
 	uint8_t rsp_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -3671,8 +3676,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, false, false, non_contiguous_slot_mask,
-		msg_tag, testing, offset, req.length);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, false, false,
+		non_contiguous_slot_mask, msg_tag, testing, offset, req.length);
 }
 
 /**
@@ -3691,8 +3696,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
  */
 static void attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (
 	CuTest *test, struct attestation_requester_testing *testing, uint8_t hash_algo, uint8_t msg_tag,
-	bool x509_mock, bool use_riot_root_ca, bool vendor_root_ca, bool non_contiguous_slot_mask, uint8_t *ca_digests,
-	uint8_t component_id)
+	bool x509_mock, bool use_riot_root_ca, bool vendor_root_ca, bool non_contiguous_slot_mask,
+	uint8_t *ca_digests, uint8_t component_id)
 {
 	struct cfm_root_ca_digests root_ca_digests;
 	uint8_t out_digest[HASH_MAX_HASH_LEN];
@@ -3735,8 +3740,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
 		}
 	}
 
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, non_contiguous_slot_mask,
-		testing, msg_tag, testing->cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		non_contiguous_slot_mask, testing, msg_tag, testing->cert_buffer_len, 0);
 
 	if (vendor_root_ca) {
 		status = mock_expect (&testing->cfm.mock, testing->cfm.base.get_root_ca_digest,
@@ -3840,8 +3845,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
  * @param testing Testing instances.
  */
 static void attestation_requester_testing_send_and_receive_spdm_challenge (CuTest *test,
-	bool get_rsp, bool rsp_fail, bool unexpected_rsp, bool non_contiguous_slot_mask, uint8_t msg_tag,
-	struct attestation_requester_testing *testing)
+	bool get_rsp, bool rsp_fail, bool unexpected_rsp, bool non_contiguous_slot_mask,
+	uint8_t msg_tag, struct attestation_requester_testing *testing)
 {
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
@@ -3938,8 +3943,8 @@ static void attestation_requester_testing_send_and_receive_spdm_challenge (CuTes
  * @param msg_tag Message to use in transaction.
  */
 static void attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (
-	CuTest *test, bool hash_update_fail, bool non_contiguous_slot_mask, struct attestation_requester_testing *testing,
-	uint8_t msg_tag)
+	CuTest *test, bool hash_update_fail, bool non_contiguous_slot_mask,
+	struct attestation_requester_testing *testing, uint8_t msg_tag)
 {
 	struct spdm_challenge_request req;
 	uint8_t rsp_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
@@ -4050,8 +4055,8 @@ static void attestation_requester_testing_send_and_receive_spdm_challenge_with_m
 	}
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, non_contiguous_slot_mask,
-		msg_tag, testing);
+	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false,
+		non_contiguous_slot_mask, msg_tag, testing);
 }
 
 /**
@@ -6998,12 +7003,12 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_challenge 
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -7096,12 +7101,12 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_challe
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -7189,12 +7194,12 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_challenge 
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -7289,12 +7294,12 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challe
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -7382,12 +7387,12 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_challenge 
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA512, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -7482,12 +7487,12 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challe
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA512, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -7581,8 +7586,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -7702,8 +7707,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -7814,8 +7819,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTe
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -7935,8 +7940,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0 (
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -8047,8 +8052,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTe
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA512, 4, true, false, false, false, NULL, component_id);
 
@@ -8168,8 +8173,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0 (
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA512, 4, true, false, false, false, NULL, component_id);
 
@@ -8281,8 +8286,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -8412,8 +8417,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -8537,8 +8542,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, \
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -8653,8 +8658,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -8778,8 +8783,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -8894,8 +8899,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA512, 4, true, false, false, false, NULL, component_id);
 
@@ -9019,8 +9024,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA512, 4, true, false, false, false, NULL, component_id);
 
@@ -9136,8 +9141,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -9294,8 +9299,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -9498,8 +9503,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -9703,8 +9708,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -9914,8 +9919,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -10118,8 +10123,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -10300,8 +10305,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -10350,8 +10355,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -10439,8 +10445,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -10584,8 +10590,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -10634,8 +10640,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -10723,8 +10730,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -10866,8 +10873,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -11007,8 +11014,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -11151,8 +11158,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -11201,8 +11208,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -11297,8 +11305,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -11347,8 +11355,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -11436,8 +11445,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -11486,8 +11495,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -11576,8 +11586,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -11626,8 +11636,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -11717,8 +11728,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -11767,8 +11778,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -11855,8 +11867,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -11904,8 +11916,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -11995,8 +12008,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -12044,8 +12057,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -12140,8 +12154,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -12190,8 +12204,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -12279,8 +12294,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -12329,8 +12344,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -12420,8 +12436,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -12470,8 +12486,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -12558,8 +12575,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -12608,8 +12625,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -12699,8 +12717,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -12749,8 +12767,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -12838,8 +12857,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -12888,8 +12907,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -12984,8 +13004,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -13034,8 +13054,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -13129,8 +13150,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -13179,8 +13200,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -13270,8 +13292,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -13320,8 +13342,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -13412,8 +13435,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -13462,8 +13485,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -13550,8 +13574,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -13600,8 +13624,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -13691,8 +13716,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -13741,8 +13766,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -13837,8 +13863,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -13887,8 +13913,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -13976,8 +14003,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -14026,8 +14053,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -14117,8 +14145,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -14167,8 +14195,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -14255,8 +14284,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -14305,8 +14334,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -14396,8 +14426,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -14446,8 +14476,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -14535,8 +14566,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -14585,8 +14616,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -14681,8 +14713,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -14731,8 +14763,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -14826,8 +14859,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -14876,8 +14909,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -14967,8 +15001,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -15017,8 +15051,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -15110,8 +15145,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -15160,8 +15195,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -15250,8 +15286,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -15300,8 +15336,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -15393,8 +15430,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -15443,8 +15480,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -15533,8 +15571,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -15583,8 +15621,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock,
@@ -15676,8 +15715,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -15726,8 +15765,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -15816,8 +15856,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -15866,8 +15906,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -15956,8 +15997,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -16006,8 +16047,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -16096,8 +16138,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -16146,8 +16188,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -16236,8 +16279,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -16286,8 +16329,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -16390,8 +16434,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -16440,8 +16484,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -16519,8 +16564,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -16644,8 +16689,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -16784,8 +16829,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA512, 4, true, false, false, false, NULL, component_id);
 
@@ -16957,8 +17002,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -17176,8 +17221,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -17395,8 +17440,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -17619,8 +17664,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -17838,8 +17883,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -18006,8 +18051,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -18169,8 +18214,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -18381,8 +18426,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -18553,10 +18598,10 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		4);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 4);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -18669,10 +18714,10 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		4);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 4);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -18786,10 +18831,10 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		4);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 4);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -18903,12 +18948,12 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -19017,12 +19062,12 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -19131,12 +19176,12 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA512, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -19241,12 +19286,12 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, true, false, ca_digests, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -19345,12 +19390,12 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, true, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -19450,12 +19495,12 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, false, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -19555,12 +19600,12 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -19680,13 +19725,13 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.max_cert_buffer_portion, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.max_cert_buffer_portion, 0);
 
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 5, 100, testing.max_cert_buffer_portion);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 5, 100, testing.max_cert_buffer_portion);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -19732,8 +19777,8 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		6);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 6);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -19834,12 +19879,12 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -20247,8 +20292,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	testing.spdm_min_version = 3;
 	testing.spdm_max_version = 3;
 
-	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false, false,
-		0, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, 0, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_DEVICE_NOT_INTEROPERABLE, status);
@@ -20286,8 +20331,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 
 	testing.spdm_alpha_version = 1;
 
-	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false, false,
-		0, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, 0, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_DEVICE_NOT_INTEROPERABLE, status);
@@ -21092,8 +21137,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 
 	attestation_requester_testing_send_and_receive_spdm_get_capabilities_with_mocks (test, 0, false,
 		&testing);
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false, false,
-		2, &testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, 2, &testing);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (((uint8_t*) &req) + 1, sizeof (req) - 1),
@@ -21587,8 +21632,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_hash_u
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, true, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, true, true,
+		false, &testing, 3);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
@@ -21623,8 +21668,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_digest_not
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, false, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, false,
+		false, &testing, 3);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
 		&testing.secondary_hash, 0);
@@ -21964,8 +22009,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 5, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		6);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 6);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -22091,8 +22136,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_req_ha
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY,
@@ -22135,10 +22180,10 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_fail (
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, true, false, false, 4,
-		&testing, 0, SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, true, false,
+		false, 4, &testing, 0, SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (((uint8_t*) &req) + 1, sizeof (req) - 1),
@@ -22153,7 +22198,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_fail (
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_unexpected_rsp (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_get_certificate_unexpected_rsp (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct spdm_get_certificate_request req;
@@ -22180,10 +22226,10 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_unexpe
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, false, true, false, 4,
-		&testing, 0, SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, false, true,
+		false, 4, &testing, 0, SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (((uint8_t*) &req) + 1, sizeof (req) - 1),
@@ -22225,10 +22271,10 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, false, false, false, false, 4,
-		&testing, 0, SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, false, false, false,
+		false, 4, &testing, 0, SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (((uint8_t*) &req) + 1, sizeof (req) - 1),
@@ -22273,10 +22319,10 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_un
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, false, false, false,
-		4, &testing, 0, SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, false, false,
+		false, 4, &testing, 0, SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (((uint8_t*) &req) + 1, sizeof (req) - 1),
@@ -22308,10 +22354,10 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_ha
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, true, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, true,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
@@ -22351,13 +22397,13 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_rs
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.max_cert_buffer_portion, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.max_cert_buffer_portion, 0);
 
-	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, false, false, false,
-		5, &testing, testing.max_cert_buffer_portion, 100);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate (test, true, false, false,
+		false, 5, &testing, testing.max_cert_buffer_portion, 100);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (((uint8_t*) &req) + 1, sizeof (req) - 1),
@@ -22372,7 +22418,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_rs
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_non_contiguous_mask_single (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_get_certificate_non_contiguous_mask_single (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
@@ -22415,7 +22462,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_AUX_SLOT_NUM, component_id);
 
-	testing.slot_num[0] = testing.slot_num[1] = ATTESTATION_AUX_SLOT_NUM;
+	testing.slot_num[0] = ATTESTATION_AUX_SLOT_NUM;
+	testing.slot_num[1] = ATTESTATION_AUX_SLOT_NUM;
 	testing.slot_mask = 1 << ATTESTATION_AUX_SLOT_NUM;
 
 	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
@@ -22436,16 +22484,15 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 2,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, true,
-		&testing, 5);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		true, &testing, 5);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 6, true, false, false, true, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, true, &testing,
-		7);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, true,
+		&testing, 7);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
@@ -22462,16 +22509,15 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
 		-1);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
 		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
 		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
-
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
@@ -22481,18 +22527,18 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
-
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
 		sizeof (struct cfm_pmr_digest), -1);
-
 	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
 
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -22502,10 +22548,10 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
-
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_non_contiguous_mask_multiple (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_get_certificate_non_contiguous_mask_multiple (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
@@ -22570,19 +22616,15 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 2,
 		false, &testing);
-
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, true,
-		&testing, 5);
-
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		true, &testing, 5);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 6, true, false, false, true, NULL, component_id);
-
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, true, &testing,
-		7);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, true,
+		&testing, 7);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
@@ -22599,16 +22641,15 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
 		-1);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
 		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
 		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
-
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
@@ -22618,18 +22659,18 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
-
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
 		sizeof (struct cfm_pmr_digest), -1);
-
 	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
 
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
@@ -22639,7 +22680,6 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
-
 }
 
 static void attestation_requester_test_attest_device_spdm_init_ca_cert_store_fail (CuTest *test)
@@ -22660,10 +22700,10 @@ static void attestation_requester_test_attest_device_spdm_init_ca_cert_store_fai
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -22701,10 +22741,10 @@ static void attestation_requester_test_attest_device_spdm_add_root_ca_fail (CuTe
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -22749,10 +22789,10 @@ static void attestation_requester_test_attest_device_spdm_no_riot_ca_add_root_ca
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -22798,10 +22838,10 @@ static void attestation_requester_test_attest_device_spdm_get_vendor_root_ca_fai
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_NO_MEMORY, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -22848,10 +22888,10 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_hash_fa
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm, 0,
 		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -22913,10 +22953,10 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_not_sup
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm, 0,
 		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -22978,10 +23018,10 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca_add_roo
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm, 0,
 		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -23041,10 +23081,10 @@ static void attestation_requester_test_attest_device_spdm_add_intermediate_ca_fa
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -23094,10 +23134,10 @@ static void attestation_requester_test_attest_device_spdm_load_certificate_fail 
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -23152,10 +23192,10 @@ static void attestation_requester_test_attest_device_spdm_authenticate_cert_chai
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -23221,10 +23261,10 @@ static void attestation_requester_test_attest_device_spdm_sha256_hash_cert_chain
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -23288,10 +23328,10 @@ static void attestation_requester_test_attest_device_spdm_sha384_hash_cert_chain
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -23355,10 +23395,10 @@ static void attestation_requester_test_attest_device_spdm_sha512_hash_cert_chain
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -23428,10 +23468,10 @@ static void attestation_requester_test_attest_device_spdm_compare_cert_chain_dig
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -23505,10 +23545,10 @@ static void attestation_requester_test_attest_device_spdm_get_public_key_type_fa
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -23584,10 +23624,10 @@ static void attestation_requester_test_attest_device_spdm_get_public_key_fail (C
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
-	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false, false,
-		&testing, 4, testing.cert_buffer_len, 0);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
+		false, &testing, 4, testing.cert_buffer_len, 0);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
 		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
@@ -23660,8 +23700,8 @@ static void attestation_requester_test_attest_device_spdm_generate_random_buffer
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -23714,8 +23754,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_req_hash_upd
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -23772,8 +23812,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_fail (Cu
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -23789,8 +23829,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_fail (Cu
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, true, false, false, 5,
-		&testing);
+	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, true, false, false,
+		5, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
@@ -23832,8 +23872,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_unexpected_r
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -23849,8 +23889,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_unexpected_r
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, true, false, 5,
-		&testing);
+	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, true, false,
+		5, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
@@ -23892,8 +23932,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp (CuTe
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -23909,8 +23949,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp (CuTe
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_challenge (test, false, false, false, false, 5,
-		&testing);
+	attestation_requester_testing_send_and_receive_spdm_challenge (test, false, false, false, false,
+		5, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
@@ -23955,8 +23995,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unexpect
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -23972,8 +24012,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unexpect
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false, 5,
-		&testing);
+	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false,
+		5, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_UNEXPECTED_SLOT_NUM, status);
@@ -24018,8 +24058,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unsuppor
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -24035,8 +24075,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unsuppor
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false, 5,
-		&testing);
+	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false,
+		5, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_OPERATION, status);
@@ -24044,7 +24084,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unsuppor
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_challenge_rsp_req_slot_empty (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_challenge_rsp_req_slot_empty (
+	CuTest *test)
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
@@ -24080,8 +24121,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_req_slot
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -24097,8 +24138,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_req_slot
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false, 5,
-		&testing);
+	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false,
+		5, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_REQUESTED_SLOT_NUM_EMPTY, status);
@@ -24142,8 +24183,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_invalid_rsp_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -24159,8 +24200,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_invalid_rsp_
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false, 5,
-		&testing);
+	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false,
+		5, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_BAD_LENGTH, status);
@@ -24205,8 +24246,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_compare_cert
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -24222,8 +24263,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_compare_cert
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false, 5,
-		&testing);
+	attestation_requester_testing_send_and_receive_spdm_challenge (test, true, false, false, false,
+		5, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_MISMATCH, status);
@@ -24250,12 +24291,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_hash_upd
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, true, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, true, false,
+		&testing, 5);
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
@@ -24281,12 +24322,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_hash_finish_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY, MOCK_ARG_NOT_NULL,
@@ -24326,12 +24367,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -24371,12 +24412,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -24416,12 +24457,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA512, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -24467,12 +24508,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -24523,12 +24564,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -24582,12 +24623,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -24646,12 +24687,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_init_pub
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -24724,12 +24765,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -24810,12 +24851,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -24860,7 +24901,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_invalid_len (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_invalid_len (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
@@ -24910,12 +24952,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -24965,7 +25007,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_digest_match (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_digest_match (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
@@ -25014,12 +25057,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		5);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 5);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -25093,8 +25136,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_get_pmr_dige
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -25151,8 +25194,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_start_hash_f
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -25222,8 +25265,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_1_2_setup_de
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -25295,8 +25338,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_generate_ran
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -25370,8 +25413,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_req_hash_upd
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -25476,8 +25519,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_fail (Cu
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -25641,8 +25684,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -25807,8 +25850,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -25974,8 +26017,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -26129,8 +26172,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_hash_upd
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -26197,8 +26240,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_hash_finish_
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -26272,8 +26315,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -26350,8 +26393,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, 4, true, false, false, NULL, false, component_id);
 
@@ -26428,8 +26471,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA512, 4, true, false, false, false, NULL, component_id);
 
@@ -26512,8 +26555,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -26601,8 +26644,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -26693,8 +26736,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -26784,8 +26827,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ini
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -26875,8 +26918,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ver
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -26976,8 +27019,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_co
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -27083,8 +27126,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -27161,8 +27204,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_next_m
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -27230,8 +27273,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -27323,8 +27366,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -27450,8 +27493,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -27561,8 +27604,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -27575,8 +27618,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -27662,8 +27706,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -27712,8 +27756,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -27807,8 +27852,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -27841,8 +27886,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -27928,8 +27974,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -27978,8 +28024,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -28064,8 +28111,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 3);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 3);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 4, true, false, false, false, NULL, component_id);
 
@@ -28114,8 +28161,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -29588,12 +29636,12 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 8);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 8);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 9, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		10);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 10);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -29972,12 +30020,12 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 10,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 13);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 13);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 14, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		15);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 15);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -30041,12 +30089,12 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 16,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 19);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 19);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 20, true, false, false, false, NULL, component_id2);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		21);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 21);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -30231,12 +30279,12 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 2,
 		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true, false,
-		&testing, 5);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 5);
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, 6, true, false, false, false, NULL, component_id);
-	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false, &testing,
-		7);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 7);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));

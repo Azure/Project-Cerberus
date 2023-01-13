@@ -586,7 +586,8 @@ static int attestation_requester_get_capabilities_rsp_post_processing (
 
 	/* Device is assumed to either support, or eventually support after a FW update, minimum
 	 * capabilities needed to complete attestation since it is included in CFM. If device does not,
-	 * attestation will fail but will continue to retry until an expected FW adds required support. */
+	 * attestation will fail but will continue to retry until an expected FW adds required
+	 * support. */
 
 	if (rsp->base_capabilities.flags.cert_cap == 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
@@ -1129,7 +1130,8 @@ void attestation_requester_on_spdm_get_capabilities_response (
 void attestation_requester_on_spdm_negotiate_algorithms_response (
 	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
+	attestation_requester_copy_spdm_response (observer, response,
+		SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
 }
 
 /**
@@ -1262,7 +1264,8 @@ void attestation_requester_on_cerberus_get_digest_response (
 		CERBERUS_PROTOCOL_GET_DIGEST)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) | (attestation->state->txn.requested_command << 16) |
+			((attestation->state->txn.protocol << 24) |
+				(attestation->state->txn.requested_command << 16) |
 				(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_DIGEST));
 		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
 
@@ -1295,7 +1298,8 @@ void attestation_requester_on_cerberus_get_certificate_response (
 		CERBERUS_PROTOCOL_GET_CERTIFICATE)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) | (attestation->state->txn.requested_command << 16) |
+			((attestation->state->txn.protocol << 24) |
+				(attestation->state->txn.requested_command << 16) |
 				(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_CERTIFICATE));
 		goto fail;
 	}
@@ -1354,7 +1358,8 @@ void attestation_requester_on_cerberus_challenge_response (
 		CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) | (attestation->state->txn.requested_command << 16) |
+			((attestation->state->txn.protocol << 24) |
+				(attestation->state->txn.requested_command << 16) |
 				(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE));
 		goto fail;
 	}
@@ -1403,7 +1408,8 @@ void attestation_requester_on_cerberus_device_capabilities_response (
 		CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) | (attestation->state->txn.requested_command << 16) |
+			((attestation->state->txn.protocol << 24) |
+				(attestation->state->txn.requested_command << 16) |
 				(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES));
 		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
 	}
@@ -3008,7 +3014,8 @@ int attestation_requester_discover_device (const struct attestation_requester *a
 		goto done;
 	}
 
-	msg_type_rsp = (struct mctp_control_get_message_type_response*) attestation->state->txn.msg_buffer;
+	msg_type_rsp =
+		(struct mctp_control_get_message_type_response*) attestation->state->txn.msg_buffer;
 
 	for (i_type = 0; i_type < msg_type_rsp->message_type_count; ++i_type) {
 		msg_type = attestation->state->txn.msg_buffer +

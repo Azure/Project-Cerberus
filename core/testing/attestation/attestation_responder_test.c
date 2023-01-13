@@ -26,6 +26,7 @@
 
 TEST_SUITE_LABEL ("attestation_responder");
 
+
 /**
  * RIoT keys for testing.
  */
@@ -55,6 +56,7 @@ struct attestation_responder_testing {
 	struct aux_attestation aux;					/**< Manager for auxiliary attesattion flows. */
 	struct attestation_responder responder;		/**< Attestation responder being tested. */
 };
+
 
 /**
  * Initialize all testing dependencies.
