@@ -86,6 +86,7 @@ const uint8_t* firmware_component_get_build_version (const struct firmware_compo
 
 uint32_t firmware_component_get_data_addr (const struct firmware_component *image);
 size_t firmware_component_get_length (const struct firmware_component *image);
+size_t firmware_component_get_total_length (const struct firmware_component *image);
 uint32_t firmware_component_get_image_end (const struct firmware_component *image);
 
 

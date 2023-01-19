@@ -36,7 +36,7 @@
 /**
  * Length of the component signature using ECC384.
  */
-#define	FW_COMPONENT_SIG_LENGTH_ECC384	105
+#define	FW_COMPONENT_SIG_LENGTH_ECC384	104
 
 /**
  * Length of the component signature using ECC521.
@@ -65,6 +65,10 @@ extern const size_t FW_COMPONENT_SHA384_DATA_LEN;
 
 extern const uint8_t FW_COMPONENT_SHA512_DATA[];
 extern const size_t FW_COMPONENT_SHA512_DATA_LEN;
+
+
+int64_t firmware_component_testing_mock_action_update_digest (const struct mock_call *expected,
+	const struct mock_call *called);
 
 
 #endif /* FIRMWARE_COMPONENT_TESTING_H_ */

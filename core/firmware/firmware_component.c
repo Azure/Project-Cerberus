@@ -1062,6 +1062,25 @@ size_t firmware_component_get_length (const struct firmware_component *image)
 }
 
 /**
+ * Get the total length of the component.  This length includes everything that makes up the
+ * component, including the image data, header, signature, and any additional data prepended to the
+ * component.  This represents the total size of the component as it would exist in storage.
+ *
+ * @param image The image to query.
+ *
+ * @return The total size of the component.
+ */
+size_t firmware_component_get_total_length (const struct firmware_component *image)
+{
+	if (image) {
+		return firmware_component_get_image_length (image) + FW_COMPONENT_HDR (image, 0).sig_length;
+	}
+	else {
+		return 0;
+	}
+}
+
+/**
  * Get the address that marks the end of the component image.  This will be the address immediately
  * following the last byte of the component image, including all image metadata like headers,
  * footers, and signatures.
@@ -1073,8 +1092,7 @@ size_t firmware_component_get_length (const struct firmware_component *image)
 uint32_t firmware_component_get_image_end (const struct firmware_component *image)
 {
 	if (image) {
-		return image->start_addr + firmware_component_get_image_length (image) +
-			FW_COMPONENT_HDR (image, 0).sig_length;
+		return image->start_addr + firmware_component_get_total_length (image);
 	}
 	else {
 		return 0;
