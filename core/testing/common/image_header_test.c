@@ -418,6 +418,32 @@ static void image_header_test_get_length_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void image_header_test_get_format (CuTest *test)
+{
+	struct image_header_testing header;
+	int status;
+
+	TEST_START;
+
+	image_header_testing_init (test, &header, 0x10000, IMAGE_HEADER_TEST, IMAGE_HEADER_TEST_LEN,
+		IMAGE_HEADER_TEST_MARKER);
+
+	status = image_header_get_format (&header.test);
+	CuAssertIntEquals (test, IMAGE_HEADER_TEST_FORMAT, status);
+
+	image_header_testing_release (test, &header);
+}
+
+static void image_header_test_get_format_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = image_header_get_format (NULL);
+	CuAssertIntEquals (test, IMAGE_HEADER_INVALID_ARGUMENT, status);
+}
+
 static void image_header_test_hash_header_sha1 (CuTest *test)
 {
 	struct image_header_testing header;
@@ -802,6 +828,8 @@ TEST (image_header_test_load_data_null);
 TEST (image_header_test_load_data_read_error);
 TEST (image_header_test_get_length);
 TEST (image_header_test_get_length_null);
+TEST (image_header_test_get_format);
+TEST (image_header_test_get_format_null);
 TEST (image_header_test_hash_header_sha1);
 TEST (image_header_test_hash_header_sha256);
 TEST (image_header_test_hash_header_sha384);

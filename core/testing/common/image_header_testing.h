@@ -25,6 +25,11 @@ extern const uint8_t IMAGE_HEADER_TEST_SHA512[];
 #define	IMAGE_HEADER_TEST_MARKER		0x43494d47
 
 /**
+ * Format identifier of the test image header.
+ */
+#define	IMAGE_HEADER_TEST_FORMAT		2
+
+/**
  * Length of the variable data contained in the header.
  */
 #define	IMAGE_HEADER_TEST_DATA_LENGTH		(IMAGE_HEADER_TEST_LEN - IMAGE_HEADER_BASE_LEN)

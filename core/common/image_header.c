@@ -112,6 +112,23 @@ int image_header_get_length (const struct image_header *header)
 }
 
 /**
+ * Get the format identifier for the header.
+ *
+ * @param header The header to query.
+ *
+ * @return The header format identifier or an error code if the header is null.
+ */
+int image_header_get_format (const struct image_header *header)
+{
+	if (header) {
+		return header->info.format;
+	}
+	else {
+		return IMAGE_HEADER_INVALID_ARGUMENT;
+	}
+}
+
+/**
  * Calculate the digest for the image header.  This digest will be calculated over the entire
  * header, which includes both the base header information as well as the variable header data.
  *
