@@ -45,8 +45,8 @@ uint8_t checksum_init_smbus_crc8 (uint8_t smbus_addr)
  * @param data Buffer that contains the data to use for the calculation.
  * @param len The number of bytes in the buffer.
  *
- * @return The resulting CRC8.  This can used as the initial CRC value is subsequent operations, if
- * necessary.
+ * @return The resulting CRC8.  This can be used as the initial CRC value in subsequent operations,
+ * if necessary.
  */
 uint8_t checksum_update_smbus_crc8 (uint8_t crc, const uint8_t *data, uint8_t len)
 {
