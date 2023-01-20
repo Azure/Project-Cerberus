@@ -103,6 +103,7 @@ enum {
 	FIRMWARE_IMAGE_INVALID_SIGNATURE = FIRMWARE_IMAGE_ERROR (0x0c),		/**< An image signature is malformed. */
 	FIRMWARE_IMAGE_FORCE_RECOVERY = FIRMWARE_IMAGE_ERROR (0x0d),		/**< Force loading the recovery firmware image. */
 	FIRMWARE_IMAGE_BAD_SIGNATURE = FIRMWARE_IMAGE_ERROR (0x0e),			/**< Signature verification of the image failed. */
+	FIRMWARE_IMAGE_REVOKED = FIRMWARE_IMAGE_ERROR (0x0f),				/**< Firmware data contained in the image has been revoked. */
 };
 
 

@@ -1365,7 +1365,7 @@ static void firmware_update_handler_test_write_staging_max_payload (CuTest *test
 
 	TEST_START;
 
-	for (i = 0; i <= sizeof (staging_data); i++) {
+	for (i = 0; i < sizeof (staging_data); i++) {
 		staging_data[i] = i;
 	}
 
