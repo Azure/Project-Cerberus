@@ -21,6 +21,54 @@ TEST_SUITE_LABEL ("signature_verification_ecc");
  * Test cases
  *******************/
 
+static void signature_verification_ecc_test_init_api (CuTest *test)
+{
+	ECC_TESTING_ENGINE ecc;
+	struct signature_verification_ecc_state state;
+	struct signature_verification_ecc verification;
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_ecc_init_api (&verification, &state, &ecc.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, verification.base.verify_signature);
+	CuAssertPtrNotNull (test, verification.base.set_verification_key);
+	CuAssertPtrNotNull (test, verification.base.is_key_valid);
+
+	signature_verification_ecc_release (&verification);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
+static void signature_verification_ecc_test_init_api_null (CuTest *test)
+{
+	ECC_TESTING_ENGINE ecc;
+	struct signature_verification_ecc_state state;
+	struct signature_verification_ecc verification;
+	int status;
+
+	TEST_START;
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_ecc_init_api (NULL, &state, &ecc.base);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = signature_verification_ecc_init_api (&verification, NULL, &ecc.base);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = signature_verification_ecc_init_api (&verification, &state, NULL);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
+}
+
 static void signature_verification_ecc_test_init (CuTest *test)
 {
 	ECC_TESTING_ENGINE ecc;
@@ -1052,6 +1100,8 @@ static void signature_verification_ecc_test_is_key_valid_private_key_error (CuTe
 
 TEST_SUITE_START (signature_verification_ecc);
 
+TEST (signature_verification_ecc_test_init_api);
+TEST (signature_verification_ecc_test_init_api_null);
 TEST (signature_verification_ecc_test_init);
 TEST (signature_verification_ecc_test_init_private_key);
 TEST (signature_verification_ecc_test_init_no_key);
