@@ -19,6 +19,54 @@ TEST_SUITE_LABEL ("signature_verification_rsa");
  * Test cases
  *******************/
 
+static void signature_verification_rsa_test_init_api (CuTest *test)
+{
+	RSA_TESTING_ENGINE rsa;
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification;
+	int status;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init_api (&verification, &state, &rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, verification.base.verify_signature);
+	CuAssertPtrNotNull (test, verification.base.set_verification_key);
+	CuAssertPtrNotNull (test, verification.base.is_key_valid);
+
+	signature_verification_rsa_release (&verification);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
+static void signature_verification_rsa_test_init_api_null (CuTest *test)
+{
+	RSA_TESTING_ENGINE rsa;
+	struct signature_verification_rsa_state state;
+	struct signature_verification_rsa verification;
+	int status;
+
+	TEST_START;
+
+	status = RSA_TESTING_ENGINE_INIT (&rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_rsa_init_api (NULL, &state, &rsa.base);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = signature_verification_rsa_init_api (&verification, NULL, &rsa.base);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	status = signature_verification_rsa_init_api (&verification, &state, NULL);
+	CuAssertIntEquals (test, SIG_VERIFICATION_INVALID_ARGUMENT, status);
+
+	RSA_TESTING_ENGINE_RELEASE (&rsa);
+}
+
 static void signature_verification_rsa_test_init (CuTest *test)
 {
 	RSA_TESTING_ENGINE rsa;
@@ -675,6 +723,8 @@ static void signature_verification_rsa_test_is_key_valid_not_rsa_key (CuTest *te
 
 TEST_SUITE_START (signature_verification_rsa);
 
+TEST (signature_verification_rsa_test_init_api);
+TEST (signature_verification_rsa_test_init_api_null);
 TEST (signature_verification_rsa_test_init);
 TEST (signature_verification_rsa_test_init_no_key);
 TEST (signature_verification_rsa_test_init_null);

@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "signature_verification_rsa.h"
+#include "common/unused.h"
 
 
 int signature_verification_rsa_verify_signature (const struct signature_verification *verification,
@@ -82,6 +83,32 @@ int signature_verification_rsa_init (struct signature_verification_rsa *verifica
 	struct signature_verification_rsa_state *state, struct rsa_engine *rsa,
 	const struct rsa_public_key *key)
 {
+	int status;
+
+	status = signature_verification_rsa_init_api (verification, state, rsa);
+	if (status != 0) {
+		return status;
+	}
+
+	return signature_verification_rsa_init_state (verification, key);
+}
+
+/**
+ * Initialize the API and static contents of an RSA signature verification instance.  The result
+ * of the call is the same as static initialization, except parameter validation is performed.
+ *
+ * Instances that have only had the API initialized do not need to be released.
+ *
+ * @param verification The verification instance to initialize.
+ * @param state Variable context for verification.  This must be uninitialized.
+ * @param rsa The RSA engine to use for verification.
+ *
+ * @return 0 if the verification instance was initialized successfully or
+ * SIG_VERIFICATION_INVALID_ARGUMENT if there are null parameters.
+ */
+int signature_verification_rsa_init_api (struct signature_verification_rsa *verification,
+	struct signature_verification_rsa_state *state, struct rsa_engine *rsa)
+{
 	if ((verification == NULL) || (state == NULL) || (rsa == NULL)) {
 		return SIG_VERIFICATION_INVALID_ARGUMENT;
 	}
@@ -95,7 +122,7 @@ int signature_verification_rsa_init (struct signature_verification_rsa *verifica
 	verification->rsa = rsa;
 	verification->state = state;
 
-	return signature_verification_rsa_init_state (verification, key);
+	return 0;
 }
 
 /**
@@ -131,5 +158,5 @@ int signature_verification_rsa_init_state (const struct signature_verification_r
  */
 void signature_verification_rsa_release (const struct signature_verification_rsa *verification)
 {
-
+	UNUSED (verification);
 }

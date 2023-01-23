@@ -127,7 +127,33 @@ int signature_verification_ecc_init (struct signature_verification_ecc *verifica
 	struct signature_verification_ecc_state *state, struct ecc_engine *ecc, const uint8_t *key,
 	size_t length)
 {
-	if (verification == NULL) {
+	int status;
+
+	status = signature_verification_ecc_init_api (verification, state, ecc);
+	if (status != 0) {
+		return status;
+	}
+
+	return signature_verification_ecc_init_state (verification, key, length);
+}
+
+/**
+ * Initialize the API and static contents of an ECDSA signature verification instance.  The result
+ * of the call is the same as static initialization, except parameter validation is performed.
+ *
+ * Instances that have only had the API initialized do not need to be released.
+ *
+ * @param verification The verification instance to initialize.
+ * @param state Variable context for verification.  This must be uninitialized.
+ * @param ecc The ECC engine to use for ECDSA verification.
+ *
+ * @return 0 if the verification instance was initialized successfully or
+ * SIG_VERIFICATION_INVALID_ARGUMENT if there are null parameters.
+ */
+int signature_verification_ecc_init_api (struct signature_verification_ecc *verification,
+	struct signature_verification_ecc_state *state, struct ecc_engine *ecc)
+{
+	if ((verification == NULL) || (state == NULL) || (ecc == NULL)) {
 		return SIG_VERIFICATION_INVALID_ARGUMENT;
 	}
 
@@ -139,8 +165,9 @@ int signature_verification_ecc_init (struct signature_verification_ecc *verifica
 
 	verification->ecc = ecc;
 	verification->state = state;
+	verification->state->key_valid = false;
 
-	return signature_verification_ecc_init_state (verification, key, length);
+	return 0;
 }
 
 /**

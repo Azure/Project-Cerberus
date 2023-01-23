@@ -32,6 +32,8 @@ struct signature_verification_ecc {
 int signature_verification_ecc_init (struct signature_verification_ecc *verification,
 	struct signature_verification_ecc_state *state, struct ecc_engine *ecc, const uint8_t *key,
 	size_t length);
+int signature_verification_ecc_init_api (struct signature_verification_ecc *verification,
+	struct signature_verification_ecc_state *state, struct ecc_engine *ecc);
 int signature_verification_ecc_init_state (const struct signature_verification_ecc *verification,
 	const uint8_t *key, size_t length);
 void signature_verification_ecc_release (const struct signature_verification_ecc *verification);
