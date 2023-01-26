@@ -528,5 +528,5 @@ int ecc_ecc_hw_init (struct ecc_engine_ecc_hw *engine, const struct ecc_hw *hw)
  */
 void ecc_ecc_hw_release (const struct ecc_engine_ecc_hw *engine)
 {
-
+	UNUSED (engine);
 }

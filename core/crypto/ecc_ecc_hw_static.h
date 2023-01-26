@@ -39,11 +39,11 @@ int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine, struct ecc_priv
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 #define	ECC_ECC_HW_GENERATE_API	\
 	.generate_derived_key_pair = ecc_ecc_hw_generate_derived_key_pair, \
-	.generate_key_pair = ecc_ecc_hw_generate_key_pair
+	.generate_key_pair = ecc_ecc_hw_generate_key_pair,
 
 #define	ECC_ECC_HW_DER_API \
 	.get_private_key_der = ecc_ecc_hw_get_private_key_der, \
-	.get_public_key_der = ecc_ecc_hw_get_public_key_der
+	.get_public_key_der = ecc_ecc_hw_get_public_key_der,
 #else
 #define	ECC_ECC_HW_GENERATE_API
 #define	ECC_ECC_HW_DER_API
@@ -55,7 +55,7 @@ int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine, struct ecc_priv
 #ifdef ECC_ENABLE_ECDH
 #define	ECC_ECC_HW_ECDH_API	\
 	.get_shared_secret_max_length = ecc_ecc_hw_get_shared_secret_max_length, \
-	.compute_shared_secret = ecc_ecc_hw_compute_shared_secret
+	.compute_shared_secret = ecc_ecc_hw_compute_shared_secret,
 #else
 #define	ECC_ECC_HW_ECDH_API
 #endif
@@ -66,10 +66,10 @@ int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine, struct ecc_priv
 #define	ECC_ECC_HW_API_INIT  { \
 		.init_key_pair = ecc_ecc_hw_init_key_pair, \
 		.init_public_key = ecc_ecc_hw_init_public_key, \
-		ECC_ECC_HW_GENERATE_API, \
+		ECC_ECC_HW_GENERATE_API \
 		.release_key_pair = ecc_ecc_hw_release_key_pair, \
 		.get_signature_max_length = ecc_ecc_hw_get_signature_max_length, \
-		ECC_ECC_HW_DER_API, \
+		ECC_ECC_HW_DER_API \
 		.sign = ecc_ecc_hw_sign, \
 		.verify = ecc_ecc_hw_verify, \
 		ECC_ECC_HW_ECDH_API \
