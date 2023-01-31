@@ -6,6 +6,7 @@
 #include <string.h>
 #include "state_persistence_handler.h"
 #include "state_logging.h"
+#include "common/unused.h"
 
 
 void state_persistence_handler_prepare (const struct periodic_task_handler *handler)
@@ -116,5 +117,5 @@ int state_persistence_handler_init_state (const struct state_persistence_handler
  */
 void state_persistence_handler_release (const struct state_persistence_handler *handler)
 {
-
+	UNUSED (handler);
 }

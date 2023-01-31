@@ -8,7 +8,7 @@
 
 
 static int manifest_mock_verify (struct manifest *manifest, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct manifest_mock *mock = (struct manifest_mock*) manifest;
 

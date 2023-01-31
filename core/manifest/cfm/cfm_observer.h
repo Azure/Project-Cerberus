@@ -21,7 +21,7 @@ struct cfm_observer {
 	 * @param observer The observer being notified.
 	 * @param pending The CFM that passed verification and is pending.
 	 */
-	void (*on_cfm_verified) (struct cfm_observer *observer, struct cfm *pending);
+	void (*on_cfm_verified) (const struct cfm_observer *observer, struct cfm *pending);
 
 	/**
 	 * Notification that a new CFM has been made the active CFM.
@@ -31,14 +31,14 @@ struct cfm_observer {
 	 * @param observer The observer being notified.
 	 * @param active The CFM that was activated.
 	 */
-	void (*on_cfm_activated) (struct cfm_observer *observer, struct cfm *active);
+	void (*on_cfm_activated) (const struct cfm_observer *observer, struct cfm *active);
 
 	/**
 	 * Notification that the active CFM has been erased.
 	 *
 	 * @param observer The observer being notified.
 	 */
-	void (*on_clear_active) (struct cfm_observer *observer);
+	void (*on_clear_active) (const struct cfm_observer *observer);
 
 	/**
 	 * Notification that a CFM activation request was received.
@@ -47,7 +47,7 @@ struct cfm_observer {
 	 *
 	 * @param observer The observer being notified.
 	 */
-	void (*on_cfm_activation_request) (struct cfm_observer *observer);
+	void (*on_cfm_activation_request) (const struct cfm_observer *observer);
 };
 
 

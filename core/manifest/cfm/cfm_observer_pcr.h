@@ -23,7 +23,7 @@ int cfm_observer_pcr_init (struct cfm_observer_pcr *observer, struct hash_engine
 	uint16_t platform_id_measurement);
 void cfm_observer_pcr_release (struct cfm_observer_pcr *observer);
 
-void cfm_observer_pcr_record_measurement (struct cfm_observer_pcr *observer,
+void cfm_observer_pcr_record_measurement (const struct cfm_observer_pcr *observer,
 	struct cfm_manager *manager);
 
 

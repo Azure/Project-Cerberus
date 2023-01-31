@@ -7,6 +7,7 @@
 #include "platform_api.h"
 #include "manifest_pcr.h"
 #include "manifest_logging.h"
+#include "common/unused.h"
 
 
 /**
@@ -67,7 +68,7 @@ int manifest_pcr_init (struct manifest_pcr *pcr, struct hash_engine *hash,
  */
 void manifest_pcr_release (struct manifest_pcr *pcr)
 {
-
+	UNUSED (pcr);
 }
 
 /**
@@ -76,7 +77,8 @@ void manifest_pcr_release (struct manifest_pcr *pcr)
  * @param pcr The PCR manager that will record the measurement.
  * @param active The manifest to measure.
  */
-void manifest_pcr_record_manifest_measurement (struct manifest_pcr *pcr, struct manifest *active)
+void manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
+	struct manifest *active)
 {
 	uint8_t manifest_measurement[SHA512_HASH_LENGTH] = {0};
 	int measurement_length = SHA256_HASH_LENGTH;

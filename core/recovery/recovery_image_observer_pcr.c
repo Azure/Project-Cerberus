@@ -7,6 +7,7 @@
 #include "recovery_image_observer_pcr.h"
 #include "recovery_logging.h"
 #include "attestation/pcr_store.h"
+#include "common/unused.h"
 
 
 static void recovery_image_observer_pcr_on_recovery_image_activated (
@@ -84,7 +85,7 @@ int recovery_image_observer_pcr_init (struct recovery_image_observer_pcr *observ
  */
 void recovery_image_observer_pcr_release (struct recovery_image_observer_pcr *observer)
 {
-
+	UNUSED (observer);
 }
 
 /**

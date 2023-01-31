@@ -32,7 +32,7 @@
 struct pcr_measurement {
 	uint8_t digest[PCR_DIGEST_LENGTH];						/**< Digest buffer */
 	uint8_t measurement[PCR_DIGEST_LENGTH];					/**< Aggregated measurement buffer */
-	struct pcr_measured_data *measured_data;				/**< Raw data used for measurement */
+	const struct pcr_measured_data *measured_data;			/**< Raw data used for measurement */
 	uint32_t event_type;									/**< TCG event type */
 	uint8_t version;										/**< Version associated with the measurement data */
 	uint8_t measurement_config;								/**< Indicates data to include in measurement calculations */
@@ -122,7 +122,7 @@ int pcr_get_num_measurements (struct pcr_bank *pcr);
 int pcr_invalidate_measurement_index (struct pcr_bank *pcr, uint8_t measurement_index);
 
 int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
-	struct pcr_measured_data *measurement_data);
+	const struct pcr_measured_data *measurement_data);
 int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len);
 

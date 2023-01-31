@@ -54,7 +54,7 @@ struct manifest_cmd_interface {
 	 *
 	 * @return 0 if the action was successfully triggered or an error code.
 	 */
-	int (*prepare_manifest) (struct manifest_cmd_interface *cmd, uint32_t manifest_size);
+	int (*prepare_manifest) (const struct manifest_cmd_interface *cmd, uint32_t manifest_size);
 
 	/**
 	 * Indicate that new manifest data should be stored. This will return immediately, with the
@@ -66,7 +66,8 @@ struct manifest_cmd_interface {
 	 *
 	 * @return 0 if the action was successfully triggered or an error code.
 	 */
-	int (*store_manifest) (struct manifest_cmd_interface *cmd, const uint8_t *data, size_t length);
+	int (*store_manifest) (const struct manifest_cmd_interface *cmd, const uint8_t *data,
+		size_t length);
 
 	/**
 	 * Indicate that a complete manifest has been received and should be validated. This will return
@@ -78,7 +79,7 @@ struct manifest_cmd_interface {
 	 *
 	 * @return 0 if the action was successfully triggered or an error code.
 	 */
-	int (*finish_manifest) (struct manifest_cmd_interface *cmd, bool activate);
+	int (*finish_manifest) (const struct manifest_cmd_interface *cmd, bool activate);
 
 	/**
 	 * Get the status of the last manifest operation requested.
@@ -89,7 +90,7 @@ struct manifest_cmd_interface {
 	 * enum manifest_cmd_status. The remaining bits will be the return code from the manifest
 	 * operation.
 	 */
-	int (*get_status) (struct manifest_cmd_interface *cmd);
+	int (*get_status) (const struct manifest_cmd_interface *cmd);
 };
 
 

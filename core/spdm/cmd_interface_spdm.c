@@ -4,13 +4,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "common/unused.h"
-#include "cmd_interface/cmd_logging.h"
-#include "logging/debug_log.h"
+#include "cmd_interface_spdm.h"
 #include "spdm_protocol.h"
 #include "spdm_protocol_observer.h"
 #include "spdm_commands.h"
-#include "cmd_interface_spdm.h"
+#include "common/unused.h"
+#include "cmd_interface/cmd_logging.h"
+#include "logging/debug_log.h"
 
 
 /**
@@ -26,6 +26,8 @@ static int cmd_interface_spdm_process_spdm_protocol_message (struct cmd_interfac
 	struct cmd_interface_msg *message, uint8_t *command_id)
 {
 	struct spdm_protocol_header *header = (struct spdm_protocol_header*) message->data;
+
+	UNUSED (intf);
 
 	message->crypto_timeout = false;
 
@@ -224,7 +226,6 @@ void cmd_interface_spdm_deinit (struct cmd_interface_spdm *intf)
 {
 	if (intf != NULL) {
 		observable_release (&intf->observable);
-		memset (intf, 0, sizeof (struct cmd_interface_spdm));
 	}
 }
 
@@ -237,13 +238,13 @@ void cmd_interface_spdm_deinit (struct cmd_interface_spdm *intf)
  * @return 0 if the observer was successfully added or an error code.
  */
 int cmd_interface_spdm_add_spdm_protocol_observer (struct cmd_interface_spdm *intf,
-	struct spdm_protocol_observer *observer)
+	const struct spdm_protocol_observer *observer)
 {
 	if (intf == NULL) {
 		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
 	}
 
-	return observable_add_observer (&intf->observable, observer);
+	return observable_add_observer (&intf->observable, (void*) observer);
 }
 
 /**
@@ -255,11 +256,11 @@ int cmd_interface_spdm_add_spdm_protocol_observer (struct cmd_interface_spdm *in
  * @return 0 if the observer was successfully removed or an error code.
  */
 int cmd_interface_spdm_remove_spdm_protocol_observer (struct cmd_interface_spdm *intf,
-	struct spdm_protocol_observer *observer)
+	const struct spdm_protocol_observer *observer)
 {
 	if (intf == NULL) {
 		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
 	}
 
-	return observable_remove_observer (&intf->observable, observer);
+	return observable_remove_observer (&intf->observable, (void*) observer);
 }

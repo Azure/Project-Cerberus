@@ -6,6 +6,7 @@
 #include <string.h>
 #include "platform_api.h"
 #include "keystore_flash.h"
+#include "common/unused.h"
 
 
 static int keystore_flash_save_key (struct keystore *store, int id, const uint8_t *key,
@@ -128,5 +129,5 @@ int keystore_flash_init (struct keystore_flash *store, struct flash_store *flash
  */
 void keystore_flash_release (struct keystore_flash *store)
 {
-
+	UNUSED (store);
 }

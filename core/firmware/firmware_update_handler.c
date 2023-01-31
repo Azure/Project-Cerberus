@@ -7,6 +7,7 @@
 #include "firmware_logging.h"
 #include "firmware_update_handler.h"
 #include "common/type_cast.h"
+#include "common/unused.h"
 
 
 void firmware_update_handler_status_change (const struct firmware_update_notification *context,
@@ -360,5 +361,5 @@ int firmware_update_handler_init_state (const struct firmware_update_handler *ha
  */
 void firmware_update_handler_release (const struct firmware_update_handler *handler)
 {
-
+	UNUSED (handler);
 }

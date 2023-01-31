@@ -7,7 +7,7 @@
 
 
 static int recovery_image_mock_verify (struct recovery_image *img, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t *hash_out, size_t hash_length,
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length,
 	struct pfm_manager *pfm)
 {
 	struct recovery_image_mock *mock = (struct recovery_image_mock*) img;
@@ -46,7 +46,8 @@ static int recovery_image_mock_get_version (struct recovery_image *img, char *ve
 		MOCK_ARG_CALL (len));
 }
 
-static int recovery_image_mock_apply_to_flash (struct recovery_image *img, struct spi_flash *flash)
+static int recovery_image_mock_apply_to_flash (struct recovery_image *img,
+	const struct spi_flash *flash)
 {
 	struct recovery_image_mock *mock = (struct recovery_image_mock*) img;
 

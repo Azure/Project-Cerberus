@@ -5,11 +5,16 @@
 #include <stddef.h>
 #include <string.h>
 #include "authorization_disallowed.h"
+#include "common/unused.h"
 
 
 static int authorization_disallowed_authorize (struct authorization *auth, uint8_t **token,
 	size_t *length)
 {
+	UNUSED (auth);
+	UNUSED (token);
+	UNUSED (length);
+
 	return AUTHORIZATION_NOT_AUTHORIZED;
 }
 
@@ -40,5 +45,5 @@ int authorization_disallowed_init (struct authorization_disallowed *auth)
  */
 void authorization_disallowed_release (struct authorization_disallowed *auth)
 {
-
+	UNUSED (auth);
 }

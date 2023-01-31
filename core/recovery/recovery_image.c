@@ -2,13 +2,14 @@
 // Licensed under the MIT license.
 
 #include <string.h>
+#include "platform_api.h"
 #include "recovery_image.h"
 #include "recovery_image_header.h"
 #include "recovery_image_section_header.h"
-#include "platform_api.h"
-#include "flash/flash_util.h"
-#include "crypto/ecc.h"
 #include "cmd_interface/cerberus_protocol.h"
+#include "common/unused.h"
+#include "crypto/ecc.h"
+#include "flash/flash_util.h"
 
 
 /**
@@ -55,7 +56,7 @@ err_free_pfm:
 }
 
 static int recovery_image_verify (struct recovery_image *image, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t *hash_out, size_t hash_length,
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length,
 	struct pfm_manager *pfm)
 {
 	uint8_t *signature;
@@ -231,7 +232,8 @@ static int recovery_image_get_version (struct recovery_image *image, char *versi
 	return status;
 }
 
-static int recovery_image_apply_to_flash (struct recovery_image *image, struct spi_flash *flash)
+static int recovery_image_apply_to_flash (struct recovery_image *image,
+	const struct spi_flash *flash)
 {
 	struct recovery_image_header header;
 	struct recovery_image_section_header section_header;
@@ -299,7 +301,8 @@ static int recovery_image_apply_to_flash (struct recovery_image *image, struct s
  *
  * @return 0 if the recovery image was successfully initialized or an error code.
  */
-int recovery_image_init (struct recovery_image *image, struct flash *flash, uint32_t base_addr)
+int recovery_image_init (struct recovery_image *image, const struct flash *flash,
+	uint32_t base_addr)
 {
 	if ((image == NULL) || (flash == NULL)) {
 		return RECOVERY_IMAGE_INVALID_ARGUMENT;
@@ -325,5 +328,5 @@ int recovery_image_init (struct recovery_image *image, struct flash *flash, uint
  */
 void recovery_image_release (struct recovery_image *image)
 {
-
+	UNUSED (image);
 }

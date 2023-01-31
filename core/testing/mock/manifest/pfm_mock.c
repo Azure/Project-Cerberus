@@ -8,7 +8,7 @@
 
 
 static int pfm_mock_verify (struct manifest *pfm, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct pfm_mock *mock = (struct pfm_mock*) pfm;
 

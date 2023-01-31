@@ -110,12 +110,12 @@ int manifest_verification_init_state (const struct manifest_verification *verifi
 	const uint8_t *root_key, size_t root_key_length);
 void manifest_verification_release (const struct manifest_verification *verification);
 
-struct pfm_observer* manifest_verification_get_pfm_observer (
-	struct manifest_verification *verification);
-struct cfm_observer* manifest_verification_get_cfm_observer (
-	struct manifest_verification *verification);
-struct pcd_observer* manifest_verification_get_pcd_observer (
-	struct manifest_verification *verification);
+const struct pfm_observer* manifest_verification_get_pfm_observer (
+	const struct manifest_verification *verification);
+const struct cfm_observer* manifest_verification_get_cfm_observer (
+	const struct manifest_verification *verification);
+const struct pcd_observer* manifest_verification_get_pcd_observer (
+	const struct manifest_verification *verification);
 
 
 #define	MANIFEST_VERIFICATION_ERROR(code)		ROT_ERROR (ROT_MODULE_MANIFEST_VERIFICATION, code)

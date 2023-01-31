@@ -129,7 +129,7 @@ struct flash_store {
 	 */
 	int (*get_num_blocks) (struct flash_store *flash);
 
-	struct flash *flash;		/**< Flash device used for storage. */
+	const struct flash *flash;	/**< Flash device used for storage. */
 	struct hash_engine *hash;	/**< Hash engine for integrity checking. */
 	uint32_t base_addr;			/**< Base flash address for data storage. */
 	bool decreasing;			/**< Flag indicating block storage grows down in the address space. */
@@ -146,22 +146,23 @@ struct flash_store {
 };
 
 
-int flash_store_init_fixed_storage (struct flash_store *store, struct flash *flash,
+int flash_store_init_fixed_storage (struct flash_store *store, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash);
-int flash_store_init_fixed_storage_decreasing (struct flash_store *store, struct flash *flash,
+int flash_store_init_fixed_storage_decreasing (struct flash_store *store, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash);
 
-int flash_store_init_variable_storage (struct flash_store *store, struct flash *flash,
+int flash_store_init_variable_storage (struct flash_store *store, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t min_length, struct hash_engine *hash);
-int flash_store_init_variable_storage_decreasing (struct flash_store *store, struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t min_length, struct hash_engine *hash);
+int flash_store_init_variable_storage_decreasing (struct flash_store *store,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
+	struct hash_engine *hash);
 
 void flash_store_release (struct flash_store *store);
 
 void flash_store_use_length_only_header (struct flash_store *store);
 
 /* Internal functions for use by derived types. */
-int flash_store_init_storage_common (struct flash_store *store, struct flash *flash,
+int flash_store_init_storage_common (struct flash_store *store, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, bool decreasing, bool variable,
 	size_t extra_data);
 

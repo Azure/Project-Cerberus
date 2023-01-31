@@ -677,6 +677,38 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 				fail = 1;
 			}
 		}
+		else if (expected->flags & MOCK_ARG_FLAG_GREATER_EQUAL) {
+			if (actual->value < expected->value) {
+				platform_printf (
+					"(%s, %d) Unexpected argument: name=%s, expected at least=0x%lx, actual=0x%lx" NEWLINE,
+					mock->name, cur_exp, arg_name, expected->value, actual->value);
+				fail = 1;
+			}
+		}
+		else if (expected->flags & MOCK_ARG_FLAG_GREATER) {
+			if (actual->value <= expected->value) {
+				platform_printf (
+					"(%s, %d) Unexpected argument: name=%s, expected more than=0x%lx, actual=0x%lx" NEWLINE,
+					mock->name, cur_exp, arg_name, expected->value, actual->value);
+				fail = 1;
+			}
+		}
+		else if (expected->flags & MOCK_ARG_FLAG_LESS_EQUAL) {
+			if (actual->value > expected->value) {
+				platform_printf (
+					"(%s, %d) Unexpected argument: name=%s, expected no more than=0x%lx, actual=0x%lx" NEWLINE,
+					mock->name, cur_exp, arg_name, expected->value, actual->value);
+				fail = 1;
+			}
+		}
+		else if (expected->flags & MOCK_ARG_FLAG_LESS) {
+			if (actual->value >= expected->value) {
+				platform_printf (
+					"(%s, %d) Unexpected argument: name=%s, expected less than=0x%lx, actual=0x%lx" NEWLINE,
+					mock->name, cur_exp, arg_name, expected->value, actual->value);
+				fail = 1;
+			}
+		}
 		else if (expected->value != actual->value) {
 			platform_printf (
 				"(%s, %d) Unexpected argument: name=%s, expected=0x%lx, actual=0x%lx" NEWLINE,

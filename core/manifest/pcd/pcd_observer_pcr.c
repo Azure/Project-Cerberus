@@ -8,16 +8,17 @@
 #include "manifest/manifest_logging.h"
 
 
-static void pcd_observer_pcr_on_pcd_activated (struct pcd_observer *observer, struct pcd *active)
+static void pcd_observer_pcr_on_pcd_activated (const struct pcd_observer *observer,
+	struct pcd *active)
 {
-	struct pcd_observer_pcr *pcr = (struct pcd_observer_pcr*) observer;
+	const struct pcd_observer_pcr *pcr = (const struct pcd_observer_pcr*) observer;
 
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 }
 
-static void pcd_observer_pcr_on_clear_active (struct pcd_observer *observer)
+static void pcd_observer_pcr_on_clear_active (const struct pcd_observer *observer)
 {
-	struct pcd_observer_pcr *pcr = (struct pcd_observer_pcr*) observer;
+	const struct pcd_observer_pcr *pcr = (const struct pcd_observer_pcr*) observer;
 
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, NULL);
 }
@@ -76,7 +77,7 @@ void pcd_observer_pcr_release (struct pcd_observer_pcr *observer)
  * @param observer The observer for the PCR to update.
  * @param manager The manager for the PCD measurement to update.
  */
-void pcd_observer_pcr_record_measurement (struct pcd_observer_pcr *observer,
+void pcd_observer_pcr_record_measurement (const struct pcd_observer_pcr *observer,
 	struct pcd_manager *manager)
 {
 	struct pcd *active;

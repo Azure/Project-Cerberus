@@ -15,9 +15,9 @@ void state_persistence_handler_execute (const struct periodic_task_handler *hand
 
 
 /**
- * Constant initializer for the log flush task API.
+ * Constant initializer for the state persistence API.
  */
-#define	LOG_FLUSH_HANDLER_API_INIT  { \
+#define	STATE_PERSISTENCE_HANDLER_API_INIT  { \
 		.prepare = state_persistence_handler_prepare, \
 		.get_next_execution = state_persistence_handler_get_next_execution, \
 		.execute = state_persistence_handler_execute, \
@@ -36,7 +36,7 @@ void state_persistence_handler_execute (const struct periodic_task_handler *hand
  * @param period_ms The amount of time between state storage requests, in milliseconds.
  */
 #define	state_persistence_handler_static_init(state_ptr, managers_ptr, num_managers, period_ms)	{ \
-		.base = LOG_FLUSH_HANDLER_API_INIT, \
+		.base = STATE_PERSISTENCE_HANDLER_API_INIT, \
 		.state = state_ptr, \
 		.managers = managers_ptr, \
 		.manager_count = num_managers, \

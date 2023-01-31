@@ -5,22 +5,21 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <math.h>
-#include "cmd_interface.h"
 #include "cerberus_protocol.h"
 #include "cerberus_protocol_required_commands.h"
 #include "cmd_interface_ac_rot.h"
+#include "common/unused.h"
 
 
 static int cmd_interface_ac_rot_process_request (struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	struct cmd_interface_ac_rot *slave = (struct cmd_interface_ac_rot*) intf;
+	struct cmd_interface_ac_rot *ac_rot = (struct cmd_interface_ac_rot*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_cerberus_protocol_message (&slave->base, request, &command_id,
+	status = cmd_interface_process_cerberus_protocol_message (&ac_rot->base, request, &command_id,
 		&command_set, true, true);
 	if (status != 0) {
 		return status;
@@ -28,61 +27,61 @@ static int cmd_interface_ac_rot_process_request (struct cmd_interface *intf,
 
 	switch (command_id) {
 		case CERBERUS_PROTOCOL_GET_FW_VERSION:
-			status = cerberus_protocol_get_fw_version (slave->fw_version, request);
+			status = cerberus_protocol_get_fw_version (ac_rot->fw_version, request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DIGEST:
-			status = cerberus_protocol_get_certificate_digest (slave->attestation,
-				slave->base.session, request);
+			status = cerberus_protocol_get_certificate_digest (ac_rot->attestation,
+				ac_rot->base.session, request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
-			status = cerberus_protocol_get_certificate (slave->attestation, request);
+			status = cerberus_protocol_get_certificate (ac_rot->attestation, request);
 			break;
 
 		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
-			status = cerberus_protocol_get_challenge_response (slave->attestation,
-				slave->base.session, request);
+			status = cerberus_protocol_get_challenge_response (ac_rot->attestation,
+				ac_rot->base.session, request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
-			status = cerberus_protocol_get_device_capabilities (slave->device_manager,
+			status = cerberus_protocol_get_device_capabilities (ac_rot->device_manager,
 				request);
 			break;
 
 		case CERBERUS_PROTOCOL_EXPORT_CSR:
-			status = cerberus_protocol_export_csr (slave->riot, request);
+			status = cerberus_protocol_export_csr (ac_rot->riot, request);
 			break;
 
 		case CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT:
-			status = cerberus_protocol_import_ca_signed_cert (slave->riot,
-				slave->background, request);
+			status = cerberus_protocol_import_ca_signed_cert (ac_rot->riot,
+				ac_rot->background, request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_SIGNED_CERT_STATE:
-			status = cerberus_protocol_get_signed_cert_state (slave->background, request);
+			status = cerberus_protocol_get_signed_cert_state (ac_rot->background, request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_INFO:
-			status = cerberus_protocol_get_device_info (slave->cmd_device, request);
+			status = cerberus_protocol_get_device_info (ac_rot->cmd_device, request);
 			break;
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_ID:
-			status = cerberus_protocol_get_device_id (&slave->device_id, request);
+			status = cerberus_protocol_get_device_id (&ac_rot->device_id, request);
 			break;
 
 		case CERBERUS_PROTOCOL_RESET_COUNTER:
-			status = cerberus_protocol_reset_counter (slave->cmd_device, request);
+			status = cerberus_protocol_reset_counter (ac_rot->cmd_device, request);
 			break;
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
-			status = cerberus_protocol_key_exchange (slave->base.session, request,
+			status = cerberus_protocol_key_exchange (ac_rot->base.session, request,
 				intf->curr_txn_encrypted);
 			break;
 
 		case CERBERUS_PROTOCOL_SESSION_SYNC:
-			status = cerberus_protocol_session_sync (slave->base.session, request,
+			status = cerberus_protocol_session_sync (ac_rot->base.session, request,
 				intf->curr_txn_encrypted);
 			break;
 #endif
@@ -92,7 +91,7 @@ static int cmd_interface_ac_rot_process_request (struct cmd_interface *intf,
 	}
 
 	if (status == 0) {
-		status = cmd_interface_prepare_response (&slave->base, request);
+		status = cmd_interface_prepare_response (&ac_rot->base, request);
 	}
 
 	return status;
@@ -126,8 +125,8 @@ static int cmd_interface_ac_rot_process_response (struct cmd_interface *intf,
  */
 int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 	struct attestation_responder *attestation, struct device_manager *device_manager,
-	struct cmd_background *background, struct cmd_interface_fw_version *fw_version,
-	struct riot_key_manager *riot, struct cmd_device *cmd_device, uint16_t vendor_id,
+	const struct cmd_background *background, const struct cmd_interface_fw_version *fw_version,
+	struct riot_key_manager *riot, const struct cmd_device *cmd_device, uint16_t vendor_id,
 	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session)
 {
@@ -164,13 +163,11 @@ int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 }
 
 /**
- * Deinitialize slave system command interface instance
+ * Deinitialize AC-RoT system command interface instance
  *
- * @param intf The slave system command interface instance to deinitialize
+ * @param intf The AC-RoT system command interface instance to deinitialize
  */
 void cmd_interface_ac_rot_deinit (struct cmd_interface_ac_rot *intf)
 {
-	if (intf != NULL) {
-		memset (intf, 0, sizeof (struct cmd_interface_ac_rot));
-	}
+	UNUSED (intf);
 }

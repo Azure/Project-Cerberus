@@ -16,7 +16,7 @@
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_debug_fill_log (struct cmd_background *background,
+int cerberus_protocol_debug_fill_log (const struct cmd_background *background,
 	struct cmd_interface_msg *request)
 {
 	if (request->length != CERBERUS_PROTOCOL_MIN_MSG_LEN) {

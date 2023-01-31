@@ -41,7 +41,7 @@ union recovery_image_header_format {
  *
  * @return 0 if the header was successfully loaded from flash or an error code.
  */
-int recovery_image_header_init (struct recovery_image_header *header, struct flash *flash,
+int recovery_image_header_init (struct recovery_image_header *header, const struct flash *flash,
 	uint32_t addr)
 {
 	size_t hdr_data_len;

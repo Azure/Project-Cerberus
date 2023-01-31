@@ -10,33 +10,35 @@
 
 /* Internal functions declared to allow for static initialization. */
 void attestation_requester_on_spdm_get_version_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_spdm_get_capabilities_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_spdm_negotiate_algorithms_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_spdm_get_digests_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_spdm_get_certificate_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_spdm_challenge_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_spdm_get_measurements_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_cerberus_get_digest_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_cerberus_get_certificate_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_cerberus_challenge_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_cerberus_device_capabilities_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_mctp_get_message_type_response (
-	struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct mctp_control_protocol_observer *observer,
+	const struct cmd_interface_msg *response);
 void attestation_requester_on_mctp_set_eid_request (
-	struct mctp_control_protocol_observer *observer);
+	const struct mctp_control_protocol_observer *observer);
 void attestation_requester_on_mctp_get_routing_table_entries_response (
-	struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response);
+	const struct mctp_control_protocol_observer *observer,
+	const struct cmd_interface_msg *response);
 
 
 /**
@@ -101,6 +103,7 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
  * Initialize a static attestation requester instance.
  * There is no validation done on the arguments.
  *
+ * @param state_ptr The variable context for the attestation requester instance.
  * @param mctp_ptr MCTP interface instance to utilize.
  * @param channel_ptr Command channel instance to utilize.
  * @param primary_hash_ptr The primary hash engine to utilize.
@@ -112,11 +115,10 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
  * @param riot_ptr RIoT key manager.
  * @param device_mgr_ptr Device manager instance to utilize.
  * @param cfm_manager_ptr CFM manager to utilize.
- * @param state_ptr The variable context for the attesation requester instance.
  */
-#define attestation_requester_static_init(mctp_ptr, channel_ptr, primary_hash_ptr, \
+#define attestation_requester_static_init(state_ptr, mctp_ptr, channel_ptr, primary_hash_ptr, \
 	secondary_hash_ptr, ecc_ptr, rsa_ptr, x509_ptr, rng_ptr, riot_ptr, device_mgr_ptr, \
-	cfm_manager_ptr, state_ptr) { \
+	cfm_manager_ptr) { \
 		.mctp = mctp_ptr, \
 		.channel = channel_ptr, \
 		.primary_hash = primary_hash_ptr, \

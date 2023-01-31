@@ -5,11 +5,14 @@
 #include <stddef.h>
 #include <string.h>
 #include "manifest_cmd_handler_cfm.h"
+#include "common/unused.h"
 #include "manifest/manifest_logging.h"
 
 
 int manifest_cmd_handler_cfm_activation (const struct manifest_cmd_handler *handler, bool *reset)
 {
+	UNUSED (reset);
+
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MANIFEST,
 		MANIFEST_LOGGING_CFM_ACTIVATION, 0, 0);
 

@@ -7,7 +7,7 @@
 #include "manifest_cmd_interface_mock.h"
 
 
-static int manifest_cmd_interface_mock_prepare_manifest (struct manifest_cmd_interface *cmd,
+static int manifest_cmd_interface_mock_prepare_manifest (const struct manifest_cmd_interface *cmd,
 	uint32_t manifest_size)
 {
 	struct manifest_cmd_interface_mock *mock = (struct manifest_cmd_interface_mock*) cmd;
@@ -20,7 +20,7 @@ static int manifest_cmd_interface_mock_prepare_manifest (struct manifest_cmd_int
 		MOCK_ARG_CALL (manifest_size));
 }
 
-static int manifest_cmd_interface_mock_store_manifest (struct manifest_cmd_interface *cmd,
+static int manifest_cmd_interface_mock_store_manifest (const struct manifest_cmd_interface *cmd,
 	const uint8_t *data, size_t length)
 {
 	struct manifest_cmd_interface_mock *mock = (struct manifest_cmd_interface_mock*) cmd;
@@ -33,7 +33,7 @@ static int manifest_cmd_interface_mock_store_manifest (struct manifest_cmd_inter
 		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
-static int manifest_cmd_interface_mock_finish_manifest (struct manifest_cmd_interface *cmd,
+static int manifest_cmd_interface_mock_finish_manifest (const struct manifest_cmd_interface *cmd,
 	bool activate)
 {
 	struct manifest_cmd_interface_mock *mock = (struct manifest_cmd_interface_mock*) cmd;
@@ -46,7 +46,7 @@ static int manifest_cmd_interface_mock_finish_manifest (struct manifest_cmd_inte
 		MOCK_ARG_CALL (activate));
 }
 
-static int manifest_cmd_interface_mock_get_status (struct manifest_cmd_interface *cmd)
+static int manifest_cmd_interface_mock_get_status (const struct manifest_cmd_interface *cmd)
 {
 	struct manifest_cmd_interface_mock *mock = (struct manifest_cmd_interface_mock*) cmd;
 

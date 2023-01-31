@@ -7,7 +7,7 @@
 #include "pfm_observer_mock.h"
 
 
-static void pfm_observer_mock_on_pfm_verified (struct pfm_observer *observer,
+static void pfm_observer_mock_on_pfm_verified (const struct pfm_observer *observer,
 	struct pfm *pending)
 {
 	struct pfm_observer_mock *mock = (struct pfm_observer_mock*) observer;
@@ -20,7 +20,7 @@ static void pfm_observer_mock_on_pfm_verified (struct pfm_observer *observer,
 		MOCK_ARG_PTR_CALL (pending));
 }
 
-static void pfm_observer_mock_on_pfm_activated (struct pfm_observer *observer,
+static void pfm_observer_mock_on_pfm_activated (const struct pfm_observer *observer,
 	struct pfm *active)
 {
 	struct pfm_observer_mock *mock = (struct pfm_observer_mock*) observer;
@@ -33,7 +33,7 @@ static void pfm_observer_mock_on_pfm_activated (struct pfm_observer *observer,
 		MOCK_ARG_PTR_CALL (active));
 }
 
-static void pfm_observer_mock_on_clear_active (struct pfm_observer *observer)
+static void pfm_observer_mock_on_clear_active (const struct pfm_observer *observer)
 {
 	struct pfm_observer_mock *mock = (struct pfm_observer_mock*) observer;
 
@@ -44,7 +44,7 @@ static void pfm_observer_mock_on_clear_active (struct pfm_observer *observer)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, pfm_observer_mock_on_clear_active, observer);
 }
 
-static void pfm_observer_mock_on_pfm_activation_request (struct pfm_observer *observer)
+static void pfm_observer_mock_on_pfm_activation_request (const struct pfm_observer *observer)
 {
 	struct pfm_observer_mock *mock = (struct pfm_observer_mock*) observer;
 

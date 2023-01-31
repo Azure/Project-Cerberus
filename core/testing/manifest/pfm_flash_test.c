@@ -475,7 +475,7 @@ static void pfm_flash_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, pfm.test.base.free_firmware_images);
 
 	CuAssertIntEquals (test, 0x10000, manifest_flash_get_addr (&pfm.test.base_flash));
-	CuAssertPtrEquals (test, &pfm.flash, manifest_flash_get_flash (&pfm.test.base_flash));
+	CuAssertPtrEquals (test, &pfm.flash, (void*) manifest_flash_get_flash (&pfm.test.base_flash));
 
 	pfm_flash_testing_validate_and_release (test, &pfm);
 }

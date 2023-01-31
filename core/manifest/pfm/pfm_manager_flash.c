@@ -159,7 +159,7 @@ static int pfm_manager_flash_clear_all_manifests (const struct manifest_manager 
  */
 int pfm_manager_flash_init (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
 	struct pfm_flash *pfm_region2, struct host_state_manager *state, struct hash_engine *hash,
-	struct signature_verification *verification)
+	const struct signature_verification *verification)
 {
 	return pfm_manager_flash_init_port (manager, pfm_region1, pfm_region2, state, hash,
 		verification, -1);
@@ -185,7 +185,7 @@ int pfm_manager_flash_init (struct pfm_manager_flash *manager, struct pfm_flash 
  */
 int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
 	struct pfm_flash *pfm_region2, struct host_state_manager *state, struct hash_engine *hash,
-	struct signature_verification *verification, int port)
+	const struct signature_verification *verification, int port)
 {
 	int status;
 

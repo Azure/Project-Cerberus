@@ -43,26 +43,26 @@ enum config_reset_status {
  * Handler to reset configuration back to the initial state.
  */
 struct config_reset {
-	struct manifest_manager **bypass;				/**< List of configuration files to clear for bypass mode. */
-	size_t bypass_count;							/**< Number of bypass configuration managers. */
-	struct manifest_manager **config;				/**< List of configuration files to clear for defaults. */
-	size_t config_count;							/**< Number of default configuration managers. */
-	struct manifest_manager **component_manifests;	/**< List of component manifests to disable attesting external component. */
-	size_t component_manifests_count;				/**< Number of component manifest managers. */
-	struct state_manager **state;					/**< List of state information to reset. */
-	size_t state_count;								/**< Number of state managers. */
-	struct riot_key_manager *riot;					/**< Manager for RIoT keys. */
-	struct aux_attestation *aux;					/**< Manager for attestation keys. */
-	struct recovery_image_manager *recovery;		/**< Manager for host recovery images. */
-	struct keystore **keystores;					/**< Array of keystores to clear keys of. */
-	size_t keystore_count;							/**< Number of keystores in the keystores array. */
-	struct intrusion_manager *intrusion;			/**< Intrusion manager to reset intrusion. */
+	const struct manifest_manager **bypass;					/**< List of configuration files to clear for bypass mode. */
+	size_t bypass_count;									/**< Number of bypass configuration managers. */
+	const struct manifest_manager **config;					/**< List of configuration files to clear for defaults. */
+	size_t config_count;									/**< Number of default configuration managers. */
+	const struct manifest_manager **component_manifests;	/**< List of component manifests to disable attesting external component. */
+	size_t component_manifests_count;						/**< Number of component manifest managers. */
+	struct state_manager **state;							/**< List of state information to reset. */
+	size_t state_count;										/**< Number of state managers. */
+	struct riot_key_manager *riot;							/**< Manager for RIoT keys. */
+	struct aux_attestation *aux;							/**< Manager for attestation keys. */
+	struct recovery_image_manager *recovery;				/**< Manager for host recovery images. */
+	struct keystore **keystores;							/**< Array of keystores to clear keys of. */
+	size_t keystore_count;									/**< Number of keystores in the keystores array. */
+	struct intrusion_manager *intrusion;					/**< Intrusion manager to reset intrusion. */
 };
 
 
-int config_reset_init (struct config_reset *reset, struct manifest_manager **bypass_config,
-	size_t bypass_count, struct manifest_manager **platform_config, size_t platform_count,
-	struct manifest_manager **component_manifests, size_t component_manifests_count,
+int config_reset_init (struct config_reset *reset, const struct manifest_manager **bypass_config,
+	size_t bypass_count, const struct manifest_manager **platform_config, size_t platform_count,
+	const struct manifest_manager **component_manifests, size_t component_manifests_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
 	struct keystore **keystores, size_t keystore_count, struct intrusion_manager *intrusion);

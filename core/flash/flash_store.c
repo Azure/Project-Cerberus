@@ -6,6 +6,7 @@
 #include <string.h>
 #include "flash_store.h"
 #include "flash_util.h"
+#include "common/unused.h"
 
 
 /**
@@ -575,7 +576,7 @@ static int flash_store_get_num_blocks (struct flash_store *flash)
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-int flash_store_init_storage_common (struct flash_store *store, struct flash *flash,
+int flash_store_init_storage_common (struct flash_store *store, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, bool decreasing, bool variable,
 	size_t extra_data)
 {
@@ -711,9 +712,9 @@ int flash_store_init_storage_common (struct flash_store *store, struct flash *fl
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-static int flash_store_init (struct flash_store *store, struct flash *flash, uint32_t base_addr,
-	size_t block_count, size_t data_length, struct hash_engine *hash, bool decreasing,
-	bool variable)
+static int flash_store_init (struct flash_store *store, const struct flash *flash,
+	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash,
+	bool decreasing, bool variable)
 {
 	int status;
 
@@ -753,7 +754,7 @@ static int flash_store_init (struct flash_store *store, struct flash *flash, uin
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-int flash_store_init_fixed_storage (struct flash_store *store, struct flash *flash,
+int flash_store_init_fixed_storage (struct flash_store *store, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash)
 {
 	return flash_store_init (store, flash, base_addr, block_count, data_length, hash, false, false);
@@ -774,7 +775,7 @@ int flash_store_init_fixed_storage (struct flash_store *store, struct flash *fla
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-int flash_store_init_fixed_storage_decreasing (struct flash_store *store, struct flash *flash,
+int flash_store_init_fixed_storage_decreasing (struct flash_store *store, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash)
 {
 	return flash_store_init (store, flash, base_addr, block_count, data_length, hash, true, false);
@@ -795,7 +796,7 @@ int flash_store_init_fixed_storage_decreasing (struct flash_store *store, struct
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-int flash_store_init_variable_storage (struct flash_store *store, struct flash *flash,
+int flash_store_init_variable_storage (struct flash_store *store, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t min_length, struct hash_engine *hash)
 {
 	return flash_store_init (store, flash, base_addr, block_count, min_length, hash, false, true);
@@ -817,8 +818,9 @@ int flash_store_init_variable_storage (struct flash_store *store, struct flash *
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-int flash_store_init_variable_storage_decreasing (struct flash_store *store, struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t min_length, struct hash_engine *hash)
+int flash_store_init_variable_storage_decreasing (struct flash_store *store,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
+	struct hash_engine *hash)
 {
 	return flash_store_init (store, flash, base_addr, block_count, min_length, hash, true, true);
 }
@@ -835,6 +837,8 @@ void flash_store_release (struct flash_store *store)
 		platform_free (store->page_buffer);
 		platform_mutex_free (&store->lock);
 	}
+#else
+	UNUSED (store);
 #endif
 }
 

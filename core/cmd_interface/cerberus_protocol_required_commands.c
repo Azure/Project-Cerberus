@@ -25,7 +25,7 @@
  *
  * @return 0 if request processed successfully or an error code.
  */
-int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_version,
+int cerberus_protocol_get_fw_version (const struct cmd_interface_fw_version *fw_version,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_fw_version *rq =
@@ -284,7 +284,7 @@ exit:
  * @return 0 if processing completed successfully or an error code.
  */
 int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
-	struct cmd_background *background, struct cmd_interface_msg *request)
+	const struct cmd_background *background, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_import_certificate *rq =
 		(struct cerberus_protocol_import_certificate*) request->data;
@@ -342,7 +342,7 @@ int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
  *
  * @return 0 if processing completed successfully or an error code.
  */
-int cerberus_protocol_get_signed_cert_state (struct cmd_background *background,
+int cerberus_protocol_get_signed_cert_state (const struct cmd_background *background,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_certificate_state_response *rsp =
@@ -409,7 +409,7 @@ int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr
  *
  * @return 0 if request processed successfully or an error code.
  */
-int cerberus_protocol_get_device_info (struct cmd_device *device,
+int cerberus_protocol_get_device_info (const struct cmd_device *device,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_device_info *rq =
@@ -470,7 +470,7 @@ int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
  *
  * @return 0 if request completed successfully or an error code.
  */
-int cerberus_protocol_reset_counter (struct cmd_device *device,
+int cerberus_protocol_reset_counter (const struct cmd_device *device,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_reset_counter *rq =

@@ -15,6 +15,7 @@
 #include "cerberus_protocol_debug_commands.h"
 #include "cerberus_protocol_diagnostic_commands.h"
 #include "cmd_interface_system.h"
+#include "common/unused.h"
 
 
 int cmd_interface_system_process_request (struct cmd_interface *intf,
@@ -63,31 +64,40 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_PFM_ID:{
-			struct pfm_manager* pfm_mgr[2] = {interface->pfm_manager_0, interface->pfm_manager_1};
+			const struct pfm_manager* pfm_mgr[2] = {
+				interface->pfm_manager_0, interface->pfm_manager_1
+			};
+
 			status = cerberus_protocol_get_pfm_id (pfm_mgr, 2, request);
 			break;
 		}
 
 		case CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW: {
-			struct pfm_manager* pfm_mgr[2] = {interface->pfm_manager_0, interface->pfm_manager_1};
+			const struct pfm_manager* pfm_mgr[2] = {
+				interface->pfm_manager_0, interface->pfm_manager_1
+			};
+
 			status = cerberus_protocol_get_pfm_fw (pfm_mgr, 2, request);
 			break;
 		}
 
 		case CERBERUS_PROTOCOL_INIT_PFM_UPDATE: {
-			struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+
 			status = cerberus_protocol_pfm_update_init (pfm_cmd, 2, request);
 			break;
 		}
 
 		case CERBERUS_PROTOCOL_PFM_UPDATE: {
-			struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+
 			status = cerberus_protocol_pfm_update (pfm_cmd, 2, request);
 			break;
 		}
 
 		case CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE: {
-			struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+
 			status = cerberus_protocol_pfm_update_complete (pfm_cmd, 2,	request);
 			break;
 		}
@@ -141,8 +151,9 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_UPDATE_STATUS: {
-			struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface* pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
 			struct host_processor* host[2] = {interface->host_0, interface->host_1};
+
 			status = cerberus_protocol_get_update_status (interface->control, 2, pfm_cmd,
 				interface->cfm, interface->pcd, host, interface->recovery_cmd_0,
 				interface->recovery_cmd_1, interface->background, request);
@@ -374,19 +385,19 @@ int cmd_interface_system_process_response (struct cmd_interface *intf,
  * @return Initialization status, 0 if success or an error code.
  */
 int cmd_interface_system_init (struct cmd_interface_system *intf,
-	struct firmware_update_control *control, struct manifest_cmd_interface *pfm_0,
-	struct manifest_cmd_interface *pfm_1, struct manifest_cmd_interface *cfm,
-	struct manifest_cmd_interface *pcd, struct pfm_manager *pfm_manager_0,
-	struct pfm_manager *pfm_manager_1, struct cfm_manager *cfm_manager,
-	struct pcd_manager *pcd_manager, struct attestation_responder *attestation,
+	const struct firmware_update_control *control, const struct manifest_cmd_interface *pfm_0,
+	const struct manifest_cmd_interface *pfm_1, const struct manifest_cmd_interface *cfm,
+	const struct manifest_cmd_interface *pcd, const struct pfm_manager *pfm_manager_0,
+	const struct pfm_manager *pfm_manager_1, const struct cfm_manager *cfm_manager,
+	const struct pcd_manager *pcd_manager,  struct attestation_responder *attestation,
 	struct device_manager *device_manager, struct pcr_store *store, struct hash_engine *hash,
-	struct cmd_background *background, struct host_processor *host_0, struct host_processor *host_1,
-	struct cmd_interface_fw_version *fw_version, struct riot_key_manager *riot,
-	struct cmd_authorization *auth, struct host_control *host_ctrl_0,
-	struct host_control *host_ctrl_1, struct recovery_image_cmd_interface *recovery_cmd_0,
-	struct recovery_image_cmd_interface *recovery_cmd_1,
+	const struct cmd_background *background, struct host_processor *host_0,
+	struct host_processor *host_1, const struct cmd_interface_fw_version *fw_version,
+	struct riot_key_manager *riot, struct cmd_authorization *auth, struct host_control *host_ctrl_0,
+	struct host_control *host_ctrl_1, const struct recovery_image_cmd_interface *recovery_cmd_0,
+	const struct recovery_image_cmd_interface *recovery_cmd_1,
 	struct recovery_image_manager *recovery_manager_0,
-	struct recovery_image_manager *recovery_manager_1, struct cmd_device *cmd_device,
+	struct recovery_image_manager *recovery_manager_1, const struct cmd_device *cmd_device,
 	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session)
 {
@@ -445,6 +456,8 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 
 #if CMD_SUPPORT_ENCRYPTED_SESSIONS
 	intf->base.session = session;
+#else
+	UNUSED (session);
 #endif
 
 	return 0;
@@ -471,13 +484,13 @@ void cmd_interface_system_deinit (struct cmd_interface_system *intf)
  * @return 0 if the observer was successfully added or an error code.
  */
 int cmd_interface_system_add_cerberus_protocol_observer (struct cmd_interface_system *intf,
-	struct cerberus_protocol_observer *observer)
+	const struct cerberus_protocol_observer *observer)
 {
 	if (intf == NULL) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
-	return observable_add_observer (&intf->observable, observer);
+	return observable_add_observer (&intf->observable, (void*) observer);
 }
 
 /**
@@ -489,11 +502,11 @@ int cmd_interface_system_add_cerberus_protocol_observer (struct cmd_interface_sy
  * @return 0 if the observer was successfully removed or an error code.
  */
 int cmd_interface_system_remove_cerberus_protocol_observer (struct cmd_interface_system *intf,
-	struct cerberus_protocol_observer *observer)
+	const struct cerberus_protocol_observer *observer)
 {
 	if (intf == NULL) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
-	return observable_remove_observer (&intf->observable, observer);
+	return observable_remove_observer (&intf->observable, (void*) observer);
 }

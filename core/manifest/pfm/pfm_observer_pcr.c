@@ -8,16 +8,17 @@
 #include "manifest/manifest_logging.h"
 
 
-static void pfm_observer_pcr_on_pfm_activated (struct pfm_observer *observer, struct pfm *active)
+static void pfm_observer_pcr_on_pfm_activated (const struct pfm_observer *observer,
+	struct pfm *active)
 {
-	struct pfm_observer_pcr *pcr = (struct pfm_observer_pcr*) observer;
+	const struct pfm_observer_pcr *pcr = (const struct pfm_observer_pcr*) observer;
 
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 }
 
-static void pfm_observer_pcr_on_clear_active (struct pfm_observer *observer)
+static void pfm_observer_pcr_on_clear_active (const struct pfm_observer *observer)
 {
-	struct pfm_observer_pcr *pcr = (struct pfm_observer_pcr*) observer;
+	const struct pfm_observer_pcr *pcr = (const struct pfm_observer_pcr*) observer;
 
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, NULL);
 }
@@ -77,7 +78,7 @@ void pfm_observer_pcr_release (struct pfm_observer_pcr *observer)
  * @param observer The observer for the PCR to update.
  * @param manager The manager for the PFM measurement to update.
  */
-void pfm_observer_pcr_record_measurement (struct pfm_observer_pcr *observer,
+void pfm_observer_pcr_record_measurement (const struct pfm_observer_pcr *observer,
 	struct pfm_manager *manager)
 {
 	struct pfm *active;

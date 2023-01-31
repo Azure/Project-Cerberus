@@ -7,7 +7,8 @@
 #include "cfm_observer_mock.h"
 
 
-static void cfm_observer_mock_on_cfm_verified (struct cfm_observer *observer, struct cfm *pending)
+static void cfm_observer_mock_on_cfm_verified (const struct cfm_observer *observer,
+	struct cfm *pending)
 {
 	struct cfm_observer_mock *mock = (struct cfm_observer_mock*) observer;
 
@@ -19,7 +20,8 @@ static void cfm_observer_mock_on_cfm_verified (struct cfm_observer *observer, st
 		MOCK_ARG_PTR_CALL (pending));
 }
 
-static void cfm_observer_mock_on_cfm_activated (struct cfm_observer *observer, struct cfm *active)
+static void cfm_observer_mock_on_cfm_activated (const struct cfm_observer *observer,
+	struct cfm *active)
 {
 	struct cfm_observer_mock *mock = (struct cfm_observer_mock*) observer;
 
@@ -31,7 +33,7 @@ static void cfm_observer_mock_on_cfm_activated (struct cfm_observer *observer, s
 		MOCK_ARG_PTR_CALL (active));
 }
 
-static void cfm_observer_mock_on_clear_active (struct cfm_observer *observer)
+static void cfm_observer_mock_on_clear_active (const struct cfm_observer *observer)
 {
 	struct cfm_observer_mock *mock = (struct cfm_observer_mock*) observer;
 
@@ -42,7 +44,7 @@ static void cfm_observer_mock_on_clear_active (struct cfm_observer *observer)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, cfm_observer_mock_on_clear_active, observer);
 }
 
-static void cfm_observer_mock_on_cfm_activation_request (struct cfm_observer *observer)
+static void cfm_observer_mock_on_cfm_activation_request (const struct cfm_observer *observer)
 {
 	struct cfm_observer_mock *mock = (struct cfm_observer_mock*) observer;
 

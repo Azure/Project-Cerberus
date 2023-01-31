@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "host_state_observer_dirty_reset.h"
+#include "common/unused.h"
 
 
 static void host_state_observer_dirty_reset_on_inactive_dirty (struct host_state_observer *observer,
@@ -49,5 +50,5 @@ int host_state_observer_dirty_reset_init (struct host_state_observer_dirty_reset
  */
 void host_state_observer_dirty_reset_release (struct host_state_observer_dirty_reset *observer)
 {
-
+	UNUSED (observer);
 }

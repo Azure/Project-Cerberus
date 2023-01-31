@@ -57,6 +57,10 @@ void observable_release (struct observable *observable)
  * added.  The order in which observers are notified is not guaranteed to be the same as the order
  * in which they were added.
  *
+ * TODO:  Once all observers are built to support const instances, this should only deal is const
+ * pointers for the observer.  When that happens, existing void* casts for const observers should be
+ * removed.
+ *
  * @param observable The observable module to register with.
  * @param observer The observer to add.
  *

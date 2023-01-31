@@ -97,7 +97,7 @@ static int flash_store_encrypted_read (struct flash_store *flash, int id, uint8_
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 static int flash_store_encrypted_init_storage_common (struct flash_store_encrypted *store,
-	struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
 	struct aes_engine *aes, struct rng_engine *rng, bool decreasing, bool variable)
 {
 	int status;
@@ -137,7 +137,7 @@ static int flash_store_encrypted_init_storage_common (struct flash_store_encrypt
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 int flash_store_encrypted_init_fixed_storage (struct flash_store_encrypted *store,
-	struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
 	struct aes_engine *aes, struct rng_engine *rng)
 {
 	return flash_store_encrypted_init_storage_common (store, flash, base_addr, block_count,
@@ -161,7 +161,7 @@ int flash_store_encrypted_init_fixed_storage (struct flash_store_encrypted *stor
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 int flash_store_encrypted_init_fixed_storage_decreasing (struct flash_store_encrypted *store,
-	struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
 	struct aes_engine *aes, struct rng_engine *rng)
 {
 	return flash_store_encrypted_init_storage_common (store, flash, base_addr, block_count,
@@ -185,7 +185,7 @@ int flash_store_encrypted_init_fixed_storage_decreasing (struct flash_store_encr
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 int flash_store_encrypted_init_variable_storage (struct flash_store_encrypted *store,
-	struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
 	struct aes_engine *aes, struct rng_engine *rng)
 {
 	return flash_store_encrypted_init_storage_common (store, flash, base_addr, block_count,
@@ -210,7 +210,7 @@ int flash_store_encrypted_init_variable_storage (struct flash_store_encrypted *s
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 int flash_store_encrypted_init_variable_storage_decreasing (struct flash_store_encrypted *store,
-	struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
 	struct aes_engine *aes, struct rng_engine *rng)
 {
 	return flash_store_encrypted_init_storage_common (store, flash, base_addr, block_count,

@@ -8,6 +8,7 @@
 #include "manifest_cmd_handler.h"
 #include "manifest_logging.h"
 #include "common/type_cast.h"
+#include "common/unused.h"
 
 
 /**
@@ -62,7 +63,7 @@ static int manifest_cmd_handler_submit_event (const struct manifest_cmd_handler 
 	return status;
 }
 
-int manifest_cmd_handler_prepare_manifest (struct manifest_cmd_interface *cmd,
+int manifest_cmd_handler_prepare_manifest (const struct manifest_cmd_interface *cmd,
 	uint32_t manifest_size)
 {
 	const struct manifest_cmd_handler *handler = (const struct manifest_cmd_handler*) cmd;
@@ -75,8 +76,8 @@ int manifest_cmd_handler_prepare_manifest (struct manifest_cmd_interface *cmd,
 		(uint8_t*) &manifest_size, sizeof (manifest_size));
 }
 
-int manifest_cmd_handler_store_manifest (struct manifest_cmd_interface *cmd, const uint8_t *data,
-	size_t length)
+int manifest_cmd_handler_store_manifest (const struct manifest_cmd_interface *cmd,
+	const uint8_t *data, size_t length)
 {
 	const struct manifest_cmd_handler *handler = (const struct manifest_cmd_handler*) cmd;
 
@@ -88,7 +89,7 @@ int manifest_cmd_handler_store_manifest (struct manifest_cmd_interface *cmd, con
 		length);
 }
 
-int manifest_cmd_handler_finish_manifest (struct manifest_cmd_interface *cmd, bool activate)
+int manifest_cmd_handler_finish_manifest (const struct manifest_cmd_interface *cmd, bool activate)
 {
 	const struct manifest_cmd_handler *handler = (const struct manifest_cmd_handler*) cmd;
 	uint32_t action = MANIFEST_CMD_HANDLER_ACTION_FINALIZE;
@@ -104,7 +105,7 @@ int manifest_cmd_handler_finish_manifest (struct manifest_cmd_interface *cmd, bo
 	return manifest_cmd_handler_submit_event (handler, action, NULL, 0);
 }
 
-int manifest_cmd_handler_get_status (struct manifest_cmd_interface *cmd)
+int manifest_cmd_handler_get_status (const struct manifest_cmd_interface *cmd)
 {
 	const struct manifest_cmd_handler *handler = (const struct manifest_cmd_handler*) cmd;
 	int status;
@@ -272,5 +273,5 @@ int manifest_cmd_handler_init_state (const struct manifest_cmd_handler *handler)
  */
 void manifest_cmd_handler_release (const struct manifest_cmd_handler *handler)
 {
-
+	UNUSED (handler);
 }

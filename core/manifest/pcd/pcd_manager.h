@@ -39,8 +39,8 @@ struct pcd_manager {
 };
 
 
-int pcd_manager_add_observer (struct pcd_manager *manager, struct pcd_observer *observer);
-int pcd_manager_remove_observer (struct pcd_manager *manager, struct pcd_observer *observer);
+int pcd_manager_add_observer (struct pcd_manager *manager, const struct pcd_observer *observer);
+int pcd_manager_remove_observer (struct pcd_manager *manager, const struct pcd_observer *observer);
 
 /* Internal functions for use by derived types. */
 int pcd_manager_init (struct pcd_manager *manager, struct hash_engine *hash);

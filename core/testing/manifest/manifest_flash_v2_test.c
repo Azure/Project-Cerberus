@@ -1124,7 +1124,7 @@ static void manifest_flash_v2_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 0x10000, manifest_flash_get_addr (&manifest.test));
-	CuAssertPtrEquals (test, &manifest.flash, manifest_flash_get_flash (&manifest.test));
+	CuAssertPtrEquals (test, &manifest.flash, (void*) manifest_flash_get_flash (&manifest.test));
 
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }

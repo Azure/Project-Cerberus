@@ -76,7 +76,7 @@ struct event_task {
 	 * expected that the event context has been correctly configured for event processing.
 	 *
 	 * This call will automatically unlock the task, just as if event_task.unlock was called.  The
-	 * task will not be unlocked if EVENT_TASK_INVALID_ARGUMENT is not returned.
+	 * task will not be unlocked if EVENT_TASK_INVALID_ARGUMENT is returned.
 	 *
 	 * It is required that event_task.get_event_context be called prior to calling
 	 * event_task.notify.  If event_task.get_event_context was not called, EVENT_TASK_NOT_READY will

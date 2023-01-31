@@ -7,6 +7,7 @@
 #include "host_processor_observer_pcr.h"
 #include "host_logging.h"
 #include "common/type_cast.h"
+#include "common/unused.h"
 
 
 /**
@@ -108,5 +109,5 @@ int host_processor_observer_pcr_init (struct host_processor_observer_pcr *host,
  */
 void host_processor_observer_pcr_release (struct host_processor_observer_pcr *host)
 {
-
+	UNUSED (host);
 }

@@ -9,7 +9,7 @@
 
 
 static void mctp_control_protocol_observer_mock_on_set_eid_request (
-	struct mctp_control_protocol_observer *observer)
+	const struct mctp_control_protocol_observer *observer)
 {
 	struct mctp_control_protocol_observer_mock *mock =
 		(struct mctp_control_protocol_observer_mock*) observer;
@@ -23,7 +23,7 @@ static void mctp_control_protocol_observer_mock_on_set_eid_request (
 }
 
 static void mctp_control_protocol_observer_mock_on_get_message_type_response (
-	struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct mctp_control_protocol_observer_mock *mock =
 		(struct mctp_control_protocol_observer_mock*) observer;
@@ -37,7 +37,7 @@ static void mctp_control_protocol_observer_mock_on_get_message_type_response (
 }
 
 static void mctp_control_protocol_observer_mock_on_get_routing_table_entries_response (
-	struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct mctp_control_protocol_observer_mock *mock =
 		(struct mctp_control_protocol_observer_mock*) observer;
@@ -52,7 +52,7 @@ static void mctp_control_protocol_observer_mock_on_get_routing_table_entries_res
 }
 
 static void mctp_control_protocol_observer_mock_on_discovery_notify_response (
-	struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct mctp_control_protocol_observer_mock *mock =
 		(struct mctp_control_protocol_observer_mock*) observer;
@@ -66,7 +66,7 @@ static void mctp_control_protocol_observer_mock_on_discovery_notify_response (
 }
 
 static void mctp_control_protocol_observer_mock_on_get_vendor_def_msg_response (
-	struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct mctp_control_protocol_observer_mock *mock =
 		(struct mctp_control_protocol_observer_mock*) observer;

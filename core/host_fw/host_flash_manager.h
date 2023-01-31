@@ -47,7 +47,7 @@ struct host_flash_manager {
 	 *
 	 * @return The read-only flash device.
 	 */
-	struct spi_flash* (*get_read_only_flash) (struct host_flash_manager *manager);
+	const struct spi_flash* (*get_read_only_flash) (struct host_flash_manager *manager);
 
 	/**
 	 * Get the flash device that is currently configured as the flash device for all writes and
@@ -57,7 +57,7 @@ struct host_flash_manager {
 	 *
 	 * @return The read/write flash device.
 	 */
-	struct spi_flash* (*get_read_write_flash) (struct host_flash_manager *manager);
+	const struct spi_flash* (*get_read_write_flash) (struct host_flash_manager *manager);
 
 	/**
 	 * Validate the read-only flash device.
@@ -225,7 +225,7 @@ struct host_flash_manager {
 
 
 /* Internal functions for use by derived types. */
-int host_flash_manager_get_image_entry (struct pfm *pfm, struct spi_flash *flash, uint32_t offset,
+int host_flash_manager_get_image_entry (struct pfm *pfm, const struct spi_flash *flash, uint32_t offset,
 	const char *fw_id, struct pfm_firmware_versions *versions,
 	const struct pfm_firmware_version **version, struct pfm_image_list *fw_images,
 	struct pfm_read_write_regions *writable);
@@ -233,28 +233,29 @@ int host_flash_manager_get_firmware_types (struct pfm *pfm, struct pfm_firmware 
 	struct host_flash_manager_images *host_img, struct host_flash_manager_rw_regions *host_rw);
 
 int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash,
-	struct rsa_engine *rsa, bool full_validation, struct spi_flash *flash,
+	struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw);
 int host_flash_manager_validate_offset_flash (struct pfm *pfm, struct hash_engine *hash,
-	struct rsa_engine *rsa, bool full_validation, struct spi_flash *flash, uint32_t offset,
+	struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash, uint32_t offset,
 	struct host_flash_manager_rw_regions *host_rw);
 int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
-	struct hash_engine *hash, struct rsa_engine *rsa, struct spi_flash *flash,
+	struct hash_engine *hash, struct rsa_engine *rsa, const struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw);
 
-int host_flash_manager_get_flash_read_write_regions (struct spi_flash *flash, struct pfm *pfm,
+int host_flash_manager_get_flash_read_write_regions (const struct spi_flash *flash, struct pfm *pfm,
 	struct host_flash_manager_rw_regions *host_rw);
 
 void host_flash_manager_free_read_write_regions (struct host_flash_manager *manager,
 	struct host_flash_manager_rw_regions *host_rw);
 void host_flash_manager_free_images (struct host_flash_manager_images *host_img);
 
-int host_flash_manager_config_spi_filter_flash_type (struct spi_flash *cs0, struct spi_flash *cs1,
-	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler);
+int host_flash_manager_config_spi_filter_flash_type (const struct spi_flash *cs0,
+	const struct spi_flash *cs1, struct spi_filter_interface *filter,
+	struct flash_mfg_filter_handler *mfg_handler);
 
-int host_flash_manager_configure_flash_for_rot_access (struct spi_flash *flash);
+int host_flash_manager_configure_flash_for_rot_access (const struct spi_flash *flash);
 int host_flash_manager_set_flash_for_rot_access (struct host_control *control,
-	struct spi_filter_interface *filter, struct spi_flash *cs0, struct spi_flash *cs1,
+	struct spi_filter_interface *filter, const struct spi_flash *cs0, const struct spi_flash *cs1,
 	struct host_flash_initialization *flash_init);
 int host_flash_manager_set_flash_for_host_access (struct host_control *control,
 	struct spi_filter_interface *filter);

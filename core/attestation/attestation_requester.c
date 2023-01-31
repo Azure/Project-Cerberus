@@ -1077,11 +1077,11 @@ static int attestation_requester_send_spdm_request_and_get_response (
  * @param reponse The response container received.
  * @param command Incoming command.
  */
-static void attestation_requester_copy_spdm_response (struct spdm_protocol_observer *observer,
+static void attestation_requester_copy_spdm_response (const struct spdm_protocol_observer *observer,
 	const struct cmd_interface_msg *response, uint8_t command)
 {
-	struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, struct attestation_requester, spdm_rsp_observer);
+	const struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, const struct attestation_requester, spdm_rsp_observer);
 
 	if (attestation_requester_check_spdm_unexpected_rsp (attestation, command)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
@@ -1106,7 +1106,7 @@ static void attestation_requester_copy_spdm_response (struct spdm_protocol_obser
  * the device uses the determined version.
  */
 void attestation_requester_on_spdm_get_version_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_GET_VERSION);
 }
@@ -1117,7 +1117,7 @@ void attestation_requester_on_spdm_get_version_response (
  * the other device, as well as timeout and message size capabilities.
  */
 void attestation_requester_on_spdm_get_capabilities_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_GET_CAPABILITIES);
 }
@@ -1128,7 +1128,7 @@ void attestation_requester_on_spdm_get_capabilities_response (
  * to utilize in subsequent SPDM interactions.
  */
 void attestation_requester_on_spdm_negotiate_algorithms_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	attestation_requester_copy_spdm_response (observer, response,
 		SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
@@ -1141,7 +1141,7 @@ void attestation_requester_on_spdm_negotiate_algorithms_response (
  * a mismatch, the requester will fetch new certificate chain from device.
  */
 void attestation_requester_on_spdm_get_digests_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_GET_DIGESTS);
 }
@@ -1152,7 +1152,7 @@ void attestation_requester_on_spdm_get_digests_response (
  * responder.
  */
 void attestation_requester_on_spdm_get_certificate_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_GET_CERTIFICATE);
 }
@@ -1163,7 +1163,7 @@ void attestation_requester_on_spdm_get_certificate_response (
  * transcript signature and comparing the measurement summary hash to CFM contents.
  */
 void attestation_requester_on_spdm_challenge_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_CHALLENGE);
 }
@@ -1175,7 +1175,7 @@ void attestation_requester_on_spdm_challenge_response (
  * measurement blocks to CFM contents.
  */
 void attestation_requester_on_spdm_get_measurements_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 
 	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_GET_MEASUREMENTS);
@@ -1186,10 +1186,10 @@ void attestation_requester_on_spdm_get_measurements_response (
  * ResponseNotReady, wait for RDT duration then issue RESPOND_IF_READY request.
  */
 void attestation_requester_on_spdm_response_not_ready (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, struct attestation_requester, spdm_rsp_observer);
+	const struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, const struct attestation_requester, spdm_rsp_observer);
 	struct spdm_error_response *rsp = (struct spdm_error_response*) response->data;
 	struct spdm_error_response_not_ready *rsp_not_ready =
 		(struct spdm_error_response_not_ready*) spdm_get_spdm_error_rsp_optional_data (rsp);
@@ -1253,10 +1253,10 @@ fail:
  * attested, and in case of a mismatch, the requester will fetch new certificate chain from device.
  */
 void attestation_requester_on_cerberus_get_digest_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, struct attestation_requester, cerberus_rsp_observer);
+	const struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
 	struct cerberus_protocol_get_certificate_digest_response *rsp =
 		(struct cerberus_protocol_get_certificate_digest_response*) response->data;
 
@@ -1286,10 +1286,10 @@ void attestation_requester_on_cerberus_get_digest_response (
  * for attestation from responder.
  */
 void attestation_requester_on_cerberus_get_certificate_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, struct attestation_requester, cerberus_rsp_observer);
+	const struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
 	struct cerberus_protocol_get_certificate_response *rsp =
 		(struct cerberus_protocol_get_certificate_response*) response->data;
 	size_t cert_portion_len;
@@ -1347,10 +1347,10 @@ fail:
  * signature and comparing the device PMR0 to CFM contents.
  */
 void attestation_requester_on_cerberus_challenge_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, struct attestation_requester, cerberus_rsp_observer);
+	const struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
 	struct cerberus_protocol_challenge_response *rsp =
 		(struct cerberus_protocol_challenge_response*) response->data;
 
@@ -1399,10 +1399,10 @@ fail:
  * timeout and message size capabilities.
  */
 void attestation_requester_on_cerberus_device_capabilities_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, struct attestation_requester, cerberus_rsp_observer);
+	const struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
 
 	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
 		CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES)) {
@@ -1427,10 +1427,10 @@ void attestation_requester_on_cerberus_device_capabilities_response (
  * support.
  */
 void attestation_requester_on_mctp_get_message_type_response (
-	struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, struct attestation_requester, mctp_rsp_observer);
+	const struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, const struct attestation_requester, mctp_rsp_observer);
 
 	if ((attestation->state->txn.requested_command != MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
@@ -1454,10 +1454,10 @@ void attestation_requester_on_mctp_get_message_type_response (
  * since they are used by the MCTP bridge to alert device of routing table updates.
  */
 void attestation_requester_on_mctp_set_eid_request (
-	struct mctp_control_protocol_observer *observer)
+	const struct mctp_control_protocol_observer *observer)
 {
-	struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, struct attestation_requester, mctp_rsp_observer);
+	const struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, const struct attestation_requester, mctp_rsp_observer);
 
 	attestation->state->get_routing_table = true;
 	attestation->state->mctp_bridge_wait = false;
@@ -1471,10 +1471,10 @@ void attestation_requester_on_mctp_set_eid_request (
  * bridge.
  */
 void attestation_requester_on_mctp_get_routing_table_entries_response (
-	struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
-	struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, struct attestation_requester, mctp_rsp_observer);
+	const struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, const struct attestation_requester, mctp_rsp_observer);
 
 	if ((attestation->state->txn.requested_command !=
 		MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES)) {
@@ -1498,10 +1498,10 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
  * CFM activation request observer function. CFM activation requests are used to communicate to
  * device that component attestation states should be reset.
  */
-void attestation_requester_on_cfm_activation_request (struct cfm_observer *observer)
+void attestation_requester_on_cfm_activation_request (const struct cfm_observer *observer)
 {
-	struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, struct attestation_requester, cfm_observer);
+	const struct attestation_requester *attestation =
+		TO_DERIVED_TYPE (observer, const struct attestation_requester, cfm_observer);
 
 	device_manager_reset_authenticated_devices (attestation->device_mgr);
 
@@ -2852,6 +2852,9 @@ free_cfm:
 static int attestation_requester_discover_device_cerberus_protocol (
 	const struct attestation_requester *attestation, uint8_t eid)
 {
+	UNUSED (attestation);
+	UNUSED (eid);
+
 	// TODO: Implement Cerberus protocol device discovery
 	return 0;
 }
@@ -3141,7 +3144,7 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
  * @param measurement_version The version associated with the measurement data.
  */
 void attestation_requester_discovery_and_attestation_loop (
-	struct attestation_requester *attestation, struct pcr_store *pcr, uint16_t measurement,
+	const struct attestation_requester *attestation, struct pcr_store *pcr, uint16_t measurement,
 	uint8_t measurement_version)
 {
 	const uint8_t *attestation_status;
@@ -3199,7 +3202,7 @@ get_routing_table:
  *
  * @return Completion status, 0 if success or an error code otherwise
  */
-int attestation_requestor_mctp_bridge_was_reset (struct attestation_requester *attestation)
+int attestation_requestor_mctp_bridge_was_reset (const struct attestation_requester *attestation)
 {
 	if (attestation == NULL) {
 		return ATTESTATION_INVALID_ARGUMENT;
@@ -3218,7 +3221,7 @@ int attestation_requestor_mctp_bridge_was_reset (struct attestation_requester *a
  *
  * @param attestation Attestation requester instance to utilize.
  */
-void attestation_requester_refresh_routing_table (struct attestation_requester *attestation)
+void attestation_requester_refresh_routing_table (const struct attestation_requester *attestation)
 {
 	if (attestation == NULL) {
 		return;
@@ -3239,7 +3242,7 @@ void attestation_requester_refresh_routing_table (struct attestation_requester *
  *
  * @param attestation Attestation requester instance to utilize.
  */
-void attestation_requestor_wait_for_next_action (struct attestation_requester *attestation)
+void attestation_requestor_wait_for_next_action (const struct attestation_requester *attestation)
 {
 	uint32_t duration_ms;
 

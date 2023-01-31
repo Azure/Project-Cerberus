@@ -6,6 +6,7 @@
 #include <string.h>
 #include "host_flash_manager.h"
 #include "host_fw_util.h"
+#include "common/unused.h"
 
 
 /**
@@ -23,8 +24,8 @@
  *
  * @return 0 if the entry information was successfully queried or an error code.
  */
-int host_flash_manager_get_image_entry (struct pfm *pfm, struct spi_flash *flash, uint32_t offset,
-	const char *fw_id, struct pfm_firmware_versions *versions,
+int host_flash_manager_get_image_entry (struct pfm *pfm, const struct spi_flash *flash,
+	uint32_t offset, const char *fw_id, struct pfm_firmware_versions *versions,
 	const struct pfm_firmware_version **version, struct pfm_image_list *fw_images,
 	struct pfm_read_write_regions *writable)
 {
@@ -114,6 +115,8 @@ void host_flash_manager_free_read_write_regions (struct host_flash_manager *mana
 {
 	size_t i;
 
+	UNUSED (manager);
+
 	if (host_rw && host_rw->pfm) {
 		if (host_rw->writable) {
 			for (i = 0; i < host_rw->count; i++) {
@@ -159,7 +162,7 @@ void host_flash_manager_free_images (struct host_flash_manager_images *host_img)
  * @return 0 if the validation was successful or an error code.
  */
 int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash,
-	struct rsa_engine *rsa, bool full_validation, struct spi_flash *flash,
+	struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	return host_flash_manager_validate_offset_flash (pfm, hash, rsa, full_validation, flash, 0,
@@ -182,7 +185,7 @@ int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash
  * @return 0 if the validation was successful or an error code.
  */
 int host_flash_manager_validate_offset_flash (struct pfm *pfm, struct hash_engine *hash,
-	struct rsa_engine *rsa, bool full_validation, struct spi_flash *flash, uint32_t offset,
+	struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash, uint32_t offset,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	struct pfm_firmware host_fw;
@@ -246,7 +249,7 @@ free_host:
  * @return 0 if the validation was successful or an error code.
  */
 int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
-	struct hash_engine *hash, struct rsa_engine *rsa, struct spi_flash *flash,
+	struct hash_engine *hash, struct rsa_engine *rsa, const struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	struct pfm_firmware host_fw;
@@ -315,7 +318,7 @@ free_host:
  *
  * @return 0 if a match was found in the PFM or an error code.
  */
-static int host_flash_manager_find_flash_version (struct spi_flash *flash, struct pfm *pfm,
+static int host_flash_manager_find_flash_version (const struct spi_flash *flash, struct pfm *pfm,
 	const char *fw_id, struct pfm_firmware_versions *versions,
 	const struct pfm_firmware_version **version)
 {
@@ -343,7 +346,7 @@ static int host_flash_manager_find_flash_version (struct spi_flash *flash, struc
  *
  * @return 0 if the regions were successfully determined or an error code.
  */
-int host_flash_manager_get_flash_read_write_regions (struct spi_flash *flash, struct pfm *pfm,
+int host_flash_manager_get_flash_read_write_regions (const struct spi_flash *flash, struct pfm *pfm,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	struct pfm_firmware host_fw;
@@ -390,8 +393,8 @@ free_rw:
  *
  * @return 0 if the address mode was configured successfully or an error code.
  */
-static int host_flash_manager_flash_address_mode (struct spi_flash *cs0, struct spi_flash *cs1,
-	spi_filter_address_mode *mode)
+static int host_flash_manager_flash_address_mode (const struct spi_flash *cs0,
+	const struct spi_flash *cs1, spi_filter_address_mode *mode)
 {
 	int addr_4byte;
 	int status;
@@ -427,9 +430,9 @@ static int host_flash_manager_flash_address_mode (struct spi_flash *cs0, struct 
  *
  * @return 0 if the address mode properties were successfully detected or an error code.
  */
-static int host_flash_manager_detect_flash_address_mode_properties (struct spi_flash *cs0,
-	struct spi_flash *cs1, bool *wen_required, bool *fixed_addr, spi_filter_address_mode *mode,
-	spi_filter_address_mode *reset_mode)
+static int host_flash_manager_detect_flash_address_mode_properties (const struct spi_flash *cs0,
+	const struct spi_flash *cs1, bool *wen_required, bool *fixed_addr,
+	spi_filter_address_mode *mode, spi_filter_address_mode *reset_mode)
 {
 	int req_write_en[2];
 	int reset_addr[2];
@@ -488,8 +491,9 @@ static int host_flash_manager_detect_flash_address_mode_properties (struct spi_f
  *
  * @return 0 if the flash is supported and the filter was configured successfully or an error code.
  */
-int host_flash_manager_config_spi_filter_flash_type (struct spi_flash *cs0, struct spi_flash *cs1,
-	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler)
+int host_flash_manager_config_spi_filter_flash_type (const struct spi_flash *cs0,
+	const struct spi_flash *cs1, struct spi_filter_interface *filter,
+	struct flash_mfg_filter_handler *mfg_handler)
 {
 	uint8_t vendor[2];
 	uint16_t device[2];
@@ -577,7 +581,7 @@ int host_flash_manager_config_spi_filter_flash_type (struct spi_flash *cs0, stru
  *
  * @return 0 if the device was configured successfully or an error code.
  */
-int host_flash_manager_configure_flash_for_rot_access (struct spi_flash *flash)
+int host_flash_manager_configure_flash_for_rot_access (const struct spi_flash *flash)
 {
 	uint8_t vendor;
 	int status;
@@ -632,10 +636,10 @@ int host_flash_manager_configure_flash_for_rot_access (struct spi_flash *flash)
  * @return 0 if RoT flash access has been enabled or an error code.
  */
 int host_flash_manager_set_flash_for_rot_access (struct host_control *control,
-	struct spi_filter_interface *filter, struct spi_flash *cs0, struct spi_flash *cs1,
+	struct spi_filter_interface *filter, const struct spi_flash *cs0, const struct spi_flash *cs1,
 	struct host_flash_initialization *flash_init)
 {
-	struct spi_flash *flash;
+	const struct spi_flash *flash;
 	int i;
 	int status;
 

@@ -21,20 +21,20 @@
  */
 struct cmd_interface_ac_rot {
 	struct cmd_interface base;								/**< Base command interface */
-	struct cmd_background *background;						/**< Context for completing background commands */
+	const struct cmd_background *background;				/**< Context for completing background commands */
 	struct riot_key_manager *riot;							/**< RIoT key manager */
 	struct attestation_responder *attestation;				/**< Attestation responder instance */
-	struct cmd_interface_fw_version *fw_version;			/**< FW version numbers */
+	const struct cmd_interface_fw_version *fw_version;		/**< FW version numbers */
 	struct device_manager *device_manager;					/**< Device manager instance */
-	struct cmd_device *cmd_device;							/**< Device command handler instance */
+	const struct cmd_device *cmd_device;					/**< Device command handler instance */
 	struct cmd_interface_device_id device_id;				/**< Device ID information */
 };
 
 
 int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 	struct attestation_responder *attestation, struct device_manager *device_manager,
-	struct cmd_background *background, struct cmd_interface_fw_version *fw_version,
-	struct riot_key_manager *riot, struct cmd_device *cmd_device, uint16_t vendor_id,
+	const struct cmd_background *background, const struct cmd_interface_fw_version *fw_version,
+	struct riot_key_manager *riot, const struct cmd_device *cmd_device, uint16_t vendor_id,
 	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session);
 void cmd_interface_ac_rot_deinit (struct cmd_interface_ac_rot *intf);

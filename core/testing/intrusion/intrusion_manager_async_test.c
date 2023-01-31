@@ -315,7 +315,7 @@ static void intrusion_manager_async_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
-	CuAssertPtrEquals (test, NULL, measurement.measured_data);
+	CuAssertPtrEquals (test, NULL, (void*) measurement.measured_data);
 
 	status = testing_validate_array (zero, measurement.digest, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
@@ -342,7 +342,7 @@ static void intrusion_manager_async_test_init_invalid_measurement (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
-	CuAssertPtrEquals (test, NULL, measurement.measured_data);
+	CuAssertPtrEquals (test, NULL, (void*) measurement.measured_data);
 
 	status = testing_validate_array (zero, measurement.digest, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
@@ -373,7 +373,7 @@ static void intrusion_manager_async_test_init_hash_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
-	CuAssertPtrEquals (test, NULL, measurement.measured_data);
+	CuAssertPtrEquals (test, NULL, (void*) measurement.measured_data);
 
 	status = testing_validate_array (zero, measurement.digest, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);

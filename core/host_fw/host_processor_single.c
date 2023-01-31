@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "host_processor_single.h"
+#include "common/unused.h"
 
 
 static int host_processor_single_power_on_reset (struct host_processor *host,
@@ -47,6 +48,9 @@ static int host_processor_single_run_time_verification (struct host_processor *h
 static int host_processor_single_flash_rollback (struct host_processor *host,
 	struct hash_engine *hash, struct rsa_engine *rsa, bool disable_bypass, bool no_reset)
 {
+	UNUSED (disable_bypass);
+	UNUSED (no_reset);
+
 	if ((host == NULL) || (hash == NULL) || (rsa == NULL)) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
@@ -66,6 +70,8 @@ static int host_processor_single_recover_active_read_write_data (struct host_pro
 static int host_processor_single_bypass_mode (struct host_processor *host, bool swap_flash)
 {
 	struct host_processor_filtered *single = (struct host_processor_filtered*) host;
+
+	UNUSED (swap_flash);
 
 	if (single == NULL) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;

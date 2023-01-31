@@ -50,8 +50,8 @@ struct cfm_manager {
 };
 
 
-int cfm_manager_add_observer (struct cfm_manager *manager, struct cfm_observer *observer);
-int cfm_manager_remove_observer (struct cfm_manager *manager, struct cfm_observer *observer);
+int cfm_manager_add_observer (struct cfm_manager *manager, const struct cfm_observer *observer);
+int cfm_manager_remove_observer (struct cfm_manager *manager, const struct cfm_observer *observer);
 
 /* Internal functions for use by derived types. */
 int cfm_manager_init (struct cfm_manager *manager, struct hash_engine *hash);

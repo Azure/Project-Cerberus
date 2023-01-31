@@ -8,16 +8,17 @@
 #include "manifest/manifest_logging.h"
 
 
-static void cfm_observer_pcr_on_cfm_activated (struct cfm_observer *observer, struct cfm *active)
+static void cfm_observer_pcr_on_cfm_activated (const struct cfm_observer *observer,
+	struct cfm *active)
 {
-	struct cfm_observer_pcr *pcr = (struct cfm_observer_pcr*) observer;
+	const struct cfm_observer_pcr *pcr = (const struct cfm_observer_pcr*) observer;
 
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, &active->base);
 }
 
-static void cfm_observer_pcr_on_clear_active (struct cfm_observer *observer)
+static void cfm_observer_pcr_on_clear_active (const struct cfm_observer *observer)
 {
-	struct cfm_observer_pcr *pcr = (struct cfm_observer_pcr*) observer;
+	const struct cfm_observer_pcr *pcr = (const struct cfm_observer_pcr*) observer;
 
 	manifest_pcr_record_manifest_measurement (&pcr->pcr, NULL);
 }
@@ -76,7 +77,7 @@ void cfm_observer_pcr_release (struct cfm_observer_pcr *observer)
  * @param observer The observer for the PCR to update.
  * @param manager The manager for the CFM measurement to update.
  */
-void cfm_observer_pcr_record_measurement (struct cfm_observer_pcr *observer,
+void cfm_observer_pcr_record_measurement (const struct cfm_observer_pcr *observer,
 	struct cfm_manager *manager)
 {
 	struct cfm *active;

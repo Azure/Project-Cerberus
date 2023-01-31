@@ -23,7 +23,7 @@ int pfm_observer_pcr_init (struct pfm_observer_pcr *observer, struct hash_engine
 	uint16_t platform_id_measurement);
 void pfm_observer_pcr_release (struct pfm_observer_pcr *observer);
 
-void pfm_observer_pcr_record_measurement (struct pfm_observer_pcr *observer,
+void pfm_observer_pcr_record_measurement (const struct pfm_observer_pcr *observer,
 	struct pfm_manager *manager);
 
 

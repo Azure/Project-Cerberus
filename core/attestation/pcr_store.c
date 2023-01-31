@@ -289,7 +289,7 @@ int pcr_store_get_measurement (struct pcr_store *store, uint16_t measurement_typ
  * @return Completion status, 0 if success or an error code
  */
 int pcr_store_set_measurement_data (struct pcr_store *store, uint16_t measurement_type,
-	struct pcr_measured_data *measured_data)
+	const struct pcr_measured_data *measured_data)
 {
 	uint8_t pcr_bank = (uint8_t) (measurement_type >> 8);
 	uint8_t measurement_index = (uint8_t) measurement_type;

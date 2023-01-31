@@ -19,7 +19,7 @@ struct host_state_manager {
 };
 
 
-int host_state_manager_init (struct host_state_manager *manager, struct flash *state_flash,
+int host_state_manager_init (struct host_state_manager *manager, const struct flash *state_flash,
 	uint32_t store_addr);
 void host_state_manager_release (struct host_state_manager *manager);
 

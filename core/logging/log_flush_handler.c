@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "log_flush_handler.h"
+#include "common/unused.h"
 
 
 void log_flush_handler_prepare (const struct periodic_task_handler *handler)
@@ -107,5 +108,5 @@ int log_flush_handler_init_state (const struct log_flush_handler *handler)
  */
 void log_flush_handler_release (const struct log_flush_handler *handler)
 {
-
+	UNUSED (handler);
 }

@@ -3075,6 +3075,35 @@ static void hash_test_get_hash_length_unsupported (CuTest *test)
 	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
 }
 
+static void hash_test_hmac_get_hmac_length (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = hash_hmac_get_hmac_length (HMAC_SHA1);
+	CuAssertIntEquals (test, SHA1_HASH_LENGTH, status);
+
+	status = hash_hmac_get_hmac_length (HMAC_SHA256);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = hash_hmac_get_hmac_length (HMAC_SHA384);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+
+	status = hash_hmac_get_hmac_length (HMAC_SHA512);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+}
+
+static void hash_test_hmac_get_hmac_length_unsupported (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = hash_hmac_get_hmac_length ((enum hmac_hash) 4);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+}
+
 static void hash_test_is_alg_supported (CuTest *test)
 {
 	int status;
@@ -3226,6 +3255,8 @@ TEST (hash_test_calculate_sha512_small_buffer);
 #endif
 TEST (hash_test_get_hash_length);
 TEST (hash_test_get_hash_length_unsupported);
+TEST (hash_test_hmac_get_hmac_length);
+TEST (hash_test_hmac_get_hmac_length_unsupported);
 TEST (hash_test_is_alg_supported);
 
 TEST_SUITE_END;

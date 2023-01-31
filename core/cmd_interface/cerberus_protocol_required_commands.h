@@ -332,7 +332,7 @@ struct cerberus_protocol_reset_counter_response {
 #pragma pack(pop)
 
 
-int cerberus_protocol_get_fw_version (struct cmd_interface_fw_version *fw_version,
+int cerberus_protocol_get_fw_version (const struct cmd_interface_fw_version *fw_version,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_certificate_digest (struct attestation_responder *attestation,
@@ -345,19 +345,19 @@ int cerberus_protocol_get_challenge_response (struct attestation_responder *atte
 int cerberus_protocol_export_csr (struct riot_key_manager *riot,
 	struct cmd_interface_msg *request);
 int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
-	struct cmd_background *background, struct cmd_interface_msg *request);
-int cerberus_protocol_get_signed_cert_state (struct cmd_background *background,
+	const struct cmd_background *background, struct cmd_interface_msg *request);
+int cerberus_protocol_get_signed_cert_state (const struct cmd_background *background,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr,
 	struct cmd_interface_msg *request);
 
-int cerberus_protocol_get_device_info (struct cmd_device *device,
+int cerberus_protocol_get_device_info (const struct cmd_device *device,
 	struct cmd_interface_msg *request);
 int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
 	struct cmd_interface_msg *request);
 
-int cerberus_protocol_reset_counter (struct cmd_device *device,
+int cerberus_protocol_reset_counter (const struct cmd_device *device,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_process_error_response (struct cmd_interface_msg *response);

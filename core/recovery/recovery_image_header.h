@@ -25,12 +25,13 @@ struct recovery_image_header {
 };
 
 
-int recovery_image_header_init (struct recovery_image_header *header, struct flash *flash,
+int recovery_image_header_init (struct recovery_image_header *header, const struct flash *flash,
 	uint32_t addr);
 void recovery_image_header_release (struct recovery_image_header *header);
 
 int recovery_image_header_get_version_id (struct recovery_image_header *header, char **version_id);
-int recovery_image_header_get_platform_id (struct recovery_image_header *header, char **platform_id);
+int recovery_image_header_get_platform_id (struct recovery_image_header *header,
+	char **platform_id);
 int recovery_image_header_get_image_length (struct recovery_image_header *header, size_t *length);
 int recovery_image_header_get_signature_length (struct recovery_image_header *header,
 	size_t *length);

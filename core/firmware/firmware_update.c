@@ -6,6 +6,7 @@
 #include <string.h>
 #include "firmware_update.h"
 #include "firmware_logging.h"
+#include "common/unused.h"
 #include "flash/flash_util.h"
 #include "flash/flash_common.h"
 
@@ -376,6 +377,8 @@ static int firmware_update_program_bootable (const struct firmware_update *updat
 {
 	int status;
 
+	UNUSED (updater);
+
 	if (length > page) {
 		status = flash_copy_ext_to_blank_and_verify (dest, dest_addr + page, src, src_addr + page,
 			length - page);
@@ -723,13 +726,13 @@ int firmware_update_recovery_matches_active_image (const struct firmware_update 
  * @return 0 if the observer was successfully added or an error code.
  */
 int firmware_update_add_observer (const struct firmware_update *updater,
-	struct firmware_update_observer *observer)
+	const struct firmware_update_observer *observer)
 {
 	if (updater == NULL) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
-	return observable_add_observer (&updater->state->observable, observer);
+	return observable_add_observer (&updater->state->observable, (void*) observer);
 }
 
 /**
@@ -741,13 +744,13 @@ int firmware_update_add_observer (const struct firmware_update *updater,
  * @return 0 if the observer was successfully removed or an error code.
  */
 int firmware_update_remove_observer (const struct firmware_update *updater,
-	struct firmware_update_observer *observer)
+	const struct firmware_update_observer *observer)
 {
 	if (updater == NULL) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
-	return observable_remove_observer (&updater->state->observable, observer);
+	return observable_remove_observer (&updater->state->observable, (void*) observer);
 }
 
 /**
@@ -757,15 +760,13 @@ int firmware_update_remove_observer (const struct firmware_update *updater,
  * @param callback Status callback to report status updates.  This can be null to not have status
  * reporting.
  * @param img_length Length of the image in staging flash.
- * @param new_revision The recovery revision for the image in staging flash.
  * @param recovery_updated Output indicating if the recovery image was also updated.  This can be
  * null if this information is not needed.
  *
  * @return 0 if active flash was successfully updated or an error code.
  */
 static int firmware_update_apply_update (const struct firmware_update *updater,
-	const struct firmware_update_notification *callback, size_t img_length, int new_revision,
-	bool *recovery_updated)
+	const struct firmware_update_notification *callback, size_t img_length, bool *recovery_updated)
 {
 	bool img_good;
 	int allow_update;
@@ -956,8 +957,7 @@ int firmware_update_run_update (const struct firmware_update *updater,
 	}
 
 	/* Apply the update to active flash. */
-	status = firmware_update_apply_update (updater, callback, new_len, new_revision,
-		&recovery_updated);
+	status = firmware_update_apply_update (updater, callback, new_len, &recovery_updated);
 	if (status != 0) {
 		return status;
 	}
@@ -1039,7 +1039,7 @@ int firmware_update_run_update_no_revocation (const struct firmware_update *upda
 	}
 
 	/* Apply the update to active flash. */
-	return firmware_update_apply_update (updater, callback, new_len, new_revision, NULL);
+	return firmware_update_apply_update (updater, callback, new_len, NULL);
 }
 
 /**

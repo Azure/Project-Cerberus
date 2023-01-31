@@ -7,6 +7,7 @@
 #include "platform_api.h"
 #include "common/buffer_util.h"
 #include "common/common_math.h"
+#include "common/unused.h"
 #include "flash/flash_util.h"
 #include "manifest/manifest_flash.h"
 #include "cfm_format.h"
@@ -14,7 +15,7 @@
 
 
 static int cfm_flash_verify (struct manifest *cfm, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct cfm_flash *cfm_flash = (struct cfm_flash*) cfm;
 
@@ -50,6 +51,9 @@ static int cfm_flash_get_platform_id (struct manifest *cfm, char **id, size_t le
 
 static void cfm_flash_free_platform_id (struct manifest *manifest, char *id)
 {
+	UNUSED (manifest);
+	UNUSED (id);
+
 	/* Don't need to do anything.  Manifest allocated buffers use the internal static buffer. */
 }
 
@@ -255,6 +259,8 @@ static int cfm_flash_get_component_device (struct cfm *cfm, uint32_t component_i
 static void cfm_flash_free_component_device (struct cfm *cfm,
 	struct cfm_component_device *component)
 {
+	UNUSED (cfm);
+
 	if (component != NULL) {
 		platform_free ((void*) component->pmr_id_list);
 	}
@@ -457,6 +463,8 @@ static int cfm_flash_get_component_pmr (struct cfm *cfm, uint32_t component_id, 
  */
 static void cfm_flash_free_cfm_digests (struct cfm_flash *cfm_flash, struct cfm_digests *digests)
 {
+	UNUSED (cfm_flash);
+
 	platform_free ((void*) digests->digests);
 	digests->digests = NULL;
 }
@@ -754,6 +762,8 @@ static void cfm_flash_free_measurement_data (struct cfm *cfm,
 	uint8_t i_check;
 	uint8_t i_data;
 	struct cfm_allowable_data_entry *curr_allowable_data;
+
+	UNUSED (cfm);
 
 	if (measurement_data != NULL) {
 		for (i_check = 0; i_check < measurement_data->data_checks_count; ++i_check) {
@@ -1219,6 +1229,8 @@ static void cfm_flash_free_manifest (struct cfm *cfm, struct cfm_manifest *manif
 {
 	uint8_t i_check;
 
+	UNUSED (cfm);
+
 	if (manifest != NULL) {
 		for (i_check = 0; i_check < manifest->check_count; ++i_check) {
 			platform_free ((void*) manifest->check[i_check].allowable_id);
@@ -1417,7 +1429,7 @@ int cfm_flash_get_pcd (struct cfm *cfm, uint32_t component_id,
  *
  * @return 0 if the CFM instance was initialized successfully or an error code.
  */
-int cfm_flash_init (struct cfm_flash *cfm, struct flash *flash, struct hash_engine *hash,
+int cfm_flash_init (struct cfm_flash *cfm, const struct flash *flash, struct hash_engine *hash,
 	uint32_t base_addr, uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
 	size_t max_platform_id)
 {

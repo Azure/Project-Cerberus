@@ -4,6 +4,8 @@
 #ifndef ATTESTATION_REQUESTER_HANDLER_STATIC_H_
 #define ATTESTATION_REQUESTER_HANDLER_STATIC_H_
 
+#include "attestation/attestation_requester_handler.h"
+
 
 /* Internal functions declared to allow for static initialization. */
 const platform_clock* attestation_requester_handler_get_next_execution (

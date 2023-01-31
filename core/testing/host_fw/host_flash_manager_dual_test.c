@@ -547,14 +547,14 @@ static void host_flash_manager_dual_test_release_null (CuTest *test)
 static void host_flash_manager_dual_test_get_read_only_flash_cs0 (CuTest *test)
 {
 	struct host_flash_manager_dual_testing manager;
-	struct spi_flash *active;
+	const struct spi_flash *active;
 
 	TEST_START;
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	active = manager.test.base.get_read_only_flash (&manager.test.base);
-	CuAssertPtrEquals (test, &manager.flash0, active);
+	CuAssertPtrEquals (test, &manager.flash0, (void*) active);
 
 	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
@@ -562,14 +562,14 @@ static void host_flash_manager_dual_test_get_read_only_flash_cs0 (CuTest *test)
 static void host_flash_manager_dual_test_get_read_only_flash_cs1 (CuTest *test)
 {
 	struct host_flash_manager_dual_testing manager;
-	struct spi_flash *active;
+	const struct spi_flash *active;
 
 	TEST_START;
 
 	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	active = manager.test.base.get_read_only_flash (&manager.test.base);
-	CuAssertPtrEquals (test, &manager.flash1, active);
+	CuAssertPtrEquals (test, &manager.flash1, (void*) active);
 
 	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
@@ -577,14 +577,14 @@ static void host_flash_manager_dual_test_get_read_only_flash_cs1 (CuTest *test)
 static void host_flash_manager_dual_test_get_read_only_flash_null (CuTest *test)
 {
 	struct host_flash_manager_dual_testing manager;
-	struct spi_flash *active;
+	const struct spi_flash *active;
 
 	TEST_START;
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	active = manager.test.base.get_read_only_flash (NULL);
-	CuAssertPtrEquals (test, NULL, active);
+	CuAssertPtrEquals (test, NULL, (void*) active);
 
 	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
@@ -592,14 +592,14 @@ static void host_flash_manager_dual_test_get_read_only_flash_null (CuTest *test)
 static void host_flash_manager_dual_test_get_read_write_flash_cs1 (CuTest *test)
 {
 	struct host_flash_manager_dual_testing manager;
-	struct spi_flash *inactive;
+	const struct spi_flash *inactive;
 
 	TEST_START;
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	inactive = manager.test.base.get_read_write_flash (&manager.test.base);
-	CuAssertPtrEquals (test, &manager.flash1, inactive);
+	CuAssertPtrEquals (test, &manager.flash1, (void*) inactive);
 
 	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
@@ -607,14 +607,14 @@ static void host_flash_manager_dual_test_get_read_write_flash_cs1 (CuTest *test)
 static void host_flash_manager_dual_test_get_read_write_flash_cs0 (CuTest *test)
 {
 	struct host_flash_manager_dual_testing manager;
-	struct spi_flash *inactive;
+	const struct spi_flash *inactive;
 
 	TEST_START;
 
 	host_flash_manager_dual_testing_init (test, &manager, true);
 
 	inactive = manager.test.base.get_read_write_flash (&manager.test.base);
-	CuAssertPtrEquals (test, &manager.flash0, inactive);
+	CuAssertPtrEquals (test, &manager.flash0, (void*) inactive);
 
 	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
@@ -622,14 +622,14 @@ static void host_flash_manager_dual_test_get_read_write_flash_cs0 (CuTest *test)
 static void host_flash_manager_dual_test_get_read_write_flash_null (CuTest *test)
 {
 	struct host_flash_manager_dual_testing manager;
-	struct spi_flash *inactive;
+	const struct spi_flash *inactive;
 
 	TEST_START;
 
 	host_flash_manager_dual_testing_init (test, &manager, false);
 
 	inactive = manager.test.base.get_read_write_flash (NULL);
-	CuAssertPtrEquals (test, NULL, inactive);
+	CuAssertPtrEquals (test, NULL, (void*) inactive);
 
 	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }

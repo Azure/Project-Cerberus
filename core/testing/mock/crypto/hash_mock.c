@@ -423,7 +423,7 @@ int hash_mock_expect_hmac_finish (struct hash_engine_mock *mock, const uint8_t *
 	}
 	else {
 		status |= mock_expect (&mock->mock, mock->base.finish, mock, 0, MOCK_ARG_NOT_NULL,
-			MOCK_ARG (hmac_length));
+			MOCK_ARG_AT_LEAST (hmac_length));
 	}
 	status |= mock_expect_output (&mock->mock, 0, expected, exp_length, 1);
 

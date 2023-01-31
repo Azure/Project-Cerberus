@@ -45,9 +45,9 @@ struct cmd_background_handler_testing {
 	struct keystore_mock keystore;						/**< Extra keystore to clear. */
 	struct recovery_image_manager_mock recovery;		/**< Mock for recovery image management. */
 	struct intrusion_manager_mock intrusion;			/**< Mock for intrusion state management. */
-	struct manifest_manager *bypass[1];					/**< List of bypass manifests. */
-	struct manifest_manager *config[1];					/**< List of config manifests. */
-	struct manifest_manager *components[1];				/**< List of component manifests. */
+	const struct manifest_manager *bypass[1];			/**< List of bypass manifests. */
+	const struct manifest_manager *config[1];			/**< List of config manifests. */
+	const struct manifest_manager *components[1];		/**< List of component manifests. */
 	struct state_manager *state_list[1];				/**< List of state managers. */
 	struct keystore *keystores[1];						/**< List of keystores. */
 	struct config_reset_testing_keys keys;				/**< RIoT and aux keys. */

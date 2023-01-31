@@ -4636,10 +4636,9 @@ static void attestation_requester_test_init_state (CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	uint8_t num_pcr_measurements = 1;
-	struct attestation_requester attestation = attestation_requester_static_init (&testing.mctp,
-		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base, NULL,
-		&testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr,
-		NULL, &testing.state);
+	struct attestation_requester attestation = attestation_requester_static_init (&testing.state,
+		&testing.mctp, &testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base,
+		NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr, NULL);
 	int status;
 
 	TEST_START;

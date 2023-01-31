@@ -5,11 +5,14 @@
 #include <stddef.h>
 #include <string.h>
 #include "attestation_requester_handler.h"
+#include "common/unused.h"
 
 
 const platform_clock* attestation_requester_handler_get_next_execution (
 	const struct periodic_task_handler *handler)
 {
+	UNUSED (handler);
+
 	return NULL;
 }
 
@@ -37,7 +40,7 @@ void attestation_requester_handler_execute (const struct periodic_task_handler *
  * @return 0 if the handler was successfully initialized or an error code.
  */
 int attestation_requester_handler_init (struct attestation_requester_handler *handler,
-	struct attestation_requester *attestation, struct device_manager *device_mgr,
+	const struct attestation_requester *attestation, struct device_manager *device_mgr,
 	struct pcr_store *pcr, uint16_t measurement, uint8_t measurement_version)
 {
 	if ((handler == NULL) || (attestation == NULL) || (device_mgr == NULL) || (pcr == NULL)) {
@@ -65,5 +68,5 @@ int attestation_requester_handler_init (struct attestation_requester_handler *ha
  */
 void attestation_requester_handler_release (const struct attestation_requester_handler *handler)
 {
-
+	UNUSED (handler);
 }

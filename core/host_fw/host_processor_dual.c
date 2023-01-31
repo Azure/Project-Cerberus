@@ -79,8 +79,8 @@ static int host_processor_dual_flash_rollback (struct host_processor *host,
 	struct host_processor_filtered *dual = (struct host_processor_filtered*) host;
 	struct pfm *active_pfm;
 	struct host_flash_manager_rw_regions rw_list;
-	struct spi_flash *ro_flash;
-	struct spi_flash *rw_flash;
+	const struct spi_flash *ro_flash;
+	const struct spi_flash *rw_flash;
 	uint32_t dev_size;
 	int status = 0;
 

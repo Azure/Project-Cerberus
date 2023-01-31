@@ -1073,7 +1073,7 @@ int host_processor_filtered_apply_recovery_image (struct host_processor *host, b
 {
 	struct host_processor_filtered *filtered = (struct host_processor_filtered*) host;
 	struct recovery_image *active_image;
-	struct spi_flash *ro_flash;
+	const struct spi_flash *ro_flash;
 	int status = 0;
 
 	if (filtered == NULL) {

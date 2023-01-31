@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include "common/common_math.h"
+#include "common/unused.h"
 #include "crypto/ecc.h"
 #include "flash/flash_util.h"
 #include "host_fw/host_processor_dual.h"
@@ -23,6 +24,8 @@
 static struct recovery_image_manager_flash_region* recovery_image_manager_get_region (
 	struct recovery_image_manager *manager, bool active)
 {
+	UNUSED (active);
+
 	return &manager->region1;
 }
 
@@ -404,7 +407,7 @@ exit:
  */
 int recovery_image_manager_init (struct recovery_image_manager *manager,
 	struct recovery_image *image, struct hash_engine *hash,
-	struct signature_verification *verification, struct pfm_manager *pfm, size_t max_size)
+	const struct signature_verification *verification, struct pfm_manager *pfm, size_t max_size)
 {
 	int status;
 
@@ -476,7 +479,7 @@ release_observer:
  */
 int recovery_image_manager_init_two_region (struct recovery_image_manager *manager,
 	struct recovery_image *image1, struct recovery_image *image2, struct host_state_manager *state,
-	struct hash_engine *hash, struct signature_verification *verification, struct pfm_manager *pfm,
+	struct hash_engine *hash, const struct signature_verification *verification, struct pfm_manager *pfm,
 	size_t max_size)
 {
 	enum recovery_image_region active_region;
