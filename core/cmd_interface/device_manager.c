@@ -375,8 +375,10 @@ int device_manager_update_device_eid (struct device_manager *mgr, int device_num
 
 	mgr->entries[device_num].eid = eid;
 
-	observable_notify_observers_with_ptr (&mgr->observable,
-		offsetof (struct device_manager_observer, on_set_eid), &eid);
+	if (device_num == DEVICE_MANAGER_SELF_DEVICE_NUM) {
+		observable_notify_observers_with_ptr (&mgr->observable,
+			offsetof (struct device_manager_observer, on_set_eid), &eid);
+	}
 
 	return 0;
 }
