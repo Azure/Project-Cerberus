@@ -27,6 +27,8 @@ static int cmd_interface_mctp_control_process_mctp_protocol_message (
 	struct mctp_control_protocol_header *header;
 	struct mctp_control_protocol_resp_header *rsp_header;
 
+	UNUSED (intf);
+
 	message->crypto_timeout = false;
 
 	if (message->length < MCTP_CONTROL_PROTOCOL_MIN_MSG_LEN) {
@@ -257,13 +259,13 @@ void cmd_interface_mctp_control_deinit (struct cmd_interface_mctp_control *intf)
  * @return 0 if the observer was successfully added or an error code.
  */
 int cmd_interface_mctp_control_add_mctp_control_protocol_observer (
-	struct cmd_interface_mctp_control *intf, struct mctp_control_protocol_observer *observer)
+	struct cmd_interface_mctp_control *intf, const struct mctp_control_protocol_observer *observer)
 {
 	if (intf == NULL) {
 		return CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT;
 	}
 
-	return observable_add_observer (&intf->observable, observer);
+	return observable_add_observer (&intf->observable, (void*) observer);
 }
 
 /**
@@ -275,11 +277,11 @@ int cmd_interface_mctp_control_add_mctp_control_protocol_observer (
  * @return 0 if the observer was successfully removed or an error code.
  */
 int cmd_interface_mctp_control_remove_mctp_control_protocol_observer (
-	struct cmd_interface_mctp_control *intf, struct mctp_control_protocol_observer *observer)
+	struct cmd_interface_mctp_control *intf, const struct mctp_control_protocol_observer *observer)
 {
 	if (intf == NULL) {
 		return CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT;
 	}
 
-	return observable_remove_observer (&intf->observable, observer);
+	return observable_remove_observer (&intf->observable, (void*) observer);
 }

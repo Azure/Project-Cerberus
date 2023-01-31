@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "base64_mbedtls.h"
+#include "common/unused.h"
 #include "mbedtls/base64.h"
 
 
@@ -52,5 +53,5 @@ int base64_mbedtls_init (struct base64_engine_mbedtls *engine)
  */
 void base64_mbedtls_release (struct base64_engine_mbedtls *engine)
 {
-
+	UNUSED (engine);
 }

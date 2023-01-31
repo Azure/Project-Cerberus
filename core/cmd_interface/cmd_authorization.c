@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "cmd_authorization.h"
+#include "common/unused.h"
 
 
 static int cmd_authorization_authorize_revert_bypass (struct cmd_authorization *auth,
@@ -132,5 +133,5 @@ int cmd_authorization_init (struct cmd_authorization *auth, struct authorization
  */
 void cmd_authorization_release (struct cmd_authorization *auth)
 {
-
+	UNUSED (auth);
 }

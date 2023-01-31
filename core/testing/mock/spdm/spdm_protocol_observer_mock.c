@@ -9,7 +9,7 @@
 
 
 static void spdm_protocol_observer_mock_on_get_version_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct spdm_protocol_observer_mock *mock =
 		(struct spdm_protocol_observer_mock*) observer;
@@ -23,7 +23,7 @@ static void spdm_protocol_observer_mock_on_get_version_response (
 }
 
 static void spdm_protocol_observer_mock_on_get_capabilities_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct spdm_protocol_observer_mock *mock =
 		(struct spdm_protocol_observer_mock*) observer;
@@ -37,7 +37,7 @@ static void spdm_protocol_observer_mock_on_get_capabilities_response (
 }
 
 static void spdm_protocol_observer_mock_on_negotiate_algorithms_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct spdm_protocol_observer_mock *mock =
 		(struct spdm_protocol_observer_mock*) observer;
@@ -51,7 +51,7 @@ static void spdm_protocol_observer_mock_on_negotiate_algorithms_response (
 }
 
 static void spdm_protocol_observer_mock_on_get_digests_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct spdm_protocol_observer_mock *mock =
 		(struct spdm_protocol_observer_mock*) observer;
@@ -65,7 +65,7 @@ static void spdm_protocol_observer_mock_on_get_digests_response (
 }
 
 static void spdm_protocol_observer_mock_on_get_certificate_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct spdm_protocol_observer_mock *mock =
 		(struct spdm_protocol_observer_mock*) observer;
@@ -79,7 +79,7 @@ static void spdm_protocol_observer_mock_on_get_certificate_response (
 }
 
 static void spdm_protocol_observer_mock_on_challenge_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct spdm_protocol_observer_mock *mock =
 		(struct spdm_protocol_observer_mock*) observer;
@@ -93,7 +93,7 @@ static void spdm_protocol_observer_mock_on_challenge_response (
 }
 
 static void spdm_protocol_observer_mock_on_get_measurements_response (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct spdm_protocol_observer_mock *mock =
 		(struct spdm_protocol_observer_mock*) observer;
@@ -107,7 +107,7 @@ static void spdm_protocol_observer_mock_on_get_measurements_response (
 }
 
 static void spdm_protocol_observer_mock_on_response_not_ready (
-	struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct spdm_protocol_observer_mock *mock =
 		(struct spdm_protocol_observer_mock*) observer;

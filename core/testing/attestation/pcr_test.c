@@ -2240,7 +2240,7 @@ static void pcr_test_set_measurement_data_remove (CuTest *test)
 
 	status = pcr_set_measurement_data (&pcr, 2, NULL);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrEquals (test, NULL, pcr.measurement_list[2].measured_data);
+	CuAssertPtrEquals (test, NULL, (void*) pcr.measurement_list[2].measured_data);
 
 	complete_pcr_mock_test (test, &pcr, &hash);
 }
@@ -15827,7 +15827,7 @@ static void pcr_test_get_measurement_data_bad_measurement_data_type (CuTest *tes
 	status = pcr_set_measurement_data (&pcr, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	pcr.measurement_list[2].measured_data->type = NUM_PCR_DATA_TYPE;
+	((struct pcr_measured_data*) pcr.measurement_list[2].measured_data)->type = NUM_PCR_DATA_TYPE;
 
 	status = pcr_get_measurement_data (&pcr, 2, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, PCR_INVALID_DATA_TYPE, status);

@@ -8,12 +8,12 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int manifest_cmd_handler_prepare_manifest (struct manifest_cmd_interface *cmd,
+int manifest_cmd_handler_prepare_manifest (const struct manifest_cmd_interface *cmd,
 	uint32_t manifest_size);
-int manifest_cmd_handler_store_manifest (struct manifest_cmd_interface *cmd, const uint8_t *data,
-	size_t length);
-int manifest_cmd_handler_finish_manifest (struct manifest_cmd_interface *cmd, bool activate);
-int manifest_cmd_handler_get_status (struct manifest_cmd_interface *cmd);
+int manifest_cmd_handler_store_manifest (const struct manifest_cmd_interface *cmd,
+	const uint8_t *data, size_t length);
+int manifest_cmd_handler_finish_manifest (const struct manifest_cmd_interface *cmd, bool activate);
+int manifest_cmd_handler_get_status (const struct manifest_cmd_interface *cmd);
 
 void manifest_cmd_handler_execute (const struct event_task_handler *handler,
 	struct event_task_context *context, bool *reset);

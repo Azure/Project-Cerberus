@@ -24,9 +24,9 @@ int cmd_interface_spdm_init (struct cmd_interface_spdm *intf);
 void cmd_interface_spdm_deinit (struct cmd_interface_spdm *intf);
 
 int cmd_interface_spdm_add_spdm_protocol_observer (struct cmd_interface_spdm *intf,
-	struct spdm_protocol_observer *observer);
+	const struct spdm_protocol_observer *observer);
 int cmd_interface_spdm_remove_spdm_protocol_observer (struct cmd_interface_spdm *intf,
-	struct spdm_protocol_observer *observer);
+	const struct spdm_protocol_observer *observer);
 
 
 #define	CMD_HANDLER_SPDM_ERROR(code)					ROT_ERROR (ROT_MODULE_CMD_HANDLER_SPDM, code)

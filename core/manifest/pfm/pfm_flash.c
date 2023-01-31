@@ -7,9 +7,10 @@
 #include "platform_api.h"
 #include "pfm_flash.h"
 #include "pfm_format.h"
+#include "common/buffer_util.h"
+#include "common/unused.h"
 #include "flash/flash_util.h"
 #include "manifest/manifest_flash.h"
-#include "common/buffer_util.h"
 
 
 /**
@@ -19,7 +20,7 @@ static const char *NO_FW_IDS[] = {NULL};
 
 
 static int pfm_flash_verify (struct manifest *pfm, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct pfm_flash *pfm_flash = (struct pfm_flash*) pfm;
 	int status;
@@ -137,6 +138,9 @@ static int pfm_flash_get_platform_id (struct manifest *pfm, char **id, size_t le
 
 static void pfm_flash_free_platform_id (struct manifest *manifest, char *id)
 {
+	UNUSED (manifest);
+	UNUSED (id);
+
 	/* Don't need to do anything.  Manifest allocated buffers use the internal static buffer. */
 }
 
@@ -195,6 +199,8 @@ static void pfm_flash_free_firmware (struct pfm *pfm, struct pfm_firmware *fw)
 {
 	size_t i;
 
+	UNUSED (pfm);
+
 	if ((fw != NULL) && (fw->ids != NULL) && (fw->ids != NO_FW_IDS)) {
 		for (i = 0; i < fw->count; i++) {
 			platform_free ((void*) fw->ids[i]);
@@ -216,6 +222,8 @@ static void pfm_flash_free_firmware (struct pfm *pfm, struct pfm_firmware *fw)
  */
 static int pfm_flash_get_firmware_v1 (struct pfm_flash *pfm, struct pfm_firmware *fw)
 {
+	UNUSED (pfm);
+
 	fw->ids = NO_FW_IDS;
 	fw->count = 1;
 
@@ -332,6 +340,8 @@ static int pfm_flash_get_firmware (struct pfm *pfm, struct pfm_firmware *fw)
 static void pfm_flash_free_fw_versions (struct pfm *pfm, struct pfm_firmware_versions *ver_list)
 {
 	size_t i;
+
+	UNUSED (pfm);
 
 	if ((ver_list != NULL) && (ver_list->versions != NULL)) {
 		for (i = 0; i < ver_list->count; i++) {
@@ -853,6 +863,8 @@ static int pfm_flash_read_multiple_regions_v1 (struct manifest_flash *pfm, size_
 static void pfm_flash_free_read_write_regions (struct pfm *pfm,
 	struct pfm_read_write_regions *writable)
 {
+	UNUSED (pfm);
+
 	if (writable != NULL) {
 		platform_free ((void*) writable->regions);
 		platform_free ((void*) writable->properties);
@@ -1095,6 +1107,8 @@ static int pfm_flash_get_read_write_regions (struct pfm *pfm, const char *fw, co
 static void pfm_flash_free_firmware_images (struct pfm *pfm, struct pfm_image_list *img_list)
 {
 	size_t i;
+
+	UNUSED (pfm);
 
 	if (img_list != NULL) {
 		if (img_list->images_sig != NULL) {
@@ -1504,7 +1518,7 @@ static int pfm_flash_get_firmware_images (struct pfm *pfm, const char *fw, const
  *
  * @return 0 if the PFM instance was initialized successfully or an error code.
  */
-int pfm_flash_init (struct pfm_flash *pfm, struct flash *flash, struct hash_engine *hash,
+int pfm_flash_init (struct pfm_flash *pfm, const struct flash *flash, struct hash_engine *hash,
 	uint32_t base_addr, uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
 	size_t max_platform_id)
 {

@@ -25,8 +25,8 @@
  *
  * @return 0 if the manifest was initialized successfully or an error code.
  */
-int manifest_flash_init (struct manifest_flash *manifest, struct flash *flash, uint32_t base_addr,
-	uint16_t magic_num)
+int manifest_flash_init (struct manifest_flash *manifest, const struct flash *flash,
+	uint32_t base_addr, uint16_t magic_num)
 {
 	return manifest_flash_v2_init (manifest, flash, NULL, base_addr, magic_num,
 		MANIFEST_NOT_SUPPORTED, NULL, 0, NULL, 0);
@@ -49,7 +49,7 @@ int manifest_flash_init (struct manifest_flash *manifest, struct flash *flash, u
  *
  * @return 0 if the manifest was initialized successfully or an error code.
  */
-int manifest_flash_v2_init (struct manifest_flash *manifest, struct flash *flash,
+int manifest_flash_v2_init (struct manifest_flash *manifest, const struct flash *flash,
 	struct hash_engine *hash, uint32_t base_addr, uint16_t magic_num_v1, uint16_t magic_num_v2,
 	uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
 	size_t max_platform_id)
@@ -162,7 +162,7 @@ int manifest_flash_read_header (struct manifest_flash *manifest, struct manifest
  * @return 0 if the manifest is valid or an error code.
  */
 static int manifest_flash_verify_v1 (struct manifest_flash *manifest, struct hash_engine *hash,
-	struct signature_verification *verification, enum hash_type sig_hash, uint8_t *hash_out)
+	const struct signature_verification *verification, enum hash_type sig_hash, uint8_t *hash_out)
 {
 	int status;
 
@@ -193,7 +193,7 @@ static int manifest_flash_verify_v1 (struct manifest_flash *manifest, struct has
  * @return 0 if the manifest is valid or an error code.
  */
 static int manifest_flash_verify_v2 (struct manifest_flash *manifest, struct hash_engine *hash,
-	struct signature_verification *verification, enum hash_type sig_hash, uint8_t *hash_out)
+	const struct signature_verification *verification, enum hash_type sig_hash, uint8_t *hash_out)
 {
 	struct manifest_toc_entry entry;
 	struct manifest_platform_id plat_id_header;
@@ -374,7 +374,7 @@ error:
  * @return 0 if the manifest is valid or an error code.
  */
 int manifest_flash_verify (struct manifest_flash *manifest, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	enum hash_type sig_hash;
 	int status;
@@ -1055,7 +1055,7 @@ uint32_t manifest_flash_get_addr (struct manifest_flash *manifest)
  *
  * @return The flash device for the manifest.
  */
-struct flash* manifest_flash_get_flash (struct manifest_flash *manifest)
+const struct flash* manifest_flash_get_flash (struct manifest_flash *manifest)
 {
 	if (manifest) {
 		return manifest->flash;

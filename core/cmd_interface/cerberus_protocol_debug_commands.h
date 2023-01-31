@@ -16,7 +16,7 @@
 #pragma pack(pop)
 
 
-int cerberus_protocol_debug_fill_log (struct cmd_background *background,
+int cerberus_protocol_debug_fill_log (const struct cmd_background *background,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_attestation_state (struct device_manager *device_mgr,

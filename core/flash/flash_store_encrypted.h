@@ -21,17 +21,17 @@ struct flash_store_encrypted {
 
 
 int flash_store_encrypted_init_fixed_storage (struct flash_store_encrypted *store,
-	struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
 	struct aes_engine *aes, struct rng_engine *rng);
 int flash_store_encrypted_init_fixed_storage_decreasing (struct flash_store_encrypted *store,
-	struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
 	struct aes_engine *aes, struct rng_engine *rng);
 
 int flash_store_encrypted_init_variable_storage (struct flash_store_encrypted *store,
-	struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
 	struct aes_engine *aes, struct rng_engine *rng);
 int flash_store_encrypted_init_variable_storage_decreasing (struct flash_store_encrypted *store,
-	struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
+	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
 	struct aes_engine *aes, struct rng_engine *rng);
 
 void flash_store_encrypted_release (struct flash_store_encrypted *store);

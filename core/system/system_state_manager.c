@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "system_state_manager.h"
+#include "common/unused.h"
 #include "flash/flash_common.h"
 #include "flash/flash_util.h"
 
@@ -45,6 +46,8 @@ static enum manifest_region system_state_manager_get_active_manifest (struct sta
 static int system_state_manager_is_manifest_valid (struct state_manager *manager,
 	uint8_t manifest_index)
 {
+	UNUSED (manager);
+
 	if ((manifest_index != SYSTEM_STATE_MANIFEST_CFM) &&
 		(manifest_index != SYSTEM_STATE_MANIFEST_PCD)) {
 		return STATE_MANAGER_OUT_OF_RANGE;
@@ -78,7 +81,7 @@ static int system_state_manager_restore_default_state (struct state_manager *man
  *
  * @return 0 if the state manager was successfully initialized or an error code.
  */
-int system_state_manager_init (struct state_manager *manager, struct flash *state_flash,
+int system_state_manager_init (struct state_manager *manager, const struct flash *state_flash,
 	uint32_t store_addr)
 {
 	int status;

@@ -1949,7 +1949,7 @@ static void cfm_flash_test_init (CuTest *test)
 
 	CuAssertIntEquals (test, 0x10000, manifest_flash_get_addr (&cfm.test.base_flash));
 	CuAssertPtrEquals (test, &cfm.manifest.flash,
-		manifest_flash_get_flash (&cfm.test.base_flash));
+		(void*) manifest_flash_get_flash (&cfm.test.base_flash));
 
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }

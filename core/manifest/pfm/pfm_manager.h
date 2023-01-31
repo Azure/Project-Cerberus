@@ -51,8 +51,8 @@ struct pfm_manager {
 };
 
 
-int pfm_manager_add_observer (struct pfm_manager *manager, struct pfm_observer *observer);
-int pfm_manager_remove_observer (struct pfm_manager *manager, struct pfm_observer *observer);
+int pfm_manager_add_observer (struct pfm_manager *manager, const struct pfm_observer *observer);
+int pfm_manager_remove_observer (struct pfm_manager *manager, const struct pfm_observer *observer);
 
 /* Internal functions for use by derived types. */
 int pfm_manager_init (struct pfm_manager *manager, struct hash_engine *hash, int port);

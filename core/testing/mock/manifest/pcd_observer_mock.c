@@ -7,7 +7,8 @@
 #include "pcd_observer_mock.h"
 
 
-static void pcd_observer_mock_on_pcd_activated (struct pcd_observer *observer, struct pcd *active)
+static void pcd_observer_mock_on_pcd_activated (const struct pcd_observer *observer,
+	struct pcd *active)
 {
 	struct pcd_observer_mock *mock = (struct pcd_observer_mock*) observer;
 
@@ -19,7 +20,8 @@ static void pcd_observer_mock_on_pcd_activated (struct pcd_observer *observer, s
 		MOCK_ARG_PTR_CALL (active));
 }
 
-static void pcd_observer_mock_on_pcd_verified (struct pcd_observer *observer, struct pcd *pending)
+static void pcd_observer_mock_on_pcd_verified (const struct pcd_observer *observer,
+	struct pcd *pending)
 {
 	struct pcd_observer_mock *mock = (struct pcd_observer_mock*) observer;
 
@@ -31,7 +33,7 @@ static void pcd_observer_mock_on_pcd_verified (struct pcd_observer *observer, st
 		MOCK_ARG_PTR_CALL (pending));
 }
 
-static void pcd_observer_mock_on_clear_active (struct pcd_observer *observer)
+static void pcd_observer_mock_on_clear_active (const struct pcd_observer *observer)
 {
 	struct pcd_observer_mock *mock = (struct pcd_observer_mock*) observer;
 
@@ -42,7 +44,7 @@ static void pcd_observer_mock_on_clear_active (struct pcd_observer *observer)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, pcd_observer_mock_on_clear_active, observer);
 }
 
-static void pcd_observer_mock_on_pcd_activation_request (struct pcd_observer *observer)
+static void pcd_observer_mock_on_pcd_activation_request (const struct pcd_observer *observer)
 {
 	struct pcd_observer_mock *mock = (struct pcd_observer_mock*) observer;
 

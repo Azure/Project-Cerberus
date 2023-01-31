@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "cmd_channel_handler.h"
+#include "common/unused.h"
 
 
 #ifdef CMD_ENABLE_ISSUE_REQUEST
@@ -19,6 +20,8 @@ void cmd_channel_handler_prepare (const struct periodic_task_handler *handler)
 const platform_clock* cmd_channel_handler_get_next_execution (
 	const struct periodic_task_handler *handler)
 {
+	UNUSED (handler);
+
 	return NULL;
 }
 
@@ -66,5 +69,5 @@ int cmd_channel_handler_init (struct cmd_channel_handler *handler, struct cmd_ch
  */
 void cmd_channel_handler_release (const struct cmd_channel_handler *handler)
 {
-
+	UNUSED (handler);
 }

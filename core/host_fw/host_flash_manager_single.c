@@ -5,9 +5,10 @@
 #include <stddef.h>
 #include <string.h>
 #include "host_flash_manager_single.h"
+#include "common/unused.h"
 
 
-static struct spi_flash* host_flash_manager_single_get_read_only_flash (
+static const struct spi_flash* host_flash_manager_single_get_read_only_flash (
 	struct host_flash_manager *manager)
 {
 	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
@@ -19,7 +20,7 @@ static struct spi_flash* host_flash_manager_single_get_read_only_flash (
 	return single->flash;
 }
 
-static struct spi_flash* host_flash_manager_single_get_read_write_flash (
+static const struct spi_flash* host_flash_manager_single_get_read_write_flash (
 	struct host_flash_manager *manager)
 {
 	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
@@ -72,6 +73,8 @@ static int host_flash_manager_single_get_flash_read_write_regions (
 {
 	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
 
+	UNUSED (rw_flash);
+
 	if ((single == NULL) || (pfm == NULL) || (host_rw == NULL)) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
@@ -115,6 +118,8 @@ static int host_flash_manager_single_swap_flash_devices (struct host_flash_manag
 {
 	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
 	int status;
+
+	UNUSED (host_rw);
 
 	if (single == NULL) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
@@ -251,7 +256,7 @@ static int host_flash_manager_single_host_has_flash_access (struct host_flash_ma
  * @return 0 if the manager was successfully initialized or an error code.
  */
 int host_flash_manager_single_init (struct host_flash_manager_single *manager,
-	struct spi_flash *flash, struct host_state_manager *host_state,
+	const struct spi_flash *flash, struct host_state_manager *host_state,
 	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler)
 {
 	if ((manager == NULL) || (flash == NULL) || (host_state == NULL) || (filter == NULL) ||
@@ -304,7 +309,7 @@ int host_flash_manager_single_init (struct host_flash_manager_single *manager,
  * @return 0 if the manager was successfully initialized or an error code.
  */
 int host_flash_manager_single_init_with_managed_flash_initialization (
-	struct host_flash_manager_single *manager, struct spi_flash *flash,
+	struct host_flash_manager_single *manager, const struct spi_flash *flash,
 	struct host_state_manager *host_state, struct spi_filter_interface *filter,
 	struct flash_mfg_filter_handler *mfg_handler, struct host_flash_initialization *flash_init)
 {
@@ -331,5 +336,5 @@ int host_flash_manager_single_init_with_managed_flash_initialization (
  */
 void host_flash_manager_single_release (struct host_flash_manager_single *manager)
 {
-
+	UNUSED (manager);
 }

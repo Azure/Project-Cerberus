@@ -6,6 +6,7 @@
 #include <string.h>
 #include "host_state_manager.h"
 #include "host_state_observer.h"
+#include "common/unused.h"
 #include "flash/flash_common.h"
 #include "flash/flash_util.h"
 
@@ -29,6 +30,8 @@ static int host_state_manager_save_active_manifest (struct state_manager *manage
 	struct host_state_manager *host_state = (struct host_state_manager*) manager;
 	int status;
 
+	UNUSED (manifest_index);
+
 	status = state_manager_save_active_manifest (manager, active, ACTIVE_PFM_MASK);
 	if (status == 0) {
 		if (status == 0) {
@@ -43,6 +46,8 @@ static int host_state_manager_save_active_manifest (struct state_manager *manage
 static enum manifest_region host_state_manager_get_active_manifest (struct state_manager *manager,
 	uint8_t manifest_index)
 {
+	UNUSED (manifest_index);
+
 	return state_manager_get_active_manifest (manager, ACTIVE_PFM_MASK);
 }
 
@@ -85,6 +90,9 @@ static int host_state_manager_restore_default_state (struct state_manager *manag
 static int host_state_manager_is_manifest_valid (struct state_manager *manager,
 	uint8_t manifest_index)
 {
+	UNUSED (manager);
+	UNUSED (manifest_index);
+
 	return 0;
 }
 
@@ -99,7 +107,7 @@ static int host_state_manager_is_manifest_valid (struct state_manager *manager,
  *
  * @return 0 if the state manager was successfully initialized or an error code.
  */
-int host_state_manager_init (struct host_state_manager *manager, struct flash *state_flash,
+int host_state_manager_init (struct host_state_manager *manager, const struct flash *state_flash,
 	uint32_t store_addr)
 {
 	int status;

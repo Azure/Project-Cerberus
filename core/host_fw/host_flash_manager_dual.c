@@ -6,9 +6,10 @@
 #include <string.h>
 #include "host_flash_manager_dual.h"
 #include "host_fw_util.h"
+#include "common/unused.h"
 
 
-static struct spi_flash* host_flash_manager_dual_get_read_only_flash (
+static const struct spi_flash* host_flash_manager_dual_get_read_only_flash (
 	struct host_flash_manager *manager)
 {
 	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
@@ -25,7 +26,7 @@ static struct spi_flash* host_flash_manager_dual_get_read_only_flash (
 	}
 }
 
-static struct spi_flash* host_flash_manager_dual_get_read_write_flash (
+static const struct spi_flash* host_flash_manager_dual_get_read_write_flash (
 	struct host_flash_manager *manager)
 {
 	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
@@ -196,8 +197,8 @@ static int host_flash_manager_dual_initialize_flash_protection (struct host_flas
 {
 	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
 	spi_filter_cs ro;
-	struct spi_flash *ro_flash;
-	struct spi_flash *rw_flash;
+	const struct spi_flash *ro_flash;
+	const struct spi_flash *rw_flash;
 	int status;
 	int addr_4byte;
 
@@ -319,8 +320,8 @@ static int host_flash_manager_dual_host_has_flash_access (struct host_flash_mana
  *
  * @return 0 if the manager was successfully initialized or an error code.
  */
-int host_flash_manager_dual_init (struct host_flash_manager_dual *manager, struct spi_flash *cs0,
-	struct spi_flash *cs1, struct host_state_manager *host_state,
+int host_flash_manager_dual_init (struct host_flash_manager_dual *manager,
+	const struct spi_flash *cs0, const struct spi_flash *cs1, struct host_state_manager *host_state,
 	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler)
 {
 	if ((manager == NULL) || (cs0 == NULL) || (cs1 == NULL) || (host_state == NULL) ||
@@ -374,9 +375,10 @@ int host_flash_manager_dual_init (struct host_flash_manager_dual *manager, struc
  * @return 0 if the manager was successfully initialized or an error code.
  */
 int host_flash_manager_dual_init_with_managed_flash_initialization (
-	struct host_flash_manager_dual *manager, struct spi_flash *cs0, struct spi_flash *cs1,
-	struct host_state_manager *host_state, struct spi_filter_interface *filter,
-	struct flash_mfg_filter_handler *mfg_handler, struct host_flash_initialization *flash_init)
+	struct host_flash_manager_dual *manager, const struct spi_flash *cs0,
+	const struct spi_flash *cs1, struct host_state_manager *host_state,
+	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler,
+	struct host_flash_initialization *flash_init)
 {
 	int status;
 
@@ -401,5 +403,5 @@ int host_flash_manager_dual_init_with_managed_flash_initialization (
  */
 void host_flash_manager_dual_release (struct host_flash_manager_dual *manager)
 {
-
+	UNUSED (manager);
 }

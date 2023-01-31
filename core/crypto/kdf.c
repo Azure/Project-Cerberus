@@ -1,7 +1,6 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdint.h>
-#include <math.h>
 #include "platform_api.h"
 #include "common/common_math.h"
 #include "kdf.h"
@@ -19,7 +18,7 @@
  * @param context Buffer containing context used as input to the KDF. Set to NULL if not used.
  * @param context_len Context length.
  * @param key Buffer to store generated key.
- * @param key_len Ouptut key length.
+ * @param key_len Output key length.
  *
  * @return Completion status, 0 if success or an error code.
  */
@@ -32,10 +31,10 @@ int kdf_nist800_108_counter_mode (struct hash_engine *hash, enum hmac_hash hash_
 	uint32_t hash_len;
 	uint32_t copy_len;
 	uint32_t L = key_len * 8;
-	uint32_t h;
 	uint32_t i;
+	uint32_t rounds;
 	uint32_t temp;
-	uint8_t hash_buf[SHA256_HASH_LENGTH];
+	uint8_t hash_buf[SHA512_HASH_LENGTH];
 	uint8_t separator = 0x00;
 	int status;
 
@@ -43,23 +42,19 @@ int kdf_nist800_108_counter_mode (struct hash_engine *hash, enum hmac_hash hash_
 		return KDF_INVALID_ARGUMENT;
 	}
 
-	switch (hash_type) {
-		case HMAC_SHA1:
-			hash_len = SHA1_HASH_LENGTH;
-			break;
-
-		case HMAC_SHA256:
-			hash_len = SHA256_HASH_LENGTH;
-			break;
-
-		default:
-			return KDF_OPERATION_UNSUPPORTED;
+	hash_len = hash_hmac_get_hmac_length (hash_type);
+	if (hash_len == HASH_ENGINE_UNKNOWN_HASH) {
+		return KDF_OPERATION_UNSUPPORTED;
 	}
 
-	h = hash_len * 8;
+	rounds = key_len / hash_len;
+	if ((key_len % hash_len) != 0) {
+		rounds++;
+	}
+
 	memset (key, 0, key_len);
 
-	for (i = 1; i <= ceil ((L * 1.0) / h); ++i) {
+	for (i = 1; i <= rounds; ++i) {
 		status = hash_hmac_init (&hmac, hash, hash_type, key_derivation_key,
 			key_derivation_key_len);
 		if (status != 0) {

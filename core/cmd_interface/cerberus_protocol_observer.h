@@ -21,7 +21,7 @@ struct cerberus_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param response The response container received.
 	 */
-	void (*on_get_digest_response) (struct cerberus_protocol_observer *observer,
+	void (*on_get_digest_response) (const struct cerberus_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -32,7 +32,7 @@ struct cerberus_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param response The response container received.
 	 */
-	void (*on_get_certificate_response) (struct cerberus_protocol_observer *observer,
+	void (*on_get_certificate_response) (const struct cerberus_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -43,7 +43,7 @@ struct cerberus_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param response The response container received.
 	 */
-	void (*on_challenge_response) (struct cerberus_protocol_observer *observer,
+	void (*on_challenge_response) (const struct cerberus_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -54,7 +54,7 @@ struct cerberus_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param response The response container received.
 	 */
-	void (*on_device_capabilities) (struct cerberus_protocol_observer *observer,
+	void (*on_device_capabilities) (const struct cerberus_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 };
 

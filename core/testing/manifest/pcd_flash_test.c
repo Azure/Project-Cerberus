@@ -1857,7 +1857,8 @@ static void pcd_flash_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, pcd.test.base.get_power_controller_info);
 
 	CuAssertIntEquals (test, 0x10000, manifest_flash_get_addr (&pcd.test.base_flash));
-	CuAssertPtrEquals (test, &pcd.manifest.flash, manifest_flash_get_flash (&pcd.test.base_flash));
+	CuAssertPtrEquals (test, &pcd.manifest.flash,
+		(void*) manifest_flash_get_flash (&pcd.test.base_flash));
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }

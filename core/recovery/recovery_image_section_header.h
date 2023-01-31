@@ -26,7 +26,7 @@ struct recovery_image_section_header {
 
 
 int recovery_image_section_header_init (struct recovery_image_section_header *header,
-	struct flash *flash, uint32_t addr);
+	const struct flash *flash, uint32_t addr);
 void recovery_image_section_header_release (struct recovery_image_section_header *header);
 
 int recovery_image_section_header_get_length (struct recovery_image_section_header *header,

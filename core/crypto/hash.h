@@ -250,6 +250,15 @@ int hash_hmac_update (struct hmac_engine *engine, const uint8_t *data, size_t le
 int hash_hmac_finish (struct hmac_engine *engine, uint8_t *hmac, size_t hmac_length);
 void hash_hmac_cancel (struct hmac_engine *engine);
 
+/**
+ * Determine the output length for an HMAC.
+ *
+ * @param type The type of hash used to generate the hmac.  This should be an enum hmac_hash value.
+ *
+ * @return HMAC length if the hash algorithm or HASH_ENGINE_UNKNOWN_HASH.
+ */
+#define	hash_hmac_get_hmac_length(type)	hash_get_hash_length ((enum hash_type) (type))
+
 
 #define	HASH_ENGINE_ERROR(code)		ROT_ERROR (ROT_MODULE_HASH_ENGINE, code)
 

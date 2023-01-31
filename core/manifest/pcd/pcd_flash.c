@@ -9,11 +9,12 @@
 #include "pcd_format.h"
 #include "flash/flash_util.h"
 #include "cmd_interface/device_manager.h"
+#include "common/unused.h"
 #include "manifest/manifest_flash.h"
 
 
 static int pcd_flash_verify (struct manifest *pcd, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length)
 {
 	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
 
@@ -49,6 +50,9 @@ static int pcd_flash_get_platform_id (struct manifest *pcd, char **id, size_t le
 
 static void pcd_flash_free_platform_id (struct manifest *manifest, char *id)
 {
+	UNUSED (manifest);
+	UNUSED (id);
+
 	/* Don't need to do anything.  Manifest allocated buffers use the internal static buffer. */
 }
 
@@ -338,7 +342,7 @@ static int pcd_flash_get_next_mctp_bridge_component (struct pcd *pcd,
  *
  * @return 0 if the PCD instance was initialized successfully or an error code.
  */
-int pcd_flash_init (struct pcd_flash *pcd, struct flash *flash, struct hash_engine *hash,
+int pcd_flash_init (struct pcd_flash *pcd, const struct flash *flash, struct hash_engine *hash,
 	uint32_t base_addr, uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
 	size_t max_platform_id)
 {

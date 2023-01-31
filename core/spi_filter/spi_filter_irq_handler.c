@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "spi_filter_irq_handler.h"
+#include "common/unused.h"
 #include "host_fw/host_state_manager.h"
 
 
@@ -46,5 +47,5 @@ int spi_filter_irq_handler_init (struct spi_filter_irq_handler *handler,
  */
 void spi_filter_irq_handler_release (struct spi_filter_irq_handler *handler)
 {
-
+	UNUSED (handler);
 }

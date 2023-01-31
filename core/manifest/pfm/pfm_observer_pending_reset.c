@@ -5,14 +5,18 @@
 #include <stddef.h>
 #include <string.h>
 #include "pfm_observer_pending_reset.h"
+#include "common/unused.h"
 #include "manifest/manifest_logging.h"
 
 
-static void pfm_observer_pending_reset_on_pfm_verified (struct pfm_observer *observer,
+static void pfm_observer_pending_reset_on_pfm_verified (const struct pfm_observer *observer,
 	struct pfm *pending)
 {
-	struct pfm_observer_pending_reset *reset = (struct pfm_observer_pending_reset*) observer;
+	const struct pfm_observer_pending_reset *reset =
+		(const struct pfm_observer_pending_reset*) observer;
 	int status;
+
+	UNUSED (pending);
 
 	status = reset->control->hold_processor_in_reset (reset->control, true);
 	if (status != 0) {
@@ -21,7 +25,7 @@ static void pfm_observer_pending_reset_on_pfm_verified (struct pfm_observer *obs
 	}
 }
 
-static void pfm_observer_pending_reset_on_clear_active (struct pfm_observer *observer)
+static void pfm_observer_pending_reset_on_clear_active (const struct pfm_observer *observer)
 {
 	pfm_observer_pending_reset_on_pfm_verified (observer, NULL);
 }
@@ -58,5 +62,5 @@ int pfm_observer_pending_reset_init (struct pfm_observer_pending_reset *observer
  */
 void pfm_observer_pending_reset_release (struct pfm_observer_pending_reset *observer)
 {
-
+	UNUSED (observer);
 }

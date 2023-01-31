@@ -2535,9 +2535,9 @@ static void manifest_verification_test_release_null (CuTest *test)
 static void manifest_verification_test_get_observers (CuTest *test)
 {
 	struct manifest_verification_testing verification;
-	struct pfm_observer *pfm;
-	struct cfm_observer *cfm;
-	struct pcd_observer *pcd;
+	const struct pfm_observer *pfm;
+	const struct cfm_observer *cfm;
+	const struct pcd_observer *pcd;
 
 	TEST_START;
 
@@ -2585,32 +2585,32 @@ static void manifest_verification_test_get_observers (CuTest *test)
 
 static void manifest_verification_test_get_pfm_observer_null (CuTest *test)
 {
-	struct pfm_observer *pfm;
+	const struct pfm_observer *pfm;
 
 	TEST_START;
 
 	pfm = manifest_verification_get_pfm_observer (NULL);
-	CuAssertPtrEquals (test, NULL, pfm);
+	CuAssertPtrEquals (test, NULL, (void*) pfm);
 }
 
 static void manifest_verification_test_get_cfm_observer_null (CuTest *test)
 {
-	struct cfm_observer *cfm;
+	const struct cfm_observer *cfm;
 
 	TEST_START;
 
 	cfm = manifest_verification_get_cfm_observer (NULL);
-	CuAssertPtrEquals (test, NULL, cfm);
+	CuAssertPtrEquals (test, NULL, (void*) cfm);
 }
 
 static void manifest_verification_test_get_pcd_observer_null (CuTest *test)
 {
-	struct pcd_observer *pcd;
+	const struct pcd_observer *pcd;
 
 	TEST_START;
 
 	pcd = manifest_verification_get_pcd_observer (NULL);
-	CuAssertPtrEquals (test, NULL, pcd);
+	CuAssertPtrEquals (test, NULL, (void*) pcd);
 }
 
 static void manifest_verification_test_verify_signature_no_key_stored (CuTest *test)
@@ -3362,7 +3362,7 @@ static void manifest_verification_test_is_key_valid (CuTest *test)
 static void manifest_verification_test_on_pfm_activated_no_key_stored (CuTest *test)
 {
 	struct manifest_verification_testing verification;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -3378,7 +3378,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored (CuTest *test
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -3418,7 +3418,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_ecc (CuTest *
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -3459,7 +3459,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_sha384 (CuTes
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	uint8_t pfm_hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
@@ -3502,7 +3502,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_sha512 (CuTes
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	uint8_t pfm_hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
@@ -3545,7 +3545,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_match_default
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -3589,7 +3589,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_match_default
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -3633,7 +3633,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_match_default
 static void manifest_verification_test_on_pfm_activated_key_stored_higher_id (CuTest *test)
 {
 	struct manifest_verification_testing verification;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -3649,7 +3649,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_higher_id (Cu
 static void manifest_verification_test_on_pfm_activated_key_stored_same_id (CuTest *test)
 {
 	struct manifest_verification_testing verification;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -3668,7 +3668,7 @@ static void manifest_verification_test_on_pfm_activated_static_init_no_key_store
 	struct manifest_verification test_static = manifest_verification_static_init (
 		&verification.state, &verification.hash.base, &verification.verify_mock.base,
 		&verification.manifest_key, &verification.keystore.base, 1);
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int status;
 
 	TEST_START;
@@ -3693,7 +3693,7 @@ static void manifest_verification_test_on_pfm_activated_static_init_key_stored (
 	struct manifest_verification test_static = manifest_verification_static_init (
 		&verification.state, &verification.hash.base, &verification.verify_mock.base,
 		&verification.manifest_key, &verification.keystore.base, 1);
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int status;
 
 	TEST_START;
@@ -3742,7 +3742,7 @@ static void manifest_verification_test_on_pfm_activated_static_init_key_stored_h
 	struct manifest_verification test_static = manifest_verification_static_init (
 		&verification.state, &verification.hash.base, &verification.verify_mock.base,
 		&verification.manifest_key, &verification.keystore.base, 1);
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int status;
 
 	TEST_START;
@@ -3768,7 +3768,7 @@ static void manifest_verification_test_on_pfm_activated_static_init_key_stored_s
 	struct manifest_verification test_static = manifest_verification_static_init (
 		&verification.state, &verification.hash.base, &verification.verify_mock.base,
 		&verification.manifest_key, &verification.keystore.base, 1);
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int status;
 
 	TEST_START;
@@ -3791,7 +3791,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_hash_error (C
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
 		.severity = DEBUG_LOG_SEVERITY_ERROR,
@@ -3827,7 +3827,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_signature_err
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
 		.severity = DEBUG_LOG_SEVERITY_ERROR,
@@ -3868,7 +3868,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_set_key_error
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
 		.severity = DEBUG_LOG_SEVERITY_ERROR,
@@ -3916,7 +3916,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_verify_error 
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
 		.severity = DEBUG_LOG_SEVERITY_ERROR,
@@ -3969,7 +3969,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_save_error (C
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
 		.severity = DEBUG_LOG_SEVERITY_ERROR,
@@ -4025,7 +4025,7 @@ static void manifest_verification_test_on_pfm_activated_key_stored_save_error (C
 static void manifest_verification_test_on_cfm_activated_no_key_stored (CuTest *test)
 {
 	struct manifest_verification_testing verification;
-	struct cfm_observer *observer;
+	const struct cfm_observer *observer;
 
 	TEST_START;
 
@@ -4041,7 +4041,7 @@ static void manifest_verification_test_on_cfm_activated_key_stored (CuTest *test
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct cfm_observer *observer;
+	const struct cfm_observer *observer;
 
 	TEST_START;
 
@@ -4081,7 +4081,7 @@ static void manifest_verification_test_on_cfm_activated_key_stored_match_default
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct cfm_observer *observer;
+	const struct cfm_observer *observer;
 
 	TEST_START;
 
@@ -4124,7 +4124,7 @@ static void manifest_verification_test_on_cfm_activated_key_stored_match_default
 static void manifest_verification_test_on_pcd_activated_no_key_stored (CuTest *test)
 {
 	struct manifest_verification_testing verification;
-	struct pcd_observer *observer;
+	const struct pcd_observer *observer;
 
 	TEST_START;
 
@@ -4140,7 +4140,7 @@ static void manifest_verification_test_on_pcd_activated_key_stored (CuTest *test
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pcd_observer *observer;
+	const struct pcd_observer *observer;
 
 	TEST_START;
 
@@ -4180,7 +4180,7 @@ static void manifest_verification_test_on_pcd_activated_key_stored_match_default
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pcd_observer *observer;
+	const struct pcd_observer *observer;
 
 	TEST_START;
 
@@ -4257,7 +4257,7 @@ static void manifest_verification_test_after_default_activated_verify_signature 
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -4343,7 +4343,7 @@ static void manifest_verification_test_after_default_activated_on_pfm_activated 
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -4395,7 +4395,7 @@ static void manifest_verification_test_after_default_activated_on_update_start (
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int update_status;
 
 	TEST_START;
@@ -4451,7 +4451,7 @@ static void manifest_verification_test_after_default_activated_hash_error_verify
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -4529,7 +4529,7 @@ static void manifest_verification_test_after_default_activated_hash_error_on_upd
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int update_status;
 
 	TEST_START;
@@ -4566,7 +4566,7 @@ static void manifest_verification_test_after_default_activated_signature_error_v
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -4649,7 +4649,7 @@ static void manifest_verification_test_after_default_activated_signature_error_o
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int update_status;
 
 	TEST_START;
@@ -4691,7 +4691,7 @@ static void manifest_verification_test_after_default_activated_set_key_error_ver
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -4781,7 +4781,7 @@ static void manifest_verification_test_after_default_activated_set_key_error_on_
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int update_status;
 
 	TEST_START;
@@ -4830,7 +4830,7 @@ static void manifest_verification_test_after_default_activated_verify_error_veri
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -4925,7 +4925,7 @@ static void manifest_verification_test_after_default_activated_verify_error_on_u
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int update_status;
 
 	TEST_START;
@@ -4979,7 +4979,7 @@ static void manifest_verification_test_after_default_activated_save_error_verify
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -5068,7 +5068,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_pfm
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -5173,7 +5173,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_pfm
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 
@@ -5281,7 +5281,7 @@ static void manifest_verification_test_after_default_activated_save_error_twice_
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
 		.severity = DEBUG_LOG_SEVERITY_ERROR,
@@ -5417,7 +5417,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int update_status;
 
 	TEST_START;
@@ -5525,7 +5525,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int update_status;
 
 	TEST_START;
@@ -5636,7 +5636,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int update_status;
 	struct debug_log_entry_info entry = {
 		.format = DEBUG_LOG_ENTRY_FORMAT,
@@ -5725,7 +5725,7 @@ static void manifest_verification_test_after_default_activated_save_error_on_upd
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 	int update_status;
 
 	TEST_START;
@@ -5802,7 +5802,7 @@ static void manifest_verification_test_after_default_activated_match_stored (CuT
 {
 	struct manifest_verification_testing verification;
 	int status;
-	struct pfm_observer *observer;
+	const struct pfm_observer *observer;
 
 	TEST_START;
 

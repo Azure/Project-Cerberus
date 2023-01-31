@@ -5,6 +5,7 @@
 #define CMD_CHANNEL_HANDLER_STATIC_H_
 
 #include "platform_api.h"
+#include "cmd_interface/cmd_channel_handler.h"
 
 
 /* Internal functions declared to allow for static initialization. */

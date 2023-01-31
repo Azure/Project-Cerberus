@@ -84,7 +84,7 @@ void periodic_task_freertos_release (const struct periodic_task_freertos *task)
 static void periodic_task_freertos_loop (struct periodic_task_freertos *task)
 {
 	int status;
-	int last_error;
+	int last_error = 0;
 
 	periodic_task_prepare_handlers (task->handlers, task->num_handlers);
 

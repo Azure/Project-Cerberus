@@ -6,6 +6,7 @@
 #include <string.h>
 #include "flash_updater.h"
 #include "flash_util.h"
+#include "common/unused.h"
 
 
 /**
@@ -81,7 +82,7 @@ int flash_updater_init_sector (struct flash_updater *updater, const struct flash
  */
 void flash_updater_release (struct flash_updater *updater)
 {
-
+	UNUSED (updater);
 }
 
 /**

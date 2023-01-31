@@ -23,7 +23,7 @@ int pcd_observer_pcr_init (struct pcd_observer_pcr *observer, struct hash_engine
 	uint16_t platform_id_measurement);
 void pcd_observer_pcr_release (struct pcd_observer_pcr *observer);
 
-void pcd_observer_pcr_record_measurement (struct pcd_observer_pcr *observer,
+void pcd_observer_pcr_record_measurement (const struct pcd_observer_pcr *observer,
 	struct pcd_manager *manager);
 
 

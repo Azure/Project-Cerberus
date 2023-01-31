@@ -22,7 +22,7 @@ struct firmware_update_observer {
 	 * If this value is not 0 upon being called, the value should not be changed by an observer and
 	 * any notification processing may optionally be skipped.
 	 */
-	void (*on_update_start) (struct firmware_update_observer *observer, int *update_allowed);
+	void (*on_update_start) (const struct firmware_update_observer *observer, int *update_allowed);
 };
 
 

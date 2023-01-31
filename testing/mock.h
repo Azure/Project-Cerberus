@@ -97,6 +97,10 @@ enum {
 	MOCK_ARG_FLAG_PTR_PTR = 0x20,			/**< The argument is a pointer to a pointer that should be dereferenced. */
 	MOCK_ARG_FLAG_PTR_PTR_NOT_NULL = 0x40,	/**< The pointer referenced by the pointer argument can be anything except NULL (0). */
 	MOCK_ARG_FLAG_OUT_PTR_PTR = 0x80,		/**< The argument output data should be stored at a pointer referenced by another pointer. */
+	MOCK_ARG_FLAG_GREATER_EQUAL = 0x100,	/**< Check that an argument is at least a specific value. */
+	MOCK_ARG_FLAG_GREATER = 0x200,			/**< Check that an argument is larger than a specific value. */
+	MOCK_ARG_FLAG_LESS_EQUAL = 0x400,		/**< Check that an argument is no more than a specific value. */
+	MOCK_ARG_FLAG_LESS = 0x800,				/**< Check that an argument is less than a specific value. */
 };
 
 struct mock_call;
@@ -229,6 +233,62 @@ struct mock_expect_arg {
 	.validate = NULL, \
 	.save_arg = -1, \
 	.flags = MOCK_ARG_FLAG_ANY_VALUE, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
+
+/**
+ * Expectation that an argument will be at least a specific value.  This will be treated as a signed
+ * integer value.
+ */
+#define MOCK_ARG_AT_LEAST(x)	((struct mock_expect_arg) { \
+	.value = (int64_t) x, \
+	.ptr_value_len = 0, \
+	.validate = NULL, \
+	.save_arg = -1, \
+	.flags = MOCK_ARG_FLAG_GREATER_EQUAL, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
+
+/**
+ * Expectation that an argument will be larger than a specific value.  This will be treated as a
+ * signed integer value.
+ */
+#define MOCK_ARG_MORE_THAN(x)	((struct mock_expect_arg) { \
+	.value = (int64_t) x, \
+	.ptr_value_len = 0, \
+	.validate = NULL, \
+	.save_arg = -1, \
+	.flags = MOCK_ARG_FLAG_GREATER, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
+
+/**
+ * Expectation that an argument will be no larger than a specific value.  This will be treated as a
+ * signed integer value.
+ */
+#define MOCK_ARG_NO_MORE_THAN(x)	((struct mock_expect_arg) { \
+	.value = (int64_t) x, \
+	.ptr_value_len = 0, \
+	.validate = NULL, \
+	.save_arg = -1, \
+	.flags = MOCK_ARG_FLAG_LESS_EQUAL, \
+	.alloc = NULL, \
+	.free = NULL, \
+	.copy = NULL})
+
+/**
+ * Expectation that an argument will be less than a specific value.  This will be treated as a
+ * signed integer value.
+ */
+#define MOCK_ARG_LESS_THAN(x)	((struct mock_expect_arg) { \
+	.value = (int64_t) x, \
+	.ptr_value_len = 0, \
+	.validate = NULL, \
+	.save_arg = -1, \
+	.flags = MOCK_ARG_FLAG_LESS, \
 	.alloc = NULL, \
 	.free = NULL, \
 	.copy = NULL})

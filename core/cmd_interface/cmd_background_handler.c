@@ -10,6 +10,7 @@
 #include "cmd_background_handler.h"
 #include "cmd_logging.h"
 #include "common/type_cast.h"
+#include "common/unused.h"
 #include "flash/flash_common.h"
 #include "logging/logging_flash.h"
 #include "riot/riot_logging.h"
@@ -285,6 +286,8 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 		const struct cmd_background_handler, base_event);
 	int *op_status = NULL;
 	int status = CMD_BACKGROUND_UNSUPPORTED_OP;
+
+	UNUSED (reset);
 
 	switch (context->action) {
 #ifdef CMD_ENABLE_UNSEAL
@@ -614,7 +617,7 @@ int cmd_background_handler_init_state (const struct cmd_background_handler *hand
  */
 void cmd_background_handler_release (const struct cmd_background_handler *handler)
 {
-
+	UNUSED (handler);
 }
 
 /**
@@ -647,6 +650,9 @@ int cmd_background_handler_generate_aux_key (const struct cmd_background_handler
 
 	return status;
 #else
+	UNUSED (handler);
+	UNUSED (aux);
+
 	return CMD_BACKGROUND_UNSUPPORTED_REQUEST;
 #endif
 }

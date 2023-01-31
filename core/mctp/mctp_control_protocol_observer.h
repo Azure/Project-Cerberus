@@ -20,7 +20,7 @@ struct mctp_control_protocol_observer {
 	 *
 	 * @param observer The observer instance being notified.
 	 */
-	void (*on_set_eid_request) (struct mctp_control_protocol_observer *observer);
+	void (*on_set_eid_request) (const struct mctp_control_protocol_observer *observer);
 
 	/**
 	 * Notification that a get message type response message has been received.
@@ -30,7 +30,7 @@ struct mctp_control_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_get_message_type_response) (struct mctp_control_protocol_observer *observer,
+	void (*on_get_message_type_response) (const struct mctp_control_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -41,7 +41,7 @@ struct mctp_control_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_get_vendor_def_msg_response) (struct mctp_control_protocol_observer *observer,
+	void (*on_get_vendor_def_msg_response) (const struct mctp_control_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -52,7 +52,8 @@ struct mctp_control_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_get_routing_table_entries_response) (struct mctp_control_protocol_observer *observer,
+	void (*on_get_routing_table_entries_response) (
+		const struct mctp_control_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -63,7 +64,7 @@ struct mctp_control_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_discovery_notify_response) (struct mctp_control_protocol_observer *observer,
+	void (*on_discovery_notify_response) (const struct mctp_control_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 };
 

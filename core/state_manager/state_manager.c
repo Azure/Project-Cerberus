@@ -32,7 +32,7 @@
  * @return 0 if the state was successfully initialized or an error code.
  */
 static int state_manager_init_single_byte_state (struct state_manager *manager,
-	struct flash *state_flash, uint32_t store_addr, uint32_t sector_size, int *offset)
+	const struct flash *state_flash, uint32_t store_addr, uint32_t sector_size, int *offset)
 {
 	uint8_t nv_state = 0xff;
 	int status;
@@ -145,7 +145,7 @@ static uint16_t state_manager_read_state_bits (uint16_t *entry, bool *error, boo
  * @return 0 if the state was successfully initialized or an error code.
  */
 static int state_manager_init_multi_byte_state (struct state_manager *manager,
-	struct flash *state_flash, uint32_t store_addr, uint32_t sector_size, int *offset,
+	const struct flash *state_flash, uint32_t store_addr, uint32_t sector_size, int *offset,
 	bool *bit_error, bool *refresh_state)
 {
 	uint16_t stored[4];
@@ -210,7 +210,7 @@ static void state_manager_set_next_sector_write_offset (struct state_manager *ma
  *
  * @return 0 if the state manager was successfully initialized or an error code.
  */
-int state_manager_init (struct state_manager *manager, struct flash *state_flash,
+int state_manager_init (struct state_manager *manager, const struct flash *state_flash,
 	uint32_t store_addr)
 {
 	int offset;

@@ -177,9 +177,9 @@ int firmware_update_restore_active_image (const struct firmware_update *updater)
 int firmware_update_recovery_matches_active_image (const struct firmware_update *updater);
 
 int firmware_update_add_observer (const struct firmware_update *updater,
-	struct firmware_update_observer *observer);
+	const struct firmware_update_observer *observer);
 int firmware_update_remove_observer (const struct firmware_update *updater,
-	struct firmware_update_observer *observer);
+	const struct firmware_update_observer *observer);
 
 int firmware_update_run_update (const struct firmware_update *updater,
 	const struct firmware_update_notification *callback);

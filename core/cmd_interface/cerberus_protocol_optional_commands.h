@@ -931,59 +931,57 @@ struct cerberus_protocol_session_sync_response {
 #pragma pack(pop)
 
 
-int cerberus_protocol_fw_update_init (struct firmware_update_control *control,
+int cerberus_protocol_fw_update_init (const struct firmware_update_control *control,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_fw_update (struct firmware_update_control *control,
+int cerberus_protocol_fw_update (const struct firmware_update_control *control,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_fw_update_start (struct firmware_update_control *control,
+int cerberus_protocol_fw_update_start (const struct firmware_update_control *control,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_log_info (struct pcr_store *pcr_store,
 	struct cmd_interface_msg *request);
 int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine *hash,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_log_clear (struct cmd_background *background,
+int cerberus_protocol_log_clear (const struct cmd_background *background,
 	struct cmd_interface_msg *request);
 
-int cerberus_protocol_get_pfm_id (struct pfm_manager* pfm_mgr[], uint8_t num_ports,
+int cerberus_protocol_get_pfm_id (const struct pfm_manager* pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_get_pfm_fw (struct pfm_manager* pfm_mgr[], uint8_t num_ports,
+int cerberus_protocol_get_pfm_fw (const struct pfm_manager* pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request);
 
-struct manifest_cmd_interface* cerberus_protocol_get_pfm_cmd_interface (
-	struct manifest_cmd_interface *pfm_0, struct manifest_cmd_interface *pfm_1, uint8_t port);
-
-int cerberus_protocol_pfm_update_init (struct manifest_cmd_interface* pfm_cmd[], uint8_t num_ports,
+int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface* pfm_cmd[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
+int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *pfm_cmd[], uint8_t num_ports,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_pfm_update (struct manifest_cmd_interface *pfm_cmd[], uint8_t num_ports,
-	struct cmd_interface_msg *request);
-int cerberus_protocol_pfm_update_complete (struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_host_reset_status (struct host_control *host_0_ctrl,
 	struct host_control *host_1_ctrl, struct cmd_interface_msg *request);
 
-int cerberus_protocol_unseal_message (struct cmd_background *background,
+int cerberus_protocol_unseal_message (const struct cmd_background *background,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_unseal_message_result (struct cmd_background *background,
+int cerberus_protocol_unseal_message_result (const struct cmd_background *background,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
-	struct cmd_background *background, struct cmd_interface_msg *request);
+	const struct cmd_background *background, struct cmd_interface_msg *request);
 
-struct recovery_image_cmd_interface* cerberus_protocol_get_recovery_image_cmd_interface (
-	struct recovery_image_cmd_interface *recovery_0,
-	struct recovery_image_cmd_interface *recovery_1, uint8_t port);
+const struct recovery_image_cmd_interface* cerberus_protocol_get_recovery_image_cmd_interface (
+	const struct recovery_image_cmd_interface *recovery_0,
+	const struct recovery_image_cmd_interface *recovery_1, uint8_t port);
 struct recovery_image_manager* cerberus_protocol_get_recovery_image_manager (
 	struct recovery_image_manager *recovery_manager_0,
 	struct recovery_image_manager *recovery_manager_1, uint8_t port);
 
-int cerberus_protocol_prepare_recovery_image ( struct recovery_image_cmd_interface *recovery_0,
-	struct recovery_image_cmd_interface *recovery_1, struct cmd_interface_msg *request);
-int cerberus_protocol_update_recovery_image (struct recovery_image_cmd_interface *recovery_0,
-	struct recovery_image_cmd_interface *recovery_1, struct cmd_interface_msg *request);
-int cerberus_protocol_activate_recovery_image (struct recovery_image_cmd_interface *recovery_0,
-	struct recovery_image_cmd_interface *recovery_1, struct cmd_interface_msg *request);
+int cerberus_protocol_prepare_recovery_image (const struct recovery_image_cmd_interface *recovery_0,
+	const struct recovery_image_cmd_interface *recovery_1, struct cmd_interface_msg *request);
+int cerberus_protocol_update_recovery_image (const struct recovery_image_cmd_interface *recovery_0,
+	const struct recovery_image_cmd_interface *recovery_1, struct cmd_interface_msg *request);
+int cerberus_protocol_activate_recovery_image (
+	const struct recovery_image_cmd_interface *recovery_0,
+	const struct recovery_image_cmd_interface *recovery_1, struct cmd_interface_msg *request);
 int cerberus_protocol_get_recovery_image_id (struct recovery_image_manager *manager_0,
 	struct recovery_image_manager *manager_1, struct cmd_interface_msg *request);
 

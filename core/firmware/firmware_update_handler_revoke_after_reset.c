@@ -7,6 +7,7 @@
 #include "firmware_logging.h"
 #include "firmware_update_handler_revoke_after_reset.h"
 #include "common/type_cast.h"
+#include "common/unused.h"
 
 
 void firmware_update_handler_revoke_after_reset_prepare (const struct event_task_handler *handler)
@@ -111,5 +112,5 @@ int firmware_update_handler_revoke_after_reset_init_keep_recovery_updated (
 void firmware_update_handler_revoke_after_reset_release (
 	const struct firmware_update_handler_revoke_after_reset *handler)
 {
-
+	UNUSED (handler);
 }

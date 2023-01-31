@@ -6,6 +6,7 @@
 #include <string.h>
 #include "host_irq_handler.h"
 #include "host_logging.h"
+#include "common/unused.h"
 
 
 int host_irq_handler_power_on (struct host_irq_handler *handler, bool allow_unsecure,
@@ -156,7 +157,7 @@ int host_irq_handler_init (struct host_irq_handler *handler, struct host_process
  */
 void host_irq_handler_release (struct host_irq_handler *handler)
 {
-
+	UNUSED (handler);
 }
 
 /**

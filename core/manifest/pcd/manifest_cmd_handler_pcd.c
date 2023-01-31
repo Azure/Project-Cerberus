@@ -5,11 +5,14 @@
 #include <stddef.h>
 #include <string.h>
 #include "manifest_cmd_handler_pcd.h"
+#include "common/unused.h"
 #include "manifest/manifest_logging.h"
 
 
 int manifest_cmd_handler_pcd_activation (const struct manifest_cmd_handler *handler, bool *reset)
 {
+	UNUSED (handler);
+
 	/* Do not actually activate the PCD here.  PCDs require a device reset for the new settings to
 	 * get applied, so leave the current settings active.  The new PCD will automatically get
 	 * activated after the reset.  Schedule a device reset to activate the PCD. */

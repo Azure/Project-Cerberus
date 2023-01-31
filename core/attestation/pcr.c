@@ -439,7 +439,7 @@ exit:
  * @return Completion status, 0 if success or an error code
  */
 int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
-	struct pcr_measured_data *measurement_data)
+	const struct pcr_measured_data *measurement_data)
 {
 	if (pcr == NULL) {
 		return PCR_INVALID_ARGUMENT;
@@ -496,7 +496,7 @@ int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t measurement_index,
 	size_t offset, uint8_t *buffer, size_t length, uint32_t *total_len)
 {
-	struct pcr_measured_data *measured_data;
+	const struct pcr_measured_data *measured_data;
 	bool include_event;
 	bool include_version;
 	size_t total_bytes = 0;

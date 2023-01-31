@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "platform_api.h"
+#include "common/unused.h"
 #include "crypto/kdf.h"
 #include "riot/riot_core.h"
 #include "aux_attestation.h"
@@ -123,6 +124,8 @@ int aux_attestation_generate_key (struct aux_attestation *aux)
 
 	return status;
 #else
+	UNUSED (aux);
+
 	return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
 #endif
 }
@@ -533,6 +536,15 @@ rsa_init_error:
 
 	return status;
 #else
+	UNUSED (aux);
+	UNUSED (encrypted);
+	UNUSED (len_encrypted);
+	UNUSED (label);
+	UNUSED (len_label);
+	UNUSED (pad_hash);
+	UNUSED (decrypted);
+	UNUSED (len_decrypted);
+
 	return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
 #endif
 }
@@ -612,6 +624,13 @@ ecc_init_error:
 
 	return status;
 #else
+	UNUSED (aux);
+	UNUSED (ecc_key);
+	UNUSED (key_length);
+	UNUSED (hash);
+	UNUSED (seed);
+	UNUSED (seed_length);
+
 	return AUX_ATTESTATION_UNSUPPORTED_CRYPTO;
 #endif
 }

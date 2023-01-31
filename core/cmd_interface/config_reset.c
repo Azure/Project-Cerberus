@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "config_reset.h"
+#include "common/unused.h"
 
 
 /**
@@ -30,9 +31,9 @@
  *
  * @return 0 if the manager was initialized successfully or an error code.
  */
-int config_reset_init (struct config_reset *reset, struct manifest_manager **bypass_config,
-	size_t bypass_count, struct manifest_manager **platform_config, size_t platform_count,
-	struct manifest_manager **component_manifests, size_t component_manifests_count,
+int config_reset_init (struct config_reset *reset, const struct manifest_manager **bypass_config,
+	size_t bypass_count, const struct manifest_manager **platform_config, size_t platform_count,
+	const struct manifest_manager **component_manifests, size_t component_manifests_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
 	struct keystore **keystores, size_t keystore_count, struct intrusion_manager *intrusion)
@@ -75,7 +76,7 @@ int config_reset_init (struct config_reset *reset, struct manifest_manager **byp
  */
 void config_reset_release (struct config_reset *reset)
 {
-
+	UNUSED (reset);
 }
 
 /**

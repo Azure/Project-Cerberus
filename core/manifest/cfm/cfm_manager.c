@@ -18,13 +18,13 @@
  *
  * @return 0 if the observer was added for notifications or an error code.
  */
-int cfm_manager_add_observer (struct cfm_manager *manager, struct cfm_observer *observer)
+int cfm_manager_add_observer (struct cfm_manager *manager, const struct cfm_observer *observer)
 {
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return observable_add_observer (&manager->observable, observer);
+	return observable_add_observer (&manager->observable, (void*) observer);
 }
 
 /**
@@ -35,13 +35,13 @@ int cfm_manager_add_observer (struct cfm_manager *manager, struct cfm_observer *
  *
  * @return 0 if the observer was removed from future notifications or an error code.
  */
-int cfm_manager_remove_observer (struct cfm_manager *manager, struct cfm_observer *observer)
+int cfm_manager_remove_observer (struct cfm_manager *manager, const struct cfm_observer *observer)
 {
 	if (manager == NULL) {
 		return MANIFEST_MANAGER_INVALID_ARGUMENT;
 	}
 
-	return observable_remove_observer (&manager->observable, observer);
+	return observable_remove_observer (&manager->observable, (void*) observer);
 }
 
 /**

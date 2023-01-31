@@ -9,7 +9,7 @@
 
 
 static void cerberus_protocol_observer_mock_on_get_digest_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct cerberus_protocol_observer_mock *mock =
 		(struct cerberus_protocol_observer_mock*) observer;
@@ -23,7 +23,7 @@ static void cerberus_protocol_observer_mock_on_get_digest_response (
 }
 
 static void cerberus_protocol_observer_mock_on_get_certificate_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct cerberus_protocol_observer_mock *mock =
 		(struct cerberus_protocol_observer_mock*) observer;
@@ -37,7 +37,7 @@ static void cerberus_protocol_observer_mock_on_get_certificate_response (
 }
 
 static void cerberus_protocol_observer_mock_on_challenge_response (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct cerberus_protocol_observer_mock *mock =
 		(struct cerberus_protocol_observer_mock*) observer;
@@ -51,7 +51,7 @@ static void cerberus_protocol_observer_mock_on_challenge_response (
 }
 
 static void cerberus_protocol_observer_mock_on_device_capabilities (
-	struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
+	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
 {
 	struct cerberus_protocol_observer_mock *mock =
 		(struct cerberus_protocol_observer_mock*) observer;

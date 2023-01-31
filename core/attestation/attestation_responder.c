@@ -5,6 +5,7 @@
 #include <string.h>
 #include "platform_api.h"
 #include "attestation_responder.h"
+#include "common/unused.h"
 
 
 static int attestation_responder_get_digests (struct attestation_responder *attestation,
@@ -122,7 +123,7 @@ exit:
  *
  * @param attestation The attestation instance.
  * @param slot_num The certificate chain being queried.
- * @param riot Keys for RIoT attesatation.
+ * @param riot Keys for RIoT attestation.
  * @param aux_cert Certificate for auxiliary attestation.  This must not be null.
  * @param cert Output for the certificate information.
  */
@@ -130,6 +131,8 @@ static void attestation_responder_get_last_certificate (struct attestation_respo
 	uint8_t slot_num, const struct riot_keys *riot, const struct der_cert *aux_cert,
 	struct der_cert *cert)
 {
+	UNUSED (attestation);
+
 	switch (slot_num) {
 		case ATTESTATION_RIOT_SLOT_NUM:
 			cert->cert = riot->alias_cert;
@@ -370,6 +373,22 @@ static int attestation_responder_aux_attestation_unseal_unsupported (
 	const uint8_t *hmac, enum hmac_hash hmac_type, const uint8_t *ciphertext, size_t cipher_length,
 	const uint8_t sealing[][64], size_t pcr_count, uint8_t *key, size_t key_length)
 {
+	UNUSED (attestation);
+	UNUSED (hash);
+	UNUSED (key_type);
+	UNUSED (seed);
+	UNUSED (seed_length);
+	UNUSED (seed_type);
+	UNUSED (seed_param);
+	UNUSED (hmac);
+	UNUSED (hmac_type);
+	UNUSED (ciphertext);
+	UNUSED (cipher_length);
+	UNUSED (sealing);
+	UNUSED (pcr_count);
+	UNUSED (key);
+	UNUSED (key_length);
+
 	return ATTESTATION_UNSUPPORTED_OPERATION;
 }
 
@@ -389,6 +408,15 @@ static int attestation_responder_aux_decrypt_unsupported (struct attestation_res
 	const uint8_t *encrypted, size_t len_encrypted, const uint8_t *label, size_t len_label,
 	enum hash_type pad_hash, uint8_t *decrypted, size_t len_decrypted)
 {
+	UNUSED (attestation);
+	UNUSED (encrypted);
+	UNUSED (len_encrypted);
+	UNUSED (label);
+	UNUSED (len_label);
+	UNUSED (pad_hash);
+	UNUSED (decrypted);
+	UNUSED (len_decrypted);
+
 	return ATTESTATION_UNSUPPORTED_OPERATION;
 }
 
@@ -407,6 +435,13 @@ static int attestation_responder_generate_ecdh_seed_unsupported (
 	struct attestation_responder *attestation, const uint8_t *pub_key, size_t key_length,
 	bool hash_seed, uint8_t *seed, size_t seed_length)
 {
+	UNUSED (attestation);
+	UNUSED (pub_key);
+	UNUSED (key_length);
+	UNUSED (hash_seed);
+	UNUSED (seed);
+	UNUSED (seed_length);
+
 	return ATTESTATION_UNSUPPORTED_OPERATION;
 }
 

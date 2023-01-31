@@ -20,7 +20,7 @@ enum {
 };
 
 
-int system_state_manager_init (struct state_manager *manager, struct flash *state_flash,
+int system_state_manager_init (struct state_manager *manager, const struct flash *state_flash,
 	uint32_t store_addr);
 void system_state_manager_release (struct state_manager *manager);
 

@@ -29,9 +29,9 @@ int cmd_interface_mctp_control_init (struct cmd_interface_mctp_control *intf,
 void cmd_interface_mctp_control_deinit (struct cmd_interface_mctp_control *intf);
 
 int cmd_interface_mctp_control_add_mctp_control_protocol_observer (
-	struct cmd_interface_mctp_control *intf, struct mctp_control_protocol_observer *observer);
+	struct cmd_interface_mctp_control *intf, const struct mctp_control_protocol_observer *observer);
 int cmd_interface_mctp_control_remove_mctp_control_protocol_observer (
-	struct cmd_interface_mctp_control *intf, struct mctp_control_protocol_observer *observer);
+	struct cmd_interface_mctp_control *intf, const struct mctp_control_protocol_observer *observer);
 
 
 #endif /* CMD_INTERFACE_MCTP_CONTROL_H_ */

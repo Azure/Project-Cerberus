@@ -515,14 +515,14 @@ static void host_flash_manager_single_test_release_null (CuTest *test)
 static void host_flash_manager_single_test_get_read_only_flash (CuTest *test)
 {
 	struct host_flash_manager_single_testing manager;
-	struct spi_flash *active;
+	const struct spi_flash *active;
 
 	TEST_START;
 
 	host_flash_manager_single_testing_init (test, &manager);
 
 	active = manager.test.base.get_read_only_flash (&manager.test.base);
-	CuAssertPtrEquals (test, &manager.flash0, active);
+	CuAssertPtrEquals (test, &manager.flash0, (void*) active);
 
 	host_flash_manager_single_testing_validate_and_release (test, &manager);
 }
@@ -530,14 +530,14 @@ static void host_flash_manager_single_test_get_read_only_flash (CuTest *test)
 static void host_flash_manager_single_test_get_read_only_flash_null (CuTest *test)
 {
 	struct host_flash_manager_single_testing manager;
-	struct spi_flash *active;
+	const struct spi_flash *active;
 
 	TEST_START;
 
 	host_flash_manager_single_testing_init (test, &manager);
 
 	active = manager.test.base.get_read_only_flash (NULL);
-	CuAssertPtrEquals (test, NULL, active);
+	CuAssertPtrEquals (test, NULL, (void*) active);
 
 	host_flash_manager_single_testing_validate_and_release (test, &manager);
 }
@@ -545,14 +545,14 @@ static void host_flash_manager_single_test_get_read_only_flash_null (CuTest *tes
 static void host_flash_manager_single_test_get_read_write_flash (CuTest *test)
 {
 	struct host_flash_manager_single_testing manager;
-	struct spi_flash *inactive;
+	const struct spi_flash *inactive;
 
 	TEST_START;
 
 	host_flash_manager_single_testing_init (test, &manager);
 
 	inactive = manager.test.base.get_read_write_flash (&manager.test.base);
-	CuAssertPtrEquals (test, &manager.flash0, inactive);
+	CuAssertPtrEquals (test, &manager.flash0, (void*) inactive);
 
 	host_flash_manager_single_testing_validate_and_release (test, &manager);
 }
@@ -560,14 +560,14 @@ static void host_flash_manager_single_test_get_read_write_flash (CuTest *test)
 static void host_flash_manager_single_test_get_read_write_flash_null (CuTest *test)
 {
 	struct host_flash_manager_single_testing manager;
-	struct spi_flash *inactive;
+	const struct spi_flash *inactive;
 
 	TEST_START;
 
 	host_flash_manager_single_testing_init (test, &manager);
 
 	inactive = manager.test.base.get_read_write_flash (NULL);
-	CuAssertPtrEquals (test, NULL, inactive);
+	CuAssertPtrEquals (test, NULL, (void*) inactive);
 
 	host_flash_manager_single_testing_validate_and_release (test, &manager);
 }

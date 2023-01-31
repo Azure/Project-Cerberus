@@ -20,7 +20,7 @@
  * as a component within a complete manifest implementation.
  */
 struct manifest_flash {
-	struct flash *flash;						/**< The flash device that contains the manifest. */
+	const struct flash *flash;					/**< The flash device that contains the manifest. */
 	struct hash_engine *hash;					/**, Hash engine to use for element verification. */
 	uint32_t addr;								/**< The starting address in flash of the manifest. */
 	uint16_t magic_num_v1;						/**< The magic number identifying a v1 manifest. */
@@ -42,9 +42,9 @@ struct manifest_flash {
 };
 
 
-int manifest_flash_init (struct manifest_flash *manifest, struct flash *flash, uint32_t base_addr,
-	uint16_t magic_num_v1);
-int manifest_flash_v2_init (struct manifest_flash *manifest, struct flash *flash,
+int manifest_flash_init (struct manifest_flash *manifest, const struct flash *flash,
+	uint32_t base_addr, uint16_t magic_num_v1);
+int manifest_flash_v2_init (struct manifest_flash *manifest, const struct flash *flash,
 	struct hash_engine *hash, uint32_t base_addr, uint16_t magic_num_v1, uint16_t magic_num_v2,
 	uint8_t *signature_cache, size_t max_signature, uint8_t *platform_id_cache,
 	size_t max_platform_id);
@@ -53,7 +53,7 @@ void manifest_flash_release (struct manifest_flash *manifest);
 int manifest_flash_read_header (struct manifest_flash *manifest, struct manifest_header *header);
 
 int manifest_flash_verify (struct manifest_flash *manifest, struct hash_engine *hash,
-	struct signature_verification *verification, uint8_t *hash_out, size_t hash_length);
+	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length);
 int manifest_flash_get_id (struct manifest_flash *manifest, uint32_t *id);
 int manifest_flash_get_platform_id (struct manifest_flash *manifest, char **id, size_t length);
 int manifest_flash_get_hash (struct manifest_flash *manifest, struct hash_engine *hash,
@@ -70,7 +70,7 @@ int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
 	size_t *child_len, int *child_count, int *first_entry);
 
 uint32_t manifest_flash_get_addr (struct manifest_flash *manifest);
-struct flash* manifest_flash_get_flash (struct manifest_flash *manifest);
+const struct flash* manifest_flash_get_flash (struct manifest_flash *manifest);
 
 int manifest_flash_compare_id (struct manifest_flash *manifest1, struct manifest_flash *manifest2);
 int manifest_flash_compare_platform_id (struct manifest_flash *manifest1,

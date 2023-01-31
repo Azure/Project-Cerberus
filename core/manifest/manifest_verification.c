@@ -7,6 +7,7 @@
 #include "manifest_verification.h"
 #include "manifest_logging.h"
 #include "common/type_cast.h"
+#include "common/unused.h"
 
 
 int manifest_verification_verify_signature (const struct signature_verification *verification,
@@ -59,16 +60,24 @@ exit:
 int manifest_verification_set_verification_key (const struct signature_verification *verification,
 	const uint8_t *key, size_t length)
 {
+	UNUSED (verification);
+	UNUSED (key);
+	UNUSED (length);
+
 	return SIG_VERIFICATION_UNSUPPORTED;
 }
 
 int manifest_verification_is_key_valid (const struct signature_verification *verification,
 	const uint8_t *key, size_t length)
 {
+	UNUSED (verification);
+	UNUSED (key);
+	UNUSED (length);
+
 	return SIG_VERIFICATION_UNSUPPORTED;
 }
 
-void manifest_verification_on_manifest_activated (struct pfm_observer *observer,
+void manifest_verification_on_manifest_activated (const struct pfm_observer *observer,
 	struct manifest *active)
 {
 	const struct manifest_verification *manifest =
@@ -142,7 +151,7 @@ error:
 		MANIFEST_LOGGING_KEY_REVOCATION_FAIL, manifest->key_id, status);
 }
 
-void manifest_verification_on_update_start (struct firmware_update_observer *observer,
+void manifest_verification_on_update_start (const struct firmware_update_observer *observer,
 	int *update_allowed)
 {
 	const struct manifest_verification *manifest =
@@ -236,7 +245,7 @@ int manifest_verification_init (struct manifest_verification *verification,
 	/* PFM, CFM, and PCD observers have the same structure and this module only depends on common
 	 * manifest APIs, so save memory by using the same observer instance and handler function. */
 	verification->base_observer.on_pfm_activated =
-		(void (*) (struct pfm_observer*, struct pfm*)) manifest_verification_on_manifest_activated;
+		(void (*) (const struct pfm_observer*, struct pfm*)) manifest_verification_on_manifest_activated;
 
 	verification->base_update.on_update_start = manifest_verification_on_update_start;
 
@@ -376,8 +385,8 @@ void manifest_verification_release (const struct manifest_verification *verifica
  *
  * @return The PFM observer or null if the verification instance is not valid.
  */
-struct pfm_observer* manifest_verification_get_pfm_observer (
-	struct manifest_verification *verification)
+const struct pfm_observer* manifest_verification_get_pfm_observer (
+	const struct manifest_verification *verification)
 {
 	if (verification) {
 		return &verification->base_observer;
@@ -394,8 +403,8 @@ struct pfm_observer* manifest_verification_get_pfm_observer (
  *
  * @return The CFM observer or null if the verification instance is not valid.
  */
-struct cfm_observer* manifest_verification_get_cfm_observer (
-	struct manifest_verification *verification)
+const struct cfm_observer* manifest_verification_get_cfm_observer (
+	const struct manifest_verification *verification)
 {
 	if (verification) {
 		return (struct cfm_observer*) &verification->base_observer;
@@ -412,8 +421,8 @@ struct cfm_observer* manifest_verification_get_cfm_observer (
  *
  * @return The PCD observer or null if the verification instance is not valid.
  */
-struct pcd_observer* manifest_verification_get_pcd_observer (
-	struct manifest_verification *verification)
+const struct pcd_observer* manifest_verification_get_pcd_observer (
+	const struct manifest_verification *verification)
 {
 	if (verification) {
 		return (struct pcd_observer*) &verification->base_observer;

@@ -7,7 +7,7 @@
 #include "host_flash_manager_dual_mock.h"
 
 
-static struct spi_flash* host_flash_manager_dual_mock_get_read_only_flash (
+static const struct spi_flash* host_flash_manager_dual_mock_get_read_only_flash (
 	struct host_flash_manager *manager)
 {
 	struct host_flash_manager_dual_mock *mock = (struct host_flash_manager_dual_mock*) manager;
@@ -16,11 +16,11 @@ static struct spi_flash* host_flash_manager_dual_mock_get_read_only_flash (
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct spi_flash*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, const struct spi_flash*,
 		host_flash_manager_dual_mock_get_read_only_flash, manager);
 }
 
-static struct spi_flash* host_flash_manager_dual_mock_get_read_write_flash (
+static const struct spi_flash* host_flash_manager_dual_mock_get_read_write_flash (
 	struct host_flash_manager *manager)
 {
 	struct host_flash_manager_dual_mock *mock = (struct host_flash_manager_dual_mock*) manager;
@@ -29,7 +29,7 @@ static struct spi_flash* host_flash_manager_dual_mock_get_read_write_flash (
 		return NULL;
 	}
 
-	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, struct spi_flash*,
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, const struct spi_flash*,
 		host_flash_manager_dual_mock_get_read_write_flash, manager);
 }
 

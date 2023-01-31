@@ -23,10 +23,10 @@ struct pfm_manager_flash {
 
 int pfm_manager_flash_init (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
 	struct pfm_flash *pfm_region2, struct host_state_manager *state, struct hash_engine *hash,
-	struct signature_verification *verification);
+	const struct signature_verification *verification);
 int pfm_manager_flash_init_port (struct pfm_manager_flash *manager, struct pfm_flash *pfm_region1,
 	struct pfm_flash *pfm_region2, struct host_state_manager *state, struct hash_engine *hash,
-	struct signature_verification *verification, int port);
+	const struct signature_verification *verification, int port);
 void pfm_manager_flash_release (struct pfm_manager_flash *manager);
 
 /* Internal functions for use by derived types. */

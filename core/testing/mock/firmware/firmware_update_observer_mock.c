@@ -8,7 +8,7 @@
 
 
 static void firmware_update_observer_mock_on_update_start (
-	struct firmware_update_observer *observer, int *update_allowed)
+	const struct firmware_update_observer *observer, int *update_allowed)
 {
 	struct firmware_update_observer_mock *mock = (struct firmware_update_observer_mock*) observer;
 

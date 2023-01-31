@@ -78,7 +78,7 @@ int pcr_store_get_attestation_log_size (struct pcr_store *store);
 int pcr_store_get_tcg_log (struct pcr_store *store, uint8_t *buffer, size_t offset, size_t length);
 
 int pcr_store_set_measurement_data (struct pcr_store *store, uint16_t measurement_type,
-	struct pcr_measured_data *measurement);
+	const struct pcr_measured_data *measurement);
 int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measurement_type,
 	size_t offset, uint8_t *buffer, size_t length);
 

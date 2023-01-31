@@ -7,6 +7,7 @@
 #include "recovery_image_cmd_handler.h"
 #include "recovery_logging.h"
 #include "common/type_cast.h"
+#include "common/unused.h"
 
 
 /**
@@ -129,6 +130,8 @@ void recovery_image_cmd_handler_execute (const struct event_task_handler *handle
 	const struct recovery_image_cmd_handler *recovery_handler = TO_DERIVED_TYPE (handler,
 		const struct recovery_image_cmd_handler, base_event);
 	int status = RECOVERY_IMAGE_MANAGER_UNSUPPORTED_OP;
+
+	UNUSED (reset);
 
 	switch (context->action) {
 		case RECOVERY_IMAGE_CMD_HANDLER_ACTION_PREPARE:
@@ -255,5 +258,5 @@ int recovery_image_cmd_handler_init_state (const struct recovery_image_cmd_handl
  */
 void recovery_image_cmd_handler_release (const struct recovery_image_cmd_handler *handler)
 {
-
+	UNUSED (handler);
 }

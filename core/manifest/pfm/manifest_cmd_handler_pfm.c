@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "manifest_cmd_handler_pfm.h"
+#include "common/unused.h"
 #include "manifest/manifest_logging.h"
 
 
@@ -14,6 +15,8 @@ int manifest_cmd_handler_pfm_activation (const struct manifest_cmd_handler *hand
 	int status;
 	int config_status;
 	int op_status;
+
+	UNUSED (reset);
 
 	spi_filter_log_configuration (pfm->filter);
 

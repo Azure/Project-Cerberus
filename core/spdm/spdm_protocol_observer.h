@@ -21,7 +21,7 @@ struct spdm_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_spdm_get_version_response) (struct spdm_protocol_observer *observer,
+	void (*on_spdm_get_version_response) (const struct spdm_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -32,7 +32,7 @@ struct spdm_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_spdm_get_capabilities_response) (struct spdm_protocol_observer *observer,
+	void (*on_spdm_get_capabilities_response) (const struct spdm_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -43,7 +43,7 @@ struct spdm_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_spdm_negotiate_algorithms_response) (struct spdm_protocol_observer *observer,
+	void (*on_spdm_negotiate_algorithms_response) (const struct spdm_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -54,7 +54,7 @@ struct spdm_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_spdm_get_digests_response) (struct spdm_protocol_observer *observer,
+	void (*on_spdm_get_digests_response) (const struct spdm_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -65,7 +65,7 @@ struct spdm_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_spdm_get_certificate_response) (struct spdm_protocol_observer *observer,
+	void (*on_spdm_get_certificate_response) (const struct spdm_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -76,7 +76,7 @@ struct spdm_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_spdm_challenge_response) (struct spdm_protocol_observer *observer,
+	void (*on_spdm_challenge_response) (const struct spdm_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -87,7 +87,7 @@ struct spdm_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_spdm_get_measurements_response) (struct spdm_protocol_observer *observer,
+	void (*on_spdm_get_measurements_response) (const struct spdm_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 
 	/**
@@ -98,7 +98,7 @@ struct spdm_protocol_observer {
 	 * @param observer The observer instance being notified.
 	 * @param reponse The response container received.
 	 */
-	void (*on_spdm_response_not_ready) (struct spdm_protocol_observer *observer,
+	void (*on_spdm_response_not_ready) (const struct spdm_protocol_observer *observer,
 		const struct cmd_interface_msg *response);
 };
 

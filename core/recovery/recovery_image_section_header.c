@@ -34,7 +34,7 @@ union recovery_image_section_header_format {
  * @return 0 if the section header was successfully loaded from flash or an error code.
  */
 int recovery_image_section_header_init (struct recovery_image_section_header *header,
-	struct flash *flash, uint32_t addr)
+	const struct flash *flash, uint32_t addr)
 {
 	size_t length;
 	int status;
