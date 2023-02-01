@@ -70,7 +70,7 @@ int cmd_channel_get_id (struct cmd_channel *channel)
 
 /**
  * Send a sequence of packets over a command channel.  Packets will be sequentially sent until all
- * packets have been successfully trasmitted or there is an error sending a packet.  Sending cannot
+ * packets have been successfully transmitted or there is an error sending a packet.  Sending cannot
  * be interrupted by a different sequence of packets.  This ensures no interleaving of different
  * messages over the channel.
  *
