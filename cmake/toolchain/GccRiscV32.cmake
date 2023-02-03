@@ -24,6 +24,10 @@ set(CERBERUS_MCU_FLAGS "${CERBERUS_MCU_FLAGS} -mno-relax")		# no riscv linker re
 set(CERBERUS_MCU_LINK_FLAGS -march=rv32imac)
 set(CERBERUS_MCU_LINK_FLAGS "${CERBERUS_MCU_LINK_FLAGS} -mabi=ilp32")
 
+# Relocate to 32-bit section below if using the appropriate global RISCV32 macro.
+# TODO - relocate to Gcc.cmake and/or Clang.cmake as needed for portability.
+set(CMAKE_ASM_FLAGS_INIT "-march=rv32imac -mabi=ilp32")
+
 if(DEFINED RISCV32_UNKNOWN_ELF)
 	if(NOT TOOLCHAIN_PREFIX)
 		set(TOOLCHAIN_PREFIX "riscv32-unknown-elf-")
