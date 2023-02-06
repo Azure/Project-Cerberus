@@ -555,7 +555,7 @@ static int firmware_update_restore_image (const struct firmware_update *updater,
 
 	status = firmware_update_load_and_verify_image (updater, NULL, src, src_addr, false, false,
 		false, &img_len, recovery_rev);
-	if ((status != 0) && (status != FIRMWARE_UPDATE_NO_FIRMWARE_HEADER)) {
+	if (status != 0) {
 		return status;
 	}
 
