@@ -69,10 +69,4 @@ static inline int platform_mutex_unlock (platform_mutex *mutex)
 typedef int platform_semaphore;
 
 
-/* Error codes to use for bare metal platform API failures. */
-#define	PLATFORM_INVALID_ARGUMENT		0
-#define	PLATFORM_NO_MEMORY				1
-#define	PLATFORM_FAILURE				2
-
-
 #endif /* PLATFORM_BASE_H_ */

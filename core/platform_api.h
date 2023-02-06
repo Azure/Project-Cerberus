@@ -31,6 +31,12 @@ typedef void (*timer_callback) (void *context);
 #include "platform.h"
 
 
+/* Generic error codes that can be used for platform API failures. */
+#define	PLATFORM_INVALID_ARGUMENT		0
+#define	PLATFORM_NO_MEMORY				1
+#define	PLATFORM_FAILURE				2
+
+
 /*******************************
  * Memory management routines.
  *******************************/

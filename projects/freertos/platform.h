@@ -11,6 +11,15 @@
 #include "semphr.h"
 #include "timers.h"
 #include "common/common_math.h"
+#ifndef PLATFORM_CLOCK_API
+#include "platform_clock_freertos.h"
+#else
+/* Use a different, platform-specific implementation for platform_clock APIs instead of using the
+ * generic implementation that leverages the FreeRTOS tick count.  This can be useful for platforms
+ * that have an RTC and/or free-running counter with better granularity or bit width than the tick
+ * count. */
+#include PLATFORM_CLOCK_API
+#endif
 
 
 /* FreeRTOS memory management. */
@@ -25,17 +34,6 @@
 
 /* Use the standard delay function to sleep. */
 #define	platform_msleep(x)	vTaskDelay (pdMS_TO_TICKS (x) + 1)
-
-/**
- * Container for FreeRTOS tick counts to track timeouts.
- */
-typedef struct {
-	TickType_t start;
-	TickType_t end;
-} platform_clock;
-
-/* The clock resolution depends on the tick configuration. */
-#define	PLATFORM_CLOCK_RESOLUTION	portTICK_PERIOD_MS
 
 
 /* FreeRTOS mutex. */

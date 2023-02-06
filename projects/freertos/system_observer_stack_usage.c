@@ -7,28 +7,14 @@
 #include "platform_api.h"
 #include "platform_io.h"
 #include "system_observer_stack_usage.h"
+#include "common/unused.h"
 
 
 static void system_observer_stack_usage_on_shutdown (struct system_observer *observer)
 {
-	TaskStatus_t *status;
-	UBaseType_t tasks = uxTaskGetNumberOfTasks ();
-	UBaseType_t i;
+	UNUSED (observer);
 
-	status = platform_calloc (sizeof (TaskStatus_t), tasks);
-	if (status == NULL) {
-		platform_printf ("Task status alloc failed" NEWLINE);
-	}
-	else {
-		tasks = uxTaskGetSystemState (status, tasks, NULL);
-		platform_printf ("Tasks: %d" NEWLINE, tasks);
-		for (i = 0; i < tasks; i++) {
-			platform_printf ("\t%s:  %d" NEWLINE, status[i].pcTaskName,
-				status[i].usStackHighWaterMark);
-		}
-
-		platform_free (status);
-	}
+	system_observer_stack_usage_print_all_tasks_usage ();
 }
 
 /**
@@ -58,5 +44,30 @@ int system_observer_stack_usage_init (struct system_observer_stack_usage *observ
  */
 void system_observer_stack_usage_release (struct system_observer_stack_usage *observer)
 {
+	UNUSED (observer);
+}
 
+/**
+ * Print the maximum stack usage for all system tasks.
+ */
+void system_observer_stack_usage_print_all_tasks_usage ()
+{
+	TaskStatus_t *status;
+	UBaseType_t tasks = uxTaskGetNumberOfTasks ();
+	UBaseType_t i;
+
+	status = platform_calloc (sizeof (TaskStatus_t), tasks);
+	if (status == NULL) {
+		platform_printf ("Task status alloc failed" NEWLINE);
+	}
+	else {
+		tasks = uxTaskGetSystemState (status, tasks, NULL);
+		platform_printf ("Tasks: %d" NEWLINE, tasks);
+		for (i = 0; i < tasks; i++) {
+			platform_printf ("\t%s:  %d" NEWLINE, status[i].pcTaskName,
+				status[i].usStackHighWaterMark);
+		}
+
+		platform_free (status);
+	}
 }
