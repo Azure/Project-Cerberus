@@ -13,6 +13,16 @@
 #include "logging/debug_log.h"
 
 
+static int cmd_interface_spdm_process_request (struct cmd_interface *intf,
+	struct cmd_interface_msg *request)
+{
+	UNUSED (intf);
+	UNUSED (request);
+
+	return CMD_HANDLER_SPDM_UNSUPPORTED_OPERATION;
+}
+
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 /**
  * Pre-process received SPDM protocol message.
  *
@@ -46,15 +56,6 @@ static int cmd_interface_spdm_process_spdm_protocol_message (struct cmd_interfac
 	*command_id = header->req_rsp_code;
 
 	return 0;
-}
-
-static int cmd_interface_spdm_process_request (struct cmd_interface *intf,
-	struct cmd_interface_msg *request)
-{
-	UNUSED (intf);
-	UNUSED (request);
-
-	return CMD_HANDLER_SPDM_UNSUPPORTED_OPERATION;
 }
 
 static int cmd_interface_spdm_process_response (struct cmd_interface *intf,
@@ -175,6 +176,7 @@ static int cmd_interface_spdm_process_response (struct cmd_interface *intf,
 			return CMD_HANDLER_SPDM_UNKNOWN_COMMAND;
 	}
 }
+#endif
 
 static int cmd_interface_spdm_generate_error_packet (struct cmd_interface *intf,
 	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
@@ -211,7 +213,9 @@ int cmd_interface_spdm_init (struct cmd_interface_spdm *intf)
 	}
 
 	intf->base.process_request = cmd_interface_spdm_process_request;
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	intf->base.process_response = cmd_interface_spdm_process_response;
+#endif
 	intf->base.generate_error_packet = cmd_interface_spdm_generate_error_packet;
 
 	return 0;

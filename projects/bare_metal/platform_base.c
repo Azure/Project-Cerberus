@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include "platform_api.h"
-#include "status/rot_status.h"
 
 
 int platform_semaphore_init (platform_semaphore *sem)

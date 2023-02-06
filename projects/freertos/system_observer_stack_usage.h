@@ -18,5 +18,7 @@ struct system_observer_stack_usage {
 int system_observer_stack_usage_init (struct system_observer_stack_usage *stack);
 void system_observer_stack_usage_release (struct system_observer_stack_usage *stack);
 
+void system_observer_stack_usage_print_all_tasks_usage (void);
+
 
 #endif /* SYSTEM_OBSERVER_STACK_USAGE_H_ */
