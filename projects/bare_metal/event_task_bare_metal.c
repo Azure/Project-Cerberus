@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "event_task_bare_metal.h"
+#include "common/unused.h"
 
 
 int event_task_bare_metal_lock (const struct event_task *task)
