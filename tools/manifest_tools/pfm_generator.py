@@ -442,7 +442,7 @@ parser.add_argument ('--bypass', action = 'store_true', help = 'Create a bypass 
 args = parser.parse_args ()
 
 processed_xml, sign, key_size, key, key_type, hash_type, pfm_id, output, xml_version, empty, \
-    max_rw_sections, selection_list = \
+    max_rw_sections, selection_list, component_map, component_map_file = \
         manifest_common.load_xmls (args.config, None, manifest_types.PFM)
 
 if xml_version == manifest_types.VERSION_2:
