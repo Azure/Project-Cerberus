@@ -28,7 +28,7 @@ def generate_rw_regions_buf (xml_rw):
     """
 
     if xml_rw is None or len (xml_rw) < 1:
-        return (ctypes.c_ubyte * 0), 0, 0, []
+        return (ctypes.c_ubyte * 0) (), 0, 0, []
 
     class pfm_rw_region (ctypes.LittleEndianStructure):
         _pack_ = 1
