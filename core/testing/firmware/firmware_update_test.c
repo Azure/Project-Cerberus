@@ -27119,7 +27119,7 @@ static void firmware_update_test_restore_recovery_image_finalize_image_error (Cu
 	status = firmware_update_restore_recovery_image (&updater.test_mock.base);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_FINALIZE_IMG_FAILED, status);
 
-	CuAssertIntEquals (test, 0, firmware_update_is_recovery_good (&updater.test));
+	CuAssertIntEquals (test, 0, firmware_update_is_recovery_good (&updater.test_mock.base));
 
 	firmware_update_testing_validate_and_release (test, &updater);
 }
