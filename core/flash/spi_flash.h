@@ -125,6 +125,7 @@ int spi_flash_get_device_id (const struct spi_flash *flash, uint8_t *vendor, uin
 int spi_flash_get_device_size (const struct spi_flash *flash, uint32_t *bytes);
 
 int spi_flash_reset_device (const struct spi_flash *flash);
+int spi_flash_force_reset_device (const struct spi_flash *flash, uint32_t wait_ms);
 int spi_flash_clear_block_protect (const struct spi_flash *flash);
 int spi_flash_deep_power_down (const struct spi_flash *flash, uint8_t enable);
 

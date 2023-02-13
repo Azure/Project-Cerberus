@@ -4508,6 +4508,364 @@ static void spi_flash_test_reset_device_error_resetting (CuTest *test)
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_force_reset_device (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0x99));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_force_reset_device (&flash, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_force_reset_device_command_66_99 (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8220e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa1f870e9
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0x99));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_force_reset_device (&flash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_force_reset_device_command_f0 (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8220e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa1f868e9
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0xf0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_force_reset_device (&flash, 5);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_force_reset_device_not_supported (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8220e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa1f840e9
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, TEST_ID, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = spi_flash_force_reset_device (&flash, 1);
+	CuAssertIntEquals (test, SPI_FLASH_RESET_NOT_SUPPORTED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_force_reset_device_no_revert_address_mode (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t winbond[] = {0xef, 0x40, 0x19};
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params[] = {
+		0xff8220e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa1f870e9
+	};
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, winbond, header, params,
+		sizeof (params), 0x000030, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0xb7));
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_enable_4byte_address_mode (&flash, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0x99));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode (&flash);
+	CuAssertIntEquals (test, 1, status);
+
+	status = spi_flash_force_reset_device (&flash, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_4byte_address_mode (&flash);
+	CuAssertIntEquals (test, 1, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_force_reset_device_static (CuTest *test)
+{
+	struct flash_master_mock mock;
+	struct spi_flash_state state;
+	struct spi_flash flash = spi_flash_static_init (SPI_FLASH_API_INIT, &state, &mock.base);
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init_state (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0x99));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_force_reset_device (&flash, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_force_reset_device_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = spi_flash_force_reset_device (NULL, 1);
+	CuAssertIntEquals (test, SPI_FLASH_INVALID_ARGUMENT, status);
+}
+
+static void spi_flash_test_force_reset_device_error_enable (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_xfer (&mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_OPCODE (0x66));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_force_reset_device (&flash, 1);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_force_reset_device_error_resetting (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &state, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_OPCODE (0x99));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_force_reset_device (&flash, 1);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_read (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -25554,6 +25912,15 @@ TEST (spi_flash_test_reset_device_status_error);
 TEST (spi_flash_test_reset_device_revert_check_error);
 TEST (spi_flash_test_reset_device_error_enable);
 TEST (spi_flash_test_reset_device_error_resetting);
+TEST (spi_flash_test_force_reset_device);
+TEST (spi_flash_test_force_reset_device_command_66_99);
+TEST (spi_flash_test_force_reset_device_command_f0);
+TEST (spi_flash_test_force_reset_device_not_supported);
+TEST (spi_flash_test_force_reset_device_no_revert_address_mode);
+TEST (spi_flash_test_force_reset_device_static);
+TEST (spi_flash_test_force_reset_device_null);
+TEST (spi_flash_test_force_reset_device_error_enable);
+TEST (spi_flash_test_force_reset_device_error_resetting);
 TEST (spi_flash_test_read);
 TEST (spi_flash_test_read_max_address);
 TEST (spi_flash_test_read_4byte);

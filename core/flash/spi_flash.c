@@ -1076,6 +1076,33 @@ int spi_flash_get_device_size (const struct spi_flash *flash, uint32_t *bytes)
 }
 
 /**
+ * Issue commands to trigger a soft reset of the SPI flash device.
+ *
+ * @param flash The flash to reset.
+ * @param wait_ms The amount of time to wait after issuing the reset commands.
+ *
+ * @return 0 if the device was successfully reset or an error code.
+ */
+static int spi_flash_execute_reset_device (const struct spi_flash *flash, uint32_t wait_ms)
+{
+	int status;
+
+	if (flash->state->command.reset == FLASH_CMD_RST) {
+		status = spi_flash_simple_command (flash, FLASH_CMD_RSTEN);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	status = spi_flash_simple_command (flash, flash->state->command.reset);
+	if (status == 0) {
+		platform_msleep (wait_ms);
+	}
+
+	return status;
+}
+
+/**
  * Soft reset the SPI flash device.
  *
  * @param flash The flash to reset.
@@ -1115,29 +1142,64 @@ int spi_flash_reset_device (const struct spi_flash *flash)
 
 	platform_mutex_lock (&flash->state->lock);
 
+	/* Block the reset if there is a write in progress.  Issuing a reset in this case can cause data
+	 * corruption and cause an indeterminate delay after the reset.  In some cases, the reset will
+	 * not get executed by the device. */
 	status = spi_flash_is_wip_set (flash);
 	if (status != 0) {
 		status = (status == 1) ? SPI_FLASH_WRITE_IN_PROGRESS : status;
 		goto exit;
 	}
 
-	if (flash->state->command.reset == FLASH_CMD_RST) {
-		status = spi_flash_simple_command (flash, FLASH_CMD_RSTEN);
-		if (status != 0) {
-			goto exit;
-		}
-	}
-
-	status = spi_flash_simple_command (flash, flash->state->command.reset);
+	/* We don't need to wait a long time, since we know the reset is not interrupting a write
+	 * operation. */
+	status = spi_flash_execute_reset_device (flash, 1);
 	if (status == 0) {
 		flash->state->addr_mode = rst_addr_mode;
-
-		/* We don't need to wait a long time, since we know the reset is not interrupting a write
-		 * operation. */
-		platform_msleep (1);
 	}
 
 exit:
+	platform_mutex_unlock (&flash->state->lock);
+	return status;
+}
+
+/**
+ * Force a software reset of a SPI flash device.  This is a simplified workflow that doesn't have
+ * any of the pre-checks and other flash state tracking present in the more advanced handling.
+ *
+ * Specifically this call will not:
+ *	- Update the address mode of the device after executing the reset command.  It is up to the
+ *		caller to ensure the address mode is known after the reset.
+ *		spi_flash_detect_4byte_address_mode can be used for this purpose.
+ *	- Check to see if there is any write in progress before issuing the reset command.  Issuing a
+ *		reset during a program or erase operation can corrupt data on flash.  Depending on the
+ *		device, it can also have an effect on how much time it takes the device to come out of
+ *		reset.
+ *
+ * @param flash The flash to reset.
+ * @param wait_ms The amount of time to wait after issuing the reset commands before returning.  If
+ * this is 0, it will return immediately after issuing the commands.
+ *
+ * @return 0 if the reset commands were issued successfully or an error code.
+ */
+int spi_flash_force_reset_device (const struct spi_flash *flash, uint32_t wait_ms)
+{
+	int status;
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	if (!flash->state->command.reset) {
+		return SPI_FLASH_RESET_NOT_SUPPORTED;
+	}
+
+	platform_mutex_lock (&flash->state->lock);
+
+	/* No effort is being made to determine a reasonable wait time after issuing the device reset.
+	 * It will vary based on device and current state.  Leave it to the caller to decide. */
+	status = spi_flash_execute_reset_device (flash, wait_ms);
+
 	platform_mutex_unlock (&flash->state->lock);
 	return status;
 }
