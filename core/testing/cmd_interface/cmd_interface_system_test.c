@@ -1272,7 +1272,7 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	req->header.command = CERBERUS_PROTOCOL_GET_UPDATE_STATUS;
+	req->header.command = 0;
 	req->header.crypt = 1;
 
 	req->update_type = 0xAA;
@@ -1374,7 +1374,7 @@ static void cmd_interface_system_test_process_encrypted_message_decrypt_fail (Cu
 	request.data = data;
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	req->header.command = CERBERUS_PROTOCOL_GET_UPDATE_STATUS;
+	req->header.command = 0;
 	req->header.crypt = 1;
 
 	req->update_type = 0xAA;
@@ -1394,6 +1394,7 @@ static void cmd_interface_system_test_process_encrypted_message_decrypt_fail (Cu
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, SESSION_MANAGER_NO_MEMORY, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+	CuAssertIntEquals (test, 0, req->header.command);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -1434,7 +1435,7 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	req->header.command = CERBERUS_PROTOCOL_GET_UPDATE_STATUS;
+	req->header.command = 0;
 	req->header.crypt = 1;
 
 	req->update_type = 0xAA;
@@ -1490,6 +1491,8 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, SESSION_MANAGER_NO_MEMORY, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_UPDATE_STATUS, req->header.command);
+
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -1512,7 +1515,7 @@ static void cmd_interface_system_test_process_encrypted_message_no_session_manag
 	request.data = data;
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	req->header.command = CERBERUS_PROTOCOL_GET_UPDATE_STATUS;
+	req->header.command = 0;
 	req->header.crypt = 1;
 
 	req->update_type = 0xAA;
@@ -1526,6 +1529,7 @@ static void cmd_interface_system_test_process_encrypted_message_no_session_manag
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_ENCRYPTION_UNSUPPORTED, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+	CuAssertIntEquals (test, 0, req->header.command);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -1569,7 +1573,7 @@ static void cmd_interface_system_test_process_encrypted_message_no_response (CuT
 
 	plaintext_rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	plaintext_rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	plaintext_rq->header.command = CERBERUS_PROTOCOL_GET_UPDATE_STATUS;
+	plaintext_rq->header.command = CERBERUS_PROTOCOL_CLEAR_LOG;
 	plaintext_rq->header.crypt = 1;
 	plaintext_rq->log_type = CERBERUS_PROTOCOL_DEBUG_LOG;
 
@@ -1593,6 +1597,7 @@ static void cmd_interface_system_test_process_encrypted_message_no_response (CuT
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, request.length);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_CLEAR_LOG, req->header.command);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -1629,7 +1634,7 @@ static void cmd_interface_system_test_process_encrypted_message_only_header (CuT
 
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	req->header.command = CERBERUS_PROTOCOL_GET_ATTESTATION_DATA;
+	req->header.command = 0;
 	req->header.crypt = 1;
 
 	req->pmr = 0xAA;

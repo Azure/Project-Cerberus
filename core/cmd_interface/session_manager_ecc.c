@@ -217,7 +217,6 @@ free_device_key:
  * @param aes AES engine to utilize for packet encryption/decryption.
  * @param ecc ECC engine to utilize for AES key generation.
  * @param hash Hash engine to utilize for AES key generation.
- * @param rng RNG engine used to generate IV buffers.
  * @param riot RIoT key manager to utilize to get alias key for AES key generation.
  * @param sessions_table Preallocated table to use to store session manager entries. Set to NULL to
  * 	dynamically allocate from heap.
@@ -229,10 +228,9 @@ free_device_key:
  * @return Initialization status, 0 if success or an error code.
  */
 int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_engine *aes,
-	struct ecc_engine *ecc, struct hash_engine *hash, struct rng_engine *rng,
-	struct riot_key_manager *riot, struct session_manager_entry *sessions_table,
-	size_t num_sessions, const uint8_t *pairing_eids, size_t num_pairing_eids,
-	struct keystore *store)
+	struct ecc_engine *ecc, struct hash_engine *hash, struct riot_key_manager *riot, 
+	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids, 
+	size_t num_pairing_eids, struct keystore *store)
 {
 	int status;
 
@@ -240,7 +238,7 @@ int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_en
 		return SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
-	status = session_manager_init (&session->base, aes, hash, rng, riot, sessions_table,
+	status = session_manager_init (&session->base, aes, hash, riot, sessions_table,
 		num_sessions, pairing_eids, num_pairing_eids, store);
 	if (status == 0) {
 		session->base.add_session = session_manager_add_session;

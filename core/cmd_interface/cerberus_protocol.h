@@ -13,6 +13,7 @@
 
 #define CERBERUS_PROTOCOL_MSFT_PCI_VID						0x1414
 #define CERBERUS_PROTOCOL_PROTOCOL_VERSION					4
+#define CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID					(sizeof (struct cerberus_protocol_header) - 1)
 
 /**
  * AES IV and GCM tag lengths defined by protocol.

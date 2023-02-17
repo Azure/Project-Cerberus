@@ -635,7 +635,7 @@ static void cmd_interface_ac_rot_test_process_encrypted_message (CuTest *test)
 
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	req->header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+	req->header.command = 0;
 	req->header.crypt = 1;
 
 	req->type = encrypted_type;
@@ -739,7 +739,7 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_decrypt_fail (Cu
 	request.data = data;
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	req->header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+	req->header.command = 0;
 	req->header.crypt = 1;
 
 	req->type = encrypted_type;
@@ -763,6 +763,7 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_decrypt_fail (Cu
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, SESSION_MANAGER_NO_MEMORY, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+	CuAssertIntEquals (test, 0, req->header.command);
 
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
@@ -804,7 +805,7 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_encrypt_fail (Cu
 
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	req->header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+	req->header.command = 0;
 	req->header.crypt = 1;
 
 	req->type = encrypted_type;
@@ -863,6 +864,7 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_encrypt_fail (Cu
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, SESSION_MANAGER_NO_MEMORY, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_RESET_COUNTER, req->header.command);
 
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
@@ -884,7 +886,7 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_no_session_manag
 	request.data = data;
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	req->header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+	req->header.command = 0;
 	req->header.crypt = 1;
 
 	req->type = encrypted_type;
@@ -900,6 +902,7 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_no_session_manag
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_ENCRYPTION_UNSUPPORTED, status);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
+	CuAssertIntEquals (test, 0, req->header.command);
 
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
@@ -929,7 +932,7 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_no_response (CuT
 
 	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	req->header.command = CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT;
+	req->header.command = 0;
 	req->header.crypt = 1;
 
 	req->index = 0xAA;
@@ -979,6 +982,8 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_no_response (CuT
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, request.length);
 	CuAssertIntEquals (test, true, request.crypto_timeout);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT, req->header.command);
+
 
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }

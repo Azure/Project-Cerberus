@@ -100,6 +100,7 @@ int cmd_interface_process_cerberus_protocol_message (struct cmd_interface *intf,
 				return status;
 			}
 
+			*command_id = header->command;
 			message->max_response -= SESSION_MANAGER_TRAILER_LEN;
 			intf->curr_txn_encrypted = true;
 		}

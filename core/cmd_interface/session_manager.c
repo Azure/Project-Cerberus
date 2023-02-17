@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "common/common_math.h"
 #include "crypto/aes.h"
 #include "crypto/hash.h"
 #include "crypto/kdf.h"
@@ -83,10 +84,12 @@ static int session_manager_get_paired_key_index (struct session_manager *session
  *
  * @param session Session manager instance to utilize.
  * @param eid Device EID.
+ * @param entry points to requested session container if exists
  *
  * @return Completion status, 0 if success or an error code.
  */
-static int session_manager_set_key (struct session_manager *session, uint8_t eid)
+static int session_manager_set_key (struct session_manager *session, uint8_t eid,
+	struct session_manager_entry **entry)
 {
 	struct session_manager_entry *curr_session;
 	int status;
@@ -101,6 +104,10 @@ static int session_manager_set_key (struct session_manager *session, uint8_t eid
 
 	status = session->aes->set_key (session->aes, curr_session->session_key,
 		sizeof (curr_session->session_key));
+
+	if (entry) {
+		*entry = curr_session;
+	}
 
 	return status;
 }
@@ -205,12 +212,12 @@ int session_manager_decrypt_message (struct session_manager *session,
 		return SESSION_MANAGER_BUF_TOO_SMALL;
 	}
 
-	payload = request->data + sizeof (struct cerberus_protocol_header);
-	payload_len = request->length - sizeof (struct cerberus_protocol_header) -
+	payload = request->data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID;
+	payload_len = request->length - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID -
 		SESSION_MANAGER_TRAILER_LEN;
-	buffer_len = request->max_response - sizeof (struct cerberus_protocol_header);
+	buffer_len = request->max_response - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID;
 
-	status = session_manager_set_key (session, request->source_eid);
+	status = session_manager_set_key (session, request->source_eid, NULL);
 	if (status != 0) {
 		return status;
 	}
@@ -239,12 +246,13 @@ int session_manager_encrypt_message (struct session_manager *session,
 	size_t payload_len;
 	size_t buffer_len;
 	int status;
+	struct session_manager_entry *curr_session;
 
 	if ((session == NULL) || (request == NULL)) {
 		return SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
-	if (request->length <= sizeof (struct cerberus_protocol_header)) {
+	if (request->length < sizeof (struct cerberus_protocol_header)) {
 		return 0;
 	}
 
@@ -252,21 +260,22 @@ int session_manager_encrypt_message (struct session_manager *session,
 		return SESSION_MANAGER_BUF_TOO_SMALL;
 	}
 
-	payload = request->data + sizeof (struct cerberus_protocol_header);
-	payload_len = request->length - sizeof (struct cerberus_protocol_header);
-	buffer_len = request->max_response - sizeof (struct cerberus_protocol_header);
+	payload = request->data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID;
+	payload_len = request->length - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID;
+	buffer_len = request->max_response - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID;
 	aes_iv = &payload[payload_len + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN];
 
-	status = session_manager_set_key (session, request->source_eid);
+	status = session_manager_set_key (session, request->source_eid, &curr_session);
 	if (status != 0) {
 		return status;
 	}
 
-	status = session->rng->generate_random_buffer (session->rng, CERBERUS_PROTOCOL_AES_IV_LEN,
-		aes_iv);
+	status = common_math_increment_byte_array (curr_session->aes_init_vector, CERBERUS_PROTOCOL_AES_IV_LEN, false);
 	if (status != 0) {
 		return status;
 	}
+
+	memcpy (aes_iv, curr_session->aes_init_vector, CERBERUS_PROTOCOL_AES_IV_LEN);
 
 	status = session->aes->encrypt_data (session->aes, payload, payload_len, aes_iv,
 		CERBERUS_PROTOCOL_AES_IV_LEN, payload, buffer_len - SESSION_MANAGER_TRAILER_LEN,
@@ -313,8 +322,10 @@ int session_manager_add_session (struct session_manager *session, uint8_t eid,
 
 	memcpy (curr_session->device_nonce, device_nonce, SESSION_MANAGER_NONCE_LEN);
 	memcpy (curr_session->cerberus_nonce, cerberus_nonce, SESSION_MANAGER_NONCE_LEN);
+	memset (curr_session->aes_init_vector, 0, CERBERUS_PROTOCOL_AES_IV_LEN);
 	curr_session->session_state = SESSION_STATE_SETUP;
 	curr_session->eid = eid;
+	curr_session->aes_init_vector[CERBERUS_PROTOCOL_AES_IV_LEN - 1] = 0x80;
 
 	return 0;
 }
@@ -591,7 +602,6 @@ int session_manager_session_sync (struct session_manager *session, uint8_t eid, 
  * @param session Session manager instance to initialize.
  * @param aes AES engine to utilize for packet encryption/decryption.
  * @param hash Hash engine to utilize for AES key generation.
- * @param rng RNG engine used to generate IV buffers.
  * @param riot RIoT key manager to utilize to get alias key for AES key generation.
  * @param sessions_table Preallocated table to use to store session manager entries. Set to NULL to
  * 	dynamically allocate from heap.
@@ -605,11 +615,11 @@ int session_manager_session_sync (struct session_manager *session, uint8_t eid, 
  * @return Initialization status, 0 if success or an error code.
  */
 int session_manager_init (struct session_manager *session, struct aes_engine *aes,
-	struct hash_engine *hash, struct rng_engine *rng, struct riot_key_manager *riot,
+	struct hash_engine *hash, struct riot_key_manager *riot,
 	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
 	size_t num_pairing_eids, struct keystore *store)
 {
-	if ((session == NULL) || (aes == NULL) || (hash == NULL) || (rng == NULL) || (riot == NULL)) {
+	if ((session == NULL) || (aes == NULL) || (hash == NULL) || (riot == NULL)) {
 		return SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
@@ -617,7 +627,6 @@ int session_manager_init (struct session_manager *session, struct aes_engine *ae
 
 	session->aes = aes;
 	session->hash = hash;
-	session->rng = rng;
 	session->riot = riot;
 	session->num_sessions = num_sessions;
 	session->sessions_table = sessions_table;
