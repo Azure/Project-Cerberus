@@ -9,6 +9,7 @@
 #include "testing.h"
 #include "cmd_interface/session_manager_ecc.h"
 #include "cmd_interface/cerberus_protocol_optional_commands.h"
+#include "common/common_math.h"
 #include "testing/mock/crypto/aes_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
@@ -41,7 +42,7 @@ static const uint8_t SHARED_SECRET[] = {
 };
 
 static const uint8_t SESSION_AES_IV[] = {
-	0xaa,0xee,0xff,0x11,0x44,0xdd,0x77,0xcc,0x22,0xaa,0xdd,0xff
+	0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80
 };
 
 static const uint8_t SESSION_AES_GCM_TAG[] = {
@@ -120,7 +121,7 @@ static void setup_session_manager_ecc_test (CuTest *test, struct session_manager
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd->session, &cmd->aes.base, &cmd->ecc.base,
-		&cmd->hash.base, &cmd->rng.base, &cmd->riot, NULL, 3, PAIRING_EIDS, 2,
+		&cmd->hash.base, &cmd->riot, NULL, 3, PAIRING_EIDS, 2,
 		&cmd->keys_keystore.base);
 	CuAssertIntEquals (test, 0, status);
 }
@@ -373,7 +374,7 @@ static void session_manager_ecc_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
-		&cmd.rng.base, &cmd.riot, NULL, 1, NULL, 0, &cmd.keys_keystore.base);
+		&cmd.riot, NULL, 1, NULL, 0, &cmd.keys_keystore.base);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cmd.session.base.add_session);
 	CuAssertPtrNotNull (test, cmd.session.base.establish_session);
@@ -432,7 +433,7 @@ static void session_manager_ecc_test_init_preallocated_table (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base,
-		&cmd.ecc.base, &cmd.hash.base, &cmd.rng.base, &cmd.riot, sessions_table, 2, NULL, 0,
+		&cmd.ecc.base, &cmd.hash.base, &cmd.riot, sessions_table, 2, NULL, 0,
 		&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cmd.session.base.add_session);
@@ -471,27 +472,23 @@ static void session_manager_ecc_test_init_invalid_arg (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (NULL, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
-		&cmd.rng.base, &cmd.riot, NULL, 1, NULL, 0, &cmd.keys_keystore.base);
+		&cmd.riot, NULL, 1, NULL, 0, &cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = session_manager_ecc_init (&cmd.session, NULL, &cmd.ecc.base, &cmd.hash.base,
-		&cmd.rng.base, &cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
+		&cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, NULL, &cmd.hash.base,
-		&cmd.rng.base, &cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
+		&cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, NULL,
-		&cmd.rng.base, &cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
+		&cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
-		NULL, &cmd.riot, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
-	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
-
-	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base, &cmd.hash.base,
-		&cmd.rng.base, NULL, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
+		NULL, NULL, 1, NULL, 0,&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, SESSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = aes_mock_validate_and_release (&cmd.aes);
@@ -2654,13 +2651,13 @@ static void session_manager_ecc_test_decrypt_message (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.decrypt_data, &cmd.aes, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq.data + sizeof (struct cerberus_protocol_header),
-			sizeof (data) - sizeof (struct cerberus_protocol_header)),
-		MOCK_ARG (sizeof (data) - sizeof (struct cerberus_protocol_header)),
+		MOCK_ARG_PTR_CONTAINS_TMP (rq.data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID,
+			sizeof (data) - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID),
+		MOCK_ARG (sizeof (data) - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID),
 		MOCK_ARG_PTR_CONTAINS (SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG)),
 		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)),
 		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - sizeof (struct cerberus_protocol_header)));
+		MOCK_ARG (MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID));
 	status |= mock_expect_output (&cmd.aes.mock, 5, decrypted, sizeof (decrypted), 6);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2669,10 +2666,10 @@ static void session_manager_ecc_test_decrypt_message (CuTest *test)
 	CuAssertIntEquals (test, sizeof (data), rq.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, rq.max_response);
 
-	status = testing_validate_array (data, rq.data, sizeof (struct cerberus_protocol_header));
+	status = testing_validate_array (data, rq.data, CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID);
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (decrypted, rq.data + sizeof (struct cerberus_protocol_header),
+	status = testing_validate_array (decrypted, rq.data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID,
 		sizeof (decrypted));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2802,9 +2799,9 @@ static void session_manager_ecc_test_decrypt_message_fail (CuTest *test)
 
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.decrypt_data, &cmd.aes,
 		AES_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (rq.data +
-			sizeof (struct cerberus_protocol_header),
-			sizeof (data) - sizeof (struct cerberus_protocol_header)),
-		MOCK_ARG (sizeof (data) - sizeof (struct cerberus_protocol_header)),
+			CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID,
+			sizeof (data) - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID),
+		MOCK_ARG (sizeof (data) - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID),
 		MOCK_ARG_PTR_CONTAINS (SESSION_AES_GCM_TAG, sizeof (SESSION_AES_GCM_TAG)),
 		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)),
 		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
@@ -2896,7 +2893,7 @@ static void session_manager_ecc_test_encrypt_message (CuTest *test)
 	};
 	struct cerberus_protocol_header header;
 	uint8_t encrypted[] = {
-		0x1,0x2,0x3,0x4,0x5,0x6,0x7
+		0x1,0x2,0x3,0x4,0x5,0x6,0x7,0x8
 	};
 	uint8_t aes_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
@@ -2924,15 +2921,10 @@ static void session_manager_ecc_test_encrypt_message (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.rng.mock, cmd.rng.base.generate_random_buffer, &cmd.rng, 0,
-		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cmd.rng.mock, 1, SESSION_AES_IV, sizeof (SESSION_AES_IV), 0);
-	CuAssertIntEquals (test, 0, status);
-
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.encrypt_data, &cmd.aes, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (data + sizeof (struct cerberus_protocol_header),
-			sizeof (data) - sizeof (struct cerberus_protocol_header)),
-		MOCK_ARG (sizeof (data) - sizeof (struct cerberus_protocol_header)),
+		MOCK_ARG_PTR_CONTAINS_TMP (data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID,
+			sizeof (data) - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID),
+		MOCK_ARG (sizeof (data) - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID),
 		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)),
 		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_ANY);
@@ -2948,17 +2940,17 @@ static void session_manager_ecc_test_encrypt_message (CuTest *test)
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, rq.max_response);
 
 	status = testing_validate_array ((uint8_t*) &header, rq.data,
-		sizeof (struct cerberus_protocol_header));
+		CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID);
 	CuAssertIntEquals (test, 0, status);
 	status = testing_validate_array (encrypted,
-		rq.data + sizeof (struct cerberus_protocol_header), sizeof (encrypted));
+		rq.data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID , sizeof (encrypted));
 	CuAssertIntEquals (test, 0, status);
 	status = testing_validate_array (SESSION_AES_GCM_TAG,
-		rq.data + sizeof (struct cerberus_protocol_header) + sizeof (encrypted),
+		rq.data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID + sizeof (encrypted),
 		sizeof (SESSION_AES_GCM_TAG));
 	CuAssertIntEquals (test, 0, status);
 	status = testing_validate_array (SESSION_AES_IV, rq.data +
-		sizeof (struct cerberus_protocol_header) + sizeof (encrypted) +
+		CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID + sizeof (encrypted) +
 		sizeof (SESSION_AES_GCM_TAG), sizeof (SESSION_AES_IV));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3061,10 +3053,12 @@ static void session_manager_ecc_test_encrypt_message_set_key_fail (CuTest *test)
 static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
+	uint8_t rq_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg rq;
 	uint8_t data[] = {
-		0xA,0xB,0xC,0xD,0xE,0xF,0xAA,0xBB,0xCC,0xDD,0xEE,0xFF
+		0xA,0xB,0xC,0xD,0xE
 	};
+	struct cerberus_protocol_header header;
 	uint8_t aes_key[] = {
 		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
 		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
@@ -3073,7 +3067,12 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 
 	TEST_START;
 
-	rq.data = data;
+	rq.data = rq_data;
+	memcpy (rq.data, data, sizeof (data));
+	memcpy (&header, data, sizeof (struct cerberus_protocol_header));
+
+	header.crypt = 1;
+
 	rq.length = sizeof (data);
 	rq.source_eid = 0x10;
 	rq.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -3086,13 +3085,10 @@ static void session_manager_ecc_test_encrypt_message_generate_iv_fail (CuTest *t
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.rng.mock, cmd.rng.base.generate_random_buffer, &cmd.rng,
-		RNG_ENGINE_NO_MEMORY, MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cmd.rng.mock, 1, SESSION_AES_IV, sizeof (SESSION_AES_IV), 0);
-	CuAssertIntEquals (test, 0, status);
+	memset (cmd.session.base.sessions_table[0].aes_init_vector, 0xff, CERBERUS_PROTOCOL_AES_IV_LEN);
 
 	status = cmd.session.base.encrypt_message (&cmd.session.base, &rq);
-	CuAssertIntEquals (test, RNG_ENGINE_NO_MEMORY, status);
+	CuAssertIntEquals (test, COMMON_MATH_BOUNDARY_REACHED, status);
 
 	release_session_manager_ecc_test (test, &cmd);
 }
@@ -3125,16 +3121,11 @@ static void session_manager_ecc_test_encrypt_message_fail (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&cmd.rng.mock, cmd.rng.base.generate_random_buffer, &cmd.rng, 0,
-		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&cmd.rng.mock, 1, SESSION_AES_IV, sizeof (SESSION_AES_IV), 0);
-	CuAssertIntEquals (test, 0, status);
-
 	status = mock_expect (&cmd.aes.mock, cmd.aes.base.encrypt_data, &cmd.aes,
 		AES_ENGINE_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS (data + sizeof (struct cerberus_protocol_header),
-			sizeof (data) - sizeof (struct cerberus_protocol_header)),
-		MOCK_ARG (sizeof (data) - sizeof (struct cerberus_protocol_header)),
+		MOCK_ARG_PTR_CONTAINS (data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID,
+			sizeof (data) - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID),
+		MOCK_ARG (sizeof (data) - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID),
 		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)),
 		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_ANY);
@@ -3149,20 +3140,72 @@ static void session_manager_ecc_test_encrypt_message_fail (CuTest *test)
 static void session_manager_ecc_test_encrypt_message_no_payload (CuTest *test)
 {
 	struct session_manager_ecc_testing cmd;
-	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t rq_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg rq;
+	uint8_t data[] = {
+		0xA,0xB,0xC,0xD,0xE
+	};
+	struct cerberus_protocol_header header;
+	uint8_t encrypted[] = {
+		0x1
+	};
+	uint8_t aes_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
 	int status;
 
 	TEST_START;
 
-	setup_session_manager_ecc_test (test, &cmd);
+	rq.data = rq_data;
+	memcpy (rq.data, data, sizeof (data));
+	memcpy (&header, data, sizeof (struct cerberus_protocol_header));
 
-	rq.data = data;
-	rq.length = sizeof (struct cerberus_protocol_header);
+	header.crypt = 1;
+
+	rq.length = sizeof (data);
 	rq.source_eid = 0x10;
 	rq.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
+	setup_session_manager_ecc_test (test, &cmd);
+
+	session_manager_ecc_establish_session (test, &cmd, 0x10);
+
+	status = mock_expect (&cmd.aes.mock, cmd.aes.base.set_key, &cmd.aes, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.aes.mock, cmd.aes.base.encrypt_data, &cmd.aes, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID,
+			sizeof (data) - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID),
+		MOCK_ARG (sizeof (data) - CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID),
+		MOCK_ARG_PTR_CONTAINS (SESSION_AES_IV, sizeof (SESSION_AES_IV)),
+		MOCK_ARG (sizeof (SESSION_AES_IV)), MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_ANY);
+	status |= mock_expect_output (&cmd.aes.mock, 4, encrypted, sizeof (encrypted), 5);
+	status |= mock_expect_output (&cmd.aes.mock, 6, SESSION_AES_GCM_TAG,
+		sizeof (SESSION_AES_GCM_TAG), -1);
+	CuAssertIntEquals (test, 0, status);
+
 	status = cmd.session.base.encrypt_message (&cmd.session.base, &rq);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (data) + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN +
+		CERBERUS_PROTOCOL_AES_IV_LEN, rq.length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, rq.max_response);
+
+	status = testing_validate_array ((uint8_t*) &header, rq.data,
+		CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID);
+	CuAssertIntEquals (test, 0, status);
+	status = testing_validate_array (encrypted,
+		rq.data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID , sizeof (encrypted));
+	CuAssertIntEquals (test, 0, status);
+	status = testing_validate_array (SESSION_AES_GCM_TAG,
+		rq.data + CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID + sizeof (encrypted),
+		sizeof (SESSION_AES_GCM_TAG));
+	CuAssertIntEquals (test, 0, status);
+	status = testing_validate_array (SESSION_AES_IV, rq.data +
+		CERBERUS_PROTOCOL_HEADER_SIZE_NO_ID + sizeof (encrypted) +
+		sizeof (SESSION_AES_GCM_TAG), sizeof (SESSION_AES_IV));
 	CuAssertIntEquals (test, 0, status);
 
 	release_session_manager_ecc_test (test, &cmd);
@@ -3448,7 +3491,7 @@ static void session_manager_ecc_test_get_pairing_state_no_keystore (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base,
-		&cmd.hash.base, &cmd.rng.base, &cmd.riot, NULL, 3, PAIRING_EIDS, 2, NULL);
+		&cmd.hash.base, &cmd.riot, NULL, 3, PAIRING_EIDS, 2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.session.base.get_pairing_state (&cmd.session.base, 0x10);
@@ -3528,7 +3571,7 @@ static void session_manager_ecc_test_get_pairing_state_unexpected_eid (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base,
-		&cmd.hash.base, &cmd.rng.base, &cmd.riot, NULL, 3, &pairing_eid, sizeof (pairing_eid),
+		&cmd.hash.base, &cmd.riot, NULL, 3, &pairing_eid, sizeof (pairing_eid),
 		&cmd.keys_keystore.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -4522,7 +4565,7 @@ static void session_manager_ecc_test_setup_paired_session_unsupported (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_ecc_init (&cmd.session, &cmd.aes.base, &cmd.ecc.base,
-		&cmd.hash.base, &cmd.rng.base, &cmd.riot, NULL, 3, NULL, 1, NULL);
+		&cmd.hash.base, &cmd.riot, NULL, 3, NULL, 1, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	session_manager_ecc_establish_session (test, &cmd, 0x10);

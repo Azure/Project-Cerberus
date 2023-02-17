@@ -20,11 +20,10 @@ struct session_manager_ecc {
 };
 
 
-int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_engine *aes, 
-	struct ecc_engine *ecc, struct hash_engine *hash, struct rng_engine *rng, 
-	struct riot_key_manager *riot, struct session_manager_entry *sessions_table, 
-	size_t num_sessions, const uint8_t *pairing_eids, size_t num_pairing_eids, 
-	struct keystore *store);
+int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_engine *aes,
+	struct ecc_engine *ecc, struct hash_engine *hash, struct riot_key_manager *riot,
+	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
+	size_t num_pairing_eids, struct keystore *store);
 void session_manager_ecc_release (struct session_manager_ecc *session);
 
 
