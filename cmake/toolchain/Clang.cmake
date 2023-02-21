@@ -49,11 +49,6 @@ add_compile_options(
 	)
 
 #
-# Use minimum optimization for debug configuration. For release the cmake specifies -O3
-#
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O -DDEBUG")
-
-#
 # Set the default linker flags.
 #
 add_link_options(
