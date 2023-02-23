@@ -244,6 +244,17 @@ static int host_flash_manager_single_host_has_flash_access (struct host_flash_ma
 	return host_flash_manager_host_has_flash_access (control, single->filter);
 }
 
+static int host_flash_manager_single_reset_flash (struct host_flash_manager *manager)
+{
+	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
+
+	if (single == NULL) {
+		return HOST_FLASH_MGR_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_reset_device (single->flash); 
+}
+
 /**
  * Initialize the manager for a single host flash device.
  *
@@ -285,6 +296,7 @@ int host_flash_manager_single_init (struct host_flash_manager_single *manager,
 	manager->base.set_flash_for_rot_access = host_flash_manager_single_set_flash_for_rot_access;
 	manager->base.set_flash_for_host_access = host_flash_manager_single_set_flash_for_host_access;
 	manager->base.host_has_flash_access = host_flash_manager_single_host_has_flash_access;
+	manager->base.reset_flash = host_flash_manager_single_reset_flash;
 
 	manager->flash = flash;
 	manager->host_state = host_state;

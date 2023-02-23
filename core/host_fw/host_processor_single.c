@@ -29,7 +29,7 @@ static int host_processor_single_soft_reset (struct host_processor *host, struct
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	return host_processor_filtered_update_verification (single, hash, rsa, true, true, 0);
+	return host_processor_filtered_update_verification (single, hash, rsa, true, true, 0, false);
 }
 
 static int host_processor_single_run_time_verification (struct host_processor *host,
@@ -42,7 +42,7 @@ static int host_processor_single_run_time_verification (struct host_processor *h
 	}
 
 	return host_processor_filtered_update_verification (single, hash, rsa, true, false,
-		HOST_PROCESSOR_NOTHING_TO_VERIFY);
+		HOST_PROCESSOR_NOTHING_TO_VERIFY, false);
 }
 
 static int host_processor_single_flash_rollback (struct host_processor *host,

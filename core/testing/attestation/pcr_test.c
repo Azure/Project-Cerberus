@@ -45,7 +45,6 @@ static void setup_pcr_mock_test (CuTest *test, struct pcr_bank *pcr, struct hash
  * @param test The test framework
  * @param pcr PCR bank to release
  * @param hash The hashing engine to release
- * @param logger The logger instance to release
  */
 static void complete_pcr_mock_test (CuTest *test, struct pcr_bank *pcr,
 	struct hash_engine_mock *hash)

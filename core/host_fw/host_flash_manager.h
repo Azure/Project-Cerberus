@@ -221,6 +221,15 @@ struct host_flash_manager {
 	 */
 	int (*host_has_flash_access) (struct host_flash_manager *manager,
 		struct host_control *control);
+
+	/**
+	 * Reset the host SPI flash device.
+	 *
+	 * @param manager The manager to use to reset the host flash device.
+	 *
+	 * @return 0 if the flash was successfully reset or an error code.
+	 */
+	int (*reset_flash) (struct host_flash_manager *manager);
 };
 
 

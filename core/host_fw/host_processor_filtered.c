@@ -769,6 +769,45 @@ exit_host:
 }
 
 /**
+ * Reset the host flash. The flash reset will retry a fixed number of times on failures unless the
+ * reset command is unsupported. 
+ *
+ * @param host The host processor instance.
+ */
+static void host_processor_filtered_reset_host_flash (struct host_processor_filtered *host)
+{
+	int status = 0;
+	int retries = 3;
+
+	do {
+		if (status != 0) {
+			platform_msleep (100);
+		}
+
+		status = host->flash->reset_flash (host->flash);
+
+		debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
+			DEBUG_LOG_COMPONENT_HOST_FW, HOST_LOGGING_FLASH_RESET, host->base.port, status);
+	} while (((status != 0) && (--retries > 0) && (status != SPI_FLASH_RESET_NOT_SUPPORTED)));
+}
+
+/**
+ * Clear the PFM and host flash dirty states.
+ *
+ * @param host The host processor instance.
+ * @param no_pfm Flag indicating if there is no active or pending PFM.
+ */
+static void host_processor_filtered_clear_host_dirty_state (
+	struct host_processor_filtered *host, bool no_pfm)
+{
+	host_state_manager_set_pfm_dirty (host->state, false);
+	if (no_pfm) {
+		host->filter->clear_flash_dirty_state (host->filter);
+		host_state_manager_save_inactive_dirty (host->state, false);
+	}
+}
+
+/**
  * Common handler for verification events that occur after the host has been initialized.
  *
  * @param host The host instance generating the event.
@@ -778,11 +817,13 @@ exit_host:
  * @param reset Flag indicating if the verification is being run in reset context.
  * @param bypass_status Status code to return when there are no PFMs available, which means no
  * validation is executed.
+ * @param reset_flash Flag indicating if the host flash should be reset. 
  *
  * @return 0 if the event was handled successfully or an error code.
  */
 int host_processor_filtered_update_verification (struct host_processor_filtered *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, bool single, bool reset, int bypass_status)
+	struct hash_engine *hash, struct rsa_engine *rsa, bool single, bool reset, int bypass_status,
+	bool reset_flash)
 {
 	struct pfm *active_pfm;
 	struct pfm *pending_pfm;
@@ -793,6 +834,9 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 	bool dirty;
 	bool only_validated = false;
 	bool notified = !reset;
+	bool validate_flash;
+	bool no_pfm;
+	bool no_state_change;
 
 	if ((hash == NULL) || (rsa == NULL)) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
@@ -813,11 +857,15 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 	bypass = host_state_manager_is_bypass_mode (host->state);
 	dirty = host_state_manager_is_inactive_dirty (host->state);
 
-	if (pending_pfm || (!pending_pfm && !active_pfm && !bypass) ||
-		(active_pfm && (dirty || bypass))) {
+	no_pfm = !active_pfm && !pending_pfm;
+	validate_flash = pending_pfm || (no_pfm && !bypass) || (active_pfm && (dirty || bypass));
+	no_state_change = !dirty && !bypass && !host_state_manager_is_pfm_dirty (host->state) &&
+		(active_pfm || (pending_pfm && !active_pfm));
+	reset_flash = reset_flash && reset;
+ 
+	if (validate_flash || reset_flash) {
 		/* If nothing has changed since the last validation, just exit. */
-		if (!dirty && !bypass && !host_state_manager_is_pfm_dirty (host->state) &&
-			(active_pfm || (pending_pfm && !active_pfm))) {
+		if (!reset_flash && no_state_change) {
 			goto exit;
 		}
 
@@ -826,7 +874,15 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 		}
 
 		status = host->flash->set_flash_for_rot_access (host->flash, host->control);
-		if (status != 0) {
+		if (reset_flash && (status == 0)) {
+			host_processor_filtered_reset_host_flash (host);
+		}
+		
+		if ((status != 0) || !validate_flash || no_state_change) {
+			if (!validate_flash) {
+				host_processor_filtered_clear_host_dirty_state (host, no_pfm);
+			}
+
 			goto return_flash;
 		}
 
@@ -922,11 +978,7 @@ return_flash:
 		}
 	}
 	else {
-		host_state_manager_set_pfm_dirty (host->state, false);
-		if (!active_pfm && !pending_pfm) {
-			host->filter->clear_flash_dirty_state (host->filter);
-			host_state_manager_save_inactive_dirty (host->state, false);
-		}
+		host_processor_filtered_clear_host_dirty_state (host, no_pfm);
 	}
 
 exit:
