@@ -308,6 +308,23 @@ static int host_flash_manager_dual_host_has_flash_access (struct host_flash_mana
 	return host_flash_manager_host_has_flash_access (control, dual->filter);
 }
 
+static int host_flash_manager_dual_reset_flash (struct host_flash_manager *manager)
+{
+	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
+	int status = 0;
+
+	if (dual == NULL) {
+		return HOST_FLASH_MGR_INVALID_ARGUMENT;
+	}
+
+	status = spi_flash_reset_device (dual->flash_cs0);
+	if (status != 0) {
+		return status;
+	}
+
+	return spi_flash_reset_device (dual->flash_cs1);
+}
+
 /**
  * Initialize the manager for dual host flash devices.
  *
@@ -349,6 +366,7 @@ int host_flash_manager_dual_init (struct host_flash_manager_dual *manager,
 	manager->base.set_flash_for_rot_access = host_flash_manager_dual_set_flash_for_rot_access;
 	manager->base.set_flash_for_host_access = host_flash_manager_dual_set_flash_for_host_access;
 	manager->base.host_has_flash_access = host_flash_manager_dual_host_has_flash_access;
+	manager->base.reset_flash = host_flash_manager_dual_reset_flash;
 
 	manager->flash_cs0 = cs0;
 	manager->flash_cs1 = cs1;

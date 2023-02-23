@@ -418,6 +418,7 @@ static void host_flash_manager_dual_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_rot_access);
 	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_host_access);
 	CuAssertPtrNotNull (test, manager.test.base.host_has_flash_access);
+	CuAssertPtrNotNull (test, manager.test.base.reset_flash);
 
 	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
@@ -12663,6 +12664,95 @@ static void host_flash_manager_dual_test_restore_flash_read_write_regions_flash_
 	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
+static void host_flash_manager_dual_test_reset_flash (CuTest *test)
+{
+	struct host_flash_manager_dual_testing manager;
+	uint8_t wip_status = 0;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_dual_testing_init (test, &manager, true);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x99));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0x99));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.reset_flash (&manager.test.base);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_dual_test_reset_flash_null (CuTest *test)
+{
+	struct host_flash_manager_dual_testing manager;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_dual_testing_init (test, &manager, true);
+
+	status = manager.test.base.reset_flash (NULL);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_dual_test_reset_flash_cs0_error (CuTest *test)
+{
+	struct host_flash_manager_dual_testing manager;
+	uint8_t wip_status = FLASH_STATUS_WIP;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_dual_testing_init (test, &manager, true);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.reset_flash (&manager.test.base);
+	CuAssertIntEquals (test, SPI_FLASH_WRITE_IN_PROGRESS, status);
+
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_dual_test_reset_flash_cs1_error (CuTest *test)
+{
+	struct host_flash_manager_dual_testing manager;
+	uint8_t wip_status_cs0 = 0;
+	uint8_t wip_status_cs1 = FLASH_STATUS_WIP;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_dual_testing_init (test, &manager, true);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &wip_status_cs0, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x99));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &wip_status_cs1, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.reset_flash (&manager.test.base);
+	CuAssertIntEquals (test, SPI_FLASH_WRITE_IN_PROGRESS, status);
+
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
+}
+
 
 TEST_SUITE_START (host_flash_manager_dual);
 
@@ -12842,5 +12932,9 @@ TEST (host_flash_manager_dual_test_restore_flash_read_write_regions_cs1_multiple
 TEST (host_flash_manager_dual_test_restore_flash_read_write_regions_cs0_multiple_fw);
 TEST (host_flash_manager_dual_test_restore_flash_read_write_regions_null);
 TEST (host_flash_manager_dual_test_restore_flash_read_write_regions_flash_error);
+TEST (host_flash_manager_dual_test_reset_flash);
+TEST (host_flash_manager_dual_test_reset_flash_null);
+TEST (host_flash_manager_dual_test_reset_flash_cs0_error);
+TEST (host_flash_manager_dual_test_reset_flash_cs1_error);
 
 TEST_SUITE_END;

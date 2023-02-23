@@ -57,7 +57,7 @@ static int host_processor_dual_soft_reset (struct host_processor *host, struct h
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	return host_processor_filtered_update_verification (dual, hash, rsa, false, true, 0);
+	return host_processor_filtered_update_verification (dual, hash, rsa, false, true, 0, false);
 }
 
 static int host_processor_dual_run_time_verification (struct host_processor *host,
@@ -70,7 +70,7 @@ static int host_processor_dual_run_time_verification (struct host_processor *hos
 	}
 
 	return host_processor_filtered_update_verification (dual, hash, rsa, false, false,
-		HOST_PROCESSOR_NOTHING_TO_VERIFY);
+		HOST_PROCESSOR_NOTHING_TO_VERIFY, false);
 }
 
 static int host_processor_dual_flash_rollback (struct host_processor *host,

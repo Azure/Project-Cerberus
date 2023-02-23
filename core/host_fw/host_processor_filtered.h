@@ -65,7 +65,8 @@ int host_processor_filtered_restore_read_write_data (struct host_processor_filte
 int host_processor_filtered_power_on_reset (struct host_processor_filtered *host,
 	struct hash_engine *hash, struct rsa_engine *rsa, bool single);
 int host_processor_filtered_update_verification (struct host_processor_filtered *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, bool single, bool reset, int bypass_status);
+	struct hash_engine *hash, struct rsa_engine *rsa, bool single, bool reset, int bypass_status,
+	bool reset_flash);
 
 int host_processor_filtered_get_next_reset_verification_actions (struct host_processor *host);
 int host_processor_filtered_needs_config_recovery (struct host_processor *host);

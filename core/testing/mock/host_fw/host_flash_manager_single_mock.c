@@ -195,6 +195,17 @@ static int host_flash_manager_single_mock_host_has_flash_access (struct host_fla
 		MOCK_ARG_PTR_CALL (control));
 }
 
+static int host_flash_manager_single_mock_reset_flash (struct host_flash_manager *manager)
+{
+	struct host_flash_manager_single_mock *mock = (struct host_flash_manager_single_mock*) manager;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, host_flash_manager_single_mock_reset_flash, manager);
+}
+
 static int host_flash_manager_single_mock_func_arg_count (void *func)
 {
 	if (func == host_flash_manager_single_mock_validate_read_only_flash) {
@@ -265,6 +276,9 @@ static const char* host_flash_manager_single_mock_func_name_map (void *func)
 	}
 	else if (func == host_flash_manager_single_mock_host_has_flash_access) {
 		return "host_has_flash_access";
+	}
+	else if (func == host_flash_manager_single_mock_reset_flash) {
+		return "reset_flash";
 	}
 	else {
 		return "unknown";
@@ -418,6 +432,7 @@ int host_flash_manager_single_mock_init (struct host_flash_manager_single_mock *
 	mock->base.base.set_flash_for_host_access =
 		host_flash_manager_single_mock_set_flash_for_host_access;
 	mock->base.base.host_has_flash_access = host_flash_manager_single_mock_host_has_flash_access;
+	mock->base.base.reset_flash = host_flash_manager_single_mock_reset_flash;
 
 	mock->mock.func_arg_count = host_flash_manager_single_mock_func_arg_count;
 	mock->mock.func_name_map = host_flash_manager_single_mock_func_name_map;
