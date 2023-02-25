@@ -67,8 +67,9 @@ enum {
 	HOST_LOGGING_CHECK_PENDING_FAILED,			/**< Failed an empty check for a pending PFM. */
 	HOST_LOGGING_CLEAR_PFMS,					/**< Clearing all PFMs to enable bypass mode. */
 	HOST_LOGGING_RESET_RELEASE_FAILED,			/**< Failed to release the host reset after POR. */
-	HOST_LOGGING_FLASH_RESET,   				/**< Host flash was reset. */
+	HOST_LOGGING_FLASH_RESET,					/**< Host flash was reset. */
 	HOST_LOGGING_FORCE_RESET = 57,				/**< Forced reset issued to host. */
+	HOST_LOGGING_HOST_BOOTING_TIME,				/**< Time taken in ms for host to boot. */
 };
 
 
