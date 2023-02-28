@@ -10,7 +10,7 @@
 #define	platform_CuStringAppendFormat		CuStringAppendFormat
 
 /* The maximum number of tests supported on the platform. */
-#define	PLATFORM_MAX_TEST_CASES				16384
+#define	PLATFORM_MAX_TEST_CASES				(32 * 1024)
 
 
 #endif /* PLATFORM_CUTEST_H_ */
