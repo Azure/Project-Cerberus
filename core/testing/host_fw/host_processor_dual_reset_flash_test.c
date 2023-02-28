@@ -301,8 +301,6 @@ static void host_processor_dual_reset_flash_test_init_null (CuTest *test)
 	status = host_flash_manager_dual_mock_validate_and_release (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_reset_flash_release (&host);
-
 	host_state_manager_release (&host_state);
 	spi_flash_release (&flash_state);
 }
@@ -367,7 +365,7 @@ static void host_processor_dual_reset_flash_test_init_pulse_reset (CuTest *test)
 	status = host_flash_manager_dual_mock_validate_and_release (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_dual_release (&host);
+	host_processor_dual_reset_flash_release (&host);
 
 	host_state_manager_release (&host_state);
 	spi_flash_release (&flash_state);
@@ -441,8 +439,6 @@ static void host_processor_dual_reset_flash_test_init_pulse_reset_null (CuTest *
 
 	status = host_flash_manager_dual_mock_validate_and_release (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
-
-	host_processor_dual_release (&host);
 
 	host_state_manager_release (&host_state);
 	spi_flash_release (&flash_state);
