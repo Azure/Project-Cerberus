@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "platform_api.h"
-#include "flash_store_encrypted.h"
+#include "flash_store_contiguous_blocks_encrypted.h"
 #include "flash_util.h"
 
 
@@ -15,15 +15,16 @@
 #define	FLASH_STORE_AES_IV_LENGTH		12
 
 
-static int flash_store_encrypted_write (struct flash_store *flash, int id, const uint8_t *data,
-	size_t length)
+static int flash_store_contiguous_blocks_encrypted_write (struct flash_store *flash_store, int id,
+	const uint8_t *data, size_t length)
 {
-	struct flash_store_encrypted *encrypted = (struct flash_store_encrypted*) flash;
+	struct flash_store_contiguous_blocks_encrypted *encrypted =
+		(struct flash_store_contiguous_blocks_encrypted*) flash_store;
 	uint8_t *enc_data;
 	uint8_t iv_tag[FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH];
 	int status;
 
-	status = flash_store_verify_write_params (flash, id, data, length);
+	status = flash_store_contiguous_blocks_verify_write_params (&encrypted->base, id, data, length);
 	if (status != 0) {
 		return status;
 	}
@@ -46,21 +47,24 @@ static int flash_store_encrypted_write (struct flash_store *flash, int id, const
 		goto exit;
 	}
 
-	status = flash_store_write_common (flash, id, enc_data, length, iv_tag, sizeof (iv_tag));
+	status = flash_store_contiguous_blocks_write_common (&encrypted->base, id, enc_data, length,
+		iv_tag, sizeof (iv_tag));
 
 exit:
 	platform_free (enc_data);
 	return status;
 }
 
-static int flash_store_encrypted_read (struct flash_store *flash, int id, uint8_t *data,
-	size_t length)
+static int flash_store_contiguous_blocks_encrypted_read (struct flash_store *flash_store, int id,
+	uint8_t *data, size_t length)
 {
-	struct flash_store_encrypted *encrypted = (struct flash_store_encrypted*) flash;
+	struct flash_store_contiguous_blocks_encrypted *encrypted =
+		(struct flash_store_contiguous_blocks_encrypted*) flash_store;
 	uint8_t iv_tag[FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH];
 	int status;
 
-	status = flash_store_read_common (flash, id, data, length, iv_tag, sizeof (iv_tag), &length);
+	status = flash_store_contiguous_blocks_read_common (&encrypted->base, id, data, length, iv_tag,
+		sizeof (iv_tag), &length);
 	if (status != 0) {
 		return status;
 	}
@@ -80,7 +84,7 @@ static int flash_store_encrypted_read (struct flash_store *flash, int id, uint8_
 }
 
 /**
- * Initialize flash storage for encrypted blocks of data.
+ * Initialize flash storage for contiguous encrypted blocks of data.
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
@@ -96,9 +100,10 @@ static int flash_store_encrypted_read (struct flash_store *flash, int id, uint8_
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-static int flash_store_encrypted_init_storage_common (struct flash_store_encrypted *store,
-	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
-	struct aes_engine *aes, struct rng_engine *rng, bool decreasing, bool variable)
+static int flash_store_contiguous_blocks_encrypted_init_storage_common (
+	struct flash_store_contiguous_blocks_encrypted *store, const struct flash *flash,
+	uint32_t base_addr, size_t block_count, size_t data_length, struct aes_engine *aes,
+	struct rng_engine *rng, bool decreasing, bool variable)
 {
 	int status;
 
@@ -106,14 +111,14 @@ static int flash_store_encrypted_init_storage_common (struct flash_store_encrypt
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
-	status = flash_store_init_storage_common (&store->base, flash, base_addr, block_count,
-		data_length, decreasing, variable, FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH);
+	status = flash_store_contiguous_blocks_init_storage_common (&store->base, flash, base_addr,
+		block_count, data_length, decreasing, variable, FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH);
 	if (status != 0) {
 		return status;
 	}
 
-	store->base.write = flash_store_encrypted_write;
-	store->base.read = flash_store_encrypted_read;
+	store->base.base.write = flash_store_contiguous_blocks_encrypted_write;
+	store->base.base.read = flash_store_contiguous_blocks_encrypted_read;
 
 	store->aes = aes;
 	store->rng = rng;
@@ -122,7 +127,7 @@ static int flash_store_encrypted_init_storage_common (struct flash_store_encrypt
 }
 
 /**
- * Initialize flash storage for fixed sized blocks of data.
+ * Initialize flash storage for fixed sized contiguous blocks of data.
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
@@ -136,17 +141,18 @@ static int flash_store_encrypted_init_storage_common (struct flash_store_encrypt
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-int flash_store_encrypted_init_fixed_storage (struct flash_store_encrypted *store,
-	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
-	struct aes_engine *aes, struct rng_engine *rng)
+int flash_store_contiguous_blocks_encrypted_init_fixed_storage (
+	struct flash_store_contiguous_blocks_encrypted *store, const struct flash *flash,
+	uint32_t base_addr, size_t block_count, size_t data_length, struct aes_engine *aes,
+	struct rng_engine *rng)
 {
-	return flash_store_encrypted_init_storage_common (store, flash, base_addr, block_count,
-		data_length, aes, rng, false, false);
+	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, flash, base_addr,
+		block_count, data_length, aes, rng, false, false);
 }
 
 /**
- * Initialize flash storage for fixed sized blocks of data.  Blocks will be stored in addresses
- * decreasing from the first block.
+ * Initialize flash storage for fixed sized contiguous blocks of data.  Blocks will be stored in
+ * addresses decreasing from the first block.
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
@@ -160,16 +166,17 @@ int flash_store_encrypted_init_fixed_storage (struct flash_store_encrypted *stor
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-int flash_store_encrypted_init_fixed_storage_decreasing (struct flash_store_encrypted *store,
-	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t data_length,
-	struct aes_engine *aes, struct rng_engine *rng)
+int flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (
+	struct flash_store_contiguous_blocks_encrypted *store, const struct flash *flash,
+	uint32_t base_addr,	size_t block_count, size_t data_length,	struct aes_engine *aes,
+	struct rng_engine *rng)
 {
-	return flash_store_encrypted_init_storage_common (store, flash, base_addr, block_count,
-		data_length, aes, rng, true, false);
+	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, flash, base_addr,
+		block_count, data_length, aes, rng, true, false);
 }
 
 /**
- * Initialize flash storage for variable sized blocks of data.
+ * Initialize flash storage for variable sized contiguous blocks of data.
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
@@ -184,17 +191,18 @@ int flash_store_encrypted_init_fixed_storage_decreasing (struct flash_store_encr
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-int flash_store_encrypted_init_variable_storage (struct flash_store_encrypted *store,
-	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
-	struct aes_engine *aes, struct rng_engine *rng)
+int flash_store_contiguous_blocks_encrypted_init_variable_storage (
+	struct flash_store_contiguous_blocks_encrypted *store, const struct flash *flash,
+	uint32_t base_addr, size_t block_count, size_t min_length, struct aes_engine *aes,
+	struct rng_engine *rng)
 {
-	return flash_store_encrypted_init_storage_common (store, flash, base_addr, block_count,
-		min_length, aes, rng, false, true);
+	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, flash, base_addr,
+		block_count, min_length, aes, rng, false, true);
 }
 
 /**
- * Initialize flash storage for variable sized blocks of data.  Blocks will be stored in addresses
- * decreasing from the first block.
+ * Initialize flash storage for variable sized contiguous blocks of data.  Blocks will be stored in
+ * addresses decreasing from the first block.
  *
  * @param store The flash storage to initialize.
  * @param flash The flash device used for storage.
@@ -209,12 +217,13 @@ int flash_store_encrypted_init_variable_storage (struct flash_store_encrypted *s
  *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
-int flash_store_encrypted_init_variable_storage_decreasing (struct flash_store_encrypted *store,
-	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
-	struct aes_engine *aes, struct rng_engine *rng)
+int flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (
+	struct flash_store_contiguous_blocks_encrypted *store, const struct flash *flash,
+	uint32_t base_addr,	size_t block_count, size_t min_length, struct aes_engine *aes,
+	struct rng_engine *rng)
 {
-	return flash_store_encrypted_init_storage_common (store, flash, base_addr, block_count,
-		min_length, aes, rng, true, true);
+	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, flash, base_addr,
+		block_count, min_length, aes, rng, true, true);
 }
 
 /**
@@ -222,7 +231,8 @@ int flash_store_encrypted_init_variable_storage_decreasing (struct flash_store_e
  *
  * @param store The flash storage to relaese.
  */
-void flash_store_encrypted_release (struct flash_store_encrypted *store)
+void flash_store_contiguous_blocks_encrypted_release (
+	struct flash_store_contiguous_blocks_encrypted *store)
 {
-	flash_store_release (&store->base);
+	flash_store_contiguous_blocks_release (&store->base);
 }
