@@ -7,10 +7,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "platform_api.h"
 #include "status/rot_status.h"
-#include "flash/flash.h"
-#include "crypto/hash.h"
 
 
 /**
@@ -28,26 +25,25 @@ struct flash_store_header {
 
 
 /**
- * Manage storage of indexed data blocks in flash.  The data blocks are aligned to flash erase
- * boundaries to avoid dependencies between data blocks.
+ * Base interface to manage the indexed data blocks in flash.
  */
 struct flash_store {
 	/**
 	 * Write a block of data to flash.
 	 *
-	 * @param flash The flash where the data should be written.
+	 * @param flash_store The flash where the data should be written.
 	 * @param id Block ID of the data.
 	 * @param data The data to write.
 	 * @param length Length of the data.
 	 *
 	 * @return 0 if the data was written successfully or an error code.
 	 */
-	int (*write) (struct flash_store *flash, int id, const uint8_t *data, size_t length);
+	int (*write) (struct flash_store *flash_store, int id, const uint8_t *data, size_t length);
 
 	/**
 	 * Read a block of data from flash.
 	 *
-	 * @param flash The flash that contains the requested data.
+	 * @param flash_store The flash that contains the requested data.
 	 * @param id Block ID of the data.
 	 * @param data Output buffer for the data.
 	 * @param length Length of the data buffer.
@@ -55,124 +51,80 @@ struct flash_store {
 	 * @return The number of bytes read from flash or an error code.  Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*read) (struct flash_store *flash, int id, uint8_t *data, size_t length);
+	int (*read) (struct flash_store *flash_store, int id, uint8_t *data, size_t length);
 
 	/**
 	 * Erase a block of data.
 	 *
-	 * @param flash The flash containing the data block to erase.
+	 * @param flash_store The flash containing the data block to erase.
 	 * @param id Block ID of the data.
 	 *
 	 * @return 0 if the data was erased successfully or an error code.
 	 */
-	int (*erase) (struct flash_store *flash, int id);
+	int (*erase) (struct flash_store *flash_store, int id);
 
 	/**
 	 * Erase all managed data.
 	 *
-	 * @param flash The flash to erase.
+	 * @param flash_store The flash to erase.
 	 *
 	 * @return 0 if all data was erase successfully or an error code.
 	 */
-	int (*erase_all) (struct flash_store *flash);
+	int (*erase_all) (struct flash_store *flash_store);
 
 	/**
 	 * Get the length of the data stored in flash block.
 	 *
-	 * @param flash The flash to query.
+	 * @param flash_store The flash to query.
 	 * @param id Block ID to query.
 	 *
 	 * @return The number of byte stored in the specified data block or an error code.  Use
 	 * ROT_IS_ERROR to check the return value.  FLASH_STORE_NO_DATA is returned if there is not
 	 * valid data stored in the block.
 	 */
-	int (*get_data_length) (struct flash_store *flash, int id);
+	int (*get_data_length) (struct flash_store *flash_store, int id);
 
 	/**
 	 * Determine if there is data stored in a flash block.
 	 *
-	 * @param flash The flash to query.
+	 * @param flash_store The flash to query.
 	 * @param id Block ID to query.
 	 *
 	 * @return 0 if there is no data stored, 1 if there is, or an error code.
 	 */
-	int (*has_data_stored) (struct flash_store *flash, int id);
+	int (*has_data_stored) (struct flash_store *flash_store, int id);
 
 	/**
 	 * Get the maximum amount of data that can be stored in a single flash block.
 	 *
-	 * @param flash The flash to query.
+	 * @param flash_store The flash to query.
 	 *
 	 * @return The maximum data length or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*get_max_data_length) (struct flash_store *flash);
+	int (*get_max_data_length) (struct flash_store *flash_store);
 
 	/**
 	 * Gets the total amount of flash reserved for storage.  This includes all overhead for sector
 	 * alignment and any additional metadata stored.
 	 *
-	 * @param flash The flash to query.
+	 * @param flash_store The flash to query.
 	 *
 	 * @return The total flash reserved or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*get_flash_size) (struct flash_store *flash);
+	int (*get_flash_size) (struct flash_store *flash_store);
 
 	/**
 	 * Get the number of managed data blocks.
 	 *
-	 * @param flash The flash to query.
+	 * @param flash_store The flash to query.
 	 *
 	 * @return The number of managed data blocks or an error code. Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*get_num_blocks) (struct flash_store *flash);
-
-	const struct flash *flash;	/**< Flash device used for storage. */
-	struct hash_engine *hash;	/**< Hash engine for integrity checking. */
-	uint32_t base_addr;			/**< Base flash address for data storage. */
-	bool decreasing;			/**< Flag indicating block storage grows down in the address space. */
-	uint32_t max_size;			/**< Maximum amount of data per storage block. */
-	bool variable;				/**< Flag indicating block storage is variable length. */
-	uint32_t block_size;		/**< Flash size of each data block. */
-	uint32_t blocks;			/**< The number of managed data blocks. */
-#ifdef FLASH_STORE_SUPPORT_NO_PARTIAL_PAGE_WRITE
-	uint32_t page_size;			/**< Page programming size for the flash device. */
-	uint8_t *page_buffer;		/**< Buffer for ensuring full page programming. */
-	platform_mutex lock;		/**< Page buffer synchronization. */
-#endif
-	bool old_header;			/**< Flag indicating variable storage header only saves the length. */
+	int (*get_num_blocks) (struct flash_store *flash_store);
 };
-
-
-int flash_store_init_fixed_storage (struct flash_store *store, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash);
-int flash_store_init_fixed_storage_decreasing (struct flash_store *store, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash);
-
-int flash_store_init_variable_storage (struct flash_store *store, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t min_length, struct hash_engine *hash);
-int flash_store_init_variable_storage_decreasing (struct flash_store *store,
-	const struct flash *flash, uint32_t base_addr, size_t block_count, size_t min_length,
-	struct hash_engine *hash);
-
-void flash_store_release (struct flash_store *store);
-
-void flash_store_use_length_only_header (struct flash_store *store);
-
-/* Internal functions for use by derived types. */
-int flash_store_init_storage_common (struct flash_store *store, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t data_length, bool decreasing, bool variable,
-	size_t extra_data);
-
-int flash_store_verify_write_params (struct flash_store *flash, int id, const uint8_t *data,
-	size_t length);
-int flash_store_write_common (struct flash_store *flash, int id, const uint8_t *data, size_t length,
-	const uint8_t *extra_data, size_t extra_length);
-
-int flash_store_read_common (struct flash_store *flash, int id, uint8_t *data, size_t length,
-	uint8_t *extra_data, size_t extra_length, size_t *out_length);
 
 
 #define	FLASH_STORE_ERROR(code)		ROT_ERROR (ROT_MODULE_FLASH_STORE, code)
