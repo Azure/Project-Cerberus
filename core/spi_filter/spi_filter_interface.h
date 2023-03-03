@@ -206,7 +206,7 @@ struct spi_filter_interface {
 
 	/**
 	 * Set the current SPI filter byte address mode.  The flash cannot switch between 3-byte and
-	 * 4-byte address modes and the filter byte adddress mode will be fixed.
+	 * 4-byte address modes and the filter byte address mode will be fixed.
 	 *
 	 * @param filter The SPI filter to update.
 	 * @param mode Address mode to set.
@@ -333,7 +333,8 @@ struct spi_filter_interface {
 	 * @param filter The SPI filter to update.
 	 * @param region The filter region to modify.  This is a region index, starting with 1.
 	 * @param start_addr The first address in the filtered region.
-	 * @param end_addr One past the last address in the filtered region.
+	 * @param end_addr One past the last address in the filtered region.  Use 0 to indicate the end
+	 * of the 32-bit address space.
 	 *
 	 * @return Completion status, 0 if success or an error code.  If the region specified is not
 	 * supported by the filter, SPI_FILTER_UNSUPPORTED_RW_REGION will be returned.
@@ -407,6 +408,7 @@ enum {
 	SPI_FILTER_SET_FILTER_MODE_FAILED = SPI_FILTER_ERROR (0x24),	/**< Failed to set the filter operational mode. */
 	SPI_FILTER_GET_ALLOW_WRITE_FAILED = SPI_FILTER_ERROR (0x25),	/**< Could not got the write permissions for single chip. */
 	SPI_FILTER_SET_ALLOW_WRITE_FAILED = SPI_FILTER_ERROR (0x26),	/**< Failed to set single chip write permissions. */
+	SPI_FILTER_INVALID_ADDR_RANGE = SPI_FILTER_ERROR (0x27),		/**< The specified R/W region address range is not valid. */
 };
 
 
