@@ -162,7 +162,7 @@ static void flash_store_aggregator_test_read (CuTest *test)
 
 	TEST_START;
 
-	for (loop = 0; loop < 255; loop++) {
+	for (loop = 0; loop < 256; loop++) {
 		flash_1_data[loop] = loop;
 		flash_2_data[loop] = loop + 1;
 	}
@@ -359,7 +359,7 @@ static void flash_store_aggregator_test_read_fail_aggregator_null (CuTest *test)
 static void flash_store_aggregator_test_write (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
-	uint8_t data[256];
+	uint8_t data[256] = {0};
 	int status;
 
 	TEST_START;
@@ -396,7 +396,7 @@ static void flash_store_aggregator_test_write (CuTest *test)
 static void flash_store_aggregator_test_write_on_start_index (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
-	uint8_t data[256];
+	uint8_t data[256] = {0};
 	int status;
 
 	TEST_START;
@@ -433,7 +433,7 @@ static void flash_store_aggregator_test_write_on_start_index (CuTest *test)
 static void flash_store_aggregator_test_write_on_end_index (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
-	uint8_t data[256];
+	uint8_t data[256] = {0};
 	int status;
 
 	TEST_START;
@@ -470,7 +470,7 @@ static void flash_store_aggregator_test_write_on_end_index (CuTest *test)
 static void flash_store_aggregator_test_write_fail_invalid_id (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
-	uint8_t data[256];
+	uint8_t data[256] = {0};
 	int status;
 
 	TEST_START;
@@ -494,7 +494,7 @@ static void flash_store_aggregator_test_write_fail_invalid_id (CuTest *test)
 static void flash_store_aggregator_test_write_fail_aggregator_null (CuTest *test)
 {
 	struct flash_store_aggregator_testing store;
-	uint8_t data[256];
+	uint8_t data[256] = {0};
 	int status;
 
 	TEST_START;
