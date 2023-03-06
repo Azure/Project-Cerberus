@@ -125,7 +125,7 @@ static int flash_store_aggregtor_erase (struct flash_store *flash_store, int id)
 static int flash_store_aggregtor_erase_all (struct flash_store *flash_store)
 {
 	struct flash_store_aggregator *flash_aggregator = (struct flash_store_aggregator*) flash_store;
-	int status;
+	int status = 0;
 	size_t loop;
 
 	if (flash_aggregator == NULL) {
