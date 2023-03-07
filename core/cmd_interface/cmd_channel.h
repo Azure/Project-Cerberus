@@ -121,6 +121,7 @@ enum {
 	CMD_CHANNEL_PKT_OVERFLOW = CMD_CHANNEL_ERROR (0x06),		/**< Packet overflow encountered. */
 	CMD_CHANNEL_INVALID_PKT_STATE = CMD_CHANNEL_ERROR (0x07),	/**< Packet state is not valid. */
 	CMD_CHANNEL_PKT_EXPIRED = CMD_CHANNEL_ERROR (0x08),			/**< The timeout on a received packet has expired. */
+	CMD_CHANNEL_INVALID_PKT_SIZE = CMD_CHANNEL_ERROR (0x09),	/**< The packet size is larger than the buffer. */
 };
 
 
