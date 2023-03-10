@@ -12,13 +12,13 @@
  * PFM observer to assert the host reset control signal whenever a pending PFM has been verified.
  */
 struct pfm_observer_pending_reset {
-	struct pfm_observer base;			/**< The base observer interface. */
-	struct host_control *control;		/**< The interface for host control signals. */
+	struct pfm_observer base;				/**< The base observer interface. */
+	const struct host_control *control;		/**< The interface for host control signals. */
 };
 
 
 int pfm_observer_pending_reset_init (struct pfm_observer_pending_reset *observer,
-	struct host_control *control);
+	const struct host_control *control);
 void pfm_observer_pending_reset_release (struct pfm_observer_pending_reset *observer);
 
 

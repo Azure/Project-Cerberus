@@ -28,7 +28,7 @@ static void host_state_observer_dirty_reset_on_inactive_dirty (struct host_state
  * @return 0 if the observer was successfully initialized or an error code.
  */
 int host_state_observer_dirty_reset_init (struct host_state_observer_dirty_reset *observer,
-	struct host_control *control)
+	const struct host_control *control)
 {
 	if ((observer == NULL) || (control == NULL)) {
 		return HOST_STATE_OBSERVER_INVALID_ARGUMENT;

@@ -492,7 +492,7 @@ static int host_flash_manager_detect_flash_address_mode_properties (const struct
  * @return 0 if the flash is supported and the filter was configured successfully or an error code.
  */
 int host_flash_manager_config_spi_filter_flash_type (const struct spi_flash *cs0,
-	const struct spi_flash *cs1, struct spi_filter_interface *filter,
+	const struct spi_flash *cs1, const struct spi_filter_interface *filter,
 	struct flash_mfg_filter_handler *mfg_handler)
 {
 	uint8_t vendor[2];
@@ -635,9 +635,9 @@ int host_flash_manager_configure_flash_for_rot_access (const struct spi_flash *f
  *
  * @return 0 if RoT flash access has been enabled or an error code.
  */
-int host_flash_manager_set_flash_for_rot_access (struct host_control *control,
-	struct spi_filter_interface *filter, const struct spi_flash *cs0, const struct spi_flash *cs1,
-	struct host_flash_initialization *flash_init)
+int host_flash_manager_set_flash_for_rot_access (const struct host_control *control,
+	const struct spi_filter_interface *filter, const struct spi_flash *cs0,
+	const struct spi_flash *cs1, struct host_flash_initialization *flash_init)
 {
 	const struct spi_flash *flash;
 	int i;
@@ -683,8 +683,8 @@ int host_flash_manager_set_flash_for_rot_access (struct host_control *control,
  *
  * @return 0 if host flash access has been enabled or an error code.
  */
-int host_flash_manager_set_flash_for_host_access (struct host_control *control,
-	struct spi_filter_interface *filter)
+int host_flash_manager_set_flash_for_host_access (const struct host_control *control,
+	const struct spi_filter_interface *filter)
 {
 	int status;
 
@@ -704,8 +704,8 @@ int host_flash_manager_set_flash_for_host_access (struct host_control *control,
  *
  * @return 0 if the host doesn't if access, 1 if it does, or an error code.
  */
-int host_flash_manager_host_has_flash_access (struct host_control *control,
-	struct spi_filter_interface *filter)
+int host_flash_manager_host_has_flash_access (const struct host_control *control,
+	const struct spi_filter_interface *filter)
 {
 	bool enabled;
 	int status;

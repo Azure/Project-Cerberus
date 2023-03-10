@@ -60,10 +60,11 @@ int host_fw_restore_read_write_data (const struct spi_flash *restore, const stru
 int host_fw_restore_read_write_data_multiple_fw (const struct spi_flash *restore,
 	const struct spi_flash *from, const struct pfm_read_write_regions *writable, size_t fw_count);
 
-int host_fw_config_spi_filter_read_write_regions (struct spi_filter_interface *filter,
+int host_fw_config_spi_filter_read_write_regions (const struct spi_filter_interface *filter,
 	const struct pfm_read_write_regions *writable);
-int host_fw_config_spi_filter_read_write_regions_multiple_fw (struct spi_filter_interface *filter,
-	const struct pfm_read_write_regions *writable, size_t fw_count);
+int host_fw_config_spi_filter_read_write_regions_multiple_fw (
+	const struct spi_filter_interface *filter, const struct pfm_read_write_regions *writable,
+	size_t fw_count);
 
 
 #define	HOST_FW_UTIL_ERROR(code)		ROT_ERROR (ROT_MODULE_HOST_FW_UTIL, code)

@@ -38,7 +38,7 @@ static void host_irq_handler_auth_check_exit_reset (struct host_irq_handler *han
  */
 int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handler,
 	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
-	struct bmc_recovery *recovery, struct host_control *control, struct host_irq_control *irq)
+	struct bmc_recovery *recovery, const struct host_control *control, struct host_irq_control *irq)
 {
 	int status;
 

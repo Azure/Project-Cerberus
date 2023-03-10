@@ -67,7 +67,7 @@ struct bmc_recovery {
 	struct bmc_recovery_control rec_ctrl;	/**< Control settings for host recovery. */
 	int num_wdt;							/**< A counter for the number of watchdog events. */
 	bool skip_recovery;						/**< Don't execute recovery on future events. */
-	struct host_control *control;			/**< The interface for hardware control of the host. */
+	const struct host_control *control;		/**< The interface for hardware control of the host. */
 };
 
 
@@ -83,7 +83,7 @@ enum {
 
 
 int bmc_recovery_init (struct bmc_recovery *recovery, struct host_irq_control *irq,
-	struct host_processor *host, struct host_control *control,
+	struct host_processor *host, const struct host_control *control,
 	struct bmc_recovery_control *rec_ctrl);
 void bmc_recovery_release (struct bmc_recovery *recovery);
 

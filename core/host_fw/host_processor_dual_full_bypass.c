@@ -30,9 +30,9 @@ static int host_processor_dual_full_bypass_enable_bypass_mode (struct host_proce
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_full_bypass_init (struct host_processor_filtered *host,
-	struct host_control *control, struct host_flash_manager_dual *flash,
-	struct host_state_manager *state, struct spi_filter_interface *filter, struct pfm_manager *pfm,
-	struct recovery_image_manager *recovery)
+	const struct host_control *control, struct host_flash_manager_dual *flash,
+	struct host_state_manager *state, const struct spi_filter_interface *filter,
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
 	int status = host_processor_dual_init_internal (host, control, flash, state, filter, pfm,
 		recovery, 0);
@@ -64,9 +64,9 @@ int host_processor_dual_full_bypass_init (struct host_processor_filtered *host,
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_full_bypass_init_pulse_reset (struct host_processor_filtered *host,
-	struct host_control *control, struct host_flash_manager_dual *flash,
-	struct host_state_manager *state, struct spi_filter_interface *filter, struct pfm_manager *pfm,
-	struct recovery_image_manager *recovery, int pulse_width)
+	const struct host_control *control, struct host_flash_manager_dual *flash,
+	struct host_state_manager *state, const struct spi_filter_interface *filter,
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
 {
 	int status;
 

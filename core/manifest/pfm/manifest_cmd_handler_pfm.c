@@ -85,7 +85,7 @@ int manifest_cmd_handler_pfm_init (struct manifest_cmd_handler_pfm *handler,
 	struct manifest_cmd_handler_state *state, const struct manifest_manager *manifest,
 	const struct event_task *task, struct host_processor *host,
 	struct host_state_manager *host_state, struct hash_engine *hash, struct rsa_engine *rsa,
-	struct spi_filter_interface *filter)
+	const struct spi_filter_interface *filter)
 {
 	int status;
 

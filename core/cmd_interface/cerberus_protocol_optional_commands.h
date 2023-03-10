@@ -957,8 +957,8 @@ int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *pfm_cmd[]
 int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request);
 
-int cerberus_protocol_get_host_reset_status (struct host_control *host_0_ctrl,
-	struct host_control *host_1_ctrl, struct cmd_interface_msg *request);
+int cerberus_protocol_get_host_reset_status (const struct host_control *host_0_ctrl,
+	const struct host_control *host_1_ctrl, struct cmd_interface_msg *request);
 
 int cerberus_protocol_unseal_message (const struct cmd_background *background,
 	struct cmd_interface_msg *request);

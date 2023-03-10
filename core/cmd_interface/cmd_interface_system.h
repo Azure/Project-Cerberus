@@ -51,8 +51,8 @@ struct cmd_interface_system {
 	struct attestation_responder *attestation;					/**< Attestation responder instance */
 	struct hash_engine *hash;									/**< The hashing engine for PCR operations. */
 	const struct cmd_interface_fw_version *fw_version;			/**< FW version numbers */
-	struct host_control *host_0_ctrl;							/**< Host hardware control for port 0. */
-	struct host_control *host_1_ctrl;							/**< Host hardware control for port 1. */
+	const struct host_control *host_0_ctrl;						/**< Host hardware control for port 0. */
+	const struct host_control *host_1_ctrl;						/**< Host hardware control for port 1. */
 	struct device_manager *device_manager;						/**< Device manager instance */
 	struct recovery_image_manager *recovery_manager_0;			/**< Recovery image manager instance for port 0 */
 	struct recovery_image_manager *recovery_manager_1;			/**< Recovery image manager instance for port 1 */
@@ -73,8 +73,9 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	struct device_manager *device_manager, struct pcr_store *store, struct hash_engine *hash,
 	const struct cmd_background *background, struct host_processor *host_0,
 	struct host_processor *host_1, const struct cmd_interface_fw_version *fw_version,
-	struct riot_key_manager *riot, struct cmd_authorization *auth, struct host_control *host_ctrl_0,
-	struct host_control *host_ctrl_1, const struct recovery_image_cmd_interface *recovery_cmd_0,
+	struct riot_key_manager *riot, struct cmd_authorization *auth,
+	const struct host_control *host_ctrl_0, const struct host_control *host_ctrl_1,
+	const struct recovery_image_cmd_interface *recovery_cmd_0,
 	const struct recovery_image_cmd_interface *recovery_cmd_1,
 	struct recovery_image_manager *recovery_manager_0,
 	struct recovery_image_manager *recovery_manager_1, const struct cmd_device *cmd_device,

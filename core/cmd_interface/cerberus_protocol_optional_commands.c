@@ -555,14 +555,14 @@ int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_host_reset_status (struct host_control *host_0_ctrl,
-	struct host_control *host_1_ctrl, struct cmd_interface_msg *request)
+int cerberus_protocol_get_host_reset_status (const struct host_control *host_0_ctrl,
+	const struct host_control *host_1_ctrl, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_host_state *rq =
 		(struct cerberus_protocol_get_host_state*) request->data;
 	struct cerberus_protocol_get_host_state_response *rsp =
 		(struct cerberus_protocol_get_host_state_response*) request->data;
-	struct host_control *control;
+	const struct host_control *control;
 	int status;
 
 	if (request->length != sizeof (struct cerberus_protocol_get_host_state)) {

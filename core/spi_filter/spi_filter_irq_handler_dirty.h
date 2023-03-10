@@ -14,12 +14,12 @@
  */
 struct spi_filter_irq_handler_dirty {
 	struct spi_filter_irq_handler base;		/**< The base handler instance. */
-	struct host_control *control;			/**< The control interface for host resets. */
+	const struct host_control *control;		/**< The control interface for host resets. */
 };
 
 
 int spi_filter_irq_handler_dirty_init (struct spi_filter_irq_handler_dirty *handler,
-	struct host_state_manager *host_state, struct host_control *control);
+	struct host_state_manager *host_state, const struct host_control *control);
 void spi_filter_irq_handler_dirty_release (struct spi_filter_irq_handler_dirty *handler);
 
 

@@ -22,7 +22,7 @@ struct host_control {
 	 *
 	 * @return 0 if the reset control was changed successfully or an error code.
 	 */
-	int (*hold_processor_in_reset) (struct host_control *control, bool reset);
+	int (*hold_processor_in_reset) (const struct host_control *control, bool reset);
 
 	/**
 	 * Indicate if the host processor is being held in reset.
@@ -31,7 +31,7 @@ struct host_control {
 	 *
 	 * @return 1 if the host processor is being held in reset, 0 if not, or an error code.
 	 */
-	int (*is_processor_held_in_reset) (struct host_control *control);
+	int (*is_processor_held_in_reset) (const struct host_control *control);
 
 	/**
 	 * Indicate if the host processor is current in reset.  This can be due to being held in reset
@@ -41,7 +41,7 @@ struct host_control {
 	 *
 	 * @return 1 if the host processor is current in reset, 0 if not, or an error code.
 	 */
-	int (*is_processor_in_reset) (struct host_control *control);
+	int (*is_processor_in_reset) (const struct host_control *control);
 
 	/**
 	 * Enable and disable access to the protected flash devices from the host processor.
@@ -51,7 +51,7 @@ struct host_control {
 	 *
 	 * @return 0 if the flash access was changed successfully or an error code.
 	 */
-	int (*enable_processor_flash_access) (struct host_control *control, bool enable);
+	int (*enable_processor_flash_access) (const struct host_control *control, bool enable);
 
 	/**
 	 * Indicate if the host processor currently has access to the protected flash.
@@ -61,7 +61,7 @@ struct host_control {
 	 * @return 1 if the host processor has flash access, 0 if the RoT has flash access, or an error
 	 * code.
 	 */
-	int (*processor_has_flash_access) (struct host_control *control);
+	int (*processor_has_flash_access) (const struct host_control *control);
 };
 
 
@@ -77,7 +77,7 @@ enum {
 	HOST_CONTROL_HOLD_CHECK_FAILED = HOST_CONTROL_ERROR (0x03),		/**< Could not determine if the host is being held in reset. */
 	HOST_CONTROL_RESET_CHECK_FAILED = HOST_CONTROL_ERROR (0x04),	/**< Could not determine if the host is in reset. */
 	HOST_CONTROL_FLASH_ACCESS_FAILED = HOST_CONTROL_ERROR (0x05),	/**< Host flash access has not been enabled/disabled. */
-	HOST_CONTROL_FLASH_CHECK_FAILED = HOST_CONTROL_ERROR (0x06),	/**< Could not determine if the hosh has flash access. */
+	HOST_CONTROL_FLASH_CHECK_FAILED = HOST_CONTROL_ERROR (0x06),	/**< Could not determine if the host has flash access. */
 };
 
 
