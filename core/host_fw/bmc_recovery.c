@@ -175,7 +175,7 @@ static int bmc_recovery_on_host_cs1 (struct bmc_recovery *recovery, struct hash_
  * @return 0 if the BMC recovery manager was initialized successfully or an error code.
  */
 int bmc_recovery_init (struct bmc_recovery *recovery, struct host_irq_control *irq,
-	struct host_processor *host, struct host_control *control,
+	struct host_processor *host, const struct host_control *control,
 	struct bmc_recovery_control *rec_ctrl)
 {
 	int status;

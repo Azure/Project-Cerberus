@@ -286,9 +286,9 @@ static int host_processor_dual_full_read_write_flash (struct host_processor_filt
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_init_internal (struct host_processor_filtered *host,
-	struct host_control *control, struct host_flash_manager_dual *flash,
-	struct host_state_manager *state, struct spi_filter_interface *filter, struct pfm_manager *pfm,
-	struct recovery_image_manager *recovery, int reset_pulse)
+	const struct host_control *control, struct host_flash_manager_dual *flash,
+	struct host_state_manager *state, const struct spi_filter_interface *filter,
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse)
 {
 	int status;
 
@@ -331,10 +331,10 @@ int host_processor_dual_init_internal (struct host_processor_filtered *host,
  *
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
-int host_processor_dual_init (struct host_processor_filtered *host, struct host_control *control,
-	struct host_flash_manager_dual *flash, struct host_state_manager *state,
-	struct spi_filter_interface *filter, struct pfm_manager *pfm,
-	struct recovery_image_manager *recovery)
+int host_processor_dual_init (struct host_processor_filtered *host,
+	const struct host_control *control, struct host_flash_manager_dual *flash,
+	struct host_state_manager *state, const struct spi_filter_interface *filter,
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
 	return host_processor_dual_init_internal (host, control, flash, state, filter, pfm, recovery,
 		0);
@@ -358,9 +358,9 @@ int host_processor_dual_init (struct host_processor_filtered *host, struct host_
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_init_pulse_reset (struct host_processor_filtered *host,
-	struct host_control *control, struct host_flash_manager_dual *flash,
-	struct host_state_manager *state, struct spi_filter_interface *filter, struct pfm_manager *pfm,
-	struct recovery_image_manager *recovery, int pulse_width)
+	const struct host_control *control, struct host_flash_manager_dual *flash,
+	struct host_state_manager *state, const struct spi_filter_interface *filter,
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width)
 {
 	if (pulse_width <= 0) {
 		return HOST_PROCESSOR_INVALID_ARGUMENT;

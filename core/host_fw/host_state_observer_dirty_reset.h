@@ -8,14 +8,17 @@
 #include "host_control.h"
 
 
+/**
+ * An observer for host state that will assert reset when the flash becomes dirty.
+ */
 struct host_state_observer_dirty_reset {
-	struct host_state_observer base;
-	struct host_control *control;
+	struct host_state_observer base;			/**< Base observer instance. */
+	const struct host_control *control;			/**< Interface to control the host reset signal. */
 };
 
 
 int host_state_observer_dirty_reset_init (struct host_state_observer_dirty_reset *observer,
-	struct host_control *control);
+	const struct host_control *control);
 void host_state_observer_dirty_reset_release (struct host_state_observer_dirty_reset *observer);
 
 

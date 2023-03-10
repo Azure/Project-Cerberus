@@ -39,7 +39,7 @@ static void pfm_observer_pending_reset_on_clear_active (const struct pfm_observe
  * @return 0 if the observer was successfully initialized or an error code.
  */
 int pfm_observer_pending_reset_init (struct pfm_observer_pending_reset *observer,
-	struct host_control *control)
+	const struct host_control *control)
 {
 	if ((observer == NULL) || (control == NULL)) {
 		return PFM_OBSERVER_INVALID_ARGUMENT;

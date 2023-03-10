@@ -157,7 +157,7 @@ static int host_flash_manager_dual_mock_restore_flash_read_write_regions (
 }
 
 static int host_flash_manager_dual_mock_set_flash_for_rot_access (
-	struct host_flash_manager *manager, struct host_control *control)
+	struct host_flash_manager *manager, const struct host_control *control)
 {
 	struct host_flash_manager_dual_mock *mock = (struct host_flash_manager_dual_mock*) manager;
 
@@ -170,7 +170,7 @@ static int host_flash_manager_dual_mock_set_flash_for_rot_access (
 }
 
 static int host_flash_manager_dual_mock_set_flash_for_host_access (
-	struct host_flash_manager *manager, struct host_control *control)
+	struct host_flash_manager *manager, const struct host_control *control)
 {
 	struct host_flash_manager_dual_mock *mock = (struct host_flash_manager_dual_mock*) manager;
 
@@ -183,7 +183,7 @@ static int host_flash_manager_dual_mock_set_flash_for_host_access (
 }
 
 static int host_flash_manager_dual_mock_host_has_flash_access (struct host_flash_manager *manager,
-	struct host_control *control)
+	const struct host_control *control)
 {
 	struct host_flash_manager_dual_mock *mock = (struct host_flash_manager_dual_mock*) manager;
 

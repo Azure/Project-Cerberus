@@ -7,7 +7,7 @@
 #include "host_control_mock.h"
 
 
-static int host_control_mock_hold_processor_in_reset (struct host_control *control,
+static int host_control_mock_hold_processor_in_reset (const struct host_control *control,
 	bool reset)
 {
 	struct host_control_mock *mock = (struct host_control_mock*) control;
@@ -20,7 +20,7 @@ static int host_control_mock_hold_processor_in_reset (struct host_control *contr
 		MOCK_ARG_CALL (reset));
 }
 
-static int host_control_mock_is_processor_held_in_reset (struct host_control *control)
+static int host_control_mock_is_processor_held_in_reset (const struct host_control *control)
 {
 	struct host_control_mock *mock = (struct host_control_mock*) control;
 
@@ -31,7 +31,7 @@ static int host_control_mock_is_processor_held_in_reset (struct host_control *co
 	MOCK_RETURN_NO_ARGS (&mock->mock, host_control_mock_is_processor_held_in_reset, control);
 }
 
-static int host_control_mock_is_processor_in_reset (struct host_control *control)
+static int host_control_mock_is_processor_in_reset (const struct host_control *control)
 {
 	struct host_control_mock *mock = (struct host_control_mock*) control;
 
@@ -42,7 +42,7 @@ static int host_control_mock_is_processor_in_reset (struct host_control *control
 	MOCK_RETURN_NO_ARGS (&mock->mock, host_control_mock_is_processor_in_reset, control);
 }
 
-static int host_control_mock_enable_processor_flash_access (struct host_control *control,
+static int host_control_mock_enable_processor_flash_access (const struct host_control *control,
 	bool enable)
 {
 	struct host_control_mock *mock = (struct host_control_mock*) control;
@@ -55,7 +55,7 @@ static int host_control_mock_enable_processor_flash_access (struct host_control 
 		MOCK_ARG_CALL (enable));
 }
 
-static int host_control_mock_processor_has_flash_access (struct host_control *control)
+static int host_control_mock_processor_has_flash_access (const struct host_control *control)
 {
 	struct host_control_mock *mock = (struct host_control_mock*) control;
 

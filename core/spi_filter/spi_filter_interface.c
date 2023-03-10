@@ -10,7 +10,7 @@
  *
  * @param filter The SPI filter to query.
  */
-void spi_filter_log_configuration (struct spi_filter_interface *filter)
+void spi_filter_log_configuration (const struct spi_filter_interface *filter)
 {
 	int port;
 	uint8_t mfg;

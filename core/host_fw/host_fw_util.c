@@ -993,7 +993,7 @@ int host_fw_restore_read_write_data_multiple_fw (const struct spi_flash *restore
  *
  * @return 0 if the SPI filter was successfully configured or an error code.
  */
-int host_fw_config_spi_filter_read_write_regions (struct spi_filter_interface *filter,
+int host_fw_config_spi_filter_read_write_regions (const struct spi_filter_interface *filter,
 	const struct pfm_read_write_regions *writable)
 {
 	size_t i;
@@ -1030,8 +1030,9 @@ int host_fw_config_spi_filter_read_write_regions (struct spi_filter_interface *f
  *
  * @return 0 if the SPI filter was successfully configured or an error code.
  */
-int host_fw_config_spi_filter_read_write_regions_multiple_fw (struct spi_filter_interface *filter,
-	const struct pfm_read_write_regions *writable, size_t fw_count)
+int host_fw_config_spi_filter_read_write_regions_multiple_fw (
+	const struct spi_filter_interface *filter, const struct pfm_read_write_regions *writable,
+	size_t fw_count)
 {
 	uint8_t region_id = 0;
 	uint32_t last_addr = 0;

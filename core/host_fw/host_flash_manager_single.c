@@ -208,7 +208,7 @@ static int host_flash_manager_single_restore_flash_read_write_regions (
 }
 
 static int host_flash_manager_single_set_flash_for_rot_access (struct host_flash_manager *manager,
-	struct host_control *control)
+	const struct host_control *control)
 {
 	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
 
@@ -221,7 +221,7 @@ static int host_flash_manager_single_set_flash_for_rot_access (struct host_flash
 }
 
 static int host_flash_manager_single_set_flash_for_host_access (struct host_flash_manager *manager,
-	struct host_control *control)
+	const struct host_control *control)
 {
 	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
 
@@ -233,7 +233,7 @@ static int host_flash_manager_single_set_flash_for_host_access (struct host_flas
 }
 
 static int host_flash_manager_single_host_has_flash_access (struct host_flash_manager *manager,
-	struct host_control *control)
+	const struct host_control *control)
 {
 	struct host_flash_manager_single *single = (struct host_flash_manager_single*) manager;
 
@@ -252,7 +252,7 @@ static int host_flash_manager_single_reset_flash (struct host_flash_manager *man
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
 
-	return spi_flash_reset_device (single->flash); 
+	return spi_flash_reset_device (single->flash);
 }
 
 /**
@@ -268,7 +268,7 @@ static int host_flash_manager_single_reset_flash (struct host_flash_manager *man
  */
 int host_flash_manager_single_init (struct host_flash_manager_single *manager,
 	const struct spi_flash *flash, struct host_state_manager *host_state,
-	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler)
+	const struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler)
 {
 	if ((manager == NULL) || (flash == NULL) || (host_state == NULL) || (filter == NULL) ||
 		(mfg_handler == NULL)) {
@@ -322,7 +322,7 @@ int host_flash_manager_single_init (struct host_flash_manager_single *manager,
  */
 int host_flash_manager_single_init_with_managed_flash_initialization (
 	struct host_flash_manager_single *manager, const struct spi_flash *flash,
-	struct host_state_manager *host_state, struct spi_filter_interface *filter,
+	struct host_state_manager *host_state, const struct spi_filter_interface *filter,
 	struct flash_mfg_filter_handler *mfg_handler, struct host_flash_initialization *flash_init)
 {
 	int status;

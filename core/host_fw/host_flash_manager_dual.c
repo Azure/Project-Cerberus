@@ -272,7 +272,7 @@ static int host_flash_manager_dual_restore_flash_read_write_regions (
 }
 
 static int host_flash_manager_dual_set_flash_for_rot_access (struct host_flash_manager *manager,
-	struct host_control *control)
+	const struct host_control *control)
 {
 	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
 
@@ -285,7 +285,7 @@ static int host_flash_manager_dual_set_flash_for_rot_access (struct host_flash_m
 }
 
 static int host_flash_manager_dual_set_flash_for_host_access (struct host_flash_manager *manager,
-	struct host_control *control)
+	const struct host_control *control)
 {
 	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
 
@@ -297,7 +297,7 @@ static int host_flash_manager_dual_set_flash_for_host_access (struct host_flash_
 }
 
 static int host_flash_manager_dual_host_has_flash_access (struct host_flash_manager *manager,
-	struct host_control *control)
+	const struct host_control *control)
 {
 	struct host_flash_manager_dual *dual = (struct host_flash_manager_dual*) manager;
 
@@ -339,7 +339,7 @@ static int host_flash_manager_dual_reset_flash (struct host_flash_manager *manag
  */
 int host_flash_manager_dual_init (struct host_flash_manager_dual *manager,
 	const struct spi_flash *cs0, const struct spi_flash *cs1, struct host_state_manager *host_state,
-	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler)
+	const struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler)
 {
 	if ((manager == NULL) || (cs0 == NULL) || (cs1 == NULL) || (host_state == NULL) ||
 		(filter == NULL) || (mfg_handler == NULL)) {
@@ -395,7 +395,7 @@ int host_flash_manager_dual_init (struct host_flash_manager_dual *manager,
 int host_flash_manager_dual_init_with_managed_flash_initialization (
 	struct host_flash_manager_dual *manager, const struct spi_flash *cs0,
 	const struct spi_flash *cs1, struct host_state_manager *host_state,
-	struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler,
+	const struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler,
 	struct host_flash_initialization *flash_init)
 {
 	int status;

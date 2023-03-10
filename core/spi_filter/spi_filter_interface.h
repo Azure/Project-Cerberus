@@ -70,7 +70,7 @@ struct spi_filter_interface {
 	 *
 	 * @return The port identifier or an error code.  Use ROT_IS_ERROR to check the return value.
 	 */
-	int (*get_port) (struct spi_filter_interface *filter);
+	int (*get_port) (const struct spi_filter_interface *filter);
 
 	/**
 	 * Get SPI filter manufacturer ID
@@ -80,7 +80,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*get_mfg_id) (struct spi_filter_interface *filter, uint8_t *mfg_id);
+	int (*get_mfg_id) (const struct spi_filter_interface *filter, uint8_t *mfg_id);
 
 	/**
 	 * Set SPI filter manufacturer ID
@@ -90,7 +90,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*set_mfg_id) (struct spi_filter_interface *filter, uint8_t mfg_id);
+	int (*set_mfg_id) (const struct spi_filter_interface *filter, uint8_t mfg_id);
 
 	/**
 	 * Get the configured size of the flash device.
@@ -101,7 +101,7 @@ struct spi_filter_interface {
 	 *
 	 * @return 0 if the size was successfully queried or an error code.
 	 */
-	int (*get_flash_size) (struct spi_filter_interface *filter, uint32_t *bytes);
+	int (*get_flash_size) (const struct spi_filter_interface *filter, uint32_t *bytes);
 
 	/**
 	 * Set the size of the flash device.
@@ -112,7 +112,7 @@ struct spi_filter_interface {
 	 *
 	 * @return 0 if the size was configured successfully or an error code.
 	 */
-	int (*set_flash_size) (struct spi_filter_interface *filter, uint32_t bytes);
+	int (*set_flash_size) (const struct spi_filter_interface *filter, uint32_t bytes);
 
 	/**
 	 * Get the flash management mode of the SPI filter.
@@ -122,7 +122,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*get_filter_mode) (struct spi_filter_interface *filter, spi_filter_flash_mode *mode);
+	int (*get_filter_mode) (const struct spi_filter_interface *filter, spi_filter_flash_mode *mode);
 
 	/**
 	 * Set the flash management mode for the SPI  filter.
@@ -130,7 +130,7 @@ struct spi_filter_interface {
 	 * @param filter The SPI filter instance to use
 	 * @param mode The flash management mode
 	 */
-	int (*set_filter_mode) (struct spi_filter_interface *filter, spi_filter_flash_mode mode);
+	int (*set_filter_mode) (const struct spi_filter_interface *filter, spi_filter_flash_mode mode);
 
 	/**
 	 * Get the state of the SPI filter.
@@ -140,7 +140,7 @@ struct spi_filter_interface {
 	 *
 	 * @return 0 if the status was successfully queried or an error code.
 	 */
-	int (*get_filter_enabled) (struct spi_filter_interface *filter, bool *enabled);
+	int (*get_filter_enabled) (const struct spi_filter_interface *filter, bool *enabled);
 
 	/**
 	 * Enable or disable the SPI filter.  A disabled SPI filter will block all access from the host
@@ -151,7 +151,7 @@ struct spi_filter_interface {
 	 *
 	 * @return 0 if the SPI filter was configured successfully or an error code.
 	 */
-	int (*enable_filter) (struct spi_filter_interface *filter, bool enable);
+	int (*enable_filter) (const struct spi_filter_interface *filter, bool enable);
 
 	/**
 	 * Get SPI filter read-only select for dual flash operation.
@@ -161,7 +161,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*get_ro_cs) (struct spi_filter_interface *filter, spi_filter_cs *act_sel);
+	int (*get_ro_cs) (const struct spi_filter_interface *filter, spi_filter_cs *act_sel);
 
 	/**
 	 * Set SPI filter read-only select for dual flash operation.
@@ -171,7 +171,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*set_ro_cs) (struct spi_filter_interface *filter, spi_filter_cs act_sel);
+	int (*set_ro_cs) (const struct spi_filter_interface *filter, spi_filter_cs act_sel);
 
 	/**
 	 * Get the current SPI filter byte address mode.
@@ -181,7 +181,8 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*get_addr_byte_mode) (struct spi_filter_interface *filter, spi_filter_address_mode *mode);
+	int (*get_addr_byte_mode) (const struct spi_filter_interface *filter,
+		spi_filter_address_mode *mode);
 
 	/**
 	 * Indicate if the SPI filter is configured to prevent address mode switching.
@@ -191,7 +192,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*get_fixed_addr_byte_mode) (struct spi_filter_interface *filter, bool *fixed);
+	int (*get_fixed_addr_byte_mode) (const struct spi_filter_interface *filter, bool *fixed);
 
 	/**
 	 * Set the current SPI filter byte address mode.  The flash can switch between 3-byte and 4-byte
@@ -202,7 +203,8 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*set_addr_byte_mode) (struct spi_filter_interface *filter, spi_filter_address_mode mode);
+	int (*set_addr_byte_mode) (const struct spi_filter_interface *filter,
+		spi_filter_address_mode mode);
 
 	/**
 	 * Set the current SPI filter byte address mode.  The flash cannot switch between 3-byte and
@@ -213,7 +215,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*set_fixed_addr_byte_mode) (struct spi_filter_interface *filter,
+	int (*set_fixed_addr_byte_mode) (const struct spi_filter_interface *filter,
 		spi_filter_address_mode mode);
 
 	/**
@@ -226,7 +228,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*get_addr_byte_mode_write_enable_required) (struct spi_filter_interface *filter,
+	int (*get_addr_byte_mode_write_enable_required) (const struct spi_filter_interface *filter,
 		bool *required);
 
 	/**
@@ -239,7 +241,8 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*require_addr_byte_mode_write_enable) (struct spi_filter_interface *filter, bool require);
+	int (*require_addr_byte_mode_write_enable) (const struct spi_filter_interface *filter,
+		bool require);
 
 	/**
 	 * Get the SPI filter mode that indicates the address byte mode after device reset
@@ -249,7 +252,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*get_reset_addr_byte_mode) (struct spi_filter_interface *filter,
+	int (*get_reset_addr_byte_mode) (const struct spi_filter_interface *filter,
 		spi_filter_address_mode *mode);
 
 	/**
@@ -260,7 +263,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*set_reset_addr_byte_mode) (struct spi_filter_interface *filter,
+	int (*set_reset_addr_byte_mode) (const struct spi_filter_interface *filter,
 		spi_filter_address_mode mode);
 
 	/**
@@ -272,7 +275,8 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*are_all_single_flash_writes_allowed) (struct spi_filter_interface *filter, bool *allowed);
+	int (*are_all_single_flash_writes_allowed) (const struct spi_filter_interface *filter,
+		bool *allowed);
 
 	/**
 	 * Configure the SPI filter to allow or block writes outside of the defined read/write regions
@@ -281,7 +285,7 @@ struct spi_filter_interface {
 	 * @param filter The SPI filter to update.
 	 * @param allowed Flag indicating if writes to read-only regions of flash should be allowed.
 	 */
-	int (*allow_all_single_flash_writes) (struct spi_filter_interface *filter, bool allowed);
+	int (*allow_all_single_flash_writes) (const struct spi_filter_interface *filter, bool allowed);
 
 	/**
 	 * Get the SPI filter write enable command status.
@@ -291,7 +295,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*get_write_enable_detected) (struct spi_filter_interface *filter, bool *detected);
+	int (*get_write_enable_detected) (const struct spi_filter_interface *filter, bool *detected);
 
 	/**
 	 * Determine if protected flash has been updated.
@@ -301,7 +305,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*get_flash_dirty_state) (struct spi_filter_interface *filter,
+	int (*get_flash_dirty_state) (const struct spi_filter_interface *filter,
 		spi_filter_flash_state *state);
 
 	/**
@@ -311,7 +315,7 @@ struct spi_filter_interface {
 	 *
 	 * @return Completion status, 0 if success or an error code.
 	 */
-	int (*clear_flash_dirty_state) (struct spi_filter_interface *filter);
+	int (*clear_flash_dirty_state) (const struct spi_filter_interface *filter);
 
 	/**
 	 * Get a SPI filter read/write region.
@@ -324,7 +328,7 @@ struct spi_filter_interface {
 	 * @return Completion status, 0 if success or an error code.  If the region specified is not
 	 * supported by the filter, SPI_FILTER_UNSUPPORTED_RW_REGION will be returned.
 	 */
-	int (*get_filter_rw_region) (struct spi_filter_interface *filter, uint8_t region,
+	int (*get_filter_rw_region) (const struct spi_filter_interface *filter, uint8_t region,
 		uint32_t *start_addr, uint32_t *end_addr);
 
 	/**
@@ -339,7 +343,7 @@ struct spi_filter_interface {
 	 * @return Completion status, 0 if success or an error code.  If the region specified is not
 	 * supported by the filter, SPI_FILTER_UNSUPPORTED_RW_REGION will be returned.
 	 */
-	int (*set_filter_rw_region) (struct spi_filter_interface *filter, uint8_t region,
+	int (*set_filter_rw_region) (const struct spi_filter_interface *filter, uint8_t region,
 		uint32_t start_addr, uint32_t end_addr);
 
 	/**
@@ -349,11 +353,11 @@ struct spi_filter_interface {
 	 *
 	 * @return 0 if the regions were cleared successfully or an error code.
 	 */
-	int (*clear_filter_rw_regions) (struct spi_filter_interface *filter);
+	int (*clear_filter_rw_regions) (const struct spi_filter_interface *filter);
 };
 
 
-void spi_filter_log_configuration (struct spi_filter_interface *filter);
+void spi_filter_log_configuration (const struct spi_filter_interface *filter);
 void spi_filter_log_filter_config (int port, uint8_t mfg, bool enabled, spi_filter_cs ro,
 	spi_filter_address_mode mode, bool mode_fixed, spi_filter_address_mode mode_reset,
 	bool mode_write_en, spi_filter_flash_state dirty, spi_filter_flash_mode flash_cfg,

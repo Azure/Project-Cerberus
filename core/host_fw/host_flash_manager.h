@@ -198,7 +198,7 @@ struct host_flash_manager {
 	 * @return 0 if the flash was successfully configured for RoT access or an error code.
 	 */
 	int (*set_flash_for_rot_access) (struct host_flash_manager *manager,
-		struct host_control *control);
+		const struct host_control *control);
 
 	/**
 	 * Configure the system for to allow host processor access to the protected flash devices.
@@ -209,7 +209,7 @@ struct host_flash_manager {
 	 * @return 0 if the flash was successfully configured for host access or an error code.
 	 */
 	int (*set_flash_for_host_access) (struct host_flash_manager *manager,
-		struct host_control *control);
+		const struct host_control *control);
 
 	/**
 	 * Check if the host has access to the protected flash devices.
@@ -220,7 +220,7 @@ struct host_flash_manager {
 	 * @return 0 if the host doesn't if access, 1 if it does, or an error code.
 	 */
 	int (*host_has_flash_access) (struct host_flash_manager *manager,
-		struct host_control *control);
+		const struct host_control *control);
 
 	/**
 	 * Reset the host SPI flash device.
@@ -259,17 +259,17 @@ void host_flash_manager_free_read_write_regions (struct host_flash_manager *mana
 void host_flash_manager_free_images (struct host_flash_manager_images *host_img);
 
 int host_flash_manager_config_spi_filter_flash_type (const struct spi_flash *cs0,
-	const struct spi_flash *cs1, struct spi_filter_interface *filter,
+	const struct spi_flash *cs1, const struct spi_filter_interface *filter,
 	struct flash_mfg_filter_handler *mfg_handler);
 
 int host_flash_manager_configure_flash_for_rot_access (const struct spi_flash *flash);
-int host_flash_manager_set_flash_for_rot_access (struct host_control *control,
-	struct spi_filter_interface *filter, const struct spi_flash *cs0, const struct spi_flash *cs1,
-	struct host_flash_initialization *flash_init);
-int host_flash_manager_set_flash_for_host_access (struct host_control *control,
-	struct spi_filter_interface *filter);
-int host_flash_manager_host_has_flash_access (struct host_control *control,
-	struct spi_filter_interface *filter);
+int host_flash_manager_set_flash_for_rot_access (const struct host_control *control,
+	const struct spi_filter_interface *filter, const struct spi_flash *cs0,
+	const struct spi_flash *cs1, struct host_flash_initialization *flash_init);
+int host_flash_manager_set_flash_for_host_access (const struct host_control *control,
+	const struct spi_filter_interface *filter);
+int host_flash_manager_host_has_flash_access (const struct host_control *control,
+	const struct spi_filter_interface *filter);
 
 
 #define	HOST_FLASH_MGR_ERROR(code)		ROT_ERROR (ROT_MODULE_HOST_FLASH_MGR, code)

@@ -36,9 +36,9 @@ static int host_processor_dual_full_bypass_reset_flash_soft_reset (struct host_p
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_full_bypass_reset_flash_init (struct host_processor_filtered *host,
-	struct host_control *control, struct host_flash_manager_dual *flash,
-	struct host_state_manager *state, struct spi_filter_interface *filter, struct pfm_manager *pfm,
-	struct recovery_image_manager *recovery)
+	const struct host_control *control, struct host_flash_manager_dual *flash,
+	struct host_state_manager *state, const struct spi_filter_interface *filter,
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery)
 {
 	int status;
 
@@ -72,9 +72,9 @@ int host_processor_dual_full_bypass_reset_flash_init (struct host_processor_filt
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_dual_full_bypass_reset_flash_init_pulse_reset (
-	struct host_processor_filtered *host, struct host_control *control,
+	struct host_processor_filtered *host, const struct host_control *control,
 	struct host_flash_manager_dual *flash, struct host_state_manager *state,
-	struct spi_filter_interface *filter, struct pfm_manager *pfm,
+	const struct spi_filter_interface *filter, struct pfm_manager *pfm,
 	struct recovery_image_manager *recovery, int pulse_width)
 {
 	int status;
