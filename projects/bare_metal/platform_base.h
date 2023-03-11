@@ -66,7 +66,9 @@ static inline int platform_mutex_unlock (platform_mutex *mutex)
 
 
 /* Semaphore. */
-typedef int platform_semaphore;
+typedef volatile int platform_semaphore;
+
+#define	platform_semaphore_post_from_isr	platform_semaphore_post
 
 
 #endif /* PLATFORM_BASE_H_ */

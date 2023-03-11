@@ -497,13 +497,32 @@ void platform_semaphore_free (platform_semaphore *sem);
 
 #ifndef platform_semaphore_post
 /**
- * Signal a semaphore.
+ * Signal a semaphore from the context of a normal thread or task.
+ *
+ * Some platforms have different requirements for signaling semaphores from task vs. interrupt
+ * context.  This call must only be used to signal semaphores from task context. Use
+ * platform_semaphore_post_from_isr to signal from interrupt context.
  *
  * @param sem The semaphore to signal.
  *
  * @return 0 if the semaphore was signaled successfully or an error code.
  */
 int platform_semaphore_post (platform_semaphore *sem);
+#endif
+
+#ifndef platform_semaphore_post_from_isr
+/**
+ * Signal a semaphore from the context of an interrupt service routine (ISR).
+ *
+ * Some platforms have different requirements for signaling semaphores from task vs. interrupt
+ * context.  This call must only be used to signal semaphores from interrupt context. Use
+ * platform_semaphore_post to signal from task context.
+ *
+ * @param sem The semaphore to signal.
+ *
+ * @return 0 if the semaphore was signaled successfully or an error code.
+ */
+int platform_semaphore_post_from_isr (platform_semaphore *sem);
 #endif
 
 #ifndef platform_semaphore_wait
