@@ -55,5 +55,7 @@ typedef struct {
 /* Use Linux semaphore implementation. */
 typedef sem_t platform_semaphore;
 
+#define	platform_semaphore_post_from_isr		platform_semaphore_post
+
 
 #endif /* PLATFORM_H_ */

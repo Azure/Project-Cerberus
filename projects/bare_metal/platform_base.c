@@ -44,7 +44,7 @@ int platform_semaphore_wait (platform_semaphore *sem, uint32_t ms_timeout)
 		return status;
 	}
 
-	while ((*sem == 0) && !platform_has_timeout_expired (&timeout));
+	while ((*sem == 0) && ((ms_timeout == 0) || !platform_has_timeout_expired (&timeout)));
 
 	if (*sem != 0) {
 		*sem -= 1;

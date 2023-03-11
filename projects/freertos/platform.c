@@ -7,6 +7,19 @@
 #include "platform_api.h"
 
 
+/**
+ * An additional requirement of FreeRTOS in order to make use of semaphores (or any other calls)
+ * from an ISR is a way to track when it is necessary to call the scheduler when exiting an ISR.
+ * This call must be implemented by the platform to convey this detail in a meaningful way.
+ *
+ * It is not necessary to conditionally call this function.  It will be called regardless of the
+ * value of the yield flag.
+ *
+ * @param yield Flag indicating if a task has been awoken and needs to be scheduled.
+ */
+void freertos_isr_update_yield (BaseType_t yield);
+
+
 void* platform_calloc (size_t nmemb, size_t size)
 {
 	void *mem;
@@ -229,6 +242,21 @@ int platform_semaphore_post (platform_semaphore *sem)
 	}
 
 	status = xSemaphoreGive (*sem);
+	return (status == pdTRUE) ? 0 : PLATFORM_SEMAPHORE_ERROR (PLATFORM_FAILURE);
+}
+
+int platform_semaphore_post_from_isr (platform_semaphore *sem)
+{
+	BaseType_t status;
+	BaseType_t yield = pdFALSE;
+
+	if (sem == NULL) {
+		return PLATFORM_SEMAPHORE_ERROR (PLATFORM_INVALID_ARGUMENT);
+	}
+
+	status = xSemaphoreGiveFromISR (*sem, &yield);
+	freertos_isr_update_yield (yield);
+
 	return (status == pdTRUE) ? 0 : PLATFORM_SEMAPHORE_ERROR (PLATFORM_FAILURE);
 }
 
