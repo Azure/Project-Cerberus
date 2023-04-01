@@ -315,6 +315,7 @@ void CuSuiteRun(CuSuite* testSuite)
 void CuSuiteSummary(CuSuite* testSuite, CuString* summary)
 {
 	int i;
+
 	for (i = 0 ; i < testSuite->count ; ++i)
 	{
 		CuTest* testCase = testSuite->list[i];
