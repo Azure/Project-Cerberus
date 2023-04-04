@@ -43,7 +43,7 @@ static void heap_with_defrag_testing_check_stats_empty (CuTest *test, size_t hea
  * @param num_allocation Number of constant size allocations
  * @param allocation_size Constant allocation size
  */
-static void heap_with_defrag_testing_check_stats_constant_size_alloc (CuTest *test, 
+static void heap_with_defrag_testing_check_stats_constant_size_alloc (CuTest *test,
 	int num_allocation, size_t allocation_size)
 {
 	int status;
@@ -72,7 +72,7 @@ static void heap_with_defrag_testing_check_stats_constant_size_alloc (CuTest *te
  * @param block Pointer to beginning of block
  * @param size Size of memory block
  */
-static void heap_with_defrag_testing_check_value (CuTest *test, uint8_t value, uint8_t *block, 
+static void heap_with_defrag_testing_check_value (CuTest *test, uint8_t value, uint8_t *block,
 	size_t size)
 {
 	for (size_t i = 0; i < size; ++i) {
@@ -3218,7 +3218,6 @@ static void heap_with_defrag_test_allocate_zeroize_then_free_in_different_order 
 			memset (block[i_block], i_block, 4 * i_block);
 			allocated_size += (4 * i_block);
 		}
-		printf ("%x %i\n", block[i_block], i_block);
 	} while (block[i_block++] != NULL);
 
 	num_blocks = i_block - 1;
