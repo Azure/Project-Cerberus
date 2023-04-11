@@ -170,12 +170,13 @@ class Rim_Data:
         self.hash_alg = config.hash_alg
         self.model = ""
         self.measurements = []
-        self.measurement_count = 0
 
     def parse_json_file(self):
         """
         Parses the json file and stores the measurements in RIM data
         """
+        self.measurements = []
+
         with open(self.filename, "r") as json_file:
             data = js.load(json_file);
             tag_tcbinfo = data[CONFIG_TAG_MEASUREMENT_RECORDS][CONFIG_TAG_TCBINFO]
@@ -185,13 +186,11 @@ class Rim_Data:
                 elif d[CONFIG_TAG_LAYER] == '2':
                     if CONFIG_TAG_FWIDS in d:
                         tag_fwids = d[CONFIG_TAG_FWIDS][0]
-                        measurement = Rim_Measurement(self.measurement_count, Measurement_Type.CONFIG_TYPE_DIGEST, CONFIG_TAG_DIGESTS, tag_fwids[CONFIG_TAG_DIGEST], None)
+                        measurement = Rim_Measurement(len(self.measurements) + 1, Measurement_Type.CONFIG_TYPE_DIGEST, CONFIG_TAG_DIGESTS, tag_fwids[CONFIG_TAG_DIGEST], None)
                         self.measurements.append(measurement)
-                        self.measurement_count += 1
                     elif CONFIG_TAG_VENDOR_INFO in d:
-                        measurement = Rim_Measurement(self.measurement_count, Measurement_Type.CONFIG_TYPE_UINT, CONFIG_TAG_RAW_VALUE, d[CONFIG_TAG_VENDOR_INFO], d[CONFIG_TAG_VENDOR_INFO_MASK])
+                        measurement = Rim_Measurement(len(self.measurements) + 1, Measurement_Type.CONFIG_TYPE_UINT, CONFIG_TAG_RAW_VALUE, d[CONFIG_TAG_VENDOR_INFO], d[CONFIG_TAG_VENDOR_INFO_MASK])
                         self.measurements.append(measurement)
-                        self.measurement_count += 1
 
 
     def display(self):
@@ -292,6 +291,8 @@ class Corim_Data:
         """
         Parses the json file and stores the measurements in CORIM data
         """
+        self.measurements = []
+
         # Opening JSON file in read mode
         with open(json_filename, "r") as json_file:
 
@@ -320,6 +321,10 @@ class Corim_Data:
                     value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE])
                     measurement = Corim_Measurement(d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE], Measurement_Type.CONFIG_TYPE_UINT,
                             CONFIG_TAG_RAW_VALUE, value.hex(), format((1 << (len(value) * 8)) - 1, 'x'))
+                    #update self.model
+                    if (d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE] == 2):
+                        encoded = measurement.value.replace('00', '')
+                        self.model = bytearray.fromhex(encoded).decode()
                 else:
                     value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_DIGESTS][0].split(':')[1])
                     measurement = Corim_Measurement(d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE], Measurement_Type.CONFIG_TYPE_DIGEST,
@@ -469,13 +474,10 @@ class SPDM_Measurement_Data():
 
         for measurement in data.measurements:
             if measurement.type == Measurement_Type.CONFIG_TYPE_UINT:
-                self.add_cfm_measurement_data(root, pmr_id, measurement_id, CONFIG_VALUE_ENDIANESS_BIG_ENDIAN, CONFIG_VALUE_CHECK_EQUAL, measurement.value, measurement.mask)
-                measurement_id += 1
+                self.add_cfm_measurement_data(root, pmr_id, measurement.id, CONFIG_VALUE_ENDIANESS_BIG_ENDIAN, CONFIG_VALUE_CHECK_EQUAL, measurement.value, measurement.mask)
 
-        for measurement in data.measurements:
             if measurement.type == Measurement_Type.CONFIG_TYPE_DIGEST:
-                self.add_cfm_measurement(root, pmr_id, measurement_id, measurement.value)
-                measurement_id += 1
+                self.add_cfm_measurement(root, pmr_id, measurement.id, measurement.value)
 
         tree = et.ElementTree(root)
         if ((sys.version_info.major == 3 and sys.version_info.minor >= 9) or sys.version_info.major > 3):
@@ -510,7 +512,11 @@ class SPDM_Measurement_Data():
             for json_filename in json_filenames:
                 self.data.parse_json_file(json_filename)
                 self.data.display(json_filename)
-                self.create_cfm_file(self.data, self.output_filename.split(".")[0] + "_" + json_filename + ".xml")
+                if self.data.model == "":
+                    print ("Warning: Invalid model value. Proceed to create CFM.")
+                    self.create_cfm_file(self.data, self.output_filename)
+                else:
+                    self.create_cfm_file(self.data, self.output_filename.split(".")[0] + "_" + self.data.model + ".xml")
             for filename in os.listdir("."):
                 if filename.endswith(".json"):
                     self.execute_command("rm -f " + filename)
