@@ -2220,7 +2220,7 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
 	int status = 0;
 
 	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
-		device_addr, measurement->measurement_id + 1, false);
+		device_addr, measurement->measurement_id, false);
 	if (status != 0) {
 		return status;
 	}
@@ -2469,7 +2469,7 @@ static int attestation_requester_get_and_verify_spdm_measurement_data_block (
 	int status;
 
 	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
-		device_addr, data->measurement_id + 1, true);
+		device_addr, data->measurement_id, true);
 	if (status != 0) {
 		return status;
 	}

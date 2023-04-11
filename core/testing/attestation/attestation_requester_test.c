@@ -8376,7 +8376,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 	container.measurement.digest.allowable_digests = &allowable_digests;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -8503,7 +8503,7 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 	container.measurement.digest.allowable_digests = &allowable_digests;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -8617,7 +8617,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 	container.measurement.digest.allowable_digests = &allowable_digests;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -8744,7 +8744,7 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 	container.measurement.digest.allowable_digests = &allowable_digests;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -8858,7 +8858,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 	container.measurement.digest.allowable_digests = &allowable_digests;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -8985,7 +8985,7 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 	container.measurement.digest.allowable_digests = &allowable_digests;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -9102,7 +9102,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 	container.measurement.digest.allowable_digests = &allowable_digests;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -9242,7 +9242,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	container2.measurement.digest.allowable_digests = &allowable_digests2;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -9252,7 +9252,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container2.measurement.digest.pmr_id = 0;
-	container2.measurement.digest.measurement_id = 1;
+	container2.measurement.digest.measurement_id = 2;
 	container2.measurement.digest.allowable_digests_count = 1;
 	container2.measurement.digest.allowable_digests[0].version_set = 1;
 	container2.measurement.digest.allowable_digests[0].digests.digest_count = 1;
@@ -9446,7 +9446,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 	container2.measurement.digest.allowable_digests = &allowable_digests2;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -9456,7 +9456,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container2.measurement.digest.pmr_id = 0;
-	container2.measurement.digest.measurement_id = 1;
+	container2.measurement.digest.measurement_id = 2;
 	container2.measurement.digest.allowable_digests_count = 1;
 	container2.measurement.digest.allowable_digests[0].version_set = 0;
 	container2.measurement.digest.allowable_digests[0].digests.digest_count = 1;
@@ -9650,7 +9650,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 	container2.measurement.digest.allowable_digests = &allowable_digests2;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -9660,7 +9660,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container2.measurement.digest.pmr_id = 0;
-	container2.measurement.digest.measurement_id = 1;
+	container2.measurement.digest.measurement_id = 2;
 	container2.measurement.digest.allowable_digests_count = 1;
 	container2.measurement.digest.allowable_digests[0].version_set = 2;
 	container2.measurement.digest.allowable_digests[0].digests.digest_count = 1;
@@ -9856,7 +9856,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	container2.measurement.digest.allowable_digests = allowable_digests2;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -9866,7 +9866,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container2.measurement.digest.pmr_id = 0;
-	container2.measurement.digest.measurement_id = 1;
+	container2.measurement.digest.measurement_id = 2;
 	container2.measurement.digest.allowable_digests_count = 2;
 	container2.measurement.digest.allowable_digests[0].version_set = 2;
 	container2.measurement.digest.allowable_digests[0].digests.digest_count = 1;
@@ -10064,7 +10064,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	container2.measurement.digest.allowable_digests = &allowable_digests2;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -10074,7 +10074,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container2.measurement.digest.pmr_id = 0;
-	container2.measurement.digest.measurement_id = 1;
+	container2.measurement.digest.measurement_id = 2;
 	container2.measurement.digest.allowable_digests_count = 1;
 	container2.measurement.digest.allowable_digests[0].version_set = 1;
 	container2.measurement.digest.allowable_digests[0].digests.digest_count = 1;
@@ -10267,7 +10267,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -10407,7 +10407,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -10548,7 +10548,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -10692,7 +10692,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -10829,7 +10829,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -10975,7 +10975,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -11119,7 +11119,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -11261,7 +11261,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -11407,7 +11407,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -11547,7 +11547,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -11686,7 +11686,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -11827,7 +11827,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -11968,7 +11968,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -12110,7 +12110,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -12256,7 +12256,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -12394,7 +12394,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -12535,7 +12535,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -12677,7 +12677,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -12819,7 +12819,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -12960,7 +12960,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -13107,7 +13107,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -13252,7 +13252,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -13391,7 +13391,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -13534,7 +13534,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -13676,7 +13676,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -13819,7 +13819,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -13965,7 +13965,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -14103,7 +14103,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -14244,7 +14244,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -14386,7 +14386,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -14528,7 +14528,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -14669,7 +14669,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -14816,7 +14816,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -14961,7 +14961,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -15101,7 +15101,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -15247,7 +15247,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -15391,7 +15391,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -15532,7 +15532,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -15676,7 +15676,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -15817,7 +15817,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -15958,7 +15958,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -16099,7 +16099,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -16240,7 +16240,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -16390,7 +16390,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = data;
 	container.measurement.data.data_checks_count = 2;
 
@@ -16528,7 +16528,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -16651,7 +16651,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -16791,7 +16791,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -16940,7 +16940,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -16955,7 +16955,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container2.measurement.data.pmr_id = 0;
-	container2.measurement.data.measurement_id = 1;
+	container2.measurement.data.measurement_id = 2;
 	container2.measurement.data.data_checks = &data2;
 	container2.measurement.data.data_checks_count = 1;
 
@@ -17159,7 +17159,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -17174,7 +17174,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container2.measurement.data.pmr_id = 0;
-	container2.measurement.data.measurement_id = 1;
+	container2.measurement.data.measurement_id = 2;
 	container2.measurement.data.data_checks = &data2;
 	container2.measurement.data.data_checks_count = 1;
 
@@ -17378,7 +17378,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -17393,7 +17393,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container2.measurement.data.pmr_id = 0;
-	container2.measurement.data.measurement_id = 1;
+	container2.measurement.data.measurement_id = 2;
 	container2.measurement.data.data_checks = &data2;
 	container2.measurement.data.data_checks_count = 1;
 
@@ -17598,7 +17598,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -17616,7 +17616,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container2.measurement.data.pmr_id = 0;
-	container2.measurement.data.measurement_id = 1;
+	container2.measurement.data.measurement_id = 2;
 	container2.measurement.data.data_checks = &data2;
 	container2.measurement.data.data_checks_count = 1;
 
@@ -17821,7 +17821,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -17836,7 +17836,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container2.measurement.data.pmr_id = 0;
-	container2.measurement.data.measurement_id = 1;
+	container2.measurement.data.measurement_id = 2;
 	container2.measurement.data.data_checks = &data2;
 	container2.measurement.data.data_checks_count = 1;
 
@@ -18014,7 +18014,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = NULL;
 	container.measurement.data.data_checks_count = 0;
 
@@ -18153,7 +18153,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
 	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
 	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement.digest.pmr_id = 0;
 
 	data.bitmask = NULL;
@@ -18167,7 +18167,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container2.measurement.data.pmr_id = 0;
-	container2.measurement.data.measurement_id = 1;
+	container2.measurement.data.measurement_id = 2;
 	container2.measurement.data.data_checks = &data;
 	container2.measurement.data.data_checks_count = 1;
 
@@ -18365,7 +18365,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
 	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
 	container.measurement.digest.allowable_digests[0].digests.digests = measurement2;
-	container.measurement.digest.measurement_id = 1;
+	container.measurement.digest.measurement_id = 2;
 	container.measurement.digest.pmr_id = 0;
 
 	data.bitmask = NULL;
@@ -18379,7 +18379,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 
 	container2.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container2.measurement.data.pmr_id = 0;
-	container2.measurement.data.measurement_id = 0;
+	container2.measurement.data.measurement_id = 1;
 	container2.measurement.data.data_checks = &data;
 	container2.measurement.data.data_checks_count = 1;
 
@@ -27245,7 +27245,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 	container.measurement.digest.allowable_digests = &allowable_digests;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -27327,7 +27327,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	container.measurement.digest.allowable_digests = &allowable_digests;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 0;
@@ -27453,7 +27453,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	container.measurement.digest.allowable_digests = &allowable_digests;
 
 	container.measurement.digest.pmr_id = 0;
-	container.measurement.digest.measurement_id = 0;
+	container.measurement.digest.measurement_id = 1;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
 	container.measurement.digest.allowable_digests_count = 1;
 	container.measurement.digest.allowable_digests[0].version_set = 1;
@@ -27584,7 +27584,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -27667,7 +27667,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -27823,7 +27823,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -27935,7 +27935,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
@@ -28073,7 +28073,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 
 	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
 	container.measurement.data.pmr_id = 0;
-	container.measurement.data.measurement_id = 0;
+	container.measurement.data.measurement_id = 1;
 	container.measurement.data.data_checks = &data;
 	container.measurement.data.data_checks_count = 1;
 
