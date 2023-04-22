@@ -10,6 +10,7 @@
 #include "platform_io.h"
 #include "platform_api.h"
 #include "testing.h"
+#include "attestation/attestation_logging.h"
 #include "attestation/attestation_requester.h"
 #include "attestation/attestation_requester_static.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
@@ -33,10 +34,12 @@
 #include "testing/mock/crypto/rng_mock.h"
 #include "testing/mock/firmware/firmware_update_control_mock.h"
 #include "testing/mock/keystore/keystore_mock.h"
+#include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/cfm_manager_mock.h"
 #include "testing/mock/manifest/cfm_mock.h"
 #include "testing/engines/x509_testing_engine.h"
 #include "testing/crypto/x509_testing.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/riot/riot_core_testing.h"
 
 
@@ -29556,6 +29559,182 @@ static void attestation_requester_test_reset_authenticated_devices_on_cfm_activa
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_discovery_and_attestation_loop_single_device_invalid_pcr_measurement (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct pcr_measured_data pcr_cfm_valid_measured_data;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-challenge_auth signing";
+	struct cfm_pmr_digest pmr_digest;
+	uint32_t component_id = 50;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t digest3[SHA256_HASH_LENGTH];
+	uint8_t attestation_status_expected[1] = {0};
+	uint8_t *attestation_status;
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	int status;
+	size_t i;
+	struct logging_mock logger;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_PCR_UPDATE_ERROR,
+		.arg1 = PCR_MEASUREMENT (0, 0),
+		.arg2 = HASH_ENGINE_START_SHA256_FAILED
+	};
+
+	pmr_digest.pmr_id = 0;
+	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
+	pmr_digest.digests.digest_count = 1;
+	pmr_digest.digests.digests = digest3;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		digest3[i] = 50 + i;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	TEST_START;
+
+	status = ecc_der_encode_ecdsa_signature (signature,
+		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
+	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+
+	status = logging_mock_init (&logger);
+	CuAssertIntEquals (test, 0, status);
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	testing.spdm_discovery = true;
+	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, 0,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, 1, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		2, &testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, 3, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
+		4, 0xEF, true, &testing);
+
+	status = device_manager_update_device_ids (&testing.device_mgr, 1, 0xAA, 0xBB, 0xCC, 0xDD);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 5,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing, 8);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, 9, true, false, false, false, NULL, component_id);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing, 10);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
+			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
+		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
+		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
+		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
+		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
+		sizeof (struct cfm_pmr_digest), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, HASH_ENGINE_START_SHA256_FAILED);
+
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;
+	pcr_cfm_valid_measured_data.data.memory.buffer = testing.device_mgr.attestation_status;
+	pcr_cfm_valid_measured_data.data.memory.length = 1;
+
+	pcr_store_set_measurement_data (&testing.store, 0, &pcr_cfm_valid_measured_data);
+
+	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
+
+	debug_log = &logger.base;
+
+	status = device_manager_get_attestation_status (&testing.device_mgr,
+		(const uint8_t**) &attestation_status);
+	CuAssertIntEquals (test, 1, status);
+
+	debug_log = NULL;
+
+	status = testing_validate_array (attestation_status_expected, attestation_status, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement_data (&testing.store, 0, 0, attestation_status_expected,
+		sizeof (attestation_status_expected));
+	CuAssertIntEquals (test, 1, status);
+
+	status = testing_validate_array (attestation_status_expected, attestation_status, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_discovery_and_attestation_loop_single_device (
 	CuTest *test)
 {
@@ -30705,6 +30884,7 @@ TEST (attestation_requester_test_get_routing_table_get_routing_table_entries_no_
 TEST (attestation_requester_test_get_routing_table_get_routing_table_entries_rsp_fail);
 TEST (attestation_requester_test_reset_authenticated_devices_on_cfm_activation_request);
 TEST (attestation_requester_test_discovery_and_attestation_loop_single_device);
+TEST (attestation_requester_test_discovery_and_attestation_loop_single_device_invalid_pcr_measurement);
 TEST (attestation_requester_test_discovery_and_attestation_loop_multiple_devices);
 TEST (attestation_requester_test_discovery_and_attestation_loop_get_routing_table_before_discovery);
 TEST (attestation_requester_test_mctp_bridge_was_reset);
