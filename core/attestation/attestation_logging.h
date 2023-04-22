@@ -43,6 +43,12 @@ enum {
 	ATTESTATION_LOGGING_ROUTING_TABLE_REFRESH_REQUEST_FAILED,		/**< Failed to request an MCTP routing table refresh. */
 	ATTESTATION_LOGGING_CFM_VERSION_SET_SELECTOR_INVALID,			/**< CFM version set selector entry invalid. */
 	ATTESTATION_LOGGING_VERSION_SET_SELECTION_FAILED,				/**< Failed to determine device version set using CFM version set selector entry. */
+	ATTESTATION_LOGGING_DEVICE_FAILED_DISCOVERY,					/**< Device discovery failed during attestation flow. */
+	ATTESTATION_LOGGING_NEXT_DEVICE_DISCOVERY_ERROR,				/**< Failed to find next device for discovery. */
+	ATTESTATION_LOGGING_NEXT_DEVICE_ATTESTATION_ERROR,				/**< Failed to find next device for attestation. */
+	ATTESTATION_LOGGING_PCR_UPDATE_ERROR,							/**< Error while updating a PCR entry. */
+	ATTESTATION_LOGGING_GET_ATTESTATION_STATUS_ERROR,				/**< Failed to get attestation status. */
+	ATTESTATION_LOGGING_GET_MCTP_ROUTING_TABLE_ERROR,				/**< Failed to get MCTP routing table. */
 };
 
 

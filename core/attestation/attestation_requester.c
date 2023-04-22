@@ -227,14 +227,6 @@ static int attestation_requester_verify_pmr (const struct attestation_requester 
 		active_cfm->free_component_pmr_digest (active_cfm, &pmr_digest);
 	}
 
-	if ((status != 0) && (status != CFM_PMR_DIGEST_NOT_FOUND)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
-			((eid << 16) | (attestation->state->txn.protocol << 8) |
-				attestation->state->txn.requested_command),
-			status);
-	}
-
 	return status;
 }
 #endif
@@ -2187,13 +2179,6 @@ static int attestation_requester_get_and_verify_all_spdm_measurement_blocks (
 
 	status = attestation_requester_verify_digest_in_allowable_list (attestation,
 		&pmr_digest.digests, digest, attestation->state->txn.measurement_hash_type);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
-			((eid << 16) | (attestation->state->txn.requested_command << 8) |
-				attestation->state->txn.protocol),
-			status);
-	}
 
 free_pmr_digest:
 	active_cfm->free_component_pmr_digest (active_cfm, &pmr_digest);
@@ -2254,14 +2239,7 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
 		status = attestation_requester_verify_digest_in_allowable_list (attestation,
 			&measurement->allowable_digests[i_allowable_digests].digests, NULL,
 			attestation->state->txn.measurement_hash_type);
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
-				((eid << 16) | (attestation->state->txn.requested_command << 8) |
-					attestation->state->txn.protocol),
-				status);
-		}
-		else {
+		if (status == 0) {
 			// If device version set still not selected, then set it
 			if (!attestation_requester_is_version_set_selected (attestation)) {
 				attestation->state->txn.device_version_set =
@@ -2476,13 +2454,6 @@ static int attestation_requester_get_and_verify_spdm_measurement_data_block (
 
 	status = attestation_requester_verify_data_in_allowable_list (attestation, data->data_checks,
 		data->data_checks_count, data->pmr_id, data->measurement_id, eid);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
-			((eid << 16) | (attestation->state->txn.requested_command << 8) |
-				attestation->state->txn.protocol),
-			status);
-	}
 
 	// If device version set not selected, then report error
 	if (!attestation_requester_is_version_set_selected (attestation)) {
@@ -3160,9 +3131,19 @@ void attestation_requester_discovery_and_attestation_loop (
 		eid = device_manager_get_eid_of_next_device_to_discover (attestation->device_mgr);
 		if (!ROT_IS_ERROR (eid)) {
 			status = attestation_requester_discover_device (attestation, eid);
-			if (status == ATTESTATION_REFRESH_ROUTING_TABLE) {
-				goto get_routing_table;
+			if (status != 0) {
+				if (status == ATTESTATION_REFRESH_ROUTING_TABLE) {
+					goto get_routing_table;
+				}
+
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_DEVICE_FAILED_DISCOVERY,
+					attestation->state->txn.requested_command, status);
 			}
+		}
+		else if (eid != DEVICE_MGR_NO_DEVICES_AVAILABLE) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_NEXT_DEVICE_DISCOVERY_ERROR, eid, 0);
 		}
 	}
 #endif
@@ -3173,22 +3154,46 @@ void attestation_requester_discovery_and_attestation_loop (
 		eid = device_manager_get_eid_of_next_device_to_attest (attestation->device_mgr);
 		if (!ROT_IS_ERROR (eid)) {
 			status = attestation_requester_attest_device (attestation, eid);
-			if (status == ATTESTATION_REFRESH_ROUTING_TABLE) {
-				goto get_routing_table;
+			if (status != 0) {
+				if (status == ATTESTATION_REFRESH_ROUTING_TABLE) {
+					goto get_routing_table;
+				}
+
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
+					((eid << 16) | (attestation->state->txn.protocol << 8) |
+						attestation->state->txn.requested_command),
+					status);
 			}
+		}
+		else if (eid != DEVICE_MGR_NO_DEVICES_AVAILABLE) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_NEXT_DEVICE_ATTESTATION_ERROR, eid, 0);
 		}
 	}
 
 	status = device_manager_get_attestation_status (attestation->device_mgr,
 		&attestation_status);
 	if (!ROT_IS_ERROR (status)) {
-		pcr_store_update_versioned_buffer (pcr, attestation->primary_hash, measurement,
+		status = pcr_store_update_versioned_buffer (pcr, attestation->primary_hash, measurement,
 			attestation_status, status, true, measurement_version);
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_PCR_UPDATE_ERROR, measurement, status);
+		}
+	}
+	else {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_GET_ATTESTATION_STATUS_ERROR, status, 0);
 	}
 
 get_routing_table:
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-	attestation_requester_get_mctp_routing_table (attestation);
+	status = attestation_requester_get_mctp_routing_table (attestation);
+	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_GET_MCTP_ROUTING_TABLE_ERROR, status, 0);
+	}
 #endif
 
 	return;
