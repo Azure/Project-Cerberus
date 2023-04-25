@@ -745,6 +745,7 @@ static int attestation_requester_get_digests_rsp_post_processing (
 {
 	struct spdm_get_digests_response *rsp =
 		(struct spdm_get_digests_response*) attestation->state->txn.msg_buffer;
+	const struct device_manager_key *alias_key;
 	size_t transcript_hash_len;
 	size_t rsp_len;
 	uint8_t *digest;
@@ -774,22 +775,32 @@ static int attestation_requester_get_digests_rsp_post_processing (
 		digest = spdm_get_digests_resp_digest (rsp, attestation->state->txn.slot_num,
 			transcript_hash_len);
 
-		attestation->state->txn.cached_cert_valid = false;
-
-		status = device_manager_compare_cert_chain_digest (attestation->device_mgr, device_eid,
-			digest, transcript_hash_len);
-		if ((status == DEVICE_MGR_DIGEST_MISMATCH) || (status == DEVICE_MGR_DIGEST_LEN_MISMATCH)) {
+		alias_key = device_manager_get_alias_key (attestation->device_mgr, device_eid);
+		if (alias_key == NULL) {
 			status = device_manager_update_cert_chain_digest (attestation->device_mgr, device_eid,
 				attestation->state->txn.slot_num, digest, transcript_hash_len);
 			if (status != 0) {
 				return status;
 			}
 		}
-		else if (status == 0) {
-			attestation->state->txn.cached_cert_valid = true;
-		}
 		else {
-			return status;
+			status = device_manager_compare_cert_chain_digest (attestation->device_mgr, device_eid,
+				digest, transcript_hash_len);
+			if ((status == DEVICE_MGR_DIGEST_MISMATCH) || (status == DEVICE_MGR_DIGEST_LEN_MISMATCH)) {
+				status = device_manager_clear_alias_key (attestation->device_mgr, device_eid);
+				if (status != 0) {
+					return status;
+				}
+
+				status = device_manager_update_cert_chain_digest (attestation->device_mgr, device_eid,
+					attestation->state->txn.slot_num, digest, transcript_hash_len);
+				if (status != 0) {
+					return status;
+				}
+			}
+			else {
+				return status;
+			}
 		}
 	}
 
@@ -1649,6 +1660,7 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		(struct cerberus_protocol_challenge*) attestation->state->txn.msg_buffer;
 	struct cerberus_protocol_challenge_response *challenge_rsp =
 		(struct cerberus_protocol_challenge_response*) attestation->state->txn.msg_buffer;
+	const struct device_manager_key *alias_key;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t i_cert;
 	int challenge_rq_len;
@@ -1690,11 +1702,8 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		return status;
 	}
 
-	attestation->state->txn.cached_cert_valid = false;
-
-	status = device_manager_compare_cert_chain_digest (attestation->device_mgr, eid, digest,
-		SHA256_HASH_LENGTH);
-	if ((status == DEVICE_MGR_DIGEST_MISMATCH) || (status == DEVICE_MGR_DIGEST_LEN_MISMATCH)) {
+	alias_key = device_manager_get_alias_key (attestation->device_mgr, eid);
+	if (alias_key == NULL) {
 		status = device_manager_update_cert_chain_digest (attestation->device_mgr, eid,
 			attestation->state->txn.slot_num, digest, SHA256_HASH_LENGTH);
 		if (status != 0) {
@@ -1704,15 +1713,31 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		attestation->state->txn.num_certs =
 			attestation->state->txn.msg_buffer_len / SHA256_HASH_LENGTH;
 	}
-	else if (status == 0) {
-		attestation->state->txn.cached_cert_valid = true;
-	}
 	else {
-		return status;
+		status = device_manager_compare_cert_chain_digest (attestation->device_mgr, eid, digest,
+			SHA256_HASH_LENGTH);
+		if ((status == DEVICE_MGR_DIGEST_MISMATCH) || (status == DEVICE_MGR_DIGEST_LEN_MISMATCH)) {
+			status = device_manager_clear_alias_key (attestation->device_mgr, eid);
+			if (status != 0) {
+				return status;
+			}
+
+			status = device_manager_update_cert_chain_digest (attestation->device_mgr, eid,
+				attestation->state->txn.slot_num, digest, SHA256_HASH_LENGTH);
+			if (status != 0) {
+				return status;
+			}
+
+			attestation->state->txn.num_certs =
+				attestation->state->txn.msg_buffer_len / SHA256_HASH_LENGTH;
+		}
+		else {
+			return status;
+		}
 	}
 
 	// If certificate chain digest retrieved does not match cached certificate, refresh chain
-	if (!attestation->state->txn.cached_cert_valid) {
+	if (alias_key == NULL) {
 		attestation->state->txn.cert_buffer_len = 0;
 
 		for (i_cert = 0; i_cert < attestation->state->txn.num_certs; ++i_cert) {
@@ -1726,17 +1751,15 @@ static int attestation_requester_attest_device_cerberus_protocol (
 			status = attestation_requester_send_request_and_get_response (attestation, status,
 				device_addr, eid, false, false, CERBERUS_PROTOCOL_GET_CERTIFICATE);
 			if (status != 0) {
-				return status;
+				goto clear_cert_chain;
 			}
 		}
 
 		status = attestation_requester_verify_and_load_leaf_key (attestation, eid, active_cfm,
 			component_id);
 		if (status != 0) {
-			return status;
+			goto clear_cert_chain;
 		}
-
-		attestation->state->txn.cached_cert_valid = true;
 	}
 
 	status = attestation->primary_hash->start_sha256 (attestation->primary_hash);
@@ -1797,6 +1820,12 @@ hash_cancel:
 	if (!attestation->state->txn.hash_finish) {
 		attestation->primary_hash->cancel (attestation->primary_hash);
 	}
+
+	return status;
+
+clear_cert_chain:
+	device_manager_clear_alias_key (attestation->device_mgr, eid);
+	device_manager_clear_cert_chain_digest (attestation->device_mgr, eid);
 
 	return status;
 }
@@ -2569,6 +2598,7 @@ static int attestation_requester_attest_device_spdm (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
 	struct cfm *active_cfm, uint32_t component_id)
 {
+	const struct device_manager_key *alias_key;
 	uint8_t nonce[SPDM_NONCE_LEN];
 	int rq_len;
 	int status;
@@ -2606,7 +2636,8 @@ static int attestation_requester_attest_device_spdm (
 	}
 
 	// If certificate chain digest retrieved does not match cached certificate, refresh chain
-	if (!attestation->state->txn.cached_cert_valid) {
+	alias_key = device_manager_get_alias_key (attestation->device_mgr, eid);
+	if (alias_key == NULL) {
 		attestation->state->txn.cert_buffer_len = 0;
 		attestation->state->txn.cert_total_len = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
 
@@ -2634,8 +2665,6 @@ static int attestation_requester_attest_device_spdm (
 		if (status != 0) {
 			goto clear_cert_chain;
 		}
-
-		attestation->state->txn.cached_cert_valid = true;
 	}
 
 	/* Perform PMR0 check. If device supports Challenge command, then use that. Otherwise, get all
@@ -2696,6 +2725,7 @@ hash_cancel:
 	return status;
 
 clear_cert_chain:
+	device_manager_clear_alias_key (attestation->device_mgr, eid);
 	device_manager_clear_cert_chain_digest (attestation->device_mgr, eid);
 
 	if (!attestation->state->txn.hash_finish) {

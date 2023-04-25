@@ -808,7 +808,6 @@ uint32_t device_manager_get_mctp_ctrl_timeout (struct device_manager *mgr)
 int device_manager_update_cert_chain_digest (struct device_manager *mgr, uint8_t eid,
 	uint8_t slot_num, const uint8_t *digest, size_t digest_len)
 {
-	uint8_t i_device;
 	int device_num;
 
 	if ((mgr == NULL) || (digest == NULL) || (digest_len == 0)) {
@@ -824,25 +823,11 @@ int device_manager_update_cert_chain_digest (struct device_manager *mgr, uint8_t
 		return device_num;
 	}
 
-	/* Before updating entry corresponding to EID, ensure digest received doesn't match another
-	 * devices certificate chain digest */
+	memcpy (mgr->cert_chain_digest, digest, digest_len);
 
-	for (i_device = 0; i_device < mgr->num_devices; ++i_device) {
-		if (i_device == device_num) {
-			continue;
-		}
-
-		if (mgr->entries[i_device].hash_len == digest_len) {
-			if (memcmp (mgr->entries[i_device].cert_chain_digest, digest, digest_len) == 0) {
-				return DEVICE_MGR_DIGEST_NOT_UNIQUE;
-			}
-		}
-	}
-
-	memcpy (mgr->entries[device_num].cert_chain_digest, digest, digest_len);
-
-	mgr->entries[device_num].hash_len = digest_len;
+	mgr->hash_len = digest_len;
 	mgr->entries[device_num].slot_num = slot_num;
+	mgr->cert_chain_digest_eid = eid;
 
 	return 0;
 }
@@ -868,7 +853,9 @@ int device_manager_clear_cert_chain_digest (struct device_manager *mgr, uint8_t 
 		return device_num;
 	}
 
-	mgr->entries[device_num].hash_len = 0;
+	if (mgr->cert_chain_digest_eid == eid) {
+		mgr->hash_len = 0;
+	}
 
 	return 0;
 }
@@ -898,12 +885,15 @@ int device_manager_compare_cert_chain_digest (struct device_manager *mgr, uint8_
 		return device_num;
 	}
 
-	if (digest_len != mgr->entries[device_num].hash_len) {
+	if (mgr->cert_chain_digest_eid != eid) {
+		return DEVICE_MGR_DIGEST_MISMATCH;
+	}
+
+	if (digest_len != mgr->hash_len) {
 		return DEVICE_MGR_DIGEST_LEN_MISMATCH;
 	}
 
-	status = memcmp (digest, mgr->entries[device_num].cert_chain_digest,
-		mgr->entries[device_num].hash_len);
+	status = memcmp (digest, mgr->cert_chain_digest, mgr->hash_len);
 	if (status != 0) {
 		return DEVICE_MGR_DIGEST_MISMATCH;
 	}
@@ -940,9 +930,10 @@ int device_manager_update_alias_key (struct device_manager *mgr, uint8_t eid, co
 		return device_num;
 	}
 
-	memcpy (mgr->entries[device_num].alias_key.key, key, key_len);
-	mgr->entries[device_num].alias_key.key_len = key_len;
-	mgr->entries[device_num].alias_key.key_type = key_type;
+	memcpy (mgr->alias_key.key, key, key_len);
+	mgr->alias_key.key_len = key_len;
+	mgr->alias_key.key_type = key_type;
+	mgr->alias_key_eid = eid;
 
 	return 0;
 }
@@ -953,7 +944,7 @@ int device_manager_update_alias_key (struct device_manager *mgr, uint8_t eid, co
  * @param mgr Device manager instance to utilize.
  * @param eid EID of device to utilize.
  *
- * @return Container to update with alias key if found or NULL.
+ * @return Alias key if found or NULL.
  */
 const struct device_manager_key* device_manager_get_alias_key (struct device_manager *mgr,
 	uint8_t eid)
@@ -969,7 +960,39 @@ const struct device_manager_key* device_manager_get_alias_key (struct device_man
 		return NULL;
 	}
 
-	return &mgr->entries[device_num].alias_key;
+	if (mgr->alias_key_eid != eid) {
+		return NULL;
+	}
+
+	return &mgr->alias_key;
+}
+
+/**
+ * Clear alias key from a device manager device table entry
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param eid EID of device to utilize.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_clear_alias_key (struct device_manager *mgr, uint8_t eid)
+{
+	int device_num;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	if (mgr->alias_key_eid == eid) {
+		mgr->alias_key_eid = MCTP_BASE_PROTOCOL_NULL_EID;
+	}
+
+	return 0;
 }
 
 /**

@@ -3388,6 +3388,39 @@ static void device_manager_test_compare_cert_chain_digest_digest_len_mismatch (C
 	device_manager_release (&manager);
 }
 
+static void device_manager_test_compare_cert_chain_digest_digest_eid_mismatch (CuTest *test)
+{
+	struct device_manager manager;
+	uint8_t digest_exp[HASH_MAX_HASH_LEN];
+	uint8_t digest_act[HASH_MAX_HASH_LEN];
+	int status;
+
+	memset (digest_exp, 0xAA, sizeof (digest_exp));
+	memset (digest_act, 0xBB, sizeof (digest_act));
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_cert_chain_digest (&manager, 0xCC, 0, digest_exp,
+		sizeof (digest_exp));
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_compare_cert_chain_digest (&manager, 0xAA, digest_act,
+		sizeof (digest_act));
+	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_MISMATCH, status);
+
+	device_manager_release (&manager);
+}
+
 static void device_manager_test_compare_cert_chain_digest_digest_mismatch (CuTest *test)
 {
 	struct device_manager manager;
@@ -3417,35 +3450,6 @@ static void device_manager_test_compare_cert_chain_digest_digest_mismatch (CuTes
 	status = device_manager_compare_cert_chain_digest (&manager, 0xCC, digest_act,
 		sizeof (digest_act));
 	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_MISMATCH, status);
-
-	device_manager_release (&manager);
-}
-
-static void device_manager_test_compare_cert_chain_digest_digest_not_unique (CuTest *test)
-{
-	struct device_manager manager;
-	uint8_t digest[HASH_MAX_HASH_LEN];
-	int status;
-
-	memset (digest, 0xAA, sizeof (digest));
-
-	TEST_START;
-
-	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_cert_chain_digest (&manager, 0xAA, 0, digest, sizeof (digest));
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_cert_chain_digest (&manager, 0xCC, 0, digest, sizeof (digest));
-	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_NOT_UNIQUE, status);
 
 	device_manager_release (&manager);
 }
@@ -3713,7 +3717,7 @@ static void device_manager_test_get_alias_key_unknown_device (CuTest *test)
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_get_alias_key_empty (CuTest *test)
+static void device_manager_test_get_alias_key_not_updated (CuTest *test)
 {
 	struct device_manager manager;
 	const struct device_manager_key *key;
@@ -3732,9 +3736,106 @@ static void device_manager_test_get_alias_key_empty (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	key = device_manager_get_alias_key (&manager, 0xCC);
-	CuAssertPtrNotNull (test, key->key);
-	CuAssertIntEquals (test, 0, key->key_len);
-	CuAssertIntEquals (test, 0, key->key_type);
+	CuAssertPtrEquals (test, NULL, (void*) key);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_clear_alias_key (CuTest *test)
+{
+	struct device_manager manager;
+	uint8_t key_exp[DEVICE_MANAGER_MAX_KEY_LEN];
+	const struct device_manager_key* key_actual;
+	int status;
+
+	memset (key_exp, 0xAA, sizeof (key_exp));
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_alias_key (&manager, 0xCC, key_exp, sizeof (key_exp), 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	key_actual = device_manager_get_alias_key (&manager, 0xCC);
+	CuAssertPtrNotNull (test, key_actual->key);
+	CuAssertIntEquals (test, sizeof (key_exp), key_actual->key_len);
+	CuAssertIntEquals (test, 0xAA, key_actual->key_type);
+
+	status = device_manager_clear_alias_key(&manager, 0xCC);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (key_exp, key_actual->key, sizeof (key_exp));
+	CuAssertIntEquals (test, 0, status);
+
+	key_actual = device_manager_get_alias_key (&manager, 0xCC);
+	CuAssertPtrEquals (test, NULL, (void*) key_actual);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_clear_alias_key_invalid_arg (CuTest *test)
+{
+	struct device_manager manager;
+	uint8_t key_exp[DEVICE_MANAGER_MAX_KEY_LEN];
+	const struct device_manager_key* key_actual;
+	int status;
+
+	memset (key_exp, 0xAA, sizeof (key_exp));
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_alias_key (&manager, 0xCC, key_exp, sizeof (key_exp), 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	key_actual = device_manager_get_alias_key (&manager, 0xCC);
+	CuAssertPtrNotNull (test, key_actual->key);
+	CuAssertIntEquals (test, sizeof (key_exp), key_actual->key_len);
+	CuAssertIntEquals (test, 0xAA, key_actual->key_type);
+
+	status = device_manager_clear_alias_key(NULL, 0xCC);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = testing_validate_array (key_exp, key_actual->key, sizeof (key_exp));
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_clear_alias_key_unknown_device (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_clear_alias_key(&manager, 0xCC);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
 }
@@ -5928,8 +6029,8 @@ TEST (device_manager_test_compare_cert_chain_digest);
 TEST (device_manager_test_compare_cert_chain_digest_invalid_arg);
 TEST (device_manager_test_compare_cert_chain_digest_unknown_device);
 TEST (device_manager_test_compare_cert_chain_digest_digest_len_mismatch);
+TEST (device_manager_test_compare_cert_chain_digest_digest_eid_mismatch);
 TEST (device_manager_test_compare_cert_chain_digest_digest_mismatch);
-TEST (device_manager_test_compare_cert_chain_digest_digest_not_unique);
 TEST (device_manager_test_clear_cert_chain_digest);
 TEST (device_manager_test_clear_cert_chain_digest_invalid_arg);
 TEST (device_manager_test_clear_cert_chain_digest_unknown_device);
@@ -5940,7 +6041,10 @@ TEST (device_manager_test_update_alias_key_input_too_large);
 TEST (device_manager_test_get_alias_key);
 TEST (device_manager_test_get_alias_key_invalid_arg);
 TEST (device_manager_test_get_alias_key_unknown_device);
-TEST (device_manager_test_get_alias_key_empty);
+TEST (device_manager_test_get_alias_key_not_updated);
+TEST (device_manager_test_clear_alias_key);
+TEST (device_manager_test_clear_alias_key_invalid_arg);
+TEST (device_manager_test_clear_alias_key_unknown_device);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_one_device);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_multiple);
 TEST (device_manager_test_get_eid_of_next_device_to_attest_multiple_attestation_failed);
