@@ -5316,39 +5316,6 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_digest_digest_not_unique (
-	CuTest *test)
-{
-	struct attestation_requester_testing testing;
-	uint8_t digest[SHA256_HASH_LENGTH];
-	int status;
-	size_t i;
-
-	TEST_START;
-
-	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
-		HASH_TYPE_SHA256, CFM_ATTESTATION_CERBERUS_PROTOCOL, ATTESTATION_RIOT_SLOT_NUM, 0);
-
-	for (i = 0; i < sizeof (digest); ++i) {
-		digest[i] = i + 50;
-	}
-
-	status = device_manager_update_cert_chain_digest (&testing.device_mgr,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0, digest, sizeof (digest));
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_cerberus_device_capabilities (test, true, false,
-		false, 0, &testing);
-
-	attestation_requester_testing_send_and_receive_cerberus_get_digest_with_mocks (test, &testing,
-		1);
-
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_NOT_UNIQUE, status);
-
-	complete_attestation_requester_mock_test (test, &testing, true);
-}
-
 static void attestation_requester_test_attest_device_cerberus_get_certificate_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -21643,46 +21610,6 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_hash_u
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_digests_digest_not_unique (
-	CuTest *test)
-{
-	struct attestation_requester_testing testing;
-	uint8_t digest[SHA384_HASH_LENGTH];
-	int status;
-	int i;
-
-	TEST_START;
-
-	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
-		HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM, 0);
-
-	for (i = 0; i < SHA384_HASH_LENGTH; ++i) {
-		digest[i] = i;
-	}
-
-	status = device_manager_update_cert_chain_digest (&testing.device_mgr,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0, digest, sizeof (digest));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
-		false, &testing);
-	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, false,
-		false, &testing, 3);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, DEVICE_MGR_DIGEST_NOT_UNIQUE, status);
-
-	complete_attestation_requester_mock_test (test, &testing, true);
-}
-
 static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_ready (CuTest *test)
 {
 	uint8_t rsp_buf[sizeof (struct spdm_get_digests_response) + HASH_MAX_HASH_LEN];
@@ -30591,7 +30518,6 @@ TEST (attestation_requester_test_attest_device_cerberus_get_digest_fail);
 TEST (attestation_requester_test_attest_device_cerberus_get_digest_hash_fail);
 TEST (attestation_requester_test_attest_device_cerberus_get_digest_unexpected_rsp);
 TEST (attestation_requester_test_attest_device_cerberus_get_digest_no_rsp);
-TEST (attestation_requester_test_attest_device_cerberus_get_digest_digest_not_unique);
 TEST (attestation_requester_test_attest_device_cerberus_get_certificate_fail);
 TEST (attestation_requester_test_attest_device_cerberus_get_certificate_unexpected_rsp);
 TEST (attestation_requester_test_attest_device_cerberus_get_certificate_unexpected_slot_num);
@@ -30761,7 +30687,6 @@ TEST (attestation_requester_test_attest_device_spdm_get_digests_no_rsp);
 TEST (attestation_requester_test_attest_device_spdm_get_digests_invalid_rsp_len);
 TEST (attestation_requester_test_attest_device_spdm_get_digests_req_slot_empty);
 TEST (attestation_requester_test_attest_device_spdm_get_digests_rsp_hash_update_fail);
-TEST (attestation_requester_test_attest_device_spdm_get_digests_digest_not_unique);
 TEST (attestation_requester_test_attest_device_spdm_get_digests_rsp_not_ready);
 TEST (attestation_requester_test_attest_device_spdm_get_digests_rsp_not_ready_too_many_retries);
 TEST (attestation_requester_test_attest_device_spdm_get_certificate_req_hash_update_fail);

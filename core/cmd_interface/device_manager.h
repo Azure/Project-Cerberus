@@ -168,12 +168,9 @@ struct device_manager_key {
  */
 struct device_manager_entry {
 	struct device_manager_full_capabilities capabilities;		/**< Device capabilities */
-	struct device_manager_key alias_key;						/**< Container with device alias key */
 	platform_clock attestation_timeout;							/**< Clock tracking when device should be attested */
 	uint32_t component_id;										/**< Component ID in PCD and CFM */
-	uint8_t cert_chain_digest[HASH_MAX_HASH_LEN];				/**< Device certificate chain digest */
 	enum device_manager_device_state state;						/**< Device state */
-	size_t hash_len;											/**< Length of certificate chain hash */
 	uint16_t pci_vid;											/**< PCI Vendor ID */
 	uint16_t pci_device_id;										/**< PCI Device ID */
 	uint16_t pci_subsystem_vid;									/**< PCI Subsystem Vendor ID */
@@ -216,6 +213,11 @@ struct device_manager {
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 	struct device_manager_unidentified_entry *unidentified;		/**< Unidentified device circular linked list. */
 #endif
+	size_t hash_len;											/**< Length of certificate chain hash */
+	uint8_t cert_chain_digest[HASH_MAX_HASH_LEN];				/**< Device certificate chain digest */
+	uint8_t cert_chain_digest_eid;								/*< EID of component digest belongs */
+	struct device_manager_key alias_key;						/**< Container with device alias key */
+	uint8_t alias_key_eid;										/**< EID of component alias key belongs */
 	struct observable observable;								/**< Observer manager for the interface. */
 };
 
@@ -283,6 +285,8 @@ int device_manager_update_alias_key (struct device_manager *mgr, uint8_t eid, co
 	size_t key_len, int key_type);
 const struct device_manager_key* device_manager_get_alias_key (struct device_manager *mgr,
 	uint8_t eid);
+int device_manager_clear_alias_key (struct device_manager *mgr, uint8_t eid);
+
 
 int device_manager_get_device_state (struct device_manager *mgr, int device_num);
 int device_manager_get_device_state_by_eid (struct device_manager *mgr, uint8_t eid);

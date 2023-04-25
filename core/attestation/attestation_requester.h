@@ -52,7 +52,6 @@ struct attestation_requester_transaction_state {
 	size_t alias_signature_len;									/**< Length of a signature component signed by device alias key. */
 	enum hash_type transcript_hash_type;						/**< Cryptographic hashing algorithm utilized in attestation transcript hashing. */
 	enum hash_type measurement_hash_type;						/**< Cryptographic hashing algorithm utilized in measurement hashing. */
-	bool cached_cert_valid;										/**< Certificate chain of device read back and digest is valid. */
 	bool hash_finish;											/**< Transcript hashing completed. */
 	bool challenge_supported;									/**< Challenge command supported. */
 	bool raw_bitstream_requested;								/**< Requested raw measurement data from device. */
