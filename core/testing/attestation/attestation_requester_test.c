@@ -29636,15 +29636,15 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 
 	pcr_store_set_measurement_data (&testing.store, 0, &pcr_cfm_valid_measured_data);
 
+	debug_log = &logger.base;
+
 	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
 
-	debug_log = &logger.base;
+	debug_log = NULL;
 
 	status = device_manager_get_attestation_status (&testing.device_mgr,
 		(const uint8_t**) &attestation_status);
 	CuAssertIntEquals (test, 1, status);
-
-	debug_log = NULL;
 
 	status = testing_validate_array (attestation_status_expected, attestation_status, status);
 	CuAssertIntEquals (test, 0, status);
@@ -29660,6 +29660,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
+
+	status = logging_mock_validate_and_release (&logger);
+	CuAssertIntEquals (test, 0, status);
 }
 
 static void attestation_requester_test_discovery_and_attestation_loop_single_device (
