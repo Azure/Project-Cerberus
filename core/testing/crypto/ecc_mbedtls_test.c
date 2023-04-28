@@ -1326,7 +1326,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_and_verify_p384 
 	int status;
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
-	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC384_DSA_MAX_LENGTH * 2];
 #endif
 
 	TEST_START;
@@ -1366,7 +1366,7 @@ static void ecc_mbedtls_test_generate_derived_key_pair_and_sign_and_verify_p521 
 	int status;
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	int out_len;
-	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
 #endif
 
 	TEST_START;
@@ -1600,7 +1600,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p384 (CuTest 
 	int status;
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 	int out_len;
-	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC384_DSA_MAX_LENGTH * 2];
 #endif
 
 	TEST_START;
@@ -1639,7 +1639,7 @@ static void ecc_mbedtls_test_generate_key_pair_and_sign_and_verify_p521 (CuTest 
 	int status;
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 	int out_len;
-	uint8_t out[ECC_TESTING_ECC256_DSA_MAX_LENGTH * 2];
+	uint8_t out[ECC_TESTING_ECC521_DSA_MAX_LENGTH * 2];
 #endif
 
 	TEST_START;
