@@ -234,6 +234,393 @@ static void asn1_get_der_encoded_length_test_null (CuTest *test)
 	CuAssertIntEquals (test, 0, (int) length);
 }
 
+static void asn1_encode_integer_test (CuTest *test)
+{
+	uint64_t value = 127;
+	const uint8_t expected[] = {0x02, 0x01, 0x7f};
+	uint8_t der[sizeof (expected)];
+	int der_length;
+	int status;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, sizeof (der));
+	CuAssertIntEquals (test, sizeof (expected), der_length);
+
+	status = testing_validate_array (expected, der, der_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_encode_integer_test_zero (CuTest *test)
+{
+	uint64_t value = 0;
+	const uint8_t expected[] = {0x02, 0x01, 0x00};
+	uint8_t der[sizeof (expected)];
+	int der_length;
+	int status;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, sizeof (der));
+	CuAssertIntEquals (test, sizeof (expected), der_length);
+
+	status = testing_validate_array (expected, der, der_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_encode_integer_test_multiple_bytes (CuTest *test)
+{
+	uint64_t value = 256;
+	const uint8_t expected[] = {0x02, 0x02, 0x01, 0x00};
+	uint8_t der[sizeof (expected)];
+	int der_length;
+	int status;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, sizeof (der));
+	CuAssertIntEquals (test, sizeof (expected), der_length);
+
+	status = testing_validate_array (expected, der, der_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_encode_integer_test_msb_set_add_zero (CuTest *test)
+{
+	uint64_t value = 128;
+	const uint8_t expected[] = {0x02, 0x02, 0x00, 0x80};
+	uint8_t der[sizeof (expected)];
+	int der_length;
+	int status;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, sizeof (der));
+	CuAssertIntEquals (test, sizeof (expected), der_length);
+
+	status = testing_validate_array (expected, der, der_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_encode_integer_test_msb_set_not_lsb_add_zero (CuTest *test)
+{
+	uint64_t value = 0x81234567;
+	const uint8_t expected[] = {0x02, 0x05, 0x00, 0x81, 0x23, 0x45, 0x67};
+	uint8_t der[sizeof (expected)];
+	int der_length;
+	int status;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, sizeof (der));
+	CuAssertIntEquals (test, sizeof (expected), der_length);
+
+	status = testing_validate_array (expected, der, der_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_encode_integer_test_max_no_padding (CuTest *test)
+{
+	uint64_t value = 0x1122334400660088;
+	const uint8_t expected[] = {0x02, 0x08, 0x11, 0x22, 0x33, 0x44, 0x00, 0x66, 0x00, 0x88};
+	uint8_t der[sizeof (expected)];
+	int der_length;
+	int status;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, sizeof (der));
+	CuAssertIntEquals (test, sizeof (expected), der_length);
+
+	status = testing_validate_array (expected, der, der_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_encode_integer_test_max_with_padding (CuTest *test)
+{
+	uint64_t value = 0xc822004455667700;
+	const uint8_t expected[] = {0x02, 0x09, 0x00, 0xc8, 0x22, 0x00, 0x44, 0x55, 0x66, 0x77, 0x00};
+	uint8_t der[sizeof (expected)];
+	int der_length;
+	int status;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, sizeof (der));
+	CuAssertIntEquals (test, sizeof (expected), der_length);
+
+	status = testing_validate_array (expected, der, der_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_encode_integer_test_null (CuTest *test)
+{
+	uint64_t value = 127;
+	uint8_t der[3];
+	int der_length;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, NULL, sizeof (der));
+	CuAssertIntEquals (test, ASN1_INVALID_ARGUMENT, der_length);
+}
+
+static void asn1_encode_integer_test_buffer_less_than_min (CuTest *test)
+{
+	uint64_t value = 127;
+	uint8_t der[3];
+	int der_length;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, 0);
+	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+
+	der_length = asn1_encode_integer (value, der, 1);
+	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+
+	der_length = asn1_encode_integer (value, der, 2);
+	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+}
+
+static void asn1_encode_integer_test_buffer_too_small (CuTest *test)
+{
+	uint64_t value = 256;
+	uint8_t der[3];
+	int der_length;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, sizeof (der));
+	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+}
+
+static void asn1_encode_integer_test_buffer_too_small_not_last_byte (CuTest *test)
+{
+	uint64_t value = 0x1122334400660088;
+	uint8_t der[5];
+	int der_length;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, sizeof (der));
+	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+}
+
+static void asn1_encode_integer_test_buffer_too_small_with_padding (CuTest *test)
+{
+	uint64_t value = 0xc822004455667700;
+	uint8_t der[7];
+	int der_length;
+
+	TEST_START;
+
+	der_length = asn1_encode_integer (value, der, sizeof (der));
+	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+}
+
+static void asn1_decode_integer_test (CuTest *test)
+{
+	uint64_t value;
+	uint64_t expected = 127;
+	const uint8_t der[] = {0x02, 0x01, 0x7f};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertInt64Equals (test, expected, value);
+}
+
+static void asn1_decode_integer_test_zero (CuTest *test)
+{
+	uint64_t value;
+	uint64_t expected = 0;
+	const uint8_t der[] = {0x02, 0x01, 0x00};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertInt64Equals (test, expected, value);
+}
+
+static void asn1_decode_integer_test_multiple_bytes (CuTest *test)
+{
+	uint64_t value;
+	uint64_t expected = 256;
+	const uint8_t der[] = {0x02, 0x02, 0x01, 0x00};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertInt64Equals (test, expected, value);
+}
+
+static void asn1_decode_integer_test_msb_set_add_zero (CuTest *test)
+{
+	uint64_t value;
+	uint64_t expected = 128;
+	const uint8_t der[] = {0x02, 0x02, 0x00, 0x80};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertInt64Equals (test, expected, value);
+}
+
+static void asn1_decode_integer_test_msb_set_not_lsb_add_zero (CuTest *test)
+{
+	uint64_t value;
+	uint64_t expected = 0x81234567;
+	const uint8_t der[] = {0x02, 0x05, 0x00, 0x81, 0x23, 0x45, 0x67};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertInt64Equals (test, expected, value);
+}
+
+static void asn1_decode_integer_test_max_no_padding (CuTest *test)
+{
+	uint64_t value;
+	uint64_t expected = 0x1122334400660088;
+	const uint8_t der[] = {0x02, 0x08, 0x11, 0x22, 0x33, 0x44, 0x00, 0x66, 0x00, 0x88};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertInt64Equals (test, expected, value);
+}
+
+static void asn1_decode_integer_test_max_with_padding (CuTest *test)
+{
+	uint64_t value;
+	uint64_t expected = 0xc822004455667700;
+	const uint8_t der[] = {0x02, 0x09, 0x00, 0xc8, 0x22, 0x00, 0x44, 0x55, 0x66, 0x77, 0x00};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertInt64Equals (test, expected, value);
+}
+
+static void asn1_decode_integer_test_extra_bytes (CuTest *test)
+{
+	uint64_t value;
+	uint64_t expected = 256;
+	const uint8_t der[] = {0x02, 0x02, 0x01, 0x00, 0x11, 0x22, 0x33, 0x44};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertInt64Equals (test, expected, value);
+}
+
+static void asn1_decode_integer_test_null (CuTest *test)
+{
+	uint64_t value;
+	const uint8_t der[] = {0x02, 0x01, 0x7f};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (NULL, sizeof (der), &value);
+	CuAssertIntEquals (test, ASN1_INVALID_ARGUMENT, status);
+
+	status = asn1_decode_integer (der, sizeof (der), NULL);
+	CuAssertIntEquals (test, ASN1_INVALID_ARGUMENT, status);
+}
+
+static void asn1_decode_integer_test_buffer_less_than_min (CuTest *test)
+{
+	uint64_t value;
+	uint8_t der[3];
+	int der_length;
+
+	TEST_START;
+
+	der_length = asn1_decode_integer (der, 0, &value);
+	CuAssertIntEquals (test, ASN1_NOT_VALID, der_length);
+
+	der_length = asn1_decode_integer (der, 1, &value);
+	CuAssertIntEquals (test, ASN1_NOT_VALID, der_length);
+}
+
+static void asn1_decode_integer_test_buffer_too_small (CuTest *test)
+{
+	uint64_t value;
+	const uint8_t der[] = {0x02, 0x01, 0x7f};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der) - 1, &value);
+	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, status);
+}
+
+static void asn1_decode_integer_test_value_out_of_range (CuTest *test)
+{
+	uint64_t value;
+	const uint8_t der[] = {0x02, 0x09, 0x11, 0x22, 0x33, 0x44, 0x00, 0x66, 0x00, 0x88, 0x99};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, ASN1_OUT_OF_RANGE, status);
+}
+
+static void asn1_decode_integer_test_value_out_of_range_multiple_bytes (CuTest *test)
+{
+	uint64_t value;
+	const uint8_t der[] = {0x02, 0x0a, 0x11, 0x22, 0x33, 0x44, 0x00, 0x66, 0x00, 0x88, 0x99, 0xaa};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, ASN1_OUT_OF_RANGE, status);
+}
+
+static void asn1_decode_integer_test_negative_value (CuTest *test)
+{
+	uint64_t value;
+	const uint8_t der[] = {0x02, 0x01, 0x80};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, ASN1_OUT_OF_RANGE, status);
+}
+
+static void asn1_decode_integer_test_not_integer_tag (CuTest *test)
+{
+	uint64_t value;
+	const uint8_t der[] = {0x03, 0x01, 0x7f};
+	int status;
+
+	TEST_START;
+
+	status = asn1_decode_integer (der, sizeof (der), &value);
+	CuAssertIntEquals (test, ASN1_UNEXPECTED_TAG, status);
+}
+
 
 TEST_SUITE_START (asn1);
 
@@ -255,5 +642,32 @@ TEST (asn1_get_der_encoded_length_test_extra_length);
 TEST (asn1_get_der_encoded_length_test_short_buffer);
 TEST (asn1_get_der_encoded_length_test_invalid_asn1);
 TEST (asn1_get_der_encoded_length_test_null);
+TEST (asn1_encode_integer_test);
+TEST (asn1_encode_integer_test_zero);
+TEST (asn1_encode_integer_test_multiple_bytes);
+TEST (asn1_encode_integer_test_msb_set_add_zero);
+TEST (asn1_encode_integer_test_msb_set_not_lsb_add_zero);
+TEST (asn1_encode_integer_test_max_no_padding);
+TEST (asn1_encode_integer_test_max_with_padding);
+TEST (asn1_encode_integer_test_null);
+TEST (asn1_encode_integer_test_buffer_less_than_min);
+TEST (asn1_encode_integer_test_buffer_too_small);
+TEST (asn1_encode_integer_test_buffer_too_small_not_last_byte);
+TEST (asn1_encode_integer_test_buffer_too_small_with_padding);
+TEST (asn1_decode_integer_test);
+TEST (asn1_decode_integer_test_zero);
+TEST (asn1_decode_integer_test_multiple_bytes);
+TEST (asn1_decode_integer_test_msb_set_add_zero);
+TEST (asn1_decode_integer_test_msb_set_not_lsb_add_zero);
+TEST (asn1_decode_integer_test_max_no_padding);
+TEST (asn1_decode_integer_test_max_with_padding);
+TEST (asn1_decode_integer_test_extra_bytes);
+TEST (asn1_decode_integer_test_null);
+TEST (asn1_decode_integer_test_buffer_less_than_min);
+TEST (asn1_decode_integer_test_buffer_too_small);
+TEST (asn1_decode_integer_test_value_out_of_range);
+TEST (asn1_decode_integer_test_value_out_of_range_multiple_bytes);
+TEST (asn1_decode_integer_test_negative_value);
+TEST (asn1_decode_integer_test_not_integer_tag);
 
 TEST_SUITE_END;

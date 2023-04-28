@@ -477,7 +477,7 @@ int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine, struct ecc_priv
 		return status;
 	}
 
-	return ecc_ecc_hw_private_key (priv_key).key_length;;
+	return ecc_ecc_hw_private_key (priv_key).key_length;
 }
 #endif
 
