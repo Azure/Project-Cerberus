@@ -71,6 +71,7 @@ CONFIG_TAG_KEY="key"
 CONFIG_TAG_TYPE="type"
 CONFIG_TAG_VALUE="value"
 CONFIG_TAG_RAW_VALUE="raw-value"
+CONFIG_TAG_RAW_VALUE_MASK="raw-value-mask"
 CONFIG_TAG_DIGESTS="digests"
 CONFIG_TAG_DIGEST_SHA384="sha-384"
 
@@ -318,17 +319,21 @@ class Corim_Data:
             tag_measurements = d[CONFIG_TAG_MEASUREMENTS]
             for d in tag_measurements:
                 if CONFIG_TAG_RAW_VALUE in d[CONFIG_TAG_VALUE]:
-                    value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE])
+                    value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE]).hex()
+                    if CONFIG_TAG_RAW_VALUE_MASK in d[CONFIG_TAG_VALUE]:
+                        mask = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE_MASK]).hex()
+                    else:
+                        mask = format((1 << (len(value) * 8)) - 1, 'x')
                     measurement = Corim_Measurement(d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE], Measurement_Type.CONFIG_TYPE_UINT,
-                            CONFIG_TAG_RAW_VALUE, value.hex(), format((1 << (len(value) * 8)) - 1, 'x'))
+                        CONFIG_TAG_RAW_VALUE, value, mask)
                     #update self.model
                     if (d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE] == 2):
                         encoded = measurement.value.replace('00', '')
                         self.model = bytearray.fromhex(encoded).decode()
                 else:
-                    value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_DIGESTS][0].split(':')[1])
+                    value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_DIGESTS][0].split(':')[1]).hex()
                     measurement = Corim_Measurement(d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE], Measurement_Type.CONFIG_TYPE_DIGEST,
-                            CONFIG_TAG_DIGESTS, value.hex(), None)
+                        CONFIG_TAG_DIGESTS, value, None)
                 self.measurements.append(measurement)
 
     def display(self, filename):
