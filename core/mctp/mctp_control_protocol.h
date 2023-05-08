@@ -55,11 +55,11 @@ enum
 {
 	MCTP_CONTROL_PROTOCOL_SUCCESS,							/**< Success */
 	MCTP_CONTROL_PROTOCOL_ERROR,							/**< Generic error */
-	MCTP_CONTROL_PROTOCOL_ERROR_INVALID_DATA = 0x03,		/**< Invalid data or parameter value */
+	MCTP_CONTROL_PROTOCOL_ERROR_INVALID_DATA,		/**< Invalid data or parameter value */
 	MCTP_CONTROL_PROTOCOL_ERROR_INVALID_LEN,				/**< Invalid message length */
-	MCTP_CONTROL_PROTOCOL_ERROR_NOT_READY = 0xF0,			/**< Receiver not ready */
+	MCTP_CONTROL_PROTOCOL_ERROR_NOT_READY,			/**< Receiver not ready */
 	MCTP_CONTROL_PROTOCOL_ERROR_UNSUPPORTED_CMD,			/**< Command unspecified or unsupported */
-	MCTP_CONTROL_PROTOCOL_CMD_SPECIFIC,						/**< Command specific completion code */
+	MCTP_CONTROL_PROTOCOL_CMD_SPECIFIC = 0x80,						/**< Command specific completion code */
 };
 
 
