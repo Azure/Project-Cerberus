@@ -601,7 +601,13 @@ int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_tabl
 
 	params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 	if (table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
-		if ((params->enter_4b & 0x7f) == 0) {
+
+		// 4 bytes only flash, no switch command available:
+		if ((params->table_1_0.dspi_qspi & SPI_FLASH_SFDP_ADDRESS_BYTES) ==
+			SPI_FLASH_SFDP_4BYTE_ONLY) {
+			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_FIXED;
+		}
+		else if ((params->enter_4b & 0x7f) == 0) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_UNSUPPORTED;
 		}
 		else if ((params->enter_4b & SPI_FLASH_SFDP_4B_ENTER_B7) &&
