@@ -759,7 +759,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
-	CuAssertIntEquals (test, 3, response->header.completion_code);
+	CuAssertIntEquals (test, 2, response->header.completion_code);
 	CuAssertIntEquals (test, 0x0B, device_manager_get_device_eid (&device_manager, 0));
 
 	rq->header.rq = 1;
@@ -772,7 +772,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
-	CuAssertIntEquals (test, 3, response->header.completion_code);
+	CuAssertIntEquals (test, 2, response->header.completion_code);
 	CuAssertIntEquals (test, 0x0B, device_manager_get_device_eid (&device_manager, 0));
 
 	rq->header.rq = 1;
@@ -785,7 +785,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
-	CuAssertIntEquals (test, 3, response->header.completion_code);
+	CuAssertIntEquals (test, 2, response->header.completion_code);
 	CuAssertIntEquals (test, 0x0B, device_manager_get_device_eid (&device_manager, 0));
 
 	rq->header.rq = 1;
@@ -798,7 +798,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
-	CuAssertIntEquals (test, 3, response->header.completion_code);
+	CuAssertIntEquals (test, 2, response->header.completion_code);
 	CuAssertIntEquals (test, 0x0B, device_manager_get_device_eid (&device_manager, 0));
 
 	device_manager_release (&device_manager);
@@ -927,7 +927,7 @@ static void mctp_control_protocol_commands_test_process_get_eid_invalid_len (CuT
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 2, response->header.header.command_code);
-	CuAssertIntEquals (test, 4, response->header.completion_code);
+	CuAssertIntEquals (test, 3, response->header.completion_code);
 
 	request.length = sizeof (struct mctp_control_get_eid) - 1;
 	response->header.completion_code = 0;
@@ -936,7 +936,7 @@ static void mctp_control_protocol_commands_test_process_get_eid_invalid_len (CuT
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 2, response->header.header.command_code);
-	CuAssertIntEquals (test, 4, response->header.completion_code);
+	CuAssertIntEquals (test, 3, response->header.completion_code);
 
 	device_manager_release (&device_manager);
 }
@@ -1119,7 +1119,7 @@ static void mctp_control_protocol_commands_test_process_get_mctp_version_support
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 4, response->header.header.command_code);
-	CuAssertIntEquals (test, 4, response->header.completion_code);
+	CuAssertIntEquals (test, 3, response->header.completion_code);
 
 	request.length = sizeof (struct mctp_control_get_mctp_version) - 1;
 	response->header.completion_code = 0;
@@ -1128,7 +1128,7 @@ static void mctp_control_protocol_commands_test_process_get_mctp_version_support
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 4, response->header.header.command_code);
-	CuAssertIntEquals (test, 4, response->header.completion_code);
+	CuAssertIntEquals (test, 3, response->header.completion_code);
 }
 
 static void mctp_control_protocol_commands_test_process_get_mctp_version_support_unsupported_msg_type (
@@ -1229,7 +1229,7 @@ static void mctp_control_protocol_commands_test_process_get_message_type_support
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 5, response->header.header.command_code);
-	CuAssertIntEquals (test, 4, response->header.completion_code);
+	CuAssertIntEquals (test, 3, response->header.completion_code);
 
 	request.length = sizeof (struct mctp_control_get_message_type) - 1;
 	response->header.completion_code = 0;
@@ -1238,7 +1238,7 @@ static void mctp_control_protocol_commands_test_process_get_message_type_support
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
 	CuAssertIntEquals (test, 5, response->header.header.command_code);
-	CuAssertIntEquals (test, 4, response->header.completion_code);
+	CuAssertIntEquals (test, 3, response->header.completion_code);
 }
 
 static void mctp_control_protocol_commands_test_generate_get_message_type_support_request (
@@ -1516,7 +1516,7 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.length);
 	CuAssertIntEquals (test, 6, response->header.header.command_code);
-	CuAssertIntEquals (test, 4, response->header.completion_code);
+	CuAssertIntEquals (test, 3, response->header.completion_code);
 
 	request.length = sizeof (struct mctp_control_get_vendor_def_msg_support) - 1;
 	rq->header.rq = 1;
@@ -1526,7 +1526,7 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.length);
 	CuAssertIntEquals (test, 6, response->header.header.command_code);
-	CuAssertIntEquals (test, 4, response->header.completion_code);
+	CuAssertIntEquals (test, 3, response->header.completion_code);
 }
 
 static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_support_invalid_vid_set (
@@ -1560,7 +1560,7 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.length);
 	CuAssertIntEquals (test, 6, response->header.header.command_code);
-	CuAssertIntEquals (test, 3, response->header.completion_code);
+	CuAssertIntEquals (test, 2, response->header.completion_code);
 }
 
 static void mctp_control_protocol_commands_test_generate_get_vendor_def_msg_support_request (

@@ -73,6 +73,7 @@ enum {
  */
 enum {
 	FLASH_ID_MX25L = 0x2000,		/**< Macronix MX25L flash device IDs. */
+	FLASH_ID_MX25U = 0x2500,		/**< Macronix MX25U flash device IDs. */
 	FLASH_ID_SST26VF = 0x2600,		/**< Microchip SST26VF flash device IDs. */
 	FLASH_ID_W25Q = 0x4000,			/**< Winbond W25Q flash device IDs. */
 	FLASH_ID_W25Q_DTR = 0x7000,		/**< Winbond W25Q-DTR flash device IDs. */

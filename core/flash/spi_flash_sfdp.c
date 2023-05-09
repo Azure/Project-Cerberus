@@ -561,13 +561,19 @@ bool spi_flash_sfdp_supports_4byte_commands (const struct spi_flash_sfdp_basic_t
 	bool opcodes_4b = false;
 
 	if (table != NULL) {
-		if ((table->sfdp->vendor == FLASH_ID_MACRONIX) &&
-			(FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_MX25L)) {
-			/* SFDP tables can't be used for the Macronix MX25L series.  Earlier devices
+		if (table->sfdp->vendor == FLASH_ID_MACRONIX) {
+			/* SFDP tables can't be used for some Macronix devices.  Earlier devices
 			 * (e.g. MX25L25635F) don't support version 1.5, and at least some newer ones
 			 * (e.g. MX25L25645G) don't correctly report support for 4-byte commands. */
-			if (FLASH_ID_DEVICE_CAPACITY (table->sfdp->device) >= 0x19) {
+			if ((FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_MX25L) &&
+				(FLASH_ID_DEVICE_CAPACITY (table->sfdp->device) >= 0x19)) {
 				/* Only indicate 4-byte command support for >=256Mb devices. */
+				opcodes_4b = true;
+			}
+			else if ((FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_MX25U) &&
+				(FLASH_ID_DEVICE_CAPACITY (table->sfdp->device) >= 0x39)) {
+				/* The MX25U series is the 1.8V version of MX25L devices.  They have the same SFDP
+				 * issues, but use different device ID and capacity values. */
 				opcodes_4b = true;
 			}
 		}
@@ -604,6 +610,9 @@ int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_tabl
 		if ((params->enter_4b & 0x7f) == 0) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_UNSUPPORTED;
 		}
+		else if (params->enter_4b & SPI_FLASH_SFDP_ALWAYS_4B) {
+			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_FIXED;
+		}
 		else if ((params->enter_4b & SPI_FLASH_SFDP_4B_ENTER_B7) &&
 			(params->reset_exit_4b & SPI_FLASH_SFDP_4B_EXIT_E9)) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_COMMAND;
@@ -616,13 +625,21 @@ int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_tabl
 			return SPI_FLASH_SFDP_4BYTE_INCOMPATIBLE;
 		}
 	}
-	else if ((params->table_1_0.dspi_qspi & SPI_FLASH_SFDP_ADDRESS_BYTES) ==
-		SPI_FLASH_SFDP_3BYTE_4BYTE) {
-		/* Assume older devices that support 4-byte addressing support a command to switch modes. */
-		*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_COMMAND;
-	}
 	else {
-		*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_UNSUPPORTED;
+		switch (params->table_1_0.dspi_qspi & SPI_FLASH_SFDP_ADDRESS_BYTES) {
+			case SPI_FLASH_SFDP_3BYTE_4BYTE:
+				/* Assume older devices that support 3-byte and 4-byte addressing support a command
+				 * to switch modes. */
+				*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_COMMAND;
+				break;
+
+			case SPI_FLASH_SFDP_4BYTE_ONLY:
+				*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_FIXED;
+				break;
+
+			default:
+				*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_UNSUPPORTED;
+		}
 	}
 
 	return 0;

@@ -45,6 +45,17 @@ extern const uint32_t SFDP_PARAMS_ADDR_MX25L25645G;
 extern const uint32_t SFDP_PARAMS_MX25L25645G[];
 extern const size_t SFDP_PARAMS_MX25L25645G_LEN;
 
+/* MX25U51245G */
+extern const uint8_t FLASH_ID_MX25U51245G[];
+
+extern const uint32_t SFDP_HEADER_MX25U51245G[];
+extern const size_t SFDP_HEADER_MX25U51245G_LEN;
+
+extern const uint32_t SFDP_PARAMS_ADDR_MX25U51245G;
+
+extern const uint32_t SFDP_PARAMS_MX25U51245G[];
+extern const size_t SFDP_PARAMS_MX25U51245G_LEN;
+
 
 /* Winbond flash */
 
