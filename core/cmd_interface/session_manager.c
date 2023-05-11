@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "common/buffer_util.h"
 #include "common/common_math.h"
 #include "crypto/aes.h"
 #include "crypto/hash.h"
@@ -361,7 +362,7 @@ static int session_manager_generate_and_compare_hmac (struct session_manager *se
 		return status;
 	}
 
-	if (memcmp (computed_hmac, hmac, sizeof (computed_hmac)) != 0) {
+	if (buffer_compare (computed_hmac, hmac, sizeof (computed_hmac)) != 0) {
 		return SESSION_MANAGER_OPERATION_NOT_PERMITTED;
 	}
 

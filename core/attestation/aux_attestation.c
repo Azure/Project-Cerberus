@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "platform_api.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
 #include "crypto/kdf.h"
 #include "riot/riot_core.h"
@@ -442,7 +443,7 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 		return status;
 	}
 
-	if (memcmp (hmac, payload_hmac, SHA256_HASH_LENGTH) != 0) {
+	if (buffer_compare (hmac, payload_hmac, SHA256_HASH_LENGTH) != 0) {
 		return AUX_ATTESTATION_HMAC_MISMATCH;
 	}
 
@@ -465,7 +466,7 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 				return status;
 			}
 
-			if (memcmp (pcr_value, &sealing[k][32], SHA256_HASH_LENGTH) != 0) {
+			if (buffer_compare (pcr_value, &sealing[k][32], SHA256_HASH_LENGTH) != 0) {
 				return AUX_ATTESTATION_PCR_MISMATCH;
 			}
 		}
