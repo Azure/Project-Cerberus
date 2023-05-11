@@ -319,13 +319,13 @@ class Corim_Data:
             tag_measurements = d[CONFIG_TAG_MEASUREMENTS]
             for d in tag_measurements:
                 if CONFIG_TAG_RAW_VALUE in d[CONFIG_TAG_VALUE]:
-                    value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE]).hex()
+                    value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE])
                     if CONFIG_TAG_RAW_VALUE_MASK in d[CONFIG_TAG_VALUE]:
                         mask = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE_MASK]).hex()
                     else:
                         mask = format((1 << (len(value) * 8)) - 1, 'x')
                     measurement = Corim_Measurement(d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE], Measurement_Type.CONFIG_TYPE_UINT,
-                        CONFIG_TAG_RAW_VALUE, value, mask)
+                        CONFIG_TAG_RAW_VALUE, value.hex(), mask)
                     #update self.model
                     if (d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE] == 2):
                         encoded = measurement.value.replace('00', '')
