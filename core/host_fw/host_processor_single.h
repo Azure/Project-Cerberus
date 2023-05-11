@@ -26,13 +26,22 @@ int host_processor_single_init_pulse_reset (struct host_processor_filtered *host
 	const struct host_control *control, struct host_flash_manager_single *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
 	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width);
+int host_processor_single_init_reset_flash (struct host_processor_filtered *host,
+	const struct host_control *control, struct host_flash_manager_single *flash,
+	struct host_state_manager *state, const struct spi_filter_interface *filter,
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery);
+int host_processor_single_init_reset_flash_pulse_reset (struct host_processor_filtered *host,
+	const struct host_control *control, struct host_flash_manager_single *flash,
+	struct host_state_manager *state, const struct spi_filter_interface *filter,
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int pulse_width);
 void host_processor_single_release (struct host_processor_filtered *host);
 
 /* Internal functions for use by derived types. */
 int host_processor_single_init_internal (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager_single *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse);
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
+	bool reset_flash);
 
 
 #endif /* HOST_PROCESSOR_SINGLE_H_ */

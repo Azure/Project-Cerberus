@@ -21,13 +21,16 @@
  * @param recovery The manager for recovery of the host processor.
  * @param reset_pulse Length of the reset pulse to use after authentication has completed, in
  * milliseconds.  If 0, the processor is held in reset during authentication.
+ * @param reset_flash The flag to indicate that host flash should be reset based on every 
+ * host processor reset.
  *
  * @return 0 if the host processor interface was successfully initialized or an error code.
  */
 int host_processor_filtered_init (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse)
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
+	bool reset_flash)
 {
 	int status;
 
@@ -55,6 +58,7 @@ int host_processor_filtered_init (struct host_processor_filtered *host,
 	host->pfm = pfm;
 	host->recovery = recovery;
 	host->reset_pulse = reset_pulse;
+	host->reset_flash = reset_flash;
 
 	return 0;
 }
@@ -817,13 +821,11 @@ static void host_processor_filtered_clear_host_dirty_state (
  * @param reset Flag indicating if the verification is being run in reset context.
  * @param bypass_status Status code to return when there are no PFMs available, which means no
  * validation is executed.
- * @param reset_flash Flag indicating if the host flash should be reset.
  *
  * @return 0 if the event was handled successfully or an error code.
  */
 int host_processor_filtered_update_verification (struct host_processor_filtered *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, bool single, bool reset, int bypass_status,
-	bool reset_flash)
+	struct hash_engine *hash, struct rsa_engine *rsa, bool single, bool reset, int bypass_status)
 {
 	struct pfm *active_pfm;
 	struct pfm *pending_pfm;
@@ -835,6 +837,7 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 	bool only_validated = false;
 	bool notified = !reset;
 	bool validate_flash;
+	bool reset_flash = host->reset_flash && reset;
 	bool no_pfm;
 	bool no_state_change;
 
@@ -861,7 +864,6 @@ int host_processor_filtered_update_verification (struct host_processor_filtered 
 	validate_flash = pending_pfm || (no_pfm && !bypass) || (active_pfm && (dirty || bypass));
 	no_state_change = !dirty && !bypass && !host_state_manager_is_pfm_dirty (host->state) &&
 		(active_pfm || (pending_pfm && !active_pfm));
-	reset_flash = reset_flash && reset;
 
 	if (validate_flash || reset_flash) {
 		/* If nothing has changed since the last validation, just exit. */

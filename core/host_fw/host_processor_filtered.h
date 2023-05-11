@@ -30,6 +30,7 @@ struct host_processor_filtered {
 	struct pfm_manager *pfm;					/**< The manager for host processor PFMs. */
 	struct recovery_image_manager *recovery;	/**< The manager for recovery of the host processor. */
 	int reset_pulse;							/**< The length of the reset pulse for the host. */
+	bool reset_flash;							/**< The flag to indicate that the host flash should bereset based on every host processor reset. */
 	platform_mutex lock;						/**< Synchronization for verification routines. */
 
 	/**
@@ -52,7 +53,8 @@ struct host_processor_filtered {
 int host_processor_filtered_init (struct host_processor_filtered *host,
 	const struct host_control *control, struct host_flash_manager *flash,
 	struct host_state_manager *state, const struct spi_filter_interface *filter,
-	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse);
+	struct pfm_manager *pfm, struct recovery_image_manager *recovery, int reset_pulse,
+	bool reset_flash);
 void host_processor_filtered_release (struct host_processor_filtered *host);
 
 void host_processor_filtered_set_host_flash_access (struct host_processor_filtered *host);
@@ -65,8 +67,7 @@ int host_processor_filtered_restore_read_write_data (struct host_processor_filte
 int host_processor_filtered_power_on_reset (struct host_processor_filtered *host,
 	struct hash_engine *hash, struct rsa_engine *rsa, bool single);
 int host_processor_filtered_update_verification (struct host_processor_filtered *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, bool single, bool reset, int bypass_status,
-	bool reset_flash);
+	struct hash_engine *hash, struct rsa_engine *rsa, bool single, bool reset, int bypass_status);
 
 int host_processor_filtered_get_next_reset_verification_actions (struct host_processor *host);
 int host_processor_filtered_needs_config_recovery (struct host_processor *host);

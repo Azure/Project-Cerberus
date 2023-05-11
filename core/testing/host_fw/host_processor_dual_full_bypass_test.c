@@ -20,7 +20,7 @@ TEST_SUITE_LABEL ("host_processor_dual_full_bypass");
  * @param test The testing framework.
  * @param host The testing components to initialize.
  */
-static void host_processor_dual_full_bypass_testing_init_dependencies (CuTest *test,
+void host_processor_dual_full_bypass_testing_init_dependencies (CuTest *test,
 	struct host_processor_dual_full_bypass_testing *host)
 {
 	int status;
@@ -50,6 +50,9 @@ static void host_processor_dual_full_bypass_testing_init_dependencies (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_mock_init (&host->observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_init (&host->logger);
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_dual_testing_init_host_state (test, &host->host_state, &host->flash_mock_state,
@@ -100,12 +103,55 @@ static void host_processor_dual_full_bypass_testing_init_pulse_reset (CuTest *te
 }
 
 /**
+ * Initialize a host processor that resets the host flash.
+ *
+ * @param test The testing framework.
+ * @param host The testing components to initialize.
+ */
+void host_processor_dual_full_bypass_testing_init_reset_flash (CuTest *test,
+	struct host_processor_dual_full_bypass_testing *host)
+{
+	int status;
+
+	host_processor_dual_full_bypass_testing_init_dependencies (test, host);
+
+	status = host_processor_dual_full_bypass_init_reset_flash (&host->test, &host->control.base,
+		&host->flash_mgr.base, &host->host_state, &host->filter.base, &host->pfm_mgr.base, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_processor_add_observer (&host->test.base, &host->observer.base);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Initialize a host processor that resets the host flash and pulses the reset.
+ *
+ * @param test The testing framework.
+ * @param host The testing components to initialize.
+ */
+void host_processor_dual_full_bypass_testing_init_reset_flash_pulse_reset (CuTest *test,
+	struct host_processor_dual_full_bypass_testing *host)
+{
+	int status;
+
+	host_processor_dual_full_bypass_testing_init_dependencies (test, host);
+
+	status = host_processor_dual_full_bypass_init_reset_flash_pulse_reset (&host->test,
+		&host->control.base, &host->flash_mgr.base, &host->host_state, &host->filter.base,
+		&host->pfm_mgr.base, NULL, 100);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_processor_add_observer (&host->test.base, &host->observer.base);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
  * Release a test instance and validate all mocks.
  *
  * @param test The testing framework.
  * @param host The testing components to release.
  */
-static void host_processor_dual_full_bypass_testing_validate_and_release (CuTest *test,
+void host_processor_dual_full_bypass_testing_validate_and_release (CuTest *test,
 	struct host_processor_dual_full_bypass_testing *host)
 {
 	int status;
@@ -132,6 +178,9 @@ static void host_processor_dual_full_bypass_testing_validate_and_release (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_mock_validate_and_release (&host->observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_validate_and_release (&host->logger);
 	CuAssertIntEquals (test, 0, status);
 
 	host_processor_dual_full_bypass_release (&host->test);

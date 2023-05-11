@@ -46,9 +46,15 @@ struct host_processor_dual_testing {
 };
 
 
+void host_processor_dual_testing_init_dependencies (CuTest *test,
+	struct host_processor_dual_testing *host);
 void host_processor_dual_testing_init (CuTest *test,
 	struct host_processor_dual_testing *host);
 void host_processor_dual_testing_init_pulse_reset (CuTest *test,
+	struct host_processor_dual_testing *host);
+void host_processor_dual_testing_init_reset_flash (CuTest *test,
+	struct host_processor_dual_testing *host);
+void host_processor_dual_testing_init_reset_flash_pulse_reset (CuTest *test,
 	struct host_processor_dual_testing *host);
 void host_processor_dual_testing_init_no_recovery (CuTest *test,
 	struct host_processor_dual_testing *host);

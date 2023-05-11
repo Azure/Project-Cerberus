@@ -6,155 +6,20 @@
 #include <string.h>
 #include "testing.h"
 #include "host_fw/host_logging.h"
-#include "host_fw/host_processor_single_full_bypass_reset_flash.h"
+#include "host_fw/host_processor_single_full_bypass.h"
 #include "testing/host_fw/host_processor_single_full_bypass_testing.h"
 #include "testing/host_fw/host_processor_single_testing.h"
 #include "testing/logging/debug_log_testing.h"
 
 
-TEST_SUITE_LABEL ("host_processor_single_full_bypass_reset_flash");
-
-
-/**
- * Initialize the host processor dependencies.
- *
- * @param test The testing framework.
- * @param host The testing components to initialize.
- */
-static void host_processor_single_full_bypass_reset_flash_testing_init_dependencies (CuTest *test,
-	struct host_processor_single_full_bypass_testing *host)
-{
-	int status;
-
-	status = HASH_TESTING_ENGINE_INIT (&host->hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = RSA_TESTING_ENGINE_INIT (&host->rsa);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_init (&host->filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_init (&host->control);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_mock_init (&host->pfm_mgr);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&host->pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_init (&host->pfm_next);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_single_mock_init (&host->flash_mgr);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_processor_observer_mock_init (&host->observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = logging_mock_init (&host->logger);
-	CuAssertIntEquals (test, 0, status);
-
-	host_processor_single_testing_init_host_state (test, &host->host_state, &host->flash_mock_state,
-		&host->flash_state, &host->flash_context);
-}
-
-/**
- * Initialize a host processor.
- *
- * @param test The testing framework.
- * @param host The testing components to initialize.
- */
-static void host_processor_single_full_bypass_reset_flash_testing_init (CuTest *test,
-	struct host_processor_single_full_bypass_testing *host)
-{
-	int status;
-
-	host_processor_single_full_bypass_reset_flash_testing_init_dependencies (test, host);
-
-	status = host_processor_single_full_bypass_reset_flash_init (&host->test, &host->control.base,
-		&host->flash_mgr.base, &host->host_state, &host->filter.base, &host->pfm_mgr.base, NULL);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_processor_add_observer (&host->test.base, &host->observer.base);
-	CuAssertIntEquals (test, 0, status);
-}
-
-/**
- * Initialize a host processor that pulses the reset.
- *
- * @param test The testing framework.
- * @param host The testing components to initialize.
- */
-static void host_processor_single_full_bypass_reset_flash_testing_init_pulse_reset (CuTest *test,
-	struct host_processor_single_full_bypass_testing *host)
-{
-	int status;
-
-	host_processor_single_full_bypass_reset_flash_testing_init_dependencies (test, host);
-
-	status = host_processor_single_full_bypass_reset_flash_init_pulse_reset (&host->test,
-		&host->control.base, &host->flash_mgr.base, &host->host_state, &host->filter.base,
-		&host->pfm_mgr.base, NULL, 100);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_processor_add_observer (&host->test.base, &host->observer.base);
-	CuAssertIntEquals (test, 0, status);
-}
-
-/**
- * Release a test instance and validate all mocks.
- *
- * @param test The testing framework.
- * @param host The testing components to release.
- */
-static void host_processor_single_full_bypass_reset_flash_testing_validate_and_release (
-	CuTest *test, struct host_processor_single_full_bypass_testing *host)
-{
-	int status;
-
-	status = flash_master_mock_validate_and_release (&host->flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&host->filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&host->control);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_manager_mock_validate_and_release (&host->pfm_mgr);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&host->pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&host->pfm_next);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_flash_manager_single_mock_validate_and_release (&host->flash_mgr);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_processor_observer_mock_validate_and_release (&host->observer);
-	CuAssertIntEquals (test, 0, status);
-
-	status = logging_mock_validate_and_release (&host->logger);
-	CuAssertIntEquals (test, 0, status);
-
-	host_processor_single_full_bypass_reset_flash_release (&host->test);
-
-	host_state_manager_release (&host->host_state);
-	spi_flash_release (&host->flash_state);
-	HASH_TESTING_ENGINE_RELEASE (&host->hash);
-	RSA_TESTING_ENGINE_RELEASE (&host->rsa);
-}
+TEST_SUITE_LABEL ("host_processor_single_full_bypass");
 
 
 /*******************
  * Test cases
  *******************/
 
-static void host_processor_single_full_bypass_reset_flash_test_init (CuTest *test)
+static void host_processor_single_full_bypass_test_init_reset_flash (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
@@ -184,7 +49,7 @@ static void host_processor_single_full_bypass_reset_flash_test_init (CuTest *tes
 	host_processor_single_testing_init_host_state (test, &host_state, &flash_mock_state,
 		&flash_state, &flash_context);
 
-	status = host_processor_single_full_bypass_reset_flash_init (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash (&host, &control.base,
 	&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, host_processor_get_port (&host.base));
@@ -214,13 +79,13 @@ static void host_processor_single_full_bypass_reset_flash_test_init (CuTest *tes
 	status = host_flash_manager_single_mock_validate_and_release (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_single_full_bypass_reset_flash_release (&host);
+	host_processor_single_full_bypass_release (&host);
 
 	host_state_manager_release (&host_state);
 	spi_flash_release (&flash_state);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_init_null (CuTest *test)
+static void host_processor_single_full_bypass_test_init_reset_flash_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
@@ -250,27 +115,27 @@ static void host_processor_single_full_bypass_reset_flash_test_init_null (CuTest
 	host_processor_single_testing_init_host_state (test, &host_state, &flash_mock_state,
 		&flash_state, &flash_context);
 
-	status = host_processor_single_full_bypass_reset_flash_init (NULL, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash (NULL, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init (&host, NULL, &flash_mgr.base,
+	status = host_processor_single_full_bypass_init_reset_flash (&host, NULL, &flash_mgr.base,
 		&host_state, &filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init (&host, &control.base, NULL,
+	status = host_processor_single_full_bypass_init_reset_flash (&host, &control.base, NULL,
 		&host_state, &filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash (&host, &control.base,
 		&flash_mgr.base, NULL, &filter.base, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash (&host, &control.base,
 		&flash_mgr.base, &host_state, NULL, &pfm_mgr.base, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash (&host, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, NULL, NULL);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
@@ -293,7 +158,7 @@ static void host_processor_single_full_bypass_reset_flash_test_init_null (CuTest
 	spi_flash_release (&flash_state);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_init_pulse_reset (CuTest *test)
+static void host_processor_single_full_bypass_test_init_reset_flash_pulse_reset (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
@@ -323,7 +188,7 @@ static void host_processor_single_full_bypass_reset_flash_test_init_pulse_reset 
 	host_processor_single_testing_init_host_state (test, &host_state, &flash_mock_state,
 		&flash_state, &flash_context);
 
-	status = host_processor_single_full_bypass_reset_flash_init_pulse_reset (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash_pulse_reset (&host, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, host_processor_get_port (&host.base));
@@ -353,13 +218,13 @@ static void host_processor_single_full_bypass_reset_flash_test_init_pulse_reset 
 	status = host_flash_manager_single_mock_validate_and_release (&flash_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	host_processor_single_full_bypass_reset_flash_release (&host);
+	host_processor_single_full_bypass_release (&host);
 
 	host_state_manager_release (&host_state);
 	spi_flash_release (&flash_state);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_init_pulse_reset_null (CuTest *test)
+static void host_processor_single_full_bypass_test_init_reset_flash_pulse_reset_null (CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
 	struct spi_flash_state flash_context;
@@ -389,27 +254,27 @@ static void host_processor_single_full_bypass_reset_flash_test_init_pulse_reset_
 	host_processor_single_testing_init_host_state (test, &host_state, &flash_mock_state,
 		&flash_state, &flash_context);
 
-	status = host_processor_single_full_bypass_reset_flash_init_pulse_reset (NULL, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash_pulse_reset (NULL, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init_pulse_reset (&host, NULL,
+	status = host_processor_single_full_bypass_init_reset_flash_pulse_reset (&host, NULL,
 		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init_pulse_reset (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash_pulse_reset (&host, &control.base,
 		NULL, &host_state, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init_pulse_reset (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash_pulse_reset (&host, &control.base,
 		&flash_mgr.base, NULL, &filter.base, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init_pulse_reset (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash_pulse_reset (&host, &control.base,
 		&flash_mgr.base, &host_state, NULL, &pfm_mgr.base, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init_pulse_reset (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash_pulse_reset (&host, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, NULL, NULL, 100);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
@@ -432,7 +297,7 @@ static void host_processor_single_full_bypass_reset_flash_test_init_pulse_reset_
 	spi_flash_release (&flash_state);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_init_pulse_reset_invalid_pulse_width (
+static void host_processor_single_full_bypass_test_init_reset_flash_pulse_reset_invalid_pulse_width (
 	CuTest *test)
 {
 	struct flash_master_mock flash_mock_state;
@@ -463,11 +328,11 @@ static void host_processor_single_full_bypass_reset_flash_test_init_pulse_reset_
 	host_processor_single_testing_init_host_state (test, &host_state, &flash_mock_state,
 		&flash_state, &flash_context);
 
-	status = host_processor_single_full_bypass_reset_flash_init_pulse_reset (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash_pulse_reset (&host, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, 0);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
-	status = host_processor_single_full_bypass_reset_flash_init_pulse_reset (&host, &control.base,
+	status = host_processor_single_full_bypass_init_reset_flash_pulse_reset (&host, &control.base,
 		&flash_mgr.base, &host_state, &filter.base, &pfm_mgr.base, NULL, -1);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
 
@@ -490,14 +355,14 @@ static void host_processor_single_full_bypass_reset_flash_test_init_pulse_reset_
 	spi_flash_release (&flash_state);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_release_null (CuTest *test)
+static void host_processor_single_full_bypass_test_reset_flash_release_null (CuTest *test)
 {
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_release (NULL);
+	host_processor_single_full_bypass_release (NULL);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm (CuTest *test)
+static void host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_flash (CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
 	struct debug_log_entry_info entry = {
@@ -512,7 +377,7 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_testing_init (test, &host);
+	host_processor_single_full_bypass_testing_init_reset_flash (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		MOCK_RETURN_PTR (NULL));
@@ -563,10 +428,10 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	host_processor_single_full_bypass_reset_flash_testing_validate_and_release (test, &host);
+	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm_bypass (
+static void host_processor_single_full_bypass_test_soft_reset_no_pfm_bypass_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -582,7 +447,7 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_testing_init (test, &host);
+	host_processor_single_full_bypass_testing_init_reset_flash (test, &host);
 
 	host_state_manager_set_bypass_mode (&host.host_state, true);
 
@@ -632,17 +497,17 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	host_processor_single_full_bypass_reset_flash_testing_validate_and_release (test, &host);
+	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_soft_reset_null (CuTest *test)
+static void host_processor_single_full_bypass_test_soft_reset_null_reset_flash (CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
 	int status;
 
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_testing_init (test, &host);
+	host_processor_single_full_bypass_testing_init_reset_flash (test, &host);
 
 	status = host.test.base.soft_reset (NULL, &host.hash.base, &host.rsa.base);
 	CuAssertIntEquals (test, HOST_PROCESSOR_INVALID_ARGUMENT, status);
@@ -656,10 +521,10 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_null (
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	host_processor_single_full_bypass_reset_flash_testing_validate_and_release (test, &host);
+	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm_reset_not_supported (
+static void host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_not_supported_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -675,7 +540,7 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_testing_init (test, &host);
+	host_processor_single_full_bypass_testing_init_reset_flash (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		MOCK_RETURN_PTR (NULL));
@@ -727,10 +592,10 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	host_processor_single_full_bypass_reset_flash_testing_validate_and_release (test, &host);
+	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm_reset_error (
+static void host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_error_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -746,7 +611,7 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_testing_init (test, &host);
+	host_processor_single_full_bypass_testing_init_reset_flash (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		MOCK_RETURN_PTR (NULL));
@@ -812,10 +677,10 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	host_processor_single_full_bypass_reset_flash_testing_validate_and_release (test, &host);
+	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm_reset_error_succeed_on_retry (
+static void host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_error_succeed_on_retry_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -839,7 +704,7 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_testing_init (test, &host);
+	host_processor_single_full_bypass_testing_init_reset_flash (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		MOCK_RETURN_PTR (NULL));
@@ -898,10 +763,10 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	host_processor_single_full_bypass_reset_flash_testing_validate_and_release (test, &host);
+	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_soft_reset_rot_access_error_pulse_reset (
+static void host_processor_single_full_bypass_test_soft_reset_rot_access_error_pulse_reset_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -909,7 +774,7 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_rot_ac
 
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_testing_init_pulse_reset (test, &host);
+	host_processor_single_full_bypass_testing_init_reset_flash_pulse_reset (test, &host);
 
 	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
@@ -951,10 +816,10 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_rot_ac
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	host_processor_single_full_bypass_reset_flash_testing_validate_and_release (test, &host);
+	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm_filter_error (
+static void host_processor_single_full_bypass_test_soft_reset_no_pfm_filter_error_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -986,7 +851,7 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_testing_init (test, &host);
+	host_processor_single_full_bypass_testing_init_reset_flash (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		MOCK_RETURN_PTR (NULL));
@@ -1056,10 +921,10 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	host_processor_single_full_bypass_reset_flash_testing_validate_and_release (test, &host);
+	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest (
+static void host_processor_single_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -1083,7 +948,7 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_pendin
 
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_testing_init (test, &host);
+	host_processor_single_full_bypass_testing_init_reset_flash (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		MOCK_RETURN_PTR (NULL));
@@ -1150,10 +1015,10 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_pendin
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	host_processor_single_full_bypass_reset_flash_testing_validate_and_release (test, &host);
+	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
-static void host_processor_single_full_bypass_reset_flash_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest (
+static void host_processor_single_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest_reset_flash (
 	CuTest *test)
 {
 	struct host_processor_single_full_bypass_testing host;
@@ -1177,7 +1042,7 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_pendin
 
 	TEST_START;
 
-	host_processor_single_full_bypass_reset_flash_testing_init (test, &host);
+	host_processor_single_full_bypass_testing_init_reset_flash (test, &host);
 
 	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
 		MOCK_RETURN_PTR (&host.pfm));
@@ -1247,28 +1112,28 @@ static void host_processor_single_full_bypass_reset_flash_test_soft_reset_pendin
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
-	host_processor_single_full_bypass_reset_flash_testing_validate_and_release (test, &host);
+	host_processor_single_full_bypass_testing_validate_and_release (test, &host);
 }
 
 
 TEST_SUITE_START (host_processor_single_full_bypass_reset_flash);
 
-TEST (host_processor_single_full_bypass_reset_flash_test_init);
-TEST (host_processor_single_full_bypass_reset_flash_test_init_null);
-TEST (host_processor_single_full_bypass_reset_flash_test_init_pulse_reset);
-TEST (host_processor_single_full_bypass_reset_flash_test_init_pulse_reset_null);
-TEST (host_processor_single_full_bypass_reset_flash_test_init_pulse_reset_invalid_pulse_width);
-TEST (host_processor_single_full_bypass_reset_flash_test_release_null);
-TEST (host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm);
-TEST (host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm_bypass);
-TEST (host_processor_single_full_bypass_reset_flash_test_soft_reset_null);
-TEST (host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm_reset_not_supported);
-TEST (host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm_reset_error);
-TEST (host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm_reset_error_succeed_on_retry);
-TEST (host_processor_single_full_bypass_reset_flash_test_soft_reset_rot_access_error_pulse_reset);
-TEST (host_processor_single_full_bypass_reset_flash_test_soft_reset_no_pfm_filter_error);
-TEST (host_processor_single_full_bypass_reset_flash_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest);
-TEST (host_processor_single_full_bypass_reset_flash_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest);
+TEST (host_processor_single_full_bypass_test_init_reset_flash);
+TEST (host_processor_single_full_bypass_test_init_reset_flash_null);
+TEST (host_processor_single_full_bypass_test_init_reset_flash_pulse_reset);
+TEST (host_processor_single_full_bypass_test_init_reset_flash_pulse_reset_null);
+TEST (host_processor_single_full_bypass_test_init_reset_flash_pulse_reset_invalid_pulse_width);
+TEST (host_processor_single_full_bypass_test_reset_flash_release_null);
+TEST (host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_flash);
+TEST (host_processor_single_full_bypass_test_soft_reset_no_pfm_bypass_reset_flash);
+TEST (host_processor_single_full_bypass_test_soft_reset_null_reset_flash);
+TEST (host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_not_supported_reset_flash);
+TEST (host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_error_reset_flash);
+TEST (host_processor_single_full_bypass_test_soft_reset_no_pfm_reset_error_succeed_on_retry_reset_flash);
+TEST (host_processor_single_full_bypass_test_soft_reset_rot_access_error_pulse_reset_reset_flash);
+TEST (host_processor_single_full_bypass_test_soft_reset_no_pfm_filter_error_reset_flash);
+TEST (host_processor_single_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest_reset_flash);
+TEST (host_processor_single_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest_reset_flash);
 
 
 TEST_SUITE_END;

@@ -42,4 +42,15 @@ struct host_processor_single_full_bypass_testing {
 };
 
 
+void host_processor_single_full_bypass_testing_init_dependencies (CuTest *test,
+	struct host_processor_single_full_bypass_testing *host);
+void host_processor_single_full_bypass_testing_init_reset_flash (CuTest *test,
+	struct host_processor_single_full_bypass_testing *host);
+void host_processor_single_full_bypass_testing_init_reset_flash_pulse_reset (CuTest *test,
+	struct host_processor_single_full_bypass_testing *host);
+
+void host_processor_single_full_bypass_testing_validate_and_release (CuTest *test,
+	struct host_processor_single_full_bypass_testing *host);
+
+
 #endif /* HOST_PROCESSOR_SINGLE_FULL_BYPASS_TESTING_H_ */
