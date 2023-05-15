@@ -6,6 +6,7 @@
 #include <string.h>
 #include "testing.h"
 #include "spi_filter/spi_filter_irq_handler.h"
+#include "spi_filter/spi_filter_irq_handler_static.h"
 #include "flash/spi_flash.h"
 #include "host_fw/host_state_manager.h"
 #include "state_manager/state_manager.h"
@@ -87,6 +88,7 @@ static void spi_filter_irq_handler_test_init (CuTest *test)
 
 	spi_filter_irq_handler_release (&handler);
 
+	host_state_manager_release (&host_state);
 	spi_flash_release (&flash);
 }
 
@@ -112,6 +114,27 @@ static void spi_filter_irq_handler_test_init_null (CuTest *test)
 	status = flash_master_mock_validate_and_release (&flash_mock);
 	CuAssertIntEquals (test, 0, status);
 
+	host_state_manager_release (&host_state);
+	spi_flash_release (&flash);
+}
+
+static void spi_filter_irq_handler_test_static_init (CuTest *test)
+{
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct host_state_manager host_state;
+	struct spi_filter_irq_handler handler = spi_filter_irq_handler_static_init (&host_state);
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, handler.ro_flash_dirty);
+
+	spi_filter_irq_handler_testing_init_host_state (test, &host_state, &flash_mock, &flash, &state);
+
+	spi_filter_irq_handler_release (&handler);
+
+	host_state_manager_release (&host_state);
 	spi_flash_release (&flash);
 }
 
@@ -147,6 +170,33 @@ static void spi_filter_irq_handler_test_ro_flash_dirty (CuTest *test)
 
 	spi_filter_irq_handler_release (&handler);
 
+	host_state_manager_release (&host_state);
+	spi_flash_release (&flash);
+}
+
+static void spi_filter_irq_handler_test_ro_flash_dirty_static_init (CuTest *test)
+{
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct host_state_manager host_state;
+	struct spi_filter_irq_handler handler = spi_filter_irq_handler_static_init (&host_state);
+	int status;
+
+	TEST_START;
+
+	spi_filter_irq_handler_testing_init_host_state (test, &host_state, &flash_mock, &flash, &state);
+
+	handler.ro_flash_dirty (&handler);
+
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host_state));
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_filter_irq_handler_release (&handler);
+
+	host_state_manager_release (&host_state);
 	spi_flash_release (&flash);
 }
 
@@ -175,6 +225,7 @@ static void spi_filter_irq_handler_test_ro_flash_dirty_null (CuTest *test)
 
 	spi_filter_irq_handler_release (&handler);
 
+	host_state_manager_release (&host_state);
 	spi_flash_release (&flash);
 }
 
@@ -183,8 +234,10 @@ TEST_SUITE_START (spi_filter_irq_handler);
 
 TEST (spi_filter_irq_handler_test_init);
 TEST (spi_filter_irq_handler_test_init_null);
+TEST (spi_filter_irq_handler_test_static_init);
 TEST (spi_filter_irq_handler_test_release_null);
 TEST (spi_filter_irq_handler_test_ro_flash_dirty);
+TEST (spi_filter_irq_handler_test_ro_flash_dirty_static_init);
 TEST (spi_filter_irq_handler_test_ro_flash_dirty_null);
 
 TEST_SUITE_END;

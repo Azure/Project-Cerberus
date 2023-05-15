@@ -7,7 +7,8 @@
 #include "spi_filter_irq_handler_mock.h"
 
 
-static void spi_filter_irq_handler_mock_ro_flash_dirty (struct spi_filter_irq_handler *handler)
+static void spi_filter_irq_handler_mock_ro_flash_dirty (
+	const struct spi_filter_irq_handler *handler)
 {
 	struct spi_filter_irq_handler_mock *mock = (struct spi_filter_irq_handler_mock*) handler;
 

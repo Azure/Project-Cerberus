@@ -17,7 +17,7 @@ struct spi_filter_irq_handler {
 	 *
 	 * @param handler The handler context.
 	 */
-	void (*ro_flash_dirty) (struct spi_filter_irq_handler *handler);
+	void (*ro_flash_dirty) (const struct spi_filter_irq_handler *handler);
 
 	struct host_state_manager *host_state;		/**< State of the host for the SPI filter. */
 };
@@ -25,10 +25,10 @@ struct spi_filter_irq_handler {
 
 int spi_filter_irq_handler_init (struct spi_filter_irq_handler *handler,
 	struct host_state_manager *host_state);
-void spi_filter_irq_handler_release (struct spi_filter_irq_handler *handler);
+void spi_filter_irq_handler_release (const struct spi_filter_irq_handler *handler);
 
 /* Internal functions for use by derived types. */
-void spi_filter_irq_handler_ro_flash_dirty (struct spi_filter_irq_handler *handler);
+void spi_filter_irq_handler_ro_flash_dirty (const struct spi_filter_irq_handler *handler);
 
 
 #define	SPI_FILTER_IRQ_ERROR(code)		ROT_ERROR (ROT_MODULE_SPI_FILTER_IRQ, code)

@@ -45,13 +45,13 @@ int common_math_get_num_bits_set (uint8_t byte)
 }
 
 /**
- * Increments byte array of arbitary length len by 1
+ * Increments a byte array of arbitrary length by 1.
  *
- * @param len length of the array
- * @param buf input array to be incremented
- * @param allow_rollover lets to roll over when upper boundary is reached
+ * @param buf Input array to be incremented.  This will be treated as a big endian value.
+ * @param len Length of the array.
+ * @param allow_rollover Allows the array value to roll over to 0 when upper boundary is reached.
  *
- * @return 0 if the input array is incremented successfully
+ * @return 0 if the input array is incremented successfully or an error code.
  */
 int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_rollover)
 {
@@ -77,6 +77,97 @@ int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_ro
 	else {
 		buf[index]++;
 	}
+
+	return 0;
+}
+
+/**
+ * Check a specific bit position in a byte array and determine if that bit is set.  Bit number is
+ * determined as bits 0-7 in byte 0, bits 8-15 in byte 1, bits 16-23 in byte 2, etc.
+ *
+ * @param bytes The byte array to check.
+ * @param length Length of the byte array.
+ * @param bit The bit number in the array to check.
+ *
+ * @return 1 if the bit is set, 0 if the bit is clear, or an error code.
+ */
+int common_math_is_bit_set_in_array (uint8_t *bytes, size_t length, size_t bit)
+{
+	size_t byte;
+	uint8_t mask;
+
+	if (bytes == NULL) {
+		return COMMON_MATH_INVALID_ARGUMENT;
+	}
+
+	byte = bit / 8;
+	mask = 1U << (bit % 8);
+
+	if (byte >= length) {
+		return COMMON_MATH_OUT_OF_RANGE;
+	}
+
+	return !!(bytes[byte] & mask);
+}
+
+/**
+ * Set a bit at a specific bit position in a byte array.  Bit number is determined as bits 0-7 in
+ * byte 0, bits 8-15 in byte 1, bits 16-23 in byte 2, etc.
+ *
+ * @param bytes The byte array to update.
+ * @param length Length of the byte array.
+ * @param bit The bit number in the array to set.
+ *
+ * @return 0 if the bit was set or an error code.
+ */
+int common_math_set_bit_in_array (uint8_t *bytes, size_t length, size_t bit)
+{
+	size_t byte;
+	uint8_t mask;
+
+	if (bytes == NULL) {
+		return COMMON_MATH_INVALID_ARGUMENT;
+	}
+
+	byte = bit / 8;
+	mask = 1U << (bit % 8);
+
+	if (byte >= length) {
+		return COMMON_MATH_OUT_OF_RANGE;
+	}
+
+	bytes[byte] |= mask;
+
+	return 0;
+}
+
+/**
+ * Clear a bit at a specific bit position in a byte array.  Bit number is determined as bits 0-7 in
+ * byte 0, bits 8-15 in byte 1, bits 16-23 in byte 2, etc.
+ *
+ * @param bytes The byte array to update.
+ * @param length Length of the byte array.
+ * @param bit The bit number in the array to clear.
+ *
+ * @return 0 if the bit was cleared or an error code.
+ */
+int common_math_clear_bit_in_array (uint8_t *bytes, size_t length, size_t bit)
+{
+	size_t byte;
+	uint8_t mask;
+
+	if (bytes == NULL) {
+		return COMMON_MATH_INVALID_ARGUMENT;
+	}
+
+	byte = bit / 8;
+	mask = ~(1U << (bit % 8));
+
+	if (byte >= length) {
+		return COMMON_MATH_OUT_OF_RANGE;
+	}
+
+	bytes[byte] &= mask;
 
 	return 0;
 }

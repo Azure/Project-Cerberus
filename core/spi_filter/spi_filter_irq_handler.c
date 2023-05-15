@@ -9,7 +9,7 @@
 #include "host_fw/host_state_manager.h"
 
 
-void spi_filter_irq_handler_ro_flash_dirty (struct spi_filter_irq_handler *handler)
+void spi_filter_irq_handler_ro_flash_dirty (const struct spi_filter_irq_handler *handler)
 {
 	if (handler) {
 		host_state_manager_save_inactive_dirty (handler->host_state, true);
@@ -45,7 +45,7 @@ int spi_filter_irq_handler_init (struct spi_filter_irq_handler *handler,
  *
  * @param handler The handler to release.
  */
-void spi_filter_irq_handler_release (struct spi_filter_irq_handler *handler)
+void spi_filter_irq_handler_release (const struct spi_filter_irq_handler *handler)
 {
 	UNUSED (handler);
 }
