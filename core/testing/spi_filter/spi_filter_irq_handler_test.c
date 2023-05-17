@@ -125,6 +125,7 @@ static void spi_filter_irq_handler_test_static_init (CuTest *test)
 	struct spi_flash flash;
 	struct host_state_manager host_state;
 	struct spi_filter_irq_handler handler = spi_filter_irq_handler_static_init (&host_state);
+	int status;
 
 	TEST_START;
 
@@ -133,6 +134,9 @@ static void spi_filter_irq_handler_test_static_init (CuTest *test)
 	spi_filter_irq_handler_testing_init_host_state (test, &host_state, &flash_mock, &flash, &state);
 
 	spi_filter_irq_handler_release (&handler);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_release (&host_state);
 	spi_flash_release (&flash);
