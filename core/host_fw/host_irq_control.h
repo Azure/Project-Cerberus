@@ -20,7 +20,7 @@ struct host_irq_control {
 	 *
 	 * @return 0 if the IRQ was updated successfully or an error code.
 	 */
-	int (*enable_exit_reset) (struct host_irq_control *control, bool enable);
+	int (*enable_exit_reset) (const struct host_irq_control *control, bool enable);
 
 	/**
 	 * Enable or disable the IRQ that indicates when SPI chip selects have been asserted by the
@@ -31,7 +31,7 @@ struct host_irq_control {
 	 *
 	 * @return 0 if the IRQs were updated successfully or an error code.
 	 */
-	int (*enable_chip_selects) (struct host_irq_control *control, bool enable);
+	int (*enable_chip_selects) (const struct host_irq_control *control, bool enable);
 
 	/**
 	 * Enable or disable IRQ notifications for enabled interrupts.
@@ -41,7 +41,7 @@ struct host_irq_control {
 	 * @param control The API for the IRQs to update.
 	 * @param enable true to enable IRQ notifications or false to disable them.
 	 */
-	void (*enable_notifications) (struct host_irq_control *control, bool enable);
+	void (*enable_notifications) (const struct host_irq_control *control, bool enable);
 };
 
 

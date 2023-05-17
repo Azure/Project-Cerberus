@@ -12,14 +12,14 @@
  * A host IRQ handler that will mask additional notifications while processing the current IRQ.
  */
 struct host_irq_handler_mask_irqs {
-	struct host_irq_handler base;			/**< The base IRQ handler. */
-	struct host_irq_control *control;		/**< Control interface for IRQ notifications. */
+	struct host_irq_handler base;				/**< The base IRQ handler. */
+	const struct host_irq_control *control;		/**< Control interface for IRQ notifications. */
 };
 
 
 int host_irq_handler_mask_irqs_init (struct host_irq_handler_mask_irqs *handler,
 	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
-	struct bmc_recovery *recovery, struct host_irq_control *control);
+	struct bmc_recovery *recovery, const struct host_irq_control *control);
 void host_irq_handler_mask_irqs_release (struct host_irq_handler_mask_irqs *handler);
 
 

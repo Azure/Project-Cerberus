@@ -60,7 +60,7 @@ struct bmc_recovery {
 	int (*on_host_cs1) (struct bmc_recovery *recovery, struct hash_engine *hash,
 		struct rsa_engine *rsa);
 
-	struct host_irq_control *irq;			/**< Control for enabling and disable host IRQs. */
+	const struct host_irq_control *irq;		/**< Control for enabling and disable host IRQs. */
 	struct host_processor *host;			/**< The BMC host for recovery operations. */
 	int state;								/**< The current state of the recovery manager. */
 	platform_clock timeout;					/**< The timeout clock to use to control recovery triggers. */
@@ -82,7 +82,7 @@ enum {
 };
 
 
-int bmc_recovery_init (struct bmc_recovery *recovery, struct host_irq_control *irq,
+int bmc_recovery_init (struct bmc_recovery *recovery, const struct host_irq_control *irq,
 	struct host_processor *host, const struct host_control *control,
 	struct bmc_recovery_control *rec_ctrl);
 void bmc_recovery_release (struct bmc_recovery *recovery);

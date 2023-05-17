@@ -16,14 +16,14 @@
 struct host_irq_handler_auth_check {
 	struct host_irq_handler base;			/**< The base IRQ handler. */
 	const struct host_control *control;		/**< The interface for host control signals. */
-	struct host_irq_control *irq;			/**< Interface for enabling host interrupts. */
+	const struct host_irq_control *irq;		/**< Interface for enabling host interrupts. */
 };
 
 
 int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handler,
 	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_control *control,
-	struct host_irq_control *irq);
+	const struct host_irq_control *irq);
 void host_irq_handler_auth_check_release (struct host_irq_handler_auth_check *handler);
 
 

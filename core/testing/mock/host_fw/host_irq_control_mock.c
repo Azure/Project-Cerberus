@@ -7,7 +7,8 @@
 #include "host_irq_control_mock.h"
 
 
-static int host_irq_control_mock_enable_exit_reset (struct host_irq_control *control, bool enable)
+static int host_irq_control_mock_enable_exit_reset (const struct host_irq_control *control,
+	bool enable)
 {
 	struct host_irq_control_mock *mock = (struct host_irq_control_mock*) control;
 
@@ -19,7 +20,8 @@ static int host_irq_control_mock_enable_exit_reset (struct host_irq_control *con
 		MOCK_ARG_CALL (enable));
 }
 
-static int host_irq_control_mock_enable_chip_selects (struct host_irq_control *control, bool enable)
+static int host_irq_control_mock_enable_chip_selects (const struct host_irq_control *control,
+	bool enable)
 {
 	struct host_irq_control_mock *mock = (struct host_irq_control_mock*) control;
 
@@ -31,7 +33,7 @@ static int host_irq_control_mock_enable_chip_selects (struct host_irq_control *c
 		MOCK_ARG_CALL (enable));
 }
 
-static void host_irq_control_mock_enable_notifications (struct host_irq_control *control,
+static void host_irq_control_mock_enable_notifications (const struct host_irq_control *control,
 	bool enable)
 {
 	struct host_irq_control_mock *mock = (struct host_irq_control_mock*) control;

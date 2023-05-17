@@ -52,7 +52,7 @@ static int host_irq_handler_mask_irqs_assert_cs1 (struct host_irq_handler *handl
  */
 int host_irq_handler_mask_irqs_init (struct host_irq_handler_mask_irqs *handler,
 	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
-	struct bmc_recovery *recovery, struct host_irq_control *control)
+	struct bmc_recovery *recovery, const struct host_irq_control *control)
 {
 	int status;
 
