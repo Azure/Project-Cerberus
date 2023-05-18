@@ -355,7 +355,8 @@ static void host_flash_manager_single_testing_initialize_flash_device (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_initialize_device (flash, state, &mock->base, false, false, false, false);
+	status = spi_flash_initialize_device (flash, state, &mock->base, false, false,
+		SPI_FLASH_RESET_NONE, false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&mock->mock);

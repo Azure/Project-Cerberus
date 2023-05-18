@@ -93,12 +93,21 @@ struct spi_flash_device_info {
 #define	SPI_FLASH_DEVICE_INFO_RESET_3BYTE		(1U << 1)
 #define	SPI_FLASH_DEVICE_INFO_SR1_VOLATILE		(1U << 2)
 
+/**
+ * Options to control flash reset handling during device initialization.
+ */
+enum spi_flash_reset {
+	SPI_FLASH_RESET_NONE = 0,			/**< Do not issue any flash device reset. */
+	SPI_FLASH_RESET_IF_SUPPORTED = 1,	/**< Execute a soft reset through flash commands.  Skipped if not supported. */
+	SPI_FLASH_RESET_REQUIRED = 3,		/**< Execute a soft reset through flash commands.  Fail if not supported. */
+};
+
 
 int spi_flash_initialize_device (struct spi_flash *flash, struct spi_flash_state *state,
-	const struct flash_master *spi, bool fast_read, bool wake_device, bool reset_device,
-	bool drive_strength);
+	const struct flash_master *spi, bool fast_read, bool wake_device,
+	enum spi_flash_reset reset_device, bool drive_strength);
 int spi_flash_initialize_device_state (const struct spi_flash *flash, bool fast_read,
-	bool wake_device, bool reset_device, bool drive_strength);
+	bool wake_device, enum spi_flash_reset reset_device, bool drive_strength);
 int spi_flash_restore_device (struct spi_flash *flash, struct spi_flash_state *state,
 	const struct flash_master *spi, const struct spi_flash_device_info *info);
 int spi_flash_restore_device_state (const struct spi_flash *flash,

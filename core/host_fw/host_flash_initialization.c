@@ -147,7 +147,7 @@ int host_flash_initialization_initialize_flash (struct host_flash_initialization
 
 	if (!init->is_init0) {
 		status = spi_flash_initialize_device (init->flash_cs0, init->state_cs0, init->spi_cs0,
-			init->fast_read, false, false, init->drive_strength);
+			init->fast_read, false, SPI_FLASH_RESET_NONE, init->drive_strength);
 		if (status != 0) {
 			goto exit;
 		}
@@ -157,7 +157,7 @@ int host_flash_initialization_initialize_flash (struct host_flash_initialization
 
 	if (!init->is_init1) {
 		status = spi_flash_initialize_device (init->flash_cs1, init->state_cs1, init->spi_cs1,
-			init->fast_read, false, false, init->drive_strength);
+			init->fast_read, false, SPI_FLASH_RESET_NONE, init->drive_strength);
 		if (status != 0) {
 			goto exit;
 		}

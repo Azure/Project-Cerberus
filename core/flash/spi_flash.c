@@ -26,6 +26,10 @@
 #define	QSPI_ENABLE_BIT6			(1U << 6)
 #define	QSPI_ENABLE_BIT7			(1U << 7)
 
+/* Flag bits for controlling flash reset during initialization. */
+#define	SPI_FLASH_DO_RESET			(1U << 0)
+#define	SPI_FLASH_RESET_IS_REQUIRED	(1U << 1)
+
 
 /**
  * Check the requested operation to ensure it is valid for the device.
@@ -147,13 +151,13 @@ static void spi_flash_set_device_commands (const struct spi_flash *flash,
  *
  * @param flash The flash interface to configure.
  * @param wake_device Flag indicating if the device should be removed from deep power down.
- * @param reset_device Flag indicating if the device should be reset prior to initialization.
+ * @param reset_device Flags indicating if the device should be reset prior to initialization.
  * @param drive_strength Flag indicating if the device output drive strength should be configured.
  *
  * @return 0 if the device and interface were successfully configured or an error code.
  */
 static int spi_flash_configure_device (const struct spi_flash *flash, bool wake_device,
-	bool reset_device, bool drive_strength)
+	enum spi_flash_reset reset_device, bool drive_strength)
 {
 	struct spi_flash_sfdp sfdp;
 	int status;
@@ -192,9 +196,13 @@ static int spi_flash_configure_device (const struct spi_flash *flash, bool wake_
 		goto exit;
 	}
 
-	if (reset_device) {
+	if (reset_device & SPI_FLASH_DO_RESET) {
 		status = spi_flash_reset_device (flash);
-		if (status != 0) {
+		if ((status != 0) &&
+			((status != SPI_FLASH_RESET_NOT_SUPPORTED) ||
+				(reset_device & SPI_FLASH_RESET_IS_REQUIRED))) {
+			/* Only fail initialization if reset is supported and fails or if the device does not
+			 * support reset and the reset was marked as being a required step. */
 			goto exit;
 		}
 	}
@@ -242,14 +250,14 @@ exit:
  * @param spi The SPI master connected to the flash.
  * @param fast_read Flag indicating if the FAST_READ command should be used for SPI reads.
  * @param wake_device Flag indicating if the device should be removed from deep power down.
- * @param reset_device Flag indicating if the device should be reset prior to initialization.
+ * @param reset_device Option indicating if the device should be reset prior to initialization.
  * @param drive_strength Flag indicating if the device output drive strength should be configured.
  *
  * @return 0 if the SPI flash was successfully initialized or an error code.
  */
 int spi_flash_initialize_device (struct spi_flash *flash, struct spi_flash_state *state,
-	const struct flash_master *spi, bool fast_read, bool wake_device, bool reset_device,
-	bool drive_strength)
+	const struct flash_master *spi, bool fast_read, bool wake_device,
+	enum spi_flash_reset reset_device, bool drive_strength)
 {
 	int status;
 
@@ -281,13 +289,13 @@ int spi_flash_initialize_device (struct spi_flash *flash, struct spi_flash_state
  * @param flash The flash interface that contains the state to initialize.
  * @param fast_read Flag indicating if the FAST_READ command should be used for SPI reads.
  * @param wake_device Flag indicating if the device should be removed from deep power down.
- * @param reset_device Flag indicating if the device should be reset prior to initialization.
+ * @param reset_device Option indicating if the device should be reset prior to initialization.
  * @param drive_strength Flag indicating if the device output drive strength should be configured.
  *
  * @return 0 if the SPI flash was successfully initialized or an error code.
  */
 int spi_flash_initialize_device_state (const struct spi_flash *flash, bool fast_read,
-	bool wake_device, bool reset_device, bool drive_strength)
+	bool wake_device, enum spi_flash_reset reset_device, bool drive_strength)
 {
 	int status;
 
