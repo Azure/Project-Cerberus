@@ -16,7 +16,6 @@
 struct host_irq_handler_auth_check {
 	struct host_irq_handler base;			/**< The base IRQ handler. */
 	const struct host_control *control;		/**< The interface for host control signals. */
-	const struct host_irq_control *irq;		/**< Interface for enabling host interrupts. */
 };
 
 
@@ -24,7 +23,7 @@ int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handle
 	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_control *control,
 	const struct host_irq_control *irq);
-void host_irq_handler_auth_check_release (struct host_irq_handler_auth_check *handler);
+void host_irq_handler_auth_check_release (const struct host_irq_handler_auth_check *handler);
 
 
 #endif /* HOST_IRQ_HANDLER_AUTH_CHECK_H_ */

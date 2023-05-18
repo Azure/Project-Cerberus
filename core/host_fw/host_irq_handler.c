@@ -6,10 +6,9 @@
 #include <string.h>
 #include "host_irq_handler.h"
 #include "host_logging.h"
-#include "common/unused.h"
 
 
-int host_irq_handler_power_on (struct host_irq_handler *handler, bool allow_unsecure,
+int host_irq_handler_power_on (const struct host_irq_handler *handler, bool allow_unsecure,
 	struct hash_engine *hash)
 {
 	int status;
@@ -70,7 +69,7 @@ int host_irq_handler_power_on (struct host_irq_handler *handler, bool allow_unse
 	return status;
 }
 
-int host_irq_handler_enter_reset (struct host_irq_handler *handler)
+int host_irq_handler_enter_reset (const struct host_irq_handler *handler)
 {
 	int status;
 
@@ -91,21 +90,21 @@ int host_irq_handler_enter_reset (struct host_irq_handler *handler)
 	return status;
 }
 
-void host_irq_handler_exit_reset (struct host_irq_handler *handler)
+void host_irq_handler_exit_reset (const struct host_irq_handler *handler)
 {
 	if (handler && handler->recovery) {
 		handler->recovery->on_host_out_of_reset (handler->recovery);
 	}
 }
 
-void host_irq_handler_assert_cs0 (struct host_irq_handler *handler)
+void host_irq_handler_assert_cs0 (const struct host_irq_handler *handler)
 {
 	if (handler && handler->recovery) {
 		handler->recovery->on_host_cs0 (handler->recovery);
 	}
 }
 
-int host_irq_handler_assert_cs1 (struct host_irq_handler *handler)
+int host_irq_handler_assert_cs1 (const struct host_irq_handler *handler)
 {
 	int status = 0;
 
@@ -117,18 +116,21 @@ int host_irq_handler_assert_cs1 (struct host_irq_handler *handler)
 }
 
 /**
- * Initialize a handler for host interrupts.
+ * Internal function to initialize the common components of a host interrupt handler.
  *
  * @param handler The handler instance to initialize.
  * @param host The host generating the interrupts.
  * @param hash The hash engine to use for reset validation.
  * @param rsa The RSA engine to use for reset signature verification.
  * @param recovery An optional recovery manager for detecting BMC watchdog recovery boots.
+ * @param control An interface for enabling host interrupts.
+ * @param notify_exit_reset Flag indicating to enable host reset exit interrupts.
  *
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
-int host_irq_handler_init (struct host_irq_handler *handler, struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, struct bmc_recovery *recovery)
+static int host_irq_handler_init_internal (struct host_irq_handler *handler,
+	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct bmc_recovery *recovery, const struct host_irq_control *control, bool notify_exit_reset)
 {
 	if ((handler == NULL) || (host == NULL) || (hash == NULL) || (rsa == NULL)) {
 		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
@@ -146,8 +148,82 @@ int host_irq_handler_init (struct host_irq_handler *handler, struct host_process
 	handler->hash = hash;
 	handler->rsa = rsa;
 	handler->recovery = recovery;
+	handler->control = control;
+	handler->notify_exit_reset = notify_exit_reset;
 
 	return 0;
+}
+
+/**
+ * Initialize a handler for host interrupts.
+ *
+ * @param handler The handler instance to initialize.
+ * @param host The host generating the interrupts.
+ * @param hash The hash engine to use for reset validation.
+ * @param rsa The RSA engine to use for reset signature verification.
+ * @param recovery An optional recovery manager for detecting BMC watchdog recovery boots.
+ *
+ * @return 0 if the IRQ handler was successfully initialized or an error code.
+ */
+int host_irq_handler_init (struct host_irq_handler *handler, struct host_processor *host,
+	struct hash_engine *hash, struct rsa_engine *rsa, struct bmc_recovery *recovery)
+{
+	return host_irq_handler_init_internal (handler, host, hash, rsa, recovery, NULL, false);
+}
+
+/**
+ * Initialize a handler for host interrupts. The handler will initialize the interface for enabling
+ * host interrupts to a non-null value.
+ *
+ * @param handler The handler instance to initialize.
+ * @param host The host generating the interrupts.
+ * @param hash The hash engine to use for reset validation.
+ * @param rsa The RSA engine to use for reset signature verification.
+ * @param recovery An optional recovery manager for detecting BMC watchdog recovery boots.
+ * @param control An interface for enabling host interrupts.
+ *
+ * @return 0 if the IRQ handler was successfully initialized or an error code.
+ */
+int host_irq_handler_init_with_irq_ctrl (struct host_irq_handler *handler,
+	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct bmc_recovery *recovery, const struct host_irq_control *control)
+{
+	if (control == NULL) {
+		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
+	}
+
+	return host_irq_handler_init_internal (handler, host, hash, rsa, recovery, control, false);
+}
+
+/**
+ * Initialize a handler for host interrupts. The handler will enable host reset exit
+ * notifications.
+ *
+ * @param handler The handler instance to initialize.
+ * @param host The host generating the interrupts.
+ * @param hash The hash engine to use for reset validation.
+ * @param rsa The RSA engine to use for reset signature verification.
+ * @param recovery An optional recovery manager for detecting BMC watchdog recovery boots.
+ * @param control An interface for enabling host interrupts.
+ *
+ * @return 0 if the IRQ handler was successfully initialized or an error code.
+ */
+int host_irq_handler_init_enable_exit_reset (struct host_irq_handler *handler,
+	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
+	struct bmc_recovery *recovery, const struct host_irq_control *control)
+{
+	int status;
+
+	if (control == NULL) {
+		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
+	}
+
+	status = host_irq_handler_init_internal (handler, host, hash, rsa, recovery, control, true);
+	if (status != 0) {
+		return status;
+	}
+
+	return handler->control->enable_exit_reset (control, true);
 }
 
 /**
@@ -155,9 +231,13 @@ int host_irq_handler_init (struct host_irq_handler *handler, struct host_process
  *
  * @param handler The handler instance to release.
  */
-void host_irq_handler_release (struct host_irq_handler *handler)
+void host_irq_handler_release (const struct host_irq_handler *handler)
 {
-	UNUSED (handler);
+	if (handler) {
+		if (handler->control && handler->notify_exit_reset) {
+			handler->control->enable_exit_reset (handler->control, false);
+		}
+	}
 }
 
 /**

@@ -7,9 +7,10 @@
 #include "host_irq_handler_auth_check.h"
 
 
-static void host_irq_handler_auth_check_exit_reset (struct host_irq_handler *handler)
+static void host_irq_handler_auth_check_exit_reset (const struct host_irq_handler *handler)
 {
-	struct host_irq_handler_auth_check *check = (struct host_irq_handler_auth_check*) handler;
+	const struct host_irq_handler_auth_check *check =
+		(const struct host_irq_handler_auth_check*) handler;
 	int auth_action;
 
 	if (check) {
@@ -49,21 +50,15 @@ int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handle
 
 	memset (handler, 0, sizeof (struct host_irq_handler_auth_check));
 
-	status = host_irq_handler_init (&handler->base, host, hash, rsa, recovery);
+	status = host_irq_handler_init_enable_exit_reset (&handler->base, host, hash, rsa, recovery,
+		irq);
 	if (status != 0) {
-		return status;
-	}
-
-	status = irq->enable_exit_reset (irq, true);
-	if (status != 0) {
-		host_irq_handler_release (&handler->base);
 		return status;
 	}
 
 	handler->base.exit_reset = host_irq_handler_auth_check_exit_reset;
 
 	handler->control = control;
-	handler->irq = irq;
 
 	return 0;
 }
@@ -73,10 +68,9 @@ int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handle
  *
  * @param handler The IRQ handler to release.
  */
-void host_irq_handler_auth_check_release (struct host_irq_handler_auth_check *handler)
+void host_irq_handler_auth_check_release (const struct host_irq_handler_auth_check *handler)
 {
 	if (handler) {
-		handler->irq->enable_exit_reset (handler->irq, false);
 		host_irq_handler_release (&handler->base);
 	}
 }

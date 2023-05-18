@@ -7,8 +7,8 @@
 #include "host_irq_handler_mock.h"
 
 
-static int host_irq_handler_mock_power_on (struct host_irq_handler *handler, bool allow_unsecure,
-	struct hash_engine *hash)
+static int host_irq_handler_mock_power_on (const struct host_irq_handler *handler,
+	bool allow_unsecure, struct hash_engine *hash)
 {
 	struct host_irq_handler_mock *mock = (struct host_irq_handler_mock*) handler;
 
@@ -20,7 +20,7 @@ static int host_irq_handler_mock_power_on (struct host_irq_handler *handler, boo
 		MOCK_ARG_CALL (allow_unsecure), MOCK_ARG_PTR_CALL (hash));
 }
 
-static int host_irq_handler_mock_enter_reset (struct host_irq_handler *handler)
+static int host_irq_handler_mock_enter_reset (const struct host_irq_handler *handler)
 {
 	struct host_irq_handler_mock *mock = (struct host_irq_handler_mock*) handler;
 
@@ -31,7 +31,7 @@ static int host_irq_handler_mock_enter_reset (struct host_irq_handler *handler)
 	MOCK_RETURN_NO_ARGS (&mock->mock, host_irq_handler_mock_enter_reset, handler);
 }
 
-static void host_irq_handler_mock_exit_reset (struct host_irq_handler *handler)
+static void host_irq_handler_mock_exit_reset (const struct host_irq_handler *handler)
 {
 	struct host_irq_handler_mock *mock = (struct host_irq_handler_mock*) handler;
 
@@ -42,7 +42,7 @@ static void host_irq_handler_mock_exit_reset (struct host_irq_handler *handler)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, host_irq_handler_mock_exit_reset, handler);
 }
 
-static void host_irq_handler_mock_assert_cs0 (struct host_irq_handler *handler)
+static void host_irq_handler_mock_assert_cs0 (const struct host_irq_handler *handler)
 {
 	struct host_irq_handler_mock *mock = (struct host_irq_handler_mock*) handler;
 
@@ -53,7 +53,7 @@ static void host_irq_handler_mock_assert_cs0 (struct host_irq_handler *handler)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, host_irq_handler_mock_assert_cs0, handler);
 }
 
-static int host_irq_handler_mock_assert_cs1 (struct host_irq_handler *handler)
+static int host_irq_handler_mock_assert_cs1 (const struct host_irq_handler *handler)
 {
 	struct host_irq_handler_mock *mock = (struct host_irq_handler_mock*) handler;
 
