@@ -225,6 +225,13 @@ DERAddPublicKey(
 	size_t				key_len
 );
 
+int
+DERAddDER(
+    DERBuilderContext   *Context,
+    const uint8_t       *der,
+    size_t              length
+);
+
 #ifdef __cplusplus
 }
 #endif

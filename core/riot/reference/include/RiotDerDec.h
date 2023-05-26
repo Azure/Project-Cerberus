@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#ifndef DER_DEC_RIOT_H_
-#define DER_DEC_RIOT_H_
+#ifndef RIOTDERDEC_H_
+#define RIOTDERDEC_H_
 
 #include <string.h>
 #include <stdint.h>
@@ -58,7 +58,7 @@ DERDECGetPrivKey(
 //
 RIOT_STATUS
 DERDECGetPubKey(
-	uint8_t *public_key,
+	const uint8_t **public_key,
 	size_t *key_len,
 	const uint8_t *public_key_der,
 	const size_t key_der_len
@@ -76,7 +76,7 @@ DERDECGetPubKey(
 //
 RIOT_STATUS
 DERDECGetPubKeyFromPrivKey(
-	uint8_t *public_key,
+	const uint8_t **public_key,
 	size_t *key_len,
 	const uint8_t *private_key_der,
 	const size_t key_der_len
@@ -126,4 +126,4 @@ DERDECVerifyCert(
 	const uint8_t *der,
 	size_t length);
 
-#endif /* DER_DEC_RIOT_H_ */
+#endif /* RIOTDERDEC_H_ */

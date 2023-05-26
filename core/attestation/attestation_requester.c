@@ -501,7 +501,7 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 		}
 
 		status = attestation->rsa->sig_verify (attestation->rsa, &rsa_key, signature, signature_len,
-			digest, transcript_hash_len);
+			HASH_TYPE_SHA256, digest, transcript_hash_len);
 	}
 #endif
 	else {

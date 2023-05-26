@@ -1018,7 +1018,8 @@ static void riot_key_manager_test_init_intermediate_signed_device_id_not_trusted
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_gen.base.create_self_signed_certificate (&x509_gen.base, &ca, key_der, key_length,
-		X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, "Bad", X509_CERT_CA_NO_PATHLEN, NULL);
+		 HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, "Bad", X509_CERT_CA_NO_PATHLEN,
+		 NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_gen.base.get_certificate_der (&x509_gen.base, &ca, &ca_der, &ca_der_length);
@@ -3634,7 +3635,8 @@ static void riot_key_manager_test_verify_stored_certs_intermediate_signed_device
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_gen.base.create_self_signed_certificate (&x509_gen.base, &ca, key_der, key_length,
-		X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, "Bad", X509_CERT_CA_NO_PATHLEN, NULL);
+		 HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, "Bad", X509_CERT_CA_NO_PATHLEN,
+		 NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_gen.base.get_certificate_der (&x509_gen.base, &ca, &ca_der, &ca_der_length);

@@ -23,8 +23,8 @@ int signature_verification_rsa_verify_signature (const struct signature_verifica
 		return SIG_VERIFICATION_NO_KEY;
 	}
 
-	status = rsa->rsa->sig_verify (rsa->rsa, rsa->state->key, signature, sig_length, digest,
-		length);
+	status = rsa->rsa->sig_verify (rsa->rsa, rsa->state->key, signature, sig_length,
+		HASH_TYPE_SHA256, digest, length);
 	if (status == RSA_ENGINE_BAD_SIGNATURE) {
 		return SIG_VERIFICATION_BAD_SIGNATURE;
 	}

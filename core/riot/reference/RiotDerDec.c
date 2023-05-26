@@ -166,18 +166,18 @@ static int read_explicit_type(const uint8_t *der_buf, size_t der_len, size_t *po
 	return 0;
 }
 
-static int decode_bit_string(uint8_t *bit_str, size_t *out_len, size_t max_buf_len,
-	const uint8_t *der_buf, size_t der_len, size_t *position)
+static int decode_bit_string(const uint8_t **bit_str, size_t *out_len, const uint8_t *der_buf,
+	size_t der_len, size_t *position)
 {
 	size_t bstr_len;
 	int status;
 
 	status = process_asn1_type(&bstr_len, position, der_buf, der_len, 0x03);
-	if ((status != 0) || (bstr_len > max_buf_len) || ((*position + bstr_len) > der_len)) {
+	if ((status != 0) || ((*position + bstr_len) > der_len)) {
 		return -1;
 	}
 
-	memcpy(bit_str, &der_buf[*position], bstr_len);
+	*bit_str = &der_buf[*position];
 
 	if (out_len) {
 		*out_len = bstr_len;
@@ -186,7 +186,7 @@ static int decode_bit_string(uint8_t *bit_str, size_t *out_len, size_t max_buf_l
 	return 0;
 }
 
-static int decode_explicit_bit_string(uint8_t *bit_str, size_t *out_len, size_t max_buf_len,
+static int decode_explicit_bit_string(const uint8_t **bit_str, size_t *out_len,
 	const uint8_t *der_buf, size_t der_len, size_t *position, uint8_t tag_num)
 {
 	size_t len;
@@ -197,7 +197,7 @@ static int decode_explicit_bit_string(uint8_t *bit_str, size_t *out_len, size_t 
 		return -1;
 	}
 
-	status = decode_bit_string(bit_str, out_len, max_buf_len, der_buf, der_len, position);
+	status = decode_bit_string(bit_str, out_len, der_buf, der_len, position);
 	if (status != 0) {
 		return -1;
 	}
@@ -242,7 +242,7 @@ static int read_oid(size_t *len, const uint8_t *der_buf, size_t der_len, size_t 
 
 static int read_utf8String(size_t *len, const uint8_t *der_buf, size_t der_len, size_t *position)
 {
-	return process_asn1_type(len, position, der_buf, der_len, 0xc);;
+	return process_asn1_type(len, position, der_buf, der_len, 0xc);
 }
 
 static int read_sequence(size_t *len, const uint8_t *der_buf, size_t der_len, size_t *position)
@@ -318,8 +318,8 @@ Error:
 	return RIOT_FAILURE;
 }
 
-RIOT_STATUS DERDECGetPubKey(uint8_t *public_key, size_t *key_len, const uint8_t *public_key_der,
-	 const size_t key_der_len)
+RIOT_STATUS DERDECGetPubKey(const uint8_t **public_key, size_t *key_len,
+	const uint8_t *public_key_der, const size_t key_der_len)
 {
 	size_t position = 0;
 	size_t len;
@@ -328,18 +328,20 @@ RIOT_STATUS DERDECGetPubKey(uint8_t *public_key, size_t *key_len, const uint8_t 
 		goto Error;
 	}
 
-	ASRT(key_der_len <= RIOT_X509_MAX_KEY_LEN);
-
 	CHK(read_sequence(NULL, public_key_der, key_der_len, &position));
 	CHK(read_sequence(&len, public_key_der, key_der_len, &position));
  	position += len;
-	CHK(decode_bit_string(public_key, key_len, RIOT_X509_MAX_KEY_LEN, public_key_der, key_der_len, &position));
+	CHK(decode_bit_string(public_key, key_len, public_key_der, key_der_len, &position));
+
+	(*public_key)++;
+	(*key_len)--;
+
 	return RIOT_SUCCESS;
 Error:
 	return RIOT_FAILURE;
 }
 
-RIOT_STATUS DERDECGetPubKeyFromPrivKey(uint8_t *public_key, size_t *key_len,
+RIOT_STATUS DERDECGetPubKeyFromPrivKey(const uint8_t **public_key, size_t *key_len,
 	const uint8_t *private_key_der, const size_t key_der_len)
 {
 	size_t position = 0;
@@ -356,40 +358,8 @@ RIOT_STATUS DERDECGetPubKeyFromPrivKey(uint8_t *public_key, size_t *key_len,
 	CHK(read_octet_string(&len, private_key_der, key_der_len, &position));
 	position += len;
 	CHK(read_explicit_type(private_key_der, key_der_len, &position, 0));
-	CHK(decode_explicit_bit_string(public_key, key_len, RIOT_X509_MAX_KEY_LEN, private_key_der, key_der_len, &position, 1));
+	CHK(decode_explicit_bit_string(public_key, key_len, private_key_der, key_der_len, &position, 1));
 	return RIOT_SUCCESS;
-Error:
-	return RIOT_FAILURE;
-}
-
-RIOT_STATUS DERDECGetPubKeyInfo(RIOT_X509_PUBLIC_KEY *public_key, const uint8_t *key_der,
-	const size_t key_der_len)
-{
-	uint8_t key[RIOT_X509_MAX_KEY_LEN];
-	size_t key_len;
-	int status;
-
-	if ((public_key == NULL) || (key_der == NULL)) {
-		goto Error;
-	}
-
-	status = DERDECGetPubKey(key, &key_len, key_der, key_der_len);
-	if (status == RIOT_SUCCESS) {
-		ASRT (key_len <= RIOT_X509_MAX_KEY_LEN);
-		memcpy(public_key->key, key, key_len);
-		public_key->length = key_len;
-		public_key->src_key_type = X509_PUBLIC_ECC_OR_RSA_KEY;
-		return RIOT_SUCCESS;
-	}
-
-	status = DERDECGetPubKeyFromPrivKey(key, &key_len, key_der, key_der_len);
-	if (status == RIOT_SUCCESS) {
-		ASRT (key_len <= RIOT_X509_MAX_KEY_LEN);
-		memcpy(public_key->key, key, key_len);
-		public_key->length = key_len;
-		public_key->src_key_type = X509_PRIVATE_ECC_KEY;
-		return RIOT_SUCCESS;
-	}
 Error:
 	return RIOT_FAILURE;
 }

@@ -48,20 +48,53 @@ int x509_testing_corrupt_signature (uint8_t *der);
 #define	X509_TESTING_CN_SET_CERTCA			X509_TESTING_CN_SET_CERTSS
 #define	X509_TESTING_CN_SET_RIOT			X509_TESTING_CN_SET_CERTSS
 
-#define	X509_TESTING_CSR_ALGO_SET_ECDSA_NO_NULL(der, len)		0
-#define	X509_TESTING_CSR_ALGO_SET_ECDSA_WITH_NULL(der, len)		0
-#define	X509_TESTING_CSR_ALGO_SET_RSA_WITH_NULL(der, len)		0
+#define	X509_TESTING_CSR_ALGO_SET_ECDSA_NO_NULL(der, len)			0
+#define	X509_TESTING_CSR_ALGO_SET_ECDSA_WITH_NULL(der, len)			0
+#define	X509_TESTING_CSR_ALGO_SET_ECDSA_SHA384_NO_NULL(der, len)	0
+#define	X509_TESTING_CSR_ALGO_SET_ECDSA_SHA384_WITH_NULL(der, len)	0
+#define	X509_TESTING_CSR_ALGO_SET_ECDSA_SHA512_NO_NULL(der, len)	0
+#define	X509_TESTING_CSR_ALGO_SET_ECDSA_SHA512_WITH_NULL(der, len)	0
+#define	X509_TESTING_CSR_ALGO_SET_RSA_WITH_NULL(der, len)			0
+#define	X509_TESTING_CSR_ALGO_SET_RSA_SHA384_WITH_NULL(der, len)	0
+#define	X509_TESTING_CSR_ALGO_SET_RSA_SHA512_WITH_NULL(der, len)	0
 
 #define	X509_TESTING_CERTSS_ALGO_SET_ECDSA_NO_NULL(der, len) \
 	x509_testing_set_cert_sig_algo_params (der, false, len)
 #define	X509_TESTING_CERTSS_ALGO_SET_ECDSA_WITH_NULL(der, len) \
 	x509_testing_set_cert_sig_algo_params (der, true, len)
+#define	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA384_NO_NULL(der, len) \
+	x509_testing_set_cert_sig_algo_params (der, false, len)
+#define	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA384_WITH_NULL(der, len) \
+	x509_testing_set_cert_sig_algo_params (der, true, len)
+#define	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA512_NO_NULL(der, len) \
+	x509_testing_set_cert_sig_algo_params (der, false, len)
+#define	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA512_WITH_NULL(der, len) \
+	x509_testing_set_cert_sig_algo_params (der, true, len)
 #define	X509_TESTING_CERTSS_ALGO_SET_RSA_WITH_NULL(der, len) \
 	x509_testing_set_cert_sig_algo_params (der, true, len)
+#define	X509_TESTING_CERTSS_ALGO_SET_RSA_SHA384_WITH_NULL(der, len) \
+	x509_testing_set_cert_sig_algo_params (der, true, len)
+#define	X509_TESTING_CERTSS_ALGO_SET_RSA_SHA512_WITH_NULL(der, len) \
+	x509_testing_set_cert_sig_algo_params (der, true, len)
 
-#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_NO_NULL		X509_TESTING_CERTSS_ALGO_SET_ECDSA_NO_NULL
-#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_WITH_NULL	X509_TESTING_CERTSS_ALGO_SET_ECDSA_WITH_NULL
-#define	X509_TESTING_CERTCA_ALGO_SET_RSA_WITH_NULL		X509_TESTING_CERTSS_ALGO_SET_RSA_WITH_NULL
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_NO_NULL				\
+	X509_TESTING_CERTSS_ALGO_SET_ECDSA_NO_NULL
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_WITH_NULL			\
+	X509_TESTING_CERTSS_ALGO_SET_ECDSA_WITH_NULL
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA384_NO_NULL		\
+	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA384_NO_NULL
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA384_WITH_NULL		\
+	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA384_WITH_NULL
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA512_NO_NULL		\
+	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA512_NO_NULL
+#define	X509_TESTING_CERTCA_ALGO_SET_ECDSA_SHA512_WITH_NULL		\
+	X509_TESTING_CERTSS_ALGO_SET_ECDSA_SHA512_WITH_NULL
+#define	X509_TESTING_CERTCA_ALGO_SET_RSA_WITH_NULL				\
+	X509_TESTING_CERTSS_ALGO_SET_RSA_WITH_NULL
+#define	X509_TESTING_CERTCA_ALGO_SET_RSA_SHA384_WITH_NULL		\
+	X509_TESTING_CERTSS_ALGO_SET_RSA_WITH_NULL
+#define	X509_TESTING_CERTCA_ALGO_SET_RSA_SHA512_WITH_NULL		\
+	X509_TESTING_CERTSS_ALGO_SET_RSA_WITH_NULL
 
 #define	X509_TESTING_RIOT_ALGO_SET_ECDSA_NO_NULL		X509_TESTING_CERTSS_ALGO_SET_ECDSA_NO_NULL
 #define	X509_TESTING_RIOT_ALGO_SET_ECDSA_WITH_NULL		X509_TESTING_CERTSS_ALGO_SET_ECDSA_WITH_NULL
@@ -80,7 +113,7 @@ int x509_testing_corrupt_signature (uint8_t *der);
 	size_t exp_algo_len; \
 	uint8_t tmp; \
 	HASH_TESTING_ENGINE hash_verify; \
-	uint8_t actual_hash[SHA256_HASH_LENGTH]; \
+	uint8_t actual_hash[SHA512_HASH_LENGTH]; \
 	uint8_t actual_header_len; \
 	int actual_total_len; \
 	int actual_cert_len; \
@@ -141,30 +174,34 @@ int x509_testing_corrupt_signature (uint8_t *der);
 /**
  * Verify an ECC signature on the certificate.
  */
-#define	x509_testing_verify_signature_ecc(test, actual) do { \
+#define	x509_testing_verify_signature_ecc(test, actual, key, hash_algo) do { \
 	ECC_TESTING_ENGINE ecc_verify; \
 	struct ecc_public_key key_verify; \
+	int hash_length; \
+	int exp_hash_length; \
 	\
 	verify_status = ECC_TESTING_ENGINE_INIT (&ecc_verify); \
 	CuAssertIntEquals (test, 0, verify_status); \
 	\
-	verify_status = ecc_verify.base.init_public_key (&ecc_verify.base, (uint8_t*) ECC_PUBKEY_DER, \
-		ECC_PUBKEY_DER_LEN, &key_verify); \
+	verify_status = ecc_verify.base.init_public_key (&ecc_verify.base, (uint8_t*) key##_DER, \
+		key##_DER_LEN, &key_verify); \
 	CuAssertIntEquals (test, 0, verify_status); \
 	\
-	verify_status = hash_verify.base.calculate_sha256 (&hash_verify.base, \
+	exp_hash_length = hash_get_hash_length (HASH_TYPE_##hash_algo); \
+	CuAssertTrue (test, (exp_hash_length != HASH_ENGINE_UNKNOWN_HASH)); \
+	\
+	hash_length = hash_calculate (&hash_verify.base, HASH_TYPE_##hash_algo, \
 		&actual[actual_header_len], actual_cert_len, actual_hash, sizeof (actual_hash)); \
-	CuAssertIntEquals (test, 0, verify_status); \
+	CuAssertIntEquals (test, exp_hash_length, hash_length); \
 	\
 	actual_sig_len = x509_testing_get_item_length ( \
 		&actual[actual_header_len + actual_cert_len + actual_algo_len], &tmp); \
 	CuAssertTrue (test, (actual_sig_len > 0)); \
 	\
 	verify_status = ecc_verify.base.verify (&ecc_verify.base, &key_verify, actual_hash, \
-		sizeof (actual_hash), \
-		&actual[actual_header_len + actual_cert_len + actual_algo_len + tmp + 1], \
+		hash_length, &actual[actual_header_len + actual_cert_len + actual_algo_len + tmp + 1], \
 		actual_sig_len - (tmp + 1)); \
-	CuAssertIntEquals (test, 0, status); \
+	CuAssertIntEquals (test, 0, verify_status); \
 	\
 	ecc_verify.base.release_key_pair (&ecc_verify.base, NULL, &key_verify); \
 	ECC_TESTING_ENGINE_RELEASE (&ecc_verify); \
@@ -173,15 +210,20 @@ int x509_testing_corrupt_signature (uint8_t *der);
 /**
  * Verify an RSA signature on the certificate.
  */
-#define	x509_testing_verify_signature_rsa(test, actual) do { \
+#define	x509_testing_verify_signature_rsa(test, actual, hash_algo) do { \
 	RSA_TESTING_ENGINE rsa_verify; \
+	int hash_length; \
+	int exp_hash_length; \
 	\
 	verify_status = RSA_TESTING_ENGINE_INIT (&rsa_verify); \
 	CuAssertIntEquals (test, 0, verify_status); \
 	\
-	verify_status = hash_verify.base.calculate_sha256 (&hash_verify.base, \
+	exp_hash_length = hash_get_hash_length (HASH_TYPE_##hash_algo); \
+	CuAssertTrue (test, (exp_hash_length != HASH_ENGINE_UNKNOWN_HASH)); \
+	\
+	hash_length = hash_calculate (&hash_verify.base, HASH_TYPE_##hash_algo, \
 		&actual[actual_header_len], actual_cert_len, actual_hash, sizeof (actual_hash)); \
-	CuAssertIntEquals (test, 0, verify_status); \
+	CuAssertIntEquals (test, exp_hash_length, hash_length); \
 	\
 	actual_sig_len = x509_testing_get_item_length ( \
 		&actual[actual_header_len + actual_cert_len + actual_algo_len], &tmp); \
@@ -189,7 +231,7 @@ int x509_testing_corrupt_signature (uint8_t *der);
 	\
 	verify_status = rsa_verify.base.sig_verify (&rsa_verify.base, &RSA_PUBLIC_KEY, \
 		&actual[actual_header_len + actual_cert_len + actual_algo_len + tmp + 1], \
-		actual_sig_len - (tmp + 1), actual_hash, sizeof (actual_hash)); \
+		actual_sig_len - (tmp + 1), HASH_TYPE_##hash_algo, actual_hash, hash_length); \
 	CuAssertIntEquals (test, 0, verify_status); \
 	\
 	RSA_TESTING_ENGINE_RELEASE (&rsa_verify); \
@@ -208,8 +250,26 @@ extern const size_t X509_ECDSA_NO_NULL_SIG_ALGO_DER_LEN;
 extern const uint8_t X509_ECDSA_WITH_NULL_SIG_ALGO_DER[];
 extern const size_t X509_ECDSA_WITH_NULL_SIG_ALGO_DER_LEN;
 
+extern const uint8_t X509_ECDSA_SHA384_NO_NULL_SIG_ALGO_DER[];
+extern const size_t X509_ECDSA_SHA384_NO_NULL_SIG_ALGO_DER_LEN;
+
+extern const uint8_t X509_ECDSA_SHA384_WITH_NULL_SIG_ALGO_DER[];
+extern const size_t X509_ECDSA_SHA384_WITH_NULL_SIG_ALGO_DER_LEN;
+
+extern const uint8_t X509_ECDSA_SHA512_NO_NULL_SIG_ALGO_DER[];
+extern const size_t X509_ECDSA_SHA512_NO_NULL_SIG_ALGO_DER_LEN;
+
+extern const uint8_t X509_ECDSA_SHA512_WITH_NULL_SIG_ALGO_DER[];
+extern const size_t X509_ECDSA_SHA512_WITH_NULL_SIG_ALGO_DER_LEN;
+
 extern const uint8_t X509_RSA_WITH_NULL_SIG_ALGO_DER[];
 extern const size_t X509_RSA_WITH_NULL_SIG_ALGO_DER_LEN;
+
+extern const uint8_t X509_RSA_SHA384_WITH_NULL_SIG_ALGO_DER[];
+extern const size_t X509_RSA_SHA384_WITH_NULL_SIG_ALGO_DER_LEN;
+
+extern const uint8_t X509_RSA_SHA512_WITH_NULL_SIG_ALGO_DER[];
+extern const size_t X509_RSA_SHA512_WITH_NULL_SIG_ALGO_DER_LEN;
 
 
 /* CA certificates */
@@ -227,6 +287,10 @@ extern const char *X509_CA3_SUBJECT_NAME;
 /* Certificate Signing Request */
 extern const uint8_t X509_CSR_ECC_CA_DER[];
 extern const size_t X509_CSR_ECC_CA_DER_LEN;
+extern const uint8_t X509_CSR_ECC384_CA_DER[];
+extern const size_t X509_CSR_ECC384_CA_DER_LEN;
+extern const uint8_t X509_CSR_ECC521_CA_DER[];
+extern const size_t X509_CSR_ECC521_CA_DER_LEN;
 extern const uint8_t X509_CSR_RSA_CA_DER[];
 extern const size_t X509_CSR_RSA_CA_DER_LEN;
 
@@ -268,6 +332,10 @@ extern const size_t X509_CERTSS_RSA_CA_NOPL_DER_LEN;
  * Signed by self-signed CA of opposite algorithm (e.g. CERTCA_ECC_CA signed by CERTSS_RSA_CA). */
 extern const uint8_t X509_CERTCA_ECC_CA_DER[];
 extern const size_t X509_CERTCA_ECC_CA_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC384_CA_DER[];
+extern const size_t X509_CERTCA_ECC384_CA_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC521_CA_DER[];
+extern const size_t X509_CERTCA_ECC521_CA_DER_LEN;
 extern const uint8_t X509_CERTCA_RSA_CA_DER[];
 extern const size_t X509_CERTCA_RSA_CA_DER_LEN;
 
@@ -275,11 +343,19 @@ extern const size_t X509_CERTCA_RSA_CA_DER_LEN;
  * ECC certificate signed by a self-signed ECC CA. */
 extern const uint8_t X509_CERTCA_ECC_CA2_DER[];
 extern const size_t X509_CERTCA_ECC_CA2_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC384_CA2_DER[];
+extern const size_t X509_CERTCA_ECC384_CA2_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC521_CA2_DER[];
+extern const size_t X509_CERTCA_ECC521_CA2_DER_LEN;
 
 /* CA-signed certificate
  * ECC certificate signed by an intermediate ECC CA. */
 extern const uint8_t X509_CERTCA_ECC_CA2_ICA_DER[];
 extern const size_t X509_CERTCA_ECC_CA2_ICA_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC384_CA2_ICA_DER[];
+extern const size_t X509_CERTCA_ECC384_CA2_ICA_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC521_CA2_ICA_DER[];
+extern const size_t X509_CERTCA_ECC521_CA2_ICA_DER_LEN;
 
 /* CA-signed certificate with path length constraint of 15 */
 extern const uint8_t X509_CERTCA_ECC_CA_PL15_DER[];
@@ -307,12 +383,20 @@ extern const size_t X509_ENTITY_SERIAL_NUM_LEN;
 /* Certificate Signing Request */
 extern const uint8_t X509_CSR_ECC_EE_DER[];
 extern const size_t X509_CSR_ECC_EE_DER_LEN;
+extern const uint8_t X509_CSR_ECC384_EE_DER[];
+extern const size_t X509_CSR_ECC384_EE_DER_LEN;
+extern const uint8_t X509_CSR_ECC521_EE_DER[];
+extern const size_t X509_CSR_ECC521_EE_DER_LEN;
 extern const uint8_t X509_CSR_RSA_EE_DER[];
 extern const size_t X509_CSR_RSA_EE_DER_LEN;
 
 /* Self-signed certificate */
 extern const uint8_t X509_CERTSS_ECC_EE_DER[];
 extern const size_t X509_CERTSS_ECC_EE_DER_LEN;
+extern const uint8_t X509_CERTSS_ECC384_EE_DER[];
+extern const size_t X509_CERTSS_ECC384_EE_DER_LEN;
+extern const uint8_t X509_CERTSS_ECC521_EE_DER[];
+extern const size_t X509_CERTSS_ECC521_EE_DER_LEN;
 extern const uint8_t X509_CERTSS_RSA_EE_DER[];
 extern const size_t X509_CERTSS_RSA_EE_DER_LEN;
 
@@ -320,6 +404,10 @@ extern const size_t X509_CERTSS_RSA_EE_DER_LEN;
  * Signed by self-signed CA of opposite algorithm (e.g. CERTCA_ECC_EE signed by CERTSS_RSA_CA). */
 extern const uint8_t X509_CERTCA_ECC_EE_DER[];
 extern const size_t X509_CERTCA_ECC_EE_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC384_EE_DER[];
+extern const size_t X509_CERTCA_ECC384_EE_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC521_EE_DER[];
+extern const size_t X509_CERTCA_ECC521_EE_DER_LEN;
 extern const uint8_t X509_CERTCA_RSA_EE_DER[];
 extern const size_t X509_CERTCA_RSA_EE_DER_LEN;
 
@@ -327,6 +415,10 @@ extern const size_t X509_CERTCA_RSA_EE_DER_LEN;
  * ECC certificate signed by a self-signed ECC CA. */
 extern const uint8_t X509_CERTCA_ECC_EE2_DER[];
 extern const size_t X509_CERTCA_ECC_EE2_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC384_EE2_DER[];
+extern const size_t X509_CERTCA_ECC384_EE2_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC521_EE2_DER[];
+extern const size_t X509_CERTCA_ECC521_EE2_DER_LEN;
 
 
 /* RIoT extension certificates */
@@ -336,6 +428,8 @@ extern const size_t X509_RIOT_SERIAL_NUM_LEN;
 
 extern const uint8_t X509_RIOT_SHA1_FWID[];
 extern const uint8_t X509_RIOT_SHA256_FWID[];
+extern const uint8_t X509_RIOT_SHA384_FWID[];
+extern const uint8_t X509_RIOT_SHA512_FWID[];
 
 extern const uint8_t X509_RIOT_UEID[];
 extern const size_t X509_RIOT_UEID_LEN;
@@ -351,6 +445,10 @@ extern const size_t X509_CSR_ECC_EE_UEID_DER_LEN;
 
 extern const uint8_t X509_CSR_ECC_CA_UEID_SHA1_DER[];
 extern const size_t X509_CSR_ECC_CA_UEID_SHA1_DER_LEN;
+extern const uint8_t X509_CSR_ECC_CA_UEID_SHA384_DER[];
+extern const size_t X509_CSR_ECC_CA_UEID_SHA384_DER_LEN;
+extern const uint8_t X509_CSR_ECC_CA_UEID_SHA512_DER[];
+extern const size_t X509_CSR_ECC_CA_UEID_SHA512_DER_LEN;
 extern const uint8_t X509_CSR_ECC_CA_UEID_SVN_DER[];
 extern const size_t X509_CSR_ECC_CA_UEID_SVN_DER_LEN;
 
@@ -361,6 +459,10 @@ extern const size_t X509_CERTSS_ECC_EE_UEID_DER_LEN;
 
 extern const uint8_t X509_CERTSS_ECC_CA_UEID_SHA1_DER[];
 extern const size_t X509_CERTSS_ECC_CA_UEID_SHA1_DER_LEN;
+extern const uint8_t X509_CERTSS_ECC_CA_UEID_SHA384_DER[];
+extern const size_t X509_CERTSS_ECC_CA_UEID_SHA384_DER_LEN;
+extern const uint8_t X509_CERTSS_ECC_CA_UEID_SHA512_DER[];
+extern const size_t X509_CERTSS_ECC_CA_UEID_SHA512_DER_LEN;
 extern const uint8_t X509_CERTSS_ECC_CA_UEID_SVN_DER[];
 extern const size_t X509_CERTSS_ECC_CA_UEID_SVN_DER_LEN;
 
@@ -371,6 +473,10 @@ extern const size_t X509_CERTCA_ECC_EE_UEID_DER_LEN;
 
 extern const uint8_t X509_CERTCA_ECC_CA_UEID_SHA1_DER[];
 extern const size_t X509_CERTCA_ECC_CA_UEID_SHA1_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC_CA_UEID_SHA384_DER[];
+extern const size_t X509_CERTCA_ECC_CA_UEID_SHA384_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC_CA_UEID_SHA512_DER[];
+extern const size_t X509_CERTCA_ECC_CA_UEID_SHA512_DER_LEN;
 extern const uint8_t X509_CERTCA_ECC_CA_UEID_SVN_DER[];
 extern const size_t X509_CERTCA_ECC_CA_UEID_SVN_DER_LEN;
 

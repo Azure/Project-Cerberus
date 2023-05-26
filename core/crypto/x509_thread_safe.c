@@ -9,7 +9,7 @@
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
 static int x509_thread_safe_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
-	size_t key_length, const char *name, int type, const char *eku,
+	size_t key_length, enum hash_type sig_hash, const char *name, int type, const char *eku,
 	const struct x509_dice_tcbinfo *dice, uint8_t **csr, size_t *csr_length)
 {
 	struct x509_engine_thread_safe *x509 = (struct x509_engine_thread_safe*) engine;
@@ -20,8 +20,8 @@ static int x509_thread_safe_create_csr (struct x509_engine *engine, const uint8_
 	}
 
 	platform_mutex_lock (&x509->lock);
-	status = x509->engine->create_csr (x509->engine, priv_key, key_length, name, type, eku, dice,
-		csr, csr_length);
+	status = x509->engine->create_csr (x509->engine, priv_key, key_length, sig_hash, name, type,
+		eku, dice, csr, csr_length);
 	platform_mutex_unlock (&x509->lock);
 
 	return status;
@@ -29,8 +29,8 @@ static int x509_thread_safe_create_csr (struct x509_engine *engine, const uint8_
 
 static int x509_thread_safe_create_self_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
-	const uint8_t *serial_num, size_t serial_length, const char *name, int type,
-	const struct x509_dice_tcbinfo *dice)
+	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
+	int type, const struct x509_dice_tcbinfo *dice)
 {
 	struct x509_engine_thread_safe *x509 = (struct x509_engine_thread_safe*) engine;
 	int status;
@@ -41,7 +41,7 @@ static int x509_thread_safe_create_self_signed_certificate (struct x509_engine *
 
 	platform_mutex_lock (&x509->lock);
 	status = x509->engine->create_self_signed_certificate (x509->engine, cert, priv_key, key_length,
-		serial_num, serial_length, name, type, dice);
+		sig_hash, serial_num, serial_length, name, type, dice);
 	platform_mutex_unlock (&x509->lock);
 
 	return status;
@@ -50,7 +50,7 @@ static int x509_thread_safe_create_self_signed_certificate (struct x509_engine *
 static int x509_thread_safe_create_ca_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
-	size_t ca_key_length, const struct x509_certificate *ca_cert,
+	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
 	const struct x509_dice_tcbinfo *dice)
 {
 	struct x509_engine_thread_safe *x509 = (struct x509_engine_thread_safe*) engine;
@@ -62,7 +62,7 @@ static int x509_thread_safe_create_ca_signed_certificate (struct x509_engine *en
 
 	platform_mutex_lock (&x509->lock);
 	status = x509->engine->create_ca_signed_certificate (x509->engine, cert, key, key_length,
-		serial_num, serial_length, name, type, ca_priv_key, ca_key_length, ca_cert, dice);
+		serial_num, serial_length, name, type, ca_priv_key, ca_key_length, sig_hash, ca_cert, dice);
 	platform_mutex_unlock (&x509->lock);
 
 	return status;

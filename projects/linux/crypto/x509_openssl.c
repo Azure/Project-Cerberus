@@ -257,6 +257,16 @@ static int x509_openssl_riot_fwid_set (RIOT_FWID *riot, const uint8_t *fw_id,
 			hash_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha256 ()));
 			break;
 
+		case HASH_TYPE_SHA384:
+			fw_id_len = SHA384_HASH_LENGTH;
+			hash_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha384 ()));
+			break;
+
+		case HASH_TYPE_SHA512:
+			fw_id_len = SHA512_HASH_LENGTH;
+			hash_oid = OBJ_nid2obj (EVP_MD_type (EVP_sha512 ()));
+			break;
+
 		default:
 			return X509_ENGINE_RIOT_UNSUPPORTED_HASH;
 	}
@@ -498,13 +508,14 @@ err_ueid:
 }
 
 static int x509_openssl_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
-	size_t key_length, const char *name, int type, const char *eku,
+	size_t key_length, enum hash_type sig_hash, const char *name, int type, const char *eku,
 	const struct x509_dice_tcbinfo *dice, uint8_t **csr, size_t *csr_length)
 {
 	X509_REQ *request;
 	EVP_PKEY *req_key;
 	X509_NAME *subject;
 	STACK_OF (X509_EXTENSION) *extensions;
+	const EVP_MD *hash_algo;
 	int status;
 	char *key_usage;
 
@@ -520,6 +531,27 @@ static int x509_openssl_create_csr (struct x509_engine *engine, const uint8_t *p
 
 	if ((type == X509_CERT_END_ENTITY) && (eku != NULL)) {
 		return X509_ENGINE_NOT_CA_CERT;
+	}
+
+	switch (sig_hash) {
+		case HASH_TYPE_SHA256:
+			hash_algo = EVP_sha256 ();
+			break;
+
+#ifdef HASH_ENABLE_SHA384
+		case HASH_TYPE_SHA384:
+			hash_algo = EVP_sha384 ();
+			break;
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+		case HASH_TYPE_SHA512:
+			hash_algo = EVP_sha512 ();
+			break;
+#endif
+
+		default:
+			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
 	}
 
 	ERR_clear_error ();
@@ -660,7 +692,7 @@ static int x509_openssl_create_csr (struct x509_engine *engine, const uint8_t *p
 		goto err_ext;
 	}
 
-	status = X509_REQ_sign (request, req_key, EVP_sha256 ());
+	status = X509_REQ_sign (request, req_key, hash_algo);
 	if (status == 0) {
 		status = -ERR_get_error ();
 		goto err_ext;
@@ -784,6 +816,7 @@ err_tcbinfo:
  * @param cert The instance to initialize with the new certificate.
  * @param cert_key The key to use to create the certificate.  For self-signed certificates, this
  * must be a private key.
+ * @param sig_hash The hash algorithm to use for signing the certificate.
  * @param serial_num The serial number to assign to the certificate.
  * @param serial_length The length of the serial number.
  * @param name The common name for the certificate subject.
@@ -798,16 +831,39 @@ err_tcbinfo:
  * @return 0 if the certificate was successfully created or an error code.
  */
 static int x509_openssl_create_certificate (struct x509_certificate *cert, EVP_PKEY *cert_key,
-	const uint8_t *serial_num, size_t serial_length, const char *name, int type, EVP_PKEY *ca_key,
-	const struct x509_certificate *ca_cert, const struct x509_dice_tcbinfo *dice)
+	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
+	int type, EVP_PKEY *ca_key, const struct x509_certificate *ca_cert,
+	const struct x509_dice_tcbinfo *dice)
 {
 	X509 *x509;
 	X509 *ca_x509;
 	BIGNUM *serial;
 	X509_NAME *subject;
 	ASN1_TIME *validity;
+	const EVP_MD *hash_algo;
 	char *key_usage;
 	int status;
+
+	switch (sig_hash) {
+		case HASH_TYPE_SHA256:
+			hash_algo = EVP_sha256 ();
+			break;
+
+#ifdef HASH_ENABLE_SHA384
+		case HASH_TYPE_SHA384:
+			hash_algo = EVP_sha384 ();
+			break;
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+		case HASH_TYPE_SHA512:
+			hash_algo = EVP_sha512 ();
+			break;
+#endif
+
+		default:
+			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
+	}
 
 	ERR_clear_error ();
 
@@ -938,10 +994,10 @@ static int x509_openssl_create_certificate (struct x509_certificate *cert, EVP_P
 	}
 
 	if (ca_key) {
-		status = X509_sign (x509, ca_key, EVP_sha256 ());
+		status = X509_sign (x509, ca_key, hash_algo);
 	}
 	else {
-		status = X509_sign (x509, cert_key, EVP_sha256 ());
+		status = X509_sign (x509, cert_key, hash_algo);
 	}
 
 	if (status == 0) {
@@ -964,8 +1020,8 @@ err_cert:
 
 static int x509_openssl_create_self_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
-	const uint8_t *serial_num, size_t serial_length, const char *name, int type,
-	const struct x509_dice_tcbinfo *dice)
+	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
+	int type, const struct x509_dice_tcbinfo *dice)
 {
 	EVP_PKEY *cert_key;
 	int status;
@@ -980,8 +1036,8 @@ static int x509_openssl_create_self_signed_certificate (struct x509_engine *engi
 		return status;
 	}
 
-	status = x509_openssl_create_certificate (cert, cert_key, serial_num, serial_length, name, type,
-		NULL, NULL, dice);
+	status = x509_openssl_create_certificate (cert, cert_key, sig_hash, serial_num, serial_length,
+		name, type, NULL, NULL, dice);
 
 	EVP_PKEY_free (cert_key);
 	return status;
@@ -990,7 +1046,7 @@ static int x509_openssl_create_self_signed_certificate (struct x509_engine *engi
 static int x509_openssl_create_ca_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
-	size_t ca_key_length, const struct x509_certificate *ca_cert,
+	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
 	const struct x509_dice_tcbinfo *tcb)
 {
 	EVP_PKEY *cert_key;
@@ -1013,8 +1069,8 @@ static int x509_openssl_create_ca_signed_certificate (struct x509_engine *engine
 		goto err_ca_key;
 	}
 
-	status = x509_openssl_create_certificate (cert, cert_key, serial_num, serial_length, name, type,
-		ca_key, ca_cert, tcb);
+	status = x509_openssl_create_certificate (cert, cert_key, sig_hash, serial_num, serial_length,
+		name, type, ca_key, ca_cert, tcb);
 
 	EVP_PKEY_free (ca_key);
 err_ca_key:

@@ -255,6 +255,18 @@ static int x509_mbedtls_add_fwid (struct x509_engine_mbedtls *engine, const uint
 			hash_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA256);
 			break;
 
+		case HASH_TYPE_SHA384:
+			fw_id_length = SHA384_HASH_LENGTH;
+			hash_oid = MBEDTLS_OID_DIGEST_ALG_SHA384;
+			hash_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA384);
+			break;
+
+		case HASH_TYPE_SHA512:
+			fw_id_length = SHA512_HASH_LENGTH;
+			hash_oid = MBEDTLS_OID_DIGEST_ALG_SHA512;
+			hash_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA512);
+			break;
+
 		default:
 			return X509_ENGINE_RIOT_UNSUPPORTED_HASH;
 	}
@@ -444,12 +456,13 @@ static int x509_mbedtls_add_dice_extensions (struct x509_engine_mbedtls *engine,
 }
 
 static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
-	size_t key_length, const char *name, int type, const char *eku,
+	size_t key_length, enum hash_type sig_hash, const char *name, int type, const char *eku,
 	const struct x509_dice_tcbinfo *dice, uint8_t **csr, size_t *csr_length)
 {
 	struct x509_engine_mbedtls *mbedtls = (struct x509_engine_mbedtls*) engine;
 	mbedtls_x509write_csr x509;
 	mbedtls_pk_context key;
+	mbedtls_md_type_t md_alg;
 	char *subject;
 	int status;
 
@@ -465,6 +478,23 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 
 	if ((type == X509_CERT_END_ENTITY) && (eku != NULL)) {
 		return X509_ENGINE_NOT_CA_CERT;
+	}
+
+	switch (sig_hash) {
+		case HASH_TYPE_SHA256:
+			md_alg = MBEDTLS_MD_SHA256;
+			break;
+
+		case HASH_TYPE_SHA384:
+			md_alg = MBEDTLS_MD_SHA384;
+			break;
+
+		case HASH_TYPE_SHA512:
+			md_alg = MBEDTLS_MD_SHA512;
+			break;
+
+		default:
+			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
 	}
 
 	mbedtls_x509write_csr_init (&x509);
@@ -551,7 +581,7 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 		}
 	}
 
-	mbedtls_x509write_csr_set_md_alg (&x509, MBEDTLS_MD_SHA256);
+	mbedtls_x509write_csr_set_md_alg (&x509, md_alg);
 	status = mbedtls_x509write_csr_der (&x509, mbedtls->der_buf, X509_MAX_SIZE,
 		mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
 	if (status < 0) {
@@ -587,6 +617,7 @@ err_free_csr:
  * @param cert The instance to initialize with the new certificate.
  * @param cert_key The key to use to create the certificate.  For self-signed certificates, this
  * must be a private key.
+ * @param sig_hash The hash algorithm to use for signing the certificate.
  * @param serial_num The serial number to assign to the certificate.
  * @param serial_length The length of the serial number.
  * @param name The common name for the certificate subject.
@@ -601,16 +632,35 @@ err_free_csr:
  * @return 0 if the certificate was successfully created or an error code.
  */
 static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
-	struct x509_certificate *cert, mbedtls_pk_context *cert_key, const uint8_t *serial_num,
-	size_t serial_length, const char *name, int type, mbedtls_pk_context *ca_key,
-	const struct x509_certificate *ca_cert, const struct x509_dice_tcbinfo *dice)
+	struct x509_certificate *cert, mbedtls_pk_context *cert_key, enum hash_type sig_hash,
+	const uint8_t *serial_num, size_t serial_length, const char *name, int type,
+	mbedtls_pk_context *ca_key, const struct x509_certificate *ca_cert,
+	const struct x509_dice_tcbinfo *dice)
 {
 	mbedtls_x509_crt *x509;
 	mbedtls_x509_crt *ca_x509;
 	mbedtls_x509write_cert x509_build;
 	mbedtls_pk_context *signing_key;
+	mbedtls_md_type_t md_alg;
 	char *subject;
 	int status;
+
+	switch (sig_hash) {
+		case HASH_TYPE_SHA256:
+			md_alg = MBEDTLS_MD_SHA256;
+			break;
+
+		case HASH_TYPE_SHA384:
+			md_alg = MBEDTLS_MD_SHA384;
+			break;
+
+		case HASH_TYPE_SHA512:
+			md_alg = MBEDTLS_MD_SHA512;
+			break;
+
+		default:
+			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
+	}
 
 	if (ca_key) {
 		signing_key = ca_key;
@@ -746,7 +796,7 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 		}
 	}
 
-	mbedtls_x509write_crt_set_md_alg (&x509_build, MBEDTLS_MD_SHA256);
+	mbedtls_x509write_crt_set_md_alg (&x509_build, md_alg);
 	status = mbedtls_x509write_crt_der (&x509_build, mbedtls->der_buf, X509_MAX_SIZE,
 		mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
 	if (status < 0) {
@@ -783,8 +833,8 @@ err_free_crt:
 
 static int x509_mbedtls_create_self_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
-	const uint8_t *serial_num, size_t serial_length, const char *name, int type,
-	const struct x509_dice_tcbinfo *dice)
+	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
+	int type, const struct x509_dice_tcbinfo *dice)
 {
 	mbedtls_pk_context cert_key;
 	int status;
@@ -803,7 +853,7 @@ static int x509_mbedtls_create_self_signed_certificate (struct x509_engine *engi
 	}
 
 	status = x509_mbedtls_create_certificate ((struct x509_engine_mbedtls*) engine, cert, &cert_key,
-		serial_num, serial_length, name, type, NULL, NULL, dice);
+		sig_hash, serial_num, serial_length, name, type, NULL, NULL, dice);
 
 	mbedtls_pk_free (&cert_key);
 err_exit:
@@ -813,7 +863,7 @@ err_exit:
 static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
-	size_t ca_key_length, const struct x509_certificate *ca_cert,
+	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
 	const struct x509_dice_tcbinfo *dice)
 {
 	mbedtls_pk_context cert_key;
@@ -843,7 +893,7 @@ static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine
 	}
 
 	status = x509_mbedtls_create_certificate ((struct x509_engine_mbedtls*) engine, cert, &cert_key,
-		serial_num, serial_length, name, type, &ca_key, ca_cert, dice);
+		sig_hash, serial_num, serial_length, name, type, &ca_key, ca_cert, dice);
 
 	mbedtls_pk_free (&ca_key);
 err_free_key:

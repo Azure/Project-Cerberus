@@ -79,8 +79,7 @@ static int ecc_der_get_next_tag (uint8_t type, const uint8_t **der, size_t *leng
 	}
 	else {
 		/* We will never get an ASN.1 sequence that needs more than a single length byte.  If we do,
-		 * there is no point parsing it any further since it does not represent an ECC private
-		 * key.
+		 * there is no point parsing it any further since it does not represent an ECC key.
 		 *
 		 * This same error will trigger if any sub-tag has more than one length byte.  In that case,
 		 * the encoding is technically malformed. */
@@ -216,6 +215,65 @@ static int ecc_der_encode_public_key_bit_string (const uint8_t *pub_key_x, const
 int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv_key,
 	size_t key_length)
 {
+	const uint8_t *pos;
+	int type_len;
+	int key_len;
+
+	if ((der == NULL) || (priv_key == NULL)) {
+		return ECC_DER_UTIL_INVALID_ARGUMENT;
+	}
+
+	type_len = ecc_der_decode_private_key_no_copy (der, length, &pos);
+	if (ROT_IS_ERROR (type_len)) {
+		return type_len;
+	}
+
+	key_len = type_len;
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+	if (type_len == (ECC_KEY_LENGTH_521 - 1)) {
+		/* Adjust key length for encoders that drop the first byte when it is 0. */
+		key_len++;
+	}
+#endif
+
+	if (key_length >= (size_t) key_len) {
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		if (type_len == (ECC_KEY_LENGTH_521 - 1)) {
+			priv_key[0] = 0;
+			memcpy (&priv_key[1], pos, type_len);
+		}
+		else
+#endif
+		{
+			memcpy (priv_key, pos, key_len);
+		}
+	}
+	else {
+		return ECC_DER_UTIL_SMALL_KEY_BUFFER;
+	}
+
+	return key_len;
+}
+
+/**
+ * Get a reference to an ECC private key within ASN.1/DER encoded data.  If the DER data also
+ * contains a public key, this value is ignored.
+ *
+ * Only P256, P384, and P521 curves are supported.
+ *
+ * For P521 keys, the private key value may contain one less byte than expected, depending on how
+ * the DER is encoded.
+ *
+ * @param der An ASN.1/DER encoded ECC private key.
+ * @param length Length of the DER data.
+ * @param priv_key Output for the location of the private key in the encoded data.  The data is not
+ * copied, so it will only be valid as long as the encoded DER data remains valid.
+ *
+ * @return Length of the private key or an error code.
+ */
+int ecc_der_decode_private_key_no_copy (const uint8_t *der, size_t length,
+	const uint8_t **priv_key)
+{
 	const uint8_t *pos = der;
 	size_t type_len;
 	int key_len;
@@ -269,10 +327,6 @@ int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv
 		case ECC_KEY_LENGTH_521 - 1:
 			/* Some encoders drop the first byte of private key if it is 0, so accept one less byte
 			 * than normally expected. */
-			key_len++;
-
-			/* fall through */ /* no break */
-
 		case ECC_KEY_LENGTH_521:
 			oid = ECC_DER_P521_OID;
 			oid_len = sizeof (ECC_DER_P521_OID);
@@ -283,21 +337,7 @@ int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv
 			return ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH;
 	}
 
-	if (key_length >= (size_t) key_len) {
-#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
-		if (type_len == (ECC_KEY_LENGTH_521 - 1)) {
-			priv_key[0] = 0;
-			memcpy (&priv_key[1], pos, type_len);
-		}
-		else
-#endif
-		{
-			memcpy (priv_key, pos, key_len);
-		}
-	}
-	else {
-		return ECC_DER_UTIL_SMALL_KEY_BUFFER;
-	}
+	*priv_key = pos;
 
 	/* We have the private key of a valid length, but we need to make sure it is for the expected
 	 * curve.  While this field is defined as optional, it is expected to always be present, and
@@ -357,19 +397,19 @@ int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_
 		return ECC_DER_UTIL_INVALID_ARGUMENT;
 	}
 
-	if (pub_key_x && pub_key_y) {
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+	if (pub_key_x && pub_key_y && (key_length > ECC_KEY_LENGTH_256)) {
 		has_pub_key = 0x80;
-		if (key_length > ECC_KEY_LENGTH_256) {
-			seq_hdr_len = 3;
-		}
+		seq_hdr_len = 3;
 	}
+#endif
 
 	switch (key_length) {
 		case ECC_KEY_LENGTH_256:
 			oid_len = sizeof (ECC_DER_P256_OID);
 			oid = ECC_DER_P256_OID;
 
-			status = ecc_der_add_next_tag (0x30, 0, NULL, &pos, &length);
+			status = ecc_der_add_next_tag (0x30, has_pub_key, NULL, &pos, &length);
 			break;
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
@@ -494,13 +534,61 @@ size_t ecc_der_get_private_key_length (const uint8_t *der, size_t max_length)
 int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_key_x,
 	uint8_t *pub_key_y, size_t key_length)
 {
+	const uint8_t *pos;
+	int type_len;
+	size_t key_len;
+
+	if ((der == NULL) || (pub_key_x == NULL) || (pub_key_y == NULL)) {
+		return ECC_DER_UTIL_INVALID_ARGUMENT;
+	}
+
+	type_len = ecc_der_decode_public_key_no_copy (der, length, &pos);
+	if (ROT_IS_ERROR (type_len)) {
+		return type_len;
+	}
+
+	/* Only uncompressed ECPoint values are supported. */
+	if (pos[0] != 0x04) {
+		return ECC_DER_UTIL_COMPRESSED_ECPOINT;
+	}
+
+	/* Skip the public key format byte. */
+	pos++;
+	key_len = (type_len - 1) / 2;
+
+	if (key_length < key_len) {
+		return ECC_DER_UTIL_SMALL_KEY_BUFFER;
+	}
+
+	memcpy (pub_key_x, pos, key_len);
+	memcpy (pub_key_y, &pos[key_len], key_len);
+
+	return key_len;
+}
+
+/**
+ * Get a reference to an ECC public key within ASN.1/DER encoded data.  This will include the
+ * leading byte indicating how the public key is stored.
+ *
+ * Only P256, P384, and P521 curves are supported.
+ *
+ * @param der An ASN.1/DER encoded ECC public key.
+ * @param length Length of the DER data.
+ * @param pub_key Output for the location of the public key in the encoded data.  The data is not
+ * copied, so it will only be valid as long as the encoded DER data remains valid.
+ *
+ * @return Length of the public key data or an error code.
+ */
+int ecc_der_decode_public_key_no_copy (const uint8_t *der, size_t length, const uint8_t **pub_key)
+{
 	const uint8_t *pos = der;
 	size_t type_len;
 	size_t oid_len;
+	size_t key_len;
 	const uint8_t *oid;
 	int status;
 
-	if ((der == NULL) || (pub_key_x == NULL) || (pub_key_y == NULL)) {
+	if ((der == NULL) || (pub_key == NULL)) {
 		return ECC_DER_UTIL_INVALID_ARGUMENT;
 	}
 
@@ -544,10 +632,9 @@ int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_k
 		return status;
 	}
 
-	pos += 2;
-	type_len = (type_len - 2) / 2;
+	key_len = (type_len - 2) / 2;
 
-	switch (type_len) {
+	switch (key_len) {
 		case ECC_KEY_LENGTH_256:
 			if ((oid_len != sizeof (ECC_DER_P256_OID)) ||
 				(memcmp (oid, ECC_DER_P256_OID, oid_len) != 0)) {
@@ -577,13 +664,26 @@ int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_k
 			return ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH;
 	}
 
-	if (key_length < type_len) {
-		return ECC_DER_UTIL_SMALL_KEY_BUFFER;
+	/* Skip over the leading zero in the public key bit string. */
+	pos++;
+	type_len--;
+
+	/* Confirm a valid ECPoint format for the public key. */
+	switch (pos[0]) {
+		case 0x02:
+		case 0x03:
+			/* Compressed ECPoint */
+			break;
+
+		case 0x04:
+			/* Uncompressed ECPoint */
+			break;
+
+		default:
+			return ECC_DER_UTIL_INVALID_ECPOINT;
 	}
 
-	memcpy (pub_key_x, pos, type_len);
-	memcpy (pub_key_y, &pos[type_len], type_len);
-
+	*pub_key = pos;
 	return type_len;
 }
 

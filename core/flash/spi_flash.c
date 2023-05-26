@@ -559,7 +559,7 @@ int spi_flash_init_state (const struct spi_flash *flash)
 	/* Make an assumption in the default case that the flash device supports the common 66/99
 	 * sequence for triggering a soft reset, and that the reset reverts the address mode to the
 	 * default state.  This allows some minimal scenarios where additional device discovery is not
-	 * necessary to still reset the device, but most scenarios will never see thees default
+	 * necessary to still reset the device, but most scenarios will never see these default
 	 * assumptions. */
 	flash->state->command.reset = FLASH_CMD_RST;
 	flash->state->reset_3byte = true;

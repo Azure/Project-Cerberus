@@ -99,7 +99,8 @@ static int rsa_mock_get_public_key_der (struct rsa_engine *engine,
 }
 
 static int rsa_mock_sig_verify (struct rsa_engine *engine, const struct rsa_public_key *key,
-	const uint8_t *signature, size_t sig_length, const uint8_t *match, size_t match_length)
+	const uint8_t *signature, size_t sig_length, enum hash_type sig_hash, const uint8_t *match,
+	size_t match_length)
 {
 	struct rsa_engine_mock *mock = (struct rsa_engine_mock*) engine;
 
@@ -108,8 +109,8 @@ static int rsa_mock_sig_verify (struct rsa_engine *engine, const struct rsa_publ
 	}
 
 	MOCK_RETURN (&mock->mock, rsa_mock_sig_verify, engine, MOCK_ARG_PTR_CALL (key),
-		MOCK_ARG_PTR_CALL (signature), MOCK_ARG_CALL (sig_length), MOCK_ARG_PTR_CALL (match),
-		MOCK_ARG_CALL (match_length));
+		MOCK_ARG_PTR_CALL (signature), MOCK_ARG_CALL (sig_length), MOCK_ARG_CALL (sig_hash),
+		MOCK_ARG_PTR_CALL (match), MOCK_ARG_CALL (match_length));
 }
 
 static int rsa_mock_func_arg_count (void *func)
@@ -118,7 +119,7 @@ static int rsa_mock_func_arg_count (void *func)
 		return 8;
 	}
 	else if (func == rsa_mock_sig_verify) {
-		return 5;
+		return 6;
 	}
 	else if ((func == rsa_mock_init_private_key) || (func == rsa_mock_get_private_key_der) ||
 		(func == rsa_mock_init_public_key) || (func == rsa_mock_get_public_key_der)) {
@@ -270,9 +271,12 @@ static const char* rsa_mock_arg_name_map (void *func, int arg)
 				return "sig_length";
 
 			case 3:
-				return "match";
+				return "sig_hash";
 
 			case 4:
+				return "match";
+
+			case 5:
 				return "match_length";
 		}
 	}

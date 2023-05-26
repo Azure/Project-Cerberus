@@ -46,6 +46,8 @@ struct ecc_der_key {
 
 int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv_key,
 	size_t key_length);
+int ecc_der_decode_private_key_no_copy (const uint8_t *der, size_t length,
+	const uint8_t **priv_key);
 int ecc_der_encode_private_key (const uint8_t *priv_key, const uint8_t *pub_key_x,
 	const uint8_t *pub_key_y, size_t key_length, uint8_t *der, size_t length);
 size_t ecc_der_get_private_key_length (const uint8_t *der, size_t max_length);
@@ -79,6 +81,7 @@ struct ecc_der_private_key {
 
 int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_key_x,
 	uint8_t *pub_key_y, size_t key_length);
+int ecc_der_decode_public_key_no_copy (const uint8_t *der, size_t length, const uint8_t **pub_key);
 int ecc_der_encode_public_key (const uint8_t *pub_key_x, const uint8_t *pub_key_y,
 	size_t key_length, uint8_t *der, size_t length);
 size_t ecc_der_get_public_key_length (const uint8_t *der, size_t max_length);
@@ -132,6 +135,8 @@ enum {
 	ECC_DER_UTIL_UNSUPPORTED_ALGORITHM = ECC_DER_UTIL_ERROR (0x08),		/**< A public key uses an unsupported algorithm. */
 	ECC_DER_UTIL_SIG_TOO_LONG = ECC_DER_UTIL_ERROR (0x09),				/**< The encoded signature is too long for the key length. */
 	ECC_DER_UTIL_UNEXPECTED_TAG = ECC_DER_UTIL_ERROR (0x0a),			/**< The encoded data contained a tag not correct for ASN.1 sequence. */
+	ECC_DER_UTIL_INVALID_ECPOINT = ECC_DER_UTIL_ERROR (0x0b),			/**< The public key is representation is not valid. */
+	ECC_DER_UTIL_COMPRESSED_ECPOINT = ECC_DER_UTIL_ERROR (0x0c),		/**< The public key is represented in compressed form. */
 };
 
 

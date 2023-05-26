@@ -133,6 +133,7 @@ struct x509_engine {
 	 * @param engine The X.509 engine to use to generate the CSR.
 	 * @param priv_key The DER formatted private key to generate a CSR for.
 	 * @param key_length The length of the private key.
+	 * @param sig_hash The hash algorithm to use when generating the signature for the CSR.
 	 * @param name The subject common name to apply to the CSR.
 	 * @param type The type of certificate being requested for signing.
 	 * @param eku An optional Extended Key Usage OID string that will be added to the CSR.  Set to
@@ -148,8 +149,8 @@ struct x509_engine {
 	 * @return 0 if the CSR was successfully generated or an error code.
 	 */
 	int (*create_csr) (struct x509_engine *engine, const uint8_t *priv_key, size_t key_length,
-		const char *name, int type, const char *eku, const struct x509_dice_tcbinfo *dice,
-		uint8_t **csr, size_t *csr_length);
+		enum hash_type sig_hash, const char *name, int type, const char *eku,
+		const struct x509_dice_tcbinfo *dice, uint8_t **csr, size_t *csr_length);
 
 	/**
 	 * Generate a self-signed certificate for the public key of an asymmetric encryption key pair.
@@ -158,6 +159,7 @@ struct x509_engine {
 	 * @param cert The instance to initialize as a self-signed certificate.
 	 * @param priv_key The DER formatted private key to generate a certificate for.
 	 * @param key_length The length of the private key.
+	 * @param sig_hash The hash algorithm to use when generating the signature for the certificate.
 	 * @param serial_num The serial number to assign to the certificate.
 	 * @param serial_length The length of the serial number.
 	 * @param name The subject common name to apply to the certificate.
@@ -169,8 +171,8 @@ struct x509_engine {
 	 */
 	int (*create_self_signed_certificate) (struct x509_engine *engine,
 		struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
-		const uint8_t *serial_num, size_t serial_length, const char *name, int type,
-		const struct x509_dice_tcbinfo *dice);
+		enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
+		int type, const struct x509_dice_tcbinfo *dice);
 
 	/**
 	 * Generate a cross-certificate (signed by a CA) for the public key of an asymmetric encryption
@@ -187,7 +189,9 @@ struct x509_engine {
 	 * @param type The type of certificate to generate.
 	 * @param ca_priv_key The DER formatted private key of the CA.
 	 * @param ca_key_length The length of the CA private key.
-	 * @param ca_cert The certificate for the CA issuing the new certificate.
+	 * @param sig_hash The hash algorithm to use when generating the signature for the certificate.
+	 * @param ca_cert The certificate for the CA issuing the new certificate.  This must have been
+	 * initialized by the same instance that will be using it.
 	 * @param dice Optional information that can be provided to add a DICE extensions to the
 	 * certificate.  Set to null to not add any DICE extensions.
 	 *
@@ -196,7 +200,8 @@ struct x509_engine {
 	int (*create_ca_signed_certificate) (struct x509_engine *engine, struct x509_certificate *cert,
 		const uint8_t *key, size_t key_length, const uint8_t *serial_num, size_t serial_length,
 		const char *name, int type, const uint8_t* ca_priv_key, size_t ca_key_length,
-		const struct x509_certificate *ca_cert, const struct x509_dice_tcbinfo *dice);
+		enum hash_type sig_hash, const struct x509_certificate *ca_cert,
+		const struct x509_dice_tcbinfo *dice);
 #endif
 
 	/**
@@ -394,7 +399,7 @@ enum {
 	X509_ENGINE_RIOT_UNSUPPORTED_HASH = X509_ENGINE_ERROR (0x0e),	/**< The RIoT FWID uses an unsupported hash algorithm. */
 	X509_ENGINE_UNSUPPORTED_KEY_TYPE = X509_ENGINE_ERROR (0x0f),	/**< A certificate contains a key for an unsupported algorithm. */
 	X509_ENGINE_UNKNOWN_KEY_TYPE = X509_ENGINE_ERROR (0x10),		/**< The type of key in a certificate could not be determined. */
-	X509_ENGINE_UNSUPPORTED_SIG_TYPE = X509_ENGINE_ERROR (0x11),	/**< The certificate signature use an unsupported algorithm. */
+	X509_ENGINE_UNSUPPORTED_SIG_TYPE = X509_ENGINE_ERROR (0x11),	/**< The certificate signature uses an unsupported algorithm. */
 	X509_ENGINE_NOT_CA_CERT = X509_ENGINE_ERROR (0x12),				/**< The certificate is not a CA. */
 	X509_ENGINE_NOT_SELF_SIGNED = X509_ENGINE_ERROR (0x13),			/**< The certificate is not self-signed. */
 	X509_ENGINE_IS_SELF_SIGNED = X509_ENGINE_ERROR (0x14),			/**< The certificate is self-signed. */
@@ -413,6 +418,7 @@ enum {
 	X509_ENGINE_DICE_NO_VERSION = X509_ENGINE_ERROR (0x21),			/**< No version information for the DICE extension. */
 	X509_ENGINE_DICE_NO_UEID = X509_ENGINE_ERROR (0x22),			/**< No UEID information for the DICE extension. */
 	X509_ENGINE_INVALID_SERIAL_NUM = X509_ENGINE_ERROR (0x23),		/**< Provided serial number is an invalid value. */
+	X509_ENGINE_UNSUPPORTED_SIG_HASH = X509_ENGINE_ERROR (0x24),	/**< The certificate signature uses an unsupported digest. */
 };
 
 

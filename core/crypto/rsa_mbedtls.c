@@ -395,14 +395,37 @@ exit:
 }
 
 static int rsa_mbedtls_sig_verify (struct rsa_engine *engine, const struct rsa_public_key *key,
-	const uint8_t *signature, size_t sig_length, const uint8_t *match, size_t match_length)
+	const uint8_t *signature, size_t sig_length, enum hash_type sig_hash, const uint8_t *match,
+	size_t match_length)
 {
 	mbedtls_rsa_context rsa;
+	mbedtls_md_type_t match_type;
 	int status;
 
 	if ((engine == NULL) || (key == NULL) || (signature == NULL) || (match == NULL) ||
 		(sig_length == 0) || (match_length == 0)) {
 		return RSA_ENGINE_INVALID_ARGUMENT;
+	}
+
+	switch (sig_hash) {
+		case HASH_TYPE_SHA256:
+			match_type = MBEDTLS_MD_SHA256;
+			break;
+
+		case HASH_TYPE_SHA384:
+			match_type = MBEDTLS_MD_SHA384;
+			break;
+
+		case HASH_TYPE_SHA512:
+			match_type = MBEDTLS_MD_SHA512;
+			break;
+
+		default:
+			return RSA_ENGINE_UNSUPPORTED_SIG_TYPE;
+	}
+
+	if (sig_length != key->mod_length) {
+		return RSA_ENGINE_BAD_SIGNATURE;
 	}
 
 	status = rsa_mbedtls_load_pubkey (&rsa, key);
@@ -412,7 +435,7 @@ static int rsa_mbedtls_sig_verify (struct rsa_engine *engine, const struct rsa_p
 		return status;
 	}
 
-	status = mbedtls_rsa_pkcs1_verify (&rsa, NULL, NULL, MBEDTLS_RSA_PUBLIC, MBEDTLS_MD_SHA256,
+	status = mbedtls_rsa_pkcs1_verify (&rsa, NULL, NULL, MBEDTLS_RSA_PUBLIC, match_type,
 		match_length, match, signature);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,

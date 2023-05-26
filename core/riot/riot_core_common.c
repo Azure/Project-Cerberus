@@ -86,8 +86,8 @@ static int riot_core_common_generate_device_id (struct riot_core *riot, const ui
 	}
 
 	status = core->x509->create_self_signed_certificate (core->x509, &core->dev_id_cert,
-		core->dev_id_der, core->dev_id_length, serial_num, 8, core->dev_id_name, X509_CERT_CA,
-		core->tcb);
+		core->dev_id_der, core->dev_id_length, HASH_TYPE_SHA256, serial_num, 8, core->dev_id_name,
+		X509_CERT_CA, core->tcb);
 	if (status != 0) {
 		return status;
 	}
@@ -114,7 +114,7 @@ static int riot_core_common_get_device_id_csr (struct riot_core *riot, const cha
 	}
 
 	return core->x509->create_csr (core->x509, core->dev_id_der, core->dev_id_length,
-		core->dev_id_name, X509_CERT_CA, oid, core->tcb, csr, length);
+		HASH_TYPE_SHA256, core->dev_id_name, X509_CERT_CA, oid, core->tcb, csr, length);
 }
 
 static int riot_core_common_get_device_id_cert (struct riot_core *riot, uint8_t **device_id,
@@ -187,7 +187,7 @@ static int riot_core_common_generate_alias_key (struct riot_core *riot,
 
 	status = core->x509->create_ca_signed_certificate (core->x509, &core->alias_cert,
 		core->alias_der, core->alias_length, serial_num, 8, (char*) subject, X509_CERT_END_ENTITY,
-		core->dev_id_der, core->dev_id_length, &core->dev_id_cert, alias_tcb);
+		core->dev_id_der, core->dev_id_length, HASH_TYPE_SHA256, &core->dev_id_cert, alias_tcb);
 	if (status != 0) {
 		return status;
 	}

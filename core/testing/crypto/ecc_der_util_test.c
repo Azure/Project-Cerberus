@@ -619,6 +619,497 @@ static void ecc_der_decode_private_key_test_small_key_buffer_p521_no_leading_zer
 }
 #endif
 
+static void ecc_der_decode_private_key_no_copy_test_p256 (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_private_key_no_copy (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &priv_key);
+	CuAssertIntEquals (test, ECC_PRIVKEY_LEN, status);
+
+	status = testing_validate_array (ECC_PRIVKEY, priv_key, ECC_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_p256_no_pubkey (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_private_key_no_copy (ECC_PRIVKEY_NO_PUBKEY_DER,
+		ECC_PRIVKEY_NO_PUBKEY_DER_LEN, &priv_key);
+	CuAssertIntEquals (test, ECC_PRIVKEY_LEN, status);
+
+	status = testing_validate_array (ECC_PRIVKEY, priv_key, ECC_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_p384 (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_private_key_no_copy (ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
+		&priv_key);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+	CuAssertIntEquals (test, ECC384_PRIVKEY_LEN, status);
+
+	status = testing_validate_array (ECC384_PRIVKEY, priv_key, ECC384_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
+#endif
+}
+
+static void ecc_der_decode_private_key_no_copy_test_p384_no_pubkey (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_private_key_no_copy (ECC384_PRIVKEY_NO_PUBKEY_DER,
+		ECC384_PRIVKEY_NO_PUBKEY_DER_LEN, &priv_key);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+	CuAssertIntEquals (test, ECC384_PRIVKEY_LEN, status);
+
+	status = testing_validate_array (ECC384_PRIVKEY, priv_key, ECC384_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
+#endif
+}
+
+static void ecc_der_decode_private_key_no_copy_test_p521 (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_private_key_no_copy (ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
+		&priv_key);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+	CuAssertIntEquals (test, ECC521_PRIVKEY_LEN, status);
+
+	status = testing_validate_array (ECC521_PRIVKEY, priv_key, ECC521_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
+#endif
+}
+
+static void ecc_der_decode_private_key_no_copy_test_p521_no_leading_zero (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_private_key_no_copy (ECC521_PRIVKEY_DER_NO_LEADING_ZERO,
+		ECC521_PRIVKEY_DER_NO_LEADING_ZERO_LEN, &priv_key);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+	CuAssertIntEquals (test, ECC521_PRIVKEY_LEN - 1, status);
+
+	status = testing_validate_array (&ECC521_PRIVKEY[1], priv_key, ECC521_PRIVKEY_LEN - 1);
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
+#endif
+}
+
+static void ecc_der_decode_private_key_no_copy_test_p521_no_pubkey (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_private_key_no_copy (ECC521_PRIVKEY_NO_PUBKEY_DER,
+		ECC521_PRIVKEY_NO_PUBKEY_DER_LEN, &priv_key);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+	CuAssertIntEquals (test, ECC521_PRIVKEY_LEN, status);
+
+	status = testing_validate_array (ECC521_PRIVKEY, priv_key, ECC521_PRIVKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+#else
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
+#endif
+}
+
+static void ecc_der_decode_private_key_no_copy_test_null (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_private_key_no_copy (NULL, ECC_PRIVKEY_DER_LEN, &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_INVALID_ARGUMENT, status);
+
+	status = ecc_der_decode_private_key_no_copy (ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, NULL);
+	CuAssertIntEquals (test, ECC_DER_UTIL_INVALID_ARGUMENT, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_zero_data (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_private_key_no_copy (ECC_PRIVKEY_DER, 0, &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_sequence_header_short (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_private_key_no_copy (ECC_PRIVKEY_DER, 1, &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_unknown_sequence_too_long (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC384_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC384_PRIVKEY_DER, sizeof (der));
+	/* Change the length indicator of the SEQUENCE to indicate two length bytes (0x81 -> 0x82). */
+	der[1] = 0x82;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNKNOWN_SEQUENCE, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_not_sequence (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the type indicator at the beginning of the buffer. */
+	der[0] = 0x03;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_sequence_too_long (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the SEQUENCE length to exceed the buffer size. */
+	der[1] += 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_not_integer (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the type indicator for the version INTEGER. */
+	der[2] = 0x03;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_integer_too_long (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the INTEGER length to exceed the buffer size. */
+	der[3] = (sizeof (der) - 2 - 2) + 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_unknown_sequence_version_too_long (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the INTEGER length to be more than one byte. */
+	der[3] = 2;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNKNOWN_SEQUENCE, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_unknown_sequence_not_version_1 (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the version value. */
+	der[4] = 2;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNKNOWN_SEQUENCE, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_not_octet_string (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the type indicator for the private key OCTET STRING. */
+	der[5] = 0x03;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_octet_string_too_long (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the OCTET STRING length to exceed the buffer size. */
+	der[6] = (sizeof (der) - 2 - 2 - 1 - 2) + 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_unsupported_key_length (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the OCTET STRING length to an unsupported length. */
+	der[6] = (192 / 8);
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_not_explicit_parameters (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the type indicator for the EXPLICIT ECDomainParameters. */
+	der[39] = 0x03;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_explicit_parameters_too_long (
+	CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the OCTET STRING length to exceed the buffer size. */
+	der[40] = (sizeof (der) - 2 - 2 - 1 - 2 - 32 - 2) + 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_not_oid (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the type indicator for the OBJECT IDENTIFIER SECGCurveNames. */
+	der[41] = 0x03;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_malformed_oid_too_long (CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the OBJECT IDENTIFIER length to exceed the buffer size. */
+	der[42] = (sizeof (der) - 2 - 2 - 1 - 2 - 32 - 2 - 2) + 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_incorrect_length_p256 (
+	CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the OBJECT IDENTIFIER length to an unexpected size. */
+	der[42] += 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_mismatch_oid_p256 (
+	CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PRIVKEY_DER, sizeof (der));
+	/* Change the OBJECT IDENTIFIER to an unexpected value. */
+	der[43] += 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_incorrect_length_p384 (
+	CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC384_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC384_PRIVKEY_DER, sizeof (der));
+	/* Change the OBJECT IDENTIFIER length to an unexpected size. */
+	der[59] += 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_mismatch_oid_p384 (
+	CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC384_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC384_PRIVKEY_DER, sizeof (der));
+	/* Change the OBJECT IDENTIFIER to an unexpected value. */
+	der[62] += 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+#endif
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_incorrect_length_p521 (
+	CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC521_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC521_PRIVKEY_DER, sizeof (der));
+	/* Change the OBJECT IDENTIFIER length to an unexpected size. */
+	der[77] += 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+
+static void ecc_der_decode_private_key_no_copy_test_unsupported_curve_mismatch_oid_p521 (
+	CuTest *test)
+{
+	const uint8_t *priv_key;
+	int status;
+	uint8_t der[ECC521_PRIVKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC521_PRIVKEY_DER, sizeof (der));
+	/* Change the OBJECT IDENTIFIER to an unexpected value. */
+	der[82] += 1;
+
+	status = ecc_der_decode_private_key_no_copy (der, sizeof (der), &priv_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+#endif
+
 static void ecc_der_encode_private_key_test_p256 (CuTest *test)
 {
 	uint8_t der[ECC_DER_P256_PRIVATE_LENGTH];
@@ -1449,6 +1940,64 @@ static void ecc_der_decode_public_key_test_unsupported_key_length (CuTest *test)
 	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
 }
 
+static void ecc_der_decode_public_key_test_invalid_ecpoint_format (CuTest *test)
+{
+	uint8_t pub_key_x[ECC_KEY_LENGTH_256];
+	uint8_t pub_key_y[ECC_KEY_LENGTH_256];
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the type indicator for the BIT STRING. */
+	der[26] = 0x05;
+
+	status = ecc_der_decode_public_key (der, sizeof (der), pub_key_x, pub_key_y,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, ECC_DER_UTIL_INVALID_ECPOINT, status);
+}
+
+static void ecc_der_decode_public_key_test_compressed_ecpoint_02 (CuTest *test)
+{
+	uint8_t pub_key_x[ECC_KEY_LENGTH_256];
+	uint8_t pub_key_y[ECC_KEY_LENGTH_256];
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the format indicator for the ECPoint OCTET STRING to a compressed ECPoint.  This is
+	 * only to trigger appropriate checks for testing.  It doesn't actually change the format of the
+	 * key. */
+	der[26] = 0x02;
+
+	status = ecc_der_decode_public_key (der, sizeof (der), pub_key_x, pub_key_y,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, ECC_DER_UTIL_COMPRESSED_ECPOINT, status);
+}
+
+static void ecc_der_decode_public_key_test_compressed_ecpoint_03 (CuTest *test)
+{
+	uint8_t pub_key_x[ECC_KEY_LENGTH_256];
+	uint8_t pub_key_y[ECC_KEY_LENGTH_256];
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the format indicator for the ECPoint OCTET STRING to a compressed ECPoint.  This is
+	 * only to trigger appropriate checks for testing.  It doesn't actually change the format of the
+	 * key. */
+	der[26] = 0x03;
+
+	status = ecc_der_decode_public_key (der, sizeof (der), pub_key_x, pub_key_y,
+		ECC_KEY_LENGTH_256);
+	CuAssertIntEquals (test, ECC_DER_UTIL_COMPRESSED_ECPOINT, status);
+}
+
 static void ecc_der_decode_public_key_test_small_key_buffer_p256 (CuTest *test)
 {
 	uint8_t pub_key_x[ECC_KEY_LENGTH_256];
@@ -1491,6 +2040,487 @@ static void ecc_der_decode_public_key_test_small_key_buffer_p521 (CuTest *test)
 	CuAssertIntEquals (test, ECC_DER_UTIL_SMALL_KEY_BUFFER, status);
 }
 #endif
+
+static void ecc_der_decode_public_key_no_copy_test_p256 (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_public_key_no_copy (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, &pub_key);
+	CuAssertIntEquals (test, ECC_PUBKEY_LEN + 1, status);
+
+	CuAssertIntEquals (test, 0x04, pub_key[0]);
+	status = testing_validate_array (ECC_PUBKEY, &pub_key[1], ECC_PUBKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_p384 (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_public_key_no_copy (ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN, &pub_key);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+	CuAssertIntEquals (test, ECC384_PUBKEY_LEN + 1, status);
+
+	CuAssertIntEquals (test, 0x04, pub_key[0]);
+	status = testing_validate_array (ECC384_PUBKEY, &pub_key[1], ECC384_PUBKEY_LEN);
+#else
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
+#endif
+}
+
+static void ecc_der_decode_public_key_no_copy_test_p521 (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_public_key_no_copy (ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN, &pub_key);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+	CuAssertIntEquals (test, ECC521_PUBKEY_LEN + 1, status);
+
+	CuAssertIntEquals (test, 0x04, pub_key[0]);
+	status = testing_validate_array (ECC521_PUBKEY, &pub_key[1], ECC521_PUBKEY_LEN);
+#else
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
+#endif
+}
+
+static void ecc_der_decode_public_key_no_copy_test_compressed_ecpoint_02 (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the format indicator for the ECPoint OCTET STRING to a compressed ECPoint.  This is
+	 * only to trigger appropriate checks for testing.  It doesn't actually change the format of the
+	 * key. */
+	der[26] = 0x02;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_PUBKEY_LEN + 1, status);
+
+	CuAssertIntEquals (test, 0x02, pub_key[0]);
+	status = testing_validate_array (ECC_PUBKEY, &pub_key[1], ECC_PUBKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_compressed_ecpoint_03 (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the format indicator for the ECPoint OCTET STRING to a compressed ECPoint.  This is
+	 * only to trigger appropriate checks for testing.  It doesn't actually change the format of the
+	 * key. */
+	der[26] = 0x03;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_PUBKEY_LEN + 1, status);
+
+	CuAssertIntEquals (test, 0x03, pub_key[0]);
+	status = testing_validate_array (ECC_PUBKEY, &pub_key[1], ECC_PUBKEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_null (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_public_key_no_copy (NULL, ECC_PUBKEY_DER_LEN, &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_INVALID_ARGUMENT, status);
+
+	status = ecc_der_decode_public_key_no_copy (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, NULL);
+	CuAssertIntEquals (test, ECC_DER_UTIL_INVALID_ARGUMENT, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_zero_data (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_public_key_no_copy (ECC_PUBKEY_DER, 0, &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_sequence_header_short (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+
+	TEST_START;
+
+	status = ecc_der_decode_public_key_no_copy (ECC_PUBKEY_DER, 1, &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_unknown_sequence_too_long (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC521_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC521_PUBKEY_DER, sizeof (der));
+	/* Change the length indicator of the SEQUENCE to indicate two length bytes (0x81 -> 0x82). */
+	der[1] = 0x82;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNKNOWN_SEQUENCE, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_not_sequence (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the type indicator at the beginning of the buffer. */
+	der[0] = 0x03;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_sequence_too_long (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the SEQUENCE length to exceed the buffer size. */
+	der[1] += 1;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_algo_not_sequence (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the type indicator for the AlgorithmIdentifier. */
+	der[2] = 0x03;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_algo_sequence_too_long (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the AlgorithmIdentifier length to exceed the buffer size. */
+	der[3] = (sizeof (der) - 2 - 2) + 1;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_algo_not_oid (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the type indicator for the algorithm OID. */
+	der[4] = 0x03;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_algo_oid_too_long (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the AlgorithmIdentifier length to exceed the buffer size. */
+	der[5] = (sizeof (der) - 2 - 2 - 2) + 1;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorrect_length (
+	CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the algorithm OID to an unexpected length. */
+	der[5] += 1;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_ALGORITHM, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatch_oid (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the algorithm OID to an unexpected value. */
+	der[9] += 1;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_ALGORITHM, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_curve_not_oid (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the type indicator for the algorithm OID. */
+	der[13] = 0x03;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_curve_oid_too_long (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the AlgorithmIdentifier length to exceed the buffer size. */
+	der[14] = (sizeof (der) - 2 - 2 - 2 - 7 - 2) + 1;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorrect_length_p256 (
+	CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN + 1];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the algorithm OID to an unexpected length. */
+	der[14] += 1;
+	memmove (&der[24], &der[23], sizeof (der) - 24);
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatch_oid_p256 (
+	CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the algorithm OID to an unexpected value. */
+	der[22] += 1;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorrect_length_p384 (
+	CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC384_PUBKEY_DER_LEN + 1];
+
+	TEST_START;
+
+	memcpy (der, ECC384_PUBKEY_DER, sizeof (der));
+	/* Change the algorithm OID to an unexpected length. */
+	der[14] += 1;
+	memmove (&der[21], &der[20], sizeof (der) - 21);
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatch_oid_p384 (
+	CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC384_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC384_PUBKEY_DER, sizeof (der));
+	/* Change the algorithm OID to an unexpected value. */
+	der[19] += 1;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+#endif
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorrect_length_p521 (
+	CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC521_PUBKEY_DER_LEN + 1];
+
+	TEST_START;
+
+	memcpy (der, ECC521_PUBKEY_DER, sizeof (der));
+	/* Change the algorithm OID to an unexpected length. */
+	der[15] += 1;
+	memmove (&der[22], &der[21], sizeof (der) - 22);
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatch_oid_p521 (
+	CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC521_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC521_PUBKEY_DER, sizeof (der));
+	/* Change the algorithm OID to an unexpected value. */
+	der[20] += 1;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_CURVE, status);
+}
+#endif
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_not_bit_string (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the type indicator for the BIT STRING. */
+	der[23] = 0x04;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNEXPECTED_TAG, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_malformed_bit_string_too_long (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN + 1];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the BIT STRING length to exceed the buffer size. */
+	der[24] += 3;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_MALFORMED, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_unsupported_key_length (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN + 1];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the BIT STRING length to an unsupported size. */
+	der[24] = ((192 / 8) * 2) + 2;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
+}
+
+static void ecc_der_decode_public_key_no_copy_test_invalid_ecpoint_format (CuTest *test)
+{
+	const uint8_t *pub_key;
+	int status;
+	uint8_t der[ECC_PUBKEY_DER_LEN];
+
+	TEST_START;
+
+	memcpy (der, ECC_PUBKEY_DER, sizeof (der));
+	/* Change the format indicator for the ECPoint OCTET STRING. */
+	der[26] = 0x05;
+
+	status = ecc_der_decode_public_key_no_copy (der, sizeof (der), &pub_key);
+	CuAssertIntEquals (test, ECC_DER_UTIL_INVALID_ECPOINT, status);
+}
 
 static void ecc_der_encode_public_key_test_p256 (CuTest *test)
 {
@@ -2610,6 +3640,40 @@ TEST (ecc_der_decode_private_key_test_unsupported_curve_mismatch_oid_p521);
 TEST (ecc_der_decode_private_key_test_small_key_buffer_p521);
 TEST (ecc_der_decode_private_key_test_small_key_buffer_p521_no_leading_zero);
 #endif
+TEST (ecc_der_decode_private_key_no_copy_test_p256);
+TEST (ecc_der_decode_private_key_no_copy_test_p256_no_pubkey);
+TEST (ecc_der_decode_private_key_no_copy_test_p384);
+TEST (ecc_der_decode_private_key_no_copy_test_p384_no_pubkey);
+TEST (ecc_der_decode_private_key_no_copy_test_p521);
+TEST (ecc_der_decode_private_key_no_copy_test_p521_no_leading_zero);
+TEST (ecc_der_decode_private_key_no_copy_test_p521_no_pubkey);
+TEST (ecc_der_decode_private_key_no_copy_test_null);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_zero_data);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_sequence_header_short);
+TEST (ecc_der_decode_private_key_no_copy_test_unknown_sequence_too_long);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_not_sequence);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_sequence_too_long);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_not_integer);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_integer_too_long);
+TEST (ecc_der_decode_private_key_no_copy_test_unknown_sequence_version_too_long);
+TEST (ecc_der_decode_private_key_no_copy_test_unknown_sequence_not_version_1);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_not_octet_string);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_octet_string_too_long);
+TEST (ecc_der_decode_private_key_no_copy_test_unsupported_key_length);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_not_explicit_parameters);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_explicit_parameters_too_long);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_not_oid);
+TEST (ecc_der_decode_private_key_no_copy_test_malformed_oid_too_long);
+TEST (ecc_der_decode_private_key_no_copy_test_unsupported_curve_incorrect_length_p256);
+TEST (ecc_der_decode_private_key_no_copy_test_unsupported_curve_mismatch_oid_p256);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+TEST (ecc_der_decode_private_key_no_copy_test_unsupported_curve_incorrect_length_p384);
+TEST (ecc_der_decode_private_key_no_copy_test_unsupported_curve_mismatch_oid_p384);
+#endif
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+TEST (ecc_der_decode_private_key_no_copy_test_unsupported_curve_incorrect_length_p521);
+TEST (ecc_der_decode_private_key_no_copy_test_unsupported_curve_mismatch_oid_p521);
+#endif
 TEST (ecc_der_encode_private_key_test_p256);
 TEST (ecc_der_encode_private_key_test_p256_no_pubkey);
 TEST (ecc_der_encode_private_key_test_p384);
@@ -2666,6 +3730,9 @@ TEST (ecc_der_decode_public_key_test_unsupported_algorithm_mismatch_oid_p521);
 TEST (ecc_der_decode_public_key_test_malformed_not_bit_string);
 TEST (ecc_der_decode_public_key_test_malformed_bit_string_too_long);
 TEST (ecc_der_decode_public_key_test_unsupported_key_length);
+TEST (ecc_der_decode_public_key_test_invalid_ecpoint_format);
+TEST (ecc_der_decode_public_key_test_compressed_ecpoint_02);
+TEST (ecc_der_decode_public_key_test_compressed_ecpoint_03);
 TEST (ecc_der_decode_public_key_test_small_key_buffer_p256);
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 TEST (ecc_der_decode_public_key_test_small_key_buffer_p384);
@@ -2673,6 +3740,39 @@ TEST (ecc_der_decode_public_key_test_small_key_buffer_p384);
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 TEST (ecc_der_decode_public_key_test_small_key_buffer_p521);
 #endif
+TEST (ecc_der_decode_public_key_no_copy_test_p256);
+TEST (ecc_der_decode_public_key_no_copy_test_p384);
+TEST (ecc_der_decode_public_key_no_copy_test_p521);
+TEST (ecc_der_decode_public_key_no_copy_test_compressed_ecpoint_02);
+TEST (ecc_der_decode_public_key_no_copy_test_compressed_ecpoint_03);
+TEST (ecc_der_decode_public_key_no_copy_test_null);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_zero_data);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_sequence_header_short);
+TEST (ecc_der_decode_public_key_no_copy_test_unknown_sequence_too_long);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_not_sequence);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_sequence_too_long);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_algo_not_sequence);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_algo_sequence_too_long);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_algo_not_oid);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_algo_oid_too_long);
+TEST (ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorrect_length);
+TEST (ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatch_oid);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_curve_not_oid);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_curve_oid_too_long);
+TEST (ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorrect_length_p256);
+TEST (ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatch_oid_p256);
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+TEST (ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorrect_length_p384);
+TEST (ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatch_oid_p384);
+#endif
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+TEST (ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_incorrect_length_p521);
+TEST (ecc_der_decode_public_key_no_copy_test_unsupported_algorithm_mismatch_oid_p521);
+#endif
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_not_bit_string);
+TEST (ecc_der_decode_public_key_no_copy_test_malformed_bit_string_too_long);
+TEST (ecc_der_decode_public_key_no_copy_test_unsupported_key_length);
+TEST (ecc_der_decode_public_key_no_copy_test_invalid_ecpoint_format);
 TEST (ecc_der_encode_public_key_test_p256);
 TEST (ecc_der_encode_public_key_test_p384);
 TEST (ecc_der_encode_public_key_test_p521);

@@ -16,9 +16,18 @@
 
 
 /**
- * A riot context for X.509 operations.
+ * An X.509 handler for generating DICE certificates.
  *
- * NOTE: Input RSA keys are required to be public keys.
+ * This implementation only provides ASN.1/DER encoding for certificate and CSR building.  All
+ * crypto functionality is leveraged through the defined crypto APIs.
+ *
+ * This implementation does not provide any functionality for certificate parsing and authentication
+ * and must not be used in any contexts that have X509_ENABLE_AUTHENTICATION defined.
+ *
+ * There is only limited support for RSA keys with this implementation.
+ *   - Input RSA keys are required to be public keys.
+ *   - RSA CSRs or self-signed certificates cannot be created.
+ *   - Certificate signing using an RSA CA is not supported.
  */
 struct x509_engine_riot {
 	struct x509_engine base;	/**< The base X.509 engine. */

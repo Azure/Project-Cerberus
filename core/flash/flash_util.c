@@ -133,7 +133,8 @@ int flash_verify_noncontiguous_contents_at_offset (const struct flash *flash, ui
 		return status;
 	}
 
-	return rsa->sig_verify (rsa, pub_key, signature, sig_length, hash_out, SHA256_HASH_LENGTH);
+	return rsa->sig_verify (rsa, pub_key, signature, sig_length, HASH_TYPE_SHA256, hash_out,
+		SHA256_HASH_LENGTH);
 }
 
 /**

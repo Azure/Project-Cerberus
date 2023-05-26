@@ -129,7 +129,8 @@ static int rsa_thread_safe_get_public_key_der (struct rsa_engine *engine,
 #endif
 
 static int rsa_thread_safe_sig_verify (struct rsa_engine *engine, const struct rsa_public_key *key,
-	const uint8_t *signature, size_t sig_length, const uint8_t *match, size_t match_length)
+	const uint8_t *signature, size_t sig_length, enum hash_type sig_hash, const uint8_t *match,
+	size_t match_length)
 {
 	struct rsa_engine_thread_safe *rsa = (struct rsa_engine_thread_safe*) engine;
 	int status;
@@ -139,7 +140,8 @@ static int rsa_thread_safe_sig_verify (struct rsa_engine *engine, const struct r
 	}
 
 	platform_mutex_lock (&rsa->lock);
-	status = rsa->engine->sig_verify (rsa->engine, key, signature, sig_length, match, match_length);
+	status = rsa->engine->sig_verify (rsa->engine, key, signature, sig_length, sig_hash, match,
+		match_length);
 	platform_mutex_unlock (&rsa->lock);
 
 	return status;

@@ -1500,6 +1500,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_challenge (C
 				status |= mock_expect (&testing->rsa.mock, testing->rsa.base.sig_verify,
 					&testing->rsa, verify_result, MOCK_ARG_SAVED_ARG (0),
 					MOCK_ARG_PTR_CONTAINS_TMP (signature, sizeof (signature)), MOCK_ARG (5),
+					MOCK_ARG (HASH_TYPE_SHA256),
 					MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
 					MOCK_ARG (SHA256_HASH_LENGTH));
 			}

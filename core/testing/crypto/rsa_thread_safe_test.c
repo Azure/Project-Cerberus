@@ -733,11 +733,12 @@ static void rsa_thread_safe_test_sig_verify (CuTest *test)
 
 	status = mock_expect (&mock.mock, mock.base.sig_verify, &mock, 0,
 		MOCK_ARG_PTR (&RSA_PUBLIC_KEY), MOCK_ARG_PTR (RSA_SIGNATURE_TEST),
-		MOCK_ARG (RSA_ENCRYPT_LEN), MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		MOCK_ARG (RSA_ENCRYPT_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_PTR (SIG_HASH_TEST),
+		MOCK_ARG (SIG_HASH_LEN));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, SIG_HASH_TEST, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&mock.mock);
@@ -767,11 +768,12 @@ static void rsa_thread_safe_test_sig_verify_error (CuTest *test)
 
 	status = mock_expect (&mock.mock, mock.base.sig_verify, &mock, RSA_ENGINE_BAD_SIGNATURE,
 		MOCK_ARG_PTR (&RSA_PUBLIC_KEY), MOCK_ARG_PTR (RSA_SIGNATURE_TEST),
-		MOCK_ARG (RSA_ENCRYPT_LEN), MOCK_ARG_PTR (SIG_HASH_TEST), MOCK_ARG (SIG_HASH_LEN));
+		MOCK_ARG (RSA_ENCRYPT_LEN), MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_PTR (SHA384_TEST_HASH),
+		MOCK_ARG (SHA384_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, SIG_HASH_TEST, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA384, SHA384_TEST_HASH, SHA384_HASH_LENGTH);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	status = mock_validate (&mock.mock);
@@ -800,7 +802,7 @@ static void rsa_thread_safe_test_sig_verify_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sig_verify (NULL, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, SIG_HASH_TEST, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);

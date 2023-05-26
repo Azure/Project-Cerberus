@@ -13,24 +13,28 @@
 #define CHK(_X)  if(((_X)) < 0) {goto Error;}
 
 // OIDs.  Note that the encoder expects a -1 sentinel.
-static int riotOID[] = { 1,3,6,1,4,1,311,89,3,1,-1 };
-static int ecdsaWithSHA256OID[] = { 1,2,840,10045,4,3,2,-1 };
-static int ecPublicKeyOID[] = { 1,2,840,10045,2,1,-1 };
-static int prime256v1OID[] = { 1,2,840,10045,3,1,7,-1 };
-static int keyUsageOID[] = { 2,5,29,15,-1 };
-static int extKeyUsageOID[] = { 2,5,29,37,-1 };
-static int extAuthKeyIdentifierOID[] = { 2,5,29,35,-1 };
-static int extSubjectKeyIdentifierOID[] = { 2,5,29,14,-1 };
-static int clientAuthOID[] = { 1,3,6,1,5,5,7,3,2,-1 };
-static int sha1OID[] = { 1,3,14,3,2,26,-1 };
-static int sha256OID[] = { 2,16,840,1,101,3,4,2,1,-1 };
-static int commonNameOID[] = { 2,5,4,3,-1 };
-static int countryNameOID[] = { 2,5,4,6,-1 };
-static int orgNameOID[] = { 2,5,4,10,-1 };
-static int basicConstraintsOID[] = { 2,5,29,19,-1 };
-static int extensionRequestOID[] = { 1,2,840,113549,1,9,14,-1 };
-static int tcbInfoOID[] = { 2,23,133,5,4,1,-1 };
-static int ueidOID[] = { 2,23,133,5,4,4,-1 };
+const int riotOID[] = { 1,3,6,1,4,1,311,89,3,1,-1 };
+const int ecdsaWithSHA256OID[] = { 1,2,840,10045,4,3,2,-1 };
+const int ecdsaWithSHA384OID[] = { 1,2,840,10045,4,3,3,-1 };
+const int ecdsaWithSHA512OID[] = { 1,2,840,10045,4,3,4,-1 };
+const int ecPublicKeyOID[] = { 1,2,840,10045,2,1,-1 };
+const int prime256v1OID[] = { 1,2,840,10045,3,1,7,-1 };
+const int keyUsageOID[] = { 2,5,29,15,-1 };
+const int extKeyUsageOID[] = { 2,5,29,37,-1 };
+const int extAuthKeyIdentifierOID[] = { 2,5,29,35,-1 };
+const int extSubjectKeyIdentifierOID[] = { 2,5,29,14,-1 };
+const int clientAuthOID[] = { 1,3,6,1,5,5,7,3,2,-1 };
+const int sha1OID[] = { 1,3,14,3,2,26,-1 };
+const int sha256OID[] = { 2,16,840,1,101,3,4,2,1,-1 };
+const int sha384OID[] = { 2,16,840,1,101,3,4,2,2,-1 };
+const int sha512OID[] = { 2,16,840,1,101,3,4,2,3,-1 };
+const int commonNameOID[] = { 2,5,4,3,-1 };
+const int countryNameOID[] = { 2,5,4,6,-1 };
+const int orgNameOID[] = { 2,5,4,10,-1 };
+const int basicConstraintsOID[] = { 2,5,29,19,-1 };
+const int extensionRequestOID[] = { 1,2,840,113549,1,9,14,-1 };
+const int tcbInfoOID[] = { 2,23,133,5,4,1,-1 };
+const int ueidOID[] = { 2,23,133,5,4,4,-1 };
 
 static int
 GenerateGuidFromSeed(char* nameBuf, size_t *nameBufLen, const uint8_t* seed, size_t seedLen,
@@ -55,13 +59,13 @@ GenerateGuidFromSeed(char* nameBuf, size_t *nameBufLen, const uint8_t* seed, siz
 static int
 X509AddKeyUsageExtension(
 	DERBuilderContext	*Tbs,
-	int					type
+	int					Type
 )
 {
 	uint8_t keyUsage;
 	uint8_t bits;
 
-	if (type) {
+	if (Type) {
 		keyUsage = RIOT_X509_KEY_USAGE_CERT_SIGN;
 		bits = 6;
 	}
@@ -85,11 +89,11 @@ Error:
 static int
 X509AddExtendedKeyUsageExtension(
 	DERBuilderContext	*Tbs,
-	int					type,
-	const char			*oid
+	int					Type,
+	const char			*OID
 )
 {
-	if (type == X509_CERT_END_ENTITY) {
+	if (Type == X509_CERT_END_ENTITY) {
 		CHK(DERStartSequenceOrSet(Tbs, true));
 		CHK(	DERAddOID(Tbs, extKeyUsageOID));
 		CHK(	DERAddBoolean(Tbs, true));
@@ -100,12 +104,12 @@ X509AddExtendedKeyUsageExtension(
 		CHK(	DERPopNesting(Tbs));
 		CHK(DERPopNesting(Tbs));
 	}
-	else if (oid != NULL) {
+	else if (OID != NULL) {
 		CHK(DERStartSequenceOrSet(Tbs, true));
 		CHK(	DERAddOID(Tbs, extKeyUsageOID));
 		CHK(	DERStartEnvelopingOctetString(Tbs));
 		CHK(		DERStartSequenceOrSet(Tbs, true));
-		CHK(			DERAddEncodedOID(Tbs, oid));
+		CHK(			DERAddEncodedOID(Tbs, OID));
 		CHK(		DERPopNesting(Tbs));
 		CHK(	DERPopNesting(Tbs));
 		CHK(DERPopNesting(Tbs));
@@ -118,18 +122,18 @@ Error:
 static int
 X509AddBasicConstraintsExtension(
 	DERBuilderContext	*Tbs,
-	int					type
+	int					Type
 )
 {
-	if (type) {
+	if (Type) {
 		CHK(DERStartSequenceOrSet(Tbs, true));
 		CHK(	DERAddOID(Tbs, basicConstraintsOID));
 		CHK(	DERAddBoolean(Tbs, true));
 		CHK(	DERStartEnvelopingOctetString(Tbs));
 		CHK(		DERStartSequenceOrSet(Tbs, true));
 		CHK(			DERAddBoolean(Tbs, true));
-		if (type < X509_CERT_CA_NO_PATHLEN) {
-			CHK(		DERAddInteger(Tbs, type-1));
+		if (Type < X509_CERT_CA_NO_PATHLEN) {
+			CHK(		DERAddInteger(Tbs, Type-1));
 		}
 		CHK(		DERPopNesting(Tbs));
 		CHK(	DERPopNesting(Tbs));
@@ -142,10 +146,10 @@ Error:
 
 static int
 get_fw_id_info(
-	size_t					*fw_id_len,
-	int						**sha_oid,
+	size_t                  *fw_id_len,
+	const int               **sha_oid,
 	const uint8_t           *fw_id,
-	const enum hash_type	fw_id_hash
+	const enum hash_type    fw_id_hash
 )
 {
 	if (fw_id == NULL) {
@@ -154,14 +158,24 @@ get_fw_id_info(
 
 	switch (fw_id_hash) {
 		case HASH_TYPE_SHA1:
-			*fw_id_len = SHA1_DIGEST_LENGTH;
+			*fw_id_len = SHA1_HASH_LENGTH;
 			*sha_oid = sha1OID;
 			break;
 
 		case HASH_TYPE_SHA256:
-			*fw_id_len = SHA256_DIGEST_LENGTH;
+			*fw_id_len = SHA256_HASH_LENGTH;
 			*sha_oid = sha256OID;
 			break;
+
+        case HASH_TYPE_SHA384:
+            *fw_id_len = SHA384_HASH_LENGTH;
+            *sha_oid = sha384OID;
+            break;
+
+        case HASH_TYPE_SHA512:
+            *fw_id_len = SHA512_HASH_LENGTH;
+            *sha_oid = sha512OID;
+            break;
 
 		default:
 			return X509_ENGINE_RIOT_UNSUPPORTED_HASH;
@@ -207,7 +221,7 @@ static int
 X509AddTcbInfoExtension(
 	DERBuilderContext	           *Tbs,
 	const struct x509_dice_tcbinfo *Tcb,
-	int                            *shaOID,
+	const int                      *shaOID,
 	size_t                         FwidLen
 )
 {
@@ -333,54 +347,33 @@ Error:
 	return -1;
 }
 
-static int
-get_subject_key_info(
-	RIOT_X509_PUBLIC_KEY	 *SubjectKey,
-	const uint8_t			 *Key,
-	const size_t			 KeyLen,
-	struct hash_engine       *hash
-)
-{
-	int status;
-
-	status = DERDECGetPubKeyInfo(SubjectKey, Key, KeyLen);
-	ASRT(status == RIOT_SUCCESS);
-
-	status = hash->calculate_sha1 (hash, &SubjectKey->key[1], SubjectKey->length-1,
-		SubjectKey->identifier, SHA1_DIGEST_LENGTH);
-	ASRT(status == 0);
-
-    return 0;
-Error:
-    return -1;
-}
-
 int
 X509GetDeviceCertTBS(
-	DERBuilderContext			   *Tbs,
-	const RIOT_X509_TBS_DATA	   *TbsData,
-	const uint8_t				   *DevIdKeyPub,
-	size_t						   key_len,
-	const uint8_t				   *RootKeyPubDigest,
-	int							   type,
-	const struct x509_dice_tcbinfo *dice
+    DERBuilderContext                   *Tbs,
+    const RIOT_X509_TBS_DATA            *TbsData,
+    const uint8_t                       *CertKey,
+    size_t                              CertKeyLen,
+    const uint8_t                       *SubjectKeyIdentifier,
+    const uint8_t                       *AuthKeyIdentifier,
+    int                                 Type,
+    const struct x509_dice_tcbinfo      *Dice
 )
 {
-	int *sha_oid = NULL;
+	const int *sha_oid = NULL;
 	size_t fw_id_len = 0;
 	int status;
 
-	if (dice) {
-		if (dice->version == NULL) {
+	if (Dice) {
+		if (Dice->version == NULL) {
 			return X509_ENGINE_DICE_NO_VERSION;
 		}
 
-		status = get_fw_id_info(&fw_id_len, &sha_oid, dice->fw_id, dice->fw_id_hash);
+		status = get_fw_id_info(&fw_id_len, &sha_oid, Dice->fw_id, Dice->fw_id_hash);
 		if (status != 0) {
 			return status;
 		}
 
-		if (dice->ueid && ((dice->ueid->ueid == NULL) || (dice->ueid->length == 0))) {
+		if (Dice->ueid && ((Dice->ueid->ueid == NULL) || (Dice->ueid->length == 0))) {
 			return X509_ENGINE_DICE_NO_UEID;
 		}
 	}
@@ -389,7 +382,7 @@ X509GetDeviceCertTBS(
     CHK(    DERAddShortExplicitInteger(Tbs, 2));
     CHK(    DERAddIntegerFromArray(Tbs, TbsData->SerialNum, TbsData->SerialLen));
     CHK(    DERStartSequenceOrSet(Tbs, true));
-    CHK(        DERAddOID(Tbs, ecdsaWithSHA256OID));
+    CHK(        DERAddOID(Tbs, TbsData->SignatureAlgorithm));
     CHK(    DERPopNesting(Tbs));
     CHK(    X509AddX501Name(Tbs, TbsData->IssuerCommon, NULL, NULL));
     CHK(    DERStartSequenceOrSet(Tbs, true));
@@ -397,22 +390,16 @@ X509GetDeviceCertTBS(
     CHK(        DERAddTime(Tbs, TbsData->ValidTo));
     CHK(    DERPopNesting(Tbs));
     CHK(    X509AddX501Name(Tbs, TbsData->SubjectCommon, NULL, NULL));
-    CHK(    DERStartSequenceOrSet(Tbs, true));
-    CHK(        DERStartSequenceOrSet(Tbs, true));
-    CHK(            DERAddOID(Tbs, ecPublicKeyOID));
-    CHK(            DERAddOID(Tbs, prime256v1OID));
-    CHK(        DERPopNesting(Tbs));
-    CHK(        DERAddBitString(Tbs, DevIdKeyPub, key_len));
-    CHK(    DERPopNesting(Tbs));
+    CHK(    DERAddPublicKey(Tbs, CertKey, CertKeyLen));
     CHK(    DERStartExplicit(Tbs, 3));
     CHK(        DERStartSequenceOrSet(Tbs, true));
-	CHK(           X509AddSubjectKeyIdentifierExtension(Tbs, RootKeyPubDigest));
-	CHK(           X509AddAuthorityKeyIdentifierExtension(Tbs, RootKeyPubDigest));
-	CHK(           X509AddKeyUsageExtension(Tbs, type));
-	CHK(           X509AddExtendedKeyUsageExtension(Tbs, type, NULL));
-	CHK(           X509AddBasicConstraintsExtension(Tbs, type));
-	CHK(           X509AddTcbInfoExtension(Tbs, dice, sha_oid, fw_id_len));
-	CHK(           X509AddUeidExtension(Tbs, dice));
+	CHK(           X509AddSubjectKeyIdentifierExtension(Tbs, SubjectKeyIdentifier));
+	CHK(           X509AddAuthorityKeyIdentifierExtension(Tbs, AuthKeyIdentifier));
+	CHK(           X509AddKeyUsageExtension(Tbs, Type));
+	CHK(           X509AddExtendedKeyUsageExtension(Tbs, Type, NULL));
+	CHK(           X509AddBasicConstraintsExtension(Tbs, Type));
+	CHK(           X509AddTcbInfoExtension(Tbs, Dice, sha_oid, fw_id_len));
+	CHK(           X509AddUeidExtension(Tbs, Dice));
     CHK(        DERPopNesting(Tbs));
     CHK(    DERPopNesting(Tbs));
     CHK(DERPopNesting(Tbs));
@@ -425,28 +412,20 @@ Error:
 
 int
 X509MakeDeviceCert(
-	DERBuilderContext	*DeviceIDCert,
-	RIOT_ECC_SIGNATURE	*TbsSig
+	DERBuilderContext   *DeviceIDCert,
+	const uint8_t       *TbsSig,
+    size_t              SigLength,
+    const int           *SigOID
 )
 // Create a Device Certificate given a ready-to-sign TBS region in the context
 {
-    uint8_t encBuffer[((BIGLEN - 1) * 4)];
-    uint32_t encBufferLen = ((BIGLEN - 1) * 4);
-
     // Elevate the "TBS" block into a real certificate,
     // i.e., copy it into an enclosing sequence.
     CHK(DERTbsToCert(DeviceIDCert));
     CHK(    DERStartSequenceOrSet(DeviceIDCert, true));
-    CHK(        DERAddOID(DeviceIDCert, ecdsaWithSHA256OID));
+    CHK(        DERAddOID(DeviceIDCert, SigOID));
     CHK(    DERPopNesting(DeviceIDCert));
-    CHK(    DERStartEnvelopingBitString(DeviceIDCert));
-    CHK(        DERStartSequenceOrSet(DeviceIDCert, true));
-                    BigValToBigInt(encBuffer, &TbsSig->r);
-    CHK(            DERAddIntegerFromArray(DeviceIDCert, encBuffer, encBufferLen));
-                    BigValToBigInt(encBuffer, &TbsSig->s);
-    CHK(            DERAddIntegerFromArray(DeviceIDCert, encBuffer, encBufferLen));
-    CHK(        DERPopNesting(DeviceIDCert));
-    CHK(    DERPopNesting(DeviceIDCert));
+    CHK(    DERAddBitString(DeviceIDCert, TbsSig, SigLength));
     CHK(DERPopNesting(DeviceIDCert));
 
     ASRT(DERGetNestingDepth(DeviceIDCert) == 0);
@@ -457,44 +436,31 @@ Error:
 
 int
 X509GetCASignedCertTBS(
-	DERBuilderContext					*Tbs,
-	const RIOT_X509_TBS_DATA			*TbsData,
-	const uint8_t						*CertKey,
-	size_t								key_len,
-	const uint8_t						*AuthKeyPub,
-	size_t								auth_key_len,
-	int									type,
-	const struct x509_dice_tcbinfo		*dice,
-	struct hash_engine		 			*hash
+    DERBuilderContext                   *Tbs,
+    const RIOT_X509_TBS_DATA            *TbsData,
+    const uint8_t                       *CertKey,
+    size_t                              CertKeyLen,
+    const uint8_t                       *SubjectKeyIdentifier,
+    const uint8_t                       *AuthKeyIdentifier,
+    int                                 Type,
+    const struct x509_dice_tcbinfo      *Dice
 )
 {
-	RIOT_X509_PUBLIC_KEY subject_key;
-	int *sha_oid = NULL;
+	const int *sha_oid = NULL;
 	size_t fw_id_len = 0;
-	uint8_t authKeyIdentifier[SHA1_DIGEST_LENGTH];
 	int status;
 
-	// generate authority key identifier
-	status = hash->calculate_sha1 (hash, &AuthKeyPub[1], auth_key_len-1,
-	 	authKeyIdentifier, sizeof (authKeyIdentifier));
-  	if (status != 0) {
-  		return status;
-  	}
-
-	// generate subject key identifier
-	CHK(get_subject_key_info (&subject_key, CertKey, key_len, hash));
-
-	if (dice) {
-		if (dice->version == NULL) {
+	if (Dice) {
+		if (Dice->version == NULL) {
 			return X509_ENGINE_DICE_NO_VERSION;
 		}
 
-		status = get_fw_id_info(&fw_id_len, &sha_oid, dice->fw_id, dice->fw_id_hash);
+		status = get_fw_id_info(&fw_id_len, &sha_oid, Dice->fw_id, Dice->fw_id_hash);
 		if (status != 0) {
 			return status;
 		}
 
-		if (dice->ueid && ((dice->ueid->ueid == NULL) || (dice->ueid->length == 0))) {
+		if (Dice->ueid && ((Dice->ueid->ueid == NULL) || (Dice->ueid->length == 0))) {
 			return X509_ENGINE_DICE_NO_UEID;
 		}
 	}
@@ -503,7 +469,7 @@ X509GetCASignedCertTBS(
     CHK(    DERAddShortExplicitInteger(Tbs, 2));
     CHK(    DERAddIntegerFromArray(Tbs, TbsData->SerialNum, TbsData->SerialLen));
     CHK(    DERStartSequenceOrSet(Tbs, true));
-    CHK(        DERAddOID(Tbs, ecdsaWithSHA256OID));
+    CHK(        DERAddOID(Tbs, TbsData->SignatureAlgorithm));
     CHK(    DERPopNesting(Tbs));
     CHK(    X509AddX501Name(Tbs, TbsData->IssuerCommon, NULL, NULL));
     CHK(    DERStartSequenceOrSet(Tbs, true));
@@ -511,26 +477,16 @@ X509GetCASignedCertTBS(
     CHK(        DERAddTime(Tbs, TbsData->ValidTo));
     CHK(    DERPopNesting(Tbs));
     CHK(    X509AddX501Name(Tbs, TbsData->SubjectCommon, NULL, NULL));
-	if (subject_key.src_key_type == X509_PUBLIC_ECC_OR_RSA_KEY) {
-		CHK(	DERAddPublicKey(Tbs, CertKey, key_len));
-	} else if (subject_key.src_key_type == X509_PRIVATE_ECC_KEY) {
- 		CHK(    DERStartSequenceOrSet(Tbs, true));
-    	CHK(        DERStartSequenceOrSet(Tbs, true));
-    	CHK(            DERAddOID(Tbs, ecPublicKeyOID));
-		CHK(            DERAddOID(Tbs, prime256v1OID));
-    	CHK(        DERPopNesting(Tbs));
-    	CHK(        DERAddBitString(Tbs, &subject_key.key[1], subject_key.length-1));
-    	CHK(    DERPopNesting(Tbs));
-	}
+    CHK(    DERAddPublicKey(Tbs, CertKey, CertKeyLen));
     CHK(    DERStartExplicit(Tbs, 3));
     CHK(        DERStartSequenceOrSet(Tbs, true));
-	CHK(            X509AddSubjectKeyIdentifierExtension(Tbs, subject_key.identifier));
-	CHK(            X509AddAuthorityKeyIdentifierExtension(Tbs, authKeyIdentifier));
-	CHK(            X509AddKeyUsageExtension(Tbs, type));
-	CHK(            X509AddExtendedKeyUsageExtension(Tbs, type, NULL));
-	CHK(            X509AddBasicConstraintsExtension (Tbs, type));
-	CHK(            X509AddTcbInfoExtension(Tbs, dice, sha_oid, fw_id_len));
-	CHK(            X509AddUeidExtension(Tbs, dice));
+    CHK(            X509AddSubjectKeyIdentifierExtension(Tbs, SubjectKeyIdentifier));
+    CHK(            X509AddAuthorityKeyIdentifierExtension(Tbs, AuthKeyIdentifier));
+    CHK(            X509AddKeyUsageExtension(Tbs, Type));
+    CHK(            X509AddExtendedKeyUsageExtension(Tbs, Type, NULL));
+    CHK(            X509AddBasicConstraintsExtension (Tbs, Type));
+    CHK(            X509AddTcbInfoExtension(Tbs, Dice, sha_oid, fw_id_len));
+    CHK(            X509AddUeidExtension(Tbs, Dice));
     CHK(        DERPopNesting(Tbs));
     CHK(    DERPopNesting(Tbs));
     CHK(DERPopNesting(Tbs));
@@ -712,7 +668,7 @@ X509GetDERCsrTbs(
 	const struct x509_dice_tcbinfo *dice
 )
 {
-	int *sha_oid = NULL;
+	const int *sha_oid = NULL;
 	size_t fw_id_len = 0;
 	int status;
 
@@ -734,13 +690,7 @@ X509GetDERCsrTbs(
     CHK(DERStartSequenceOrSet(Context, true));
     CHK(    DERAddInteger(Context, 0));
     CHK(    X509AddX501Name(Context, TbsData->IssuerCommon, NULL, NULL));
-    CHK(    DERStartSequenceOrSet(Context, true));
-    CHK(        DERStartSequenceOrSet(Context, true));
-    CHK(            DERAddOID(Context, ecPublicKeyOID));
-    CHK(            DERAddOID(Context, prime256v1OID));
-    CHK(        DERPopNesting(Context));
-    CHK(        DERAddBitString(Context, DeviceIDPub, key_len));
-    CHK(    DERPopNesting(Context));
+    CHK(    DERAddPublicKey(Context, DeviceIDPub, key_len));
 	CHK(	DERStartExplicit(Context, 0));
     CHK(        DERStartSequenceOrSet(Context, true));
 	CHK(            DERAddOID(Context, extensionRequestOID));
@@ -766,32 +716,12 @@ Error:
 int
 X509GetDERCsr(
     DERBuilderContext   *Context,
-    RIOT_ECC_SIGNATURE  *Signature
+    const uint8_t       *Signature,
+    size_t              SigLength,
+    const int           *SigOID
 )
 {
-    uint8_t encBuffer[((BIGLEN - 1) * 4)];
-    size_t encBufferLen = ((BIGLEN - 1) * 4);
-
-    // Elevate the "TBS" block into a real certificate, i.e., copy it
-    // into an enclosing sequence and then add the signature block.
-    CHK(DERTbsToCert(Context));
-    CHK(    DERStartSequenceOrSet(Context, true));
-    CHK(        DERAddOID(Context, ecdsaWithSHA256OID));
-    CHK(    DERPopNesting(Context));
-    CHK(    DERStartEnvelopingBitString(Context));
-    CHK(        DERStartSequenceOrSet(Context, true));
-                    BigValToBigInt(encBuffer, &Signature->r);
-    CHK(            DERAddIntegerFromArray(Context, encBuffer, encBufferLen));
-                    BigValToBigInt(encBuffer, &Signature->s);
-    CHK(            DERAddIntegerFromArray(Context, encBuffer, encBufferLen));
-    CHK(        DERPopNesting(Context));
-    CHK(    DERPopNesting(Context));
-    CHK(DERPopNesting(Context));
-
-    ASRT(DERGetNestingDepth(Context) == 0);
-    return 0;
-Error:
-    return -1;
+    return X509MakeDeviceCert (Context, Signature, SigLength, SigOID);
 }
 
 int

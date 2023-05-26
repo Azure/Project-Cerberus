@@ -216,8 +216,9 @@ int aux_attestation_create_certificate (struct aux_attestation *aux, struct x509
 		}
 	} while (i == sizeof (serial_num));
 
-	status = x509->create_ca_signed_certificate (x509, &attestation_cert, priv, length, serial_num,
-		sizeof (serial_num), "AUX", X509_CERT_END_ENTITY, ca_key, key_length, &ca_cert, NULL);
+	status = x509->create_ca_signed_certificate (x509, &attestation_cert, priv, length,
+		serial_num, sizeof (serial_num), "AUX", X509_CERT_END_ENTITY, ca_key,
+		key_length, HASH_TYPE_SHA256, &ca_cert, NULL);
 	if (status != 0) {
 		goto exit_free_ca;
 	}

@@ -302,14 +302,33 @@ err_key:
 }
 
 static int rsa_openssl_sig_verify (struct rsa_engine *engine, const struct rsa_public_key *key,
-	const uint8_t *signature, size_t sig_length, const uint8_t *match, size_t match_length)
+	const uint8_t *signature, size_t sig_length, enum hash_type sig_hash, const uint8_t *match,
+	size_t match_length)
 {
 	RSA *rsa;
 	int status;
+	int match_type;
 
 	if ((engine == NULL) || (key == NULL) || (signature == NULL) || (match == NULL) ||
 		(sig_length == 0) || (match_length == 0)) {
 		return RSA_ENGINE_INVALID_ARGUMENT;
+	}
+
+	switch (sig_hash) {
+		case HASH_TYPE_SHA256:
+			match_type = NID_sha256;
+			break;
+
+		case HASH_TYPE_SHA384:
+			match_type = NID_sha384;
+			break;
+
+		case HASH_TYPE_SHA512:
+			match_type = NID_sha512;
+			break;
+
+		default:
+			return RSA_ENGINE_UNSUPPORTED_SIG_TYPE;
 	}
 
 	status = rsa_openssl_load_pubkey (&rsa, key);
@@ -317,7 +336,7 @@ static int rsa_openssl_sig_verify (struct rsa_engine *engine, const struct rsa_p
 		return status;
 	}
 
-	status = RSA_verify (NID_sha256, match, match_length, signature, sig_length, rsa);
+	status = RSA_verify (match_type, match, match_length, signature, sig_length, rsa);
 
 	RSA_free (rsa);
 	return (status == 1) ? 0 : RSA_ENGINE_BAD_SIGNATURE;

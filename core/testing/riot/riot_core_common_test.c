@@ -287,7 +287,7 @@ static void riot_core_common_test_generate_device_id (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -1134,7 +1134,7 @@ static void riot_core_common_test_generate_device_id_cert_error (CuTest *test)
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509,
 		X509_ENGINE_SELF_SIGNED_FAILED, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -1258,7 +1258,7 @@ static void riot_core_common_test_get_device_id_csr (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -1285,13 +1285,13 @@ static void riot_core_common_test_get_device_id_csr (CuTest *test)
 	/* Generate the CSR. */
 	status = mock_expect (&x509.mock, x509.base.create_csr, &x509, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
 		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS_TMP (&riot_tcb, sizeof (riot_tcb)), MOCK_ARG_PTR (&out),
 		MOCK_ARG_PTR (&out_length));
-	status |= mock_expect_output (&x509.mock, 6, &csr, sizeof (csr), -1);
-	status |= mock_expect_output (&x509.mock, 7, &csr_length, sizeof (csr_length), -1);
+	status |= mock_expect_output (&x509.mock, 7, &csr, sizeof (csr), -1);
+	status |= mock_expect_output (&x509.mock, 8, &csr_length, sizeof (csr_length), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1417,7 +1417,7 @@ static void riot_core_common_test_get_device_id_csr_with_oid (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -1444,14 +1444,14 @@ static void riot_core_common_test_get_device_id_csr_with_oid (CuTest *test)
 	/* Generate the CSR. */
 	status = mock_expect (&x509.mock, x509.base.create_csr, &x509, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
 		MOCK_ARG (X509_CERT_CA),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CERBERUS, strlen (RIOT_CORE_CERBERUS) + 1),
 		MOCK_ARG_PTR_CONTAINS_TMP (&riot_tcb, sizeof (riot_tcb)), MOCK_ARG_PTR (&out),
 		MOCK_ARG_PTR (&out_length));
-	status |= mock_expect_output (&x509.mock, 6, &csr, sizeof (csr), -1);
-	status |= mock_expect_output (&x509.mock, 7, &csr_length, sizeof (csr_length), -1);
+	status |= mock_expect_output (&x509.mock, 7, &csr, sizeof (csr), -1);
+	status |= mock_expect_output (&x509.mock, 8, &csr_length, sizeof (csr_length), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1577,7 +1577,7 @@ static void riot_core_common_test_get_device_id_csr_null (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -1772,7 +1772,7 @@ static void riot_core_common_test_get_device_id_csr_error (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -1799,7 +1799,7 @@ static void riot_core_common_test_get_device_id_csr_error (CuTest *test)
 	/* Generate the CSR. */
 	status = mock_expect (&x509.mock, x509.base.create_csr, &x509, X509_ENGINE_CSR_FAILED,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
 		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
 		MOCK_ARG_PTR_CONTAINS_TMP (&riot_tcb, sizeof (riot_tcb)), MOCK_ARG_PTR (&out),
@@ -1925,7 +1925,7 @@ static void riot_core_common_test_get_device_id_cert (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -2073,7 +2073,7 @@ static void riot_core_common_test_get_device_id_cert_null (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -2278,7 +2278,7 @@ static void riot_core_common_test_get_device_id_cert_error (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -2426,7 +2426,7 @@ static void riot_core_common_test_generate_alias_key (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -2493,7 +2493,7 @@ static void riot_core_common_test_generate_alias_key (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_NAME, RIOT_CORE_ALIAS_NAME_LEN),
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (&alias_tcb, sizeof (alias_tcb)));
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
@@ -2614,7 +2614,7 @@ static void riot_core_common_test_generate_alias_key_null (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -2763,7 +2763,7 @@ static void riot_core_common_test_generate_alias_key_invalid_fwid_hash (CuTest *
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -2974,7 +2974,7 @@ static void riot_core_common_test_generate_alias_key_alias_kdf_error (CuTest *te
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -3122,7 +3122,7 @@ static void riot_core_common_test_generate_alias_key_key_pair_error (CuTest *tes
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -3277,7 +3277,7 @@ static void riot_core_common_test_generate_alias_key_der_error (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -3445,7 +3445,7 @@ static void riot_core_common_test_generate_alias_key_serial_hmac_error (CuTest *
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -3617,7 +3617,7 @@ static void riot_core_common_test_generate_alias_key_subject_name_error (CuTest 
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -3795,7 +3795,7 @@ static void riot_core_common_test_generate_alias_key_cert_error (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -3863,7 +3863,7 @@ static void riot_core_common_test_generate_alias_key_cert_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_NAME, RIOT_CORE_ALIAS_NAME_LEN),
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (&alias_tcb, sizeof (alias_tcb)));
 
 	CuAssertIntEquals (test, 0, status);
@@ -3989,7 +3989,7 @@ static void riot_core_common_test_get_alias_key (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -4056,7 +4056,7 @@ static void riot_core_common_test_get_alias_key (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_NAME, RIOT_CORE_ALIAS_NAME_LEN),
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (&alias_tcb, sizeof (alias_tcb)));
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
@@ -4195,7 +4195,7 @@ static void riot_core_common_test_get_alias_key_null (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -4262,7 +4262,7 @@ static void riot_core_common_test_get_alias_key_null (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_NAME, RIOT_CORE_ALIAS_NAME_LEN),
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (&alias_tcb, sizeof (alias_tcb)));
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
@@ -4393,7 +4393,7 @@ static void riot_core_common_test_get_alias_key_no_alias_key (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -4542,7 +4542,7 @@ static void riot_core_common_test_get_alias_key_cert (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -4609,7 +4609,7 @@ static void riot_core_common_test_get_alias_key_cert (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_NAME, RIOT_CORE_ALIAS_NAME_LEN),
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (&alias_tcb, sizeof (alias_tcb)));
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
@@ -4765,7 +4765,7 @@ static void riot_core_common_test_get_alias_key_cert_null (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -4832,7 +4832,7 @@ static void riot_core_common_test_get_alias_key_cert_null (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_NAME, RIOT_CORE_ALIAS_NAME_LEN),
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (&alias_tcb, sizeof (alias_tcb)));
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 
@@ -4975,7 +4975,7 @@ static void riot_core_common_test_get_alias_key_cert_no_alias_key (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -5118,7 +5118,7 @@ static void riot_core_common_test_get_alias_key_cert_error (CuTest *test)
 
 	status |= mock_expect (&x509.mock, x509.base.create_self_signed_certificate, &x509, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
@@ -5185,7 +5185,7 @@ static void riot_core_common_test_get_alias_key_cert_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_NAME, RIOT_CORE_ALIAS_NAME_LEN),
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
-		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS (&alias_tcb, sizeof (alias_tcb)));
 	status |= mock_expect_save_arg (&x509.mock, 0, 1);
 

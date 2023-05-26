@@ -137,7 +137,41 @@ static void rsa_mbedtls_test_sig_verify (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, SIG_HASH_TEST, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	rsa_mbedtls_release (&engine);
+}
+
+static void rsa_mbedtls_test_sig_verify_sha384 (CuTest *test)
+{
+	struct rsa_engine_mbedtls engine;
+	int status;
+
+	TEST_START;
+
+	status = rsa_mbedtls_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SHA384_SIGNATURE_TEST,
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA384, SHA384_TEST_HASH, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	rsa_mbedtls_release (&engine);
+}
+
+static void rsa_mbedtls_test_sig_verify_sha512 (CuTest *test)
+{
+	struct rsa_engine_mbedtls engine;
+	int status;
+
+	TEST_START;
+
+	status = rsa_mbedtls_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SHA512_SIGNATURE_TEST,
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA512, SHA512_TEST_HASH, SHA512_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	rsa_mbedtls_release (&engine);
@@ -154,28 +188,49 @@ static void rsa_mbedtls_test_sig_verify_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sig_verify (NULL, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, SIG_HASH_TEST, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sig_verify (&engine.base, NULL, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, SIG_HASH_TEST, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, NULL,
-		RSA_ENCRYPT_LEN, SIG_HASH_TEST, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		0, SIG_HASH_TEST, SIG_HASH_LEN);
+		0, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, NULL, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, NULL, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, SIG_HASH_TEST, 0);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, 0);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
+
+	rsa_mbedtls_release (&engine);
+}
+
+static void rsa_mbedtls_test_sig_verify_unsupported_sig_type (CuTest *test)
+{
+	struct rsa_engine_mbedtls engine;
+	int status;
+
+	TEST_START;
+
+	status = rsa_mbedtls_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA1, SIG_HASH_TEST, SIG_HASH_LEN);
+	CuAssertIntEquals (test, RSA_ENGINE_UNSUPPORTED_SIG_TYPE, status);
+
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
+		RSA_ENCRYPT_LEN, (enum hash_type) 10, SIG_HASH_TEST, SIG_HASH_LEN);
+	CuAssertIntEquals (test, RSA_ENGINE_UNSUPPORTED_SIG_TYPE, status);
 
 	rsa_mbedtls_release (&engine);
 }
@@ -191,7 +246,58 @@ static void rsa_mbedtls_test_sig_verify_no_match (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_NOPE,
-		RSA_ENCRYPT_LEN, SIG_HASH_TEST, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	rsa_mbedtls_release (&engine);
+}
+
+static void rsa_mbedtls_test_sig_verify_no_match_sha384 (CuTest *test)
+{
+	struct rsa_engine_mbedtls engine;
+	int status;
+
+	TEST_START;
+
+	status = rsa_mbedtls_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SHA384_SIGNATURE_NOPE,
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA384, SHA384_TEST_HASH, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	rsa_mbedtls_release (&engine);
+}
+
+static void rsa_mbedtls_test_sig_verify_no_match_sha512 (CuTest *test)
+{
+	struct rsa_engine_mbedtls engine;
+	int status;
+
+	TEST_START;
+
+	status = rsa_mbedtls_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SHA512_SIGNATURE_NOPE,
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA512, SHA512_TEST_HASH, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	rsa_mbedtls_release (&engine);
+}
+
+static void rsa_mbedtls_test_sig_verify_wrong_length (CuTest *test)
+{
+	struct rsa_engine_mbedtls engine;
+	int status;
+
+	TEST_START;
+
+	status = rsa_mbedtls_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
+		RSA_ENCRYPT_LEN - 1, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	rsa_mbedtls_release (&engine);
@@ -208,7 +314,24 @@ static void rsa_mbedtls_test_sig_verify_bad_signature (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_ENCRYPT_BAD,
-		RSA_ENCRYPT_LEN, SIG_HASH_TEST, SIG_HASH_LEN);
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
+
+	rsa_mbedtls_release (&engine);
+}
+
+static void rsa_mbedtls_test_sig_verify_bad_signature_wrong_hash (CuTest *test)
+{
+	struct rsa_engine_mbedtls engine;
+	int status;
+
+	TEST_START;
+
+	status = rsa_mbedtls_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_BAD,
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA384, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_BAD_SIGNATURE, status);
 
 	rsa_mbedtls_release (&engine);
@@ -966,9 +1089,16 @@ TEST (rsa_mbedtls_test_init_null);
 TEST (rsa_mbedtls_test_release_null);
 TEST (rsa_mbedtls_test_release_no_init);
 TEST (rsa_mbedtls_test_sig_verify);
+TEST (rsa_mbedtls_test_sig_verify_sha384);
+TEST (rsa_mbedtls_test_sig_verify_sha512);
 TEST (rsa_mbedtls_test_sig_verify_null);
+TEST (rsa_mbedtls_test_sig_verify_unsupported_sig_type);
 TEST (rsa_mbedtls_test_sig_verify_no_match);
+TEST (rsa_mbedtls_test_sig_verify_no_match_sha384);
+TEST (rsa_mbedtls_test_sig_verify_no_match_sha512);
+TEST (rsa_mbedtls_test_sig_verify_wrong_length);
 TEST (rsa_mbedtls_test_sig_verify_bad_signature);
+TEST (rsa_mbedtls_test_sig_verify_bad_signature_wrong_hash);
 TEST (rsa_mbedtls_test_init_private_key);
 TEST (rsa_mbedtls_test_init_private_key_null);
 TEST (rsa_mbedtls_test_init_private_key_with_public_key);

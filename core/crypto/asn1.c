@@ -175,7 +175,7 @@ int asn1_encode_integer (uint64_t value, uint8_t *der, size_t length)
 /**
  * Decode an integer value that is ASN.1/DER encoded.
  *
- * @param der The DER encode integer value.
+ * @param der The DER encoded integer value.
  * @param length Length of the DER buffer.
  * @param value Output for the decoded integer value.
  *

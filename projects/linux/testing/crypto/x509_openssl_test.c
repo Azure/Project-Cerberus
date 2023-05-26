@@ -80,7 +80,7 @@ static void x509_openssl_test_create_csr_ecc_ca (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -88,7 +88,7 @@ static void x509_openssl_test_create_csr_ecc_ca (CuTest *test)
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -109,7 +109,7 @@ static void x509_openssl_test_create_csr_ecc_end_entity (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL, NULL, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -117,13 +117,133 @@ static void x509_openssl_test_create_csr_ecc_end_entity (CuTest *test)
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
 
 	x509_openssl_release (&engine);
 }
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
+static void x509_openssl_test_create_csr_ecc384_ca (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	int status;
+	uint8_t *csr = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_csr (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA384, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, csr);
+
+	x509_testing_start_cert_verification (test, ECC384_CA, CSR, UTF8STRING, ECDSA_SHA384_NO_NULL);
+	x509_testing_verify_cert_length (test, csr, length);
+	x509_testing_verify_cert (test, csr);
+	x509_testing_verify_sig_algorithm (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC384_PUBKEY, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (csr);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_csr_ecc384_end_entity (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	int status;
+	uint8_t *csr = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_csr (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA384, X509_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL, NULL, &csr, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, csr);
+
+	x509_testing_start_cert_verification (test, ECC384_EE, CSR, UTF8STRING, ECDSA_SHA384_NO_NULL);
+	x509_testing_verify_cert_length (test, csr, length);
+	x509_testing_verify_cert (test, csr);
+	x509_testing_verify_sig_algorithm (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC384_PUBKEY, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (csr);
+
+	x509_openssl_release (&engine);
+}
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
+static void x509_openssl_test_create_csr_ecc521_ca (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	int status;
+	uint8_t *csr = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_csr (&engine.base, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA512, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, csr);
+
+	x509_testing_start_cert_verification (test, ECC521_CA, CSR, UTF8STRING, ECDSA_SHA512_NO_NULL);
+	x509_testing_verify_cert_length (test, csr, length);
+	x509_testing_verify_cert (test, csr);
+	x509_testing_verify_sig_algorithm (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC521_PUBKEY, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (csr);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_csr_ecc521_end_entity (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	int status;
+	uint8_t *csr = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_csr (&engine.base, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA512, X509_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL, NULL, &csr, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, csr);
+
+	x509_testing_start_cert_verification (test, ECC521_EE, CSR, UTF8STRING, ECDSA_SHA512_NO_NULL);
+	x509_testing_verify_cert_length (test, csr, length);
+	x509_testing_verify_cert (test, csr);
+	x509_testing_verify_sig_algorithm (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC521_PUBKEY, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (csr);
+
+	x509_openssl_release (&engine);
+}
+#endif
 
 static void x509_openssl_test_create_csr_rsa_ca (CuTest *test)
 {
@@ -138,7 +258,7 @@ static void x509_openssl_test_create_csr_rsa_ca (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -146,7 +266,7 @@ static void x509_openssl_test_create_csr_rsa_ca (CuTest *test)
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_rsa (test, csr);
+	x509_testing_verify_signature_rsa (test, csr, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -167,7 +287,7 @@ static void x509_openssl_test_create_csr_rsa_end_entity (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL, NULL, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -175,7 +295,7 @@ static void x509_openssl_test_create_csr_rsa_end_entity (CuTest *test)
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_rsa (test, csr);
+	x509_testing_verify_signature_rsa (test, csr, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -196,7 +316,7 @@ static void x509_openssl_test_create_csr_ca_non_zero_path_length_constraint (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA_PATHLEN (2), NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA_PATHLEN (2), NULL, NULL, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -204,7 +324,7 @@ static void x509_openssl_test_create_csr_ca_non_zero_path_length_constraint (CuT
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -225,7 +345,7 @@ static void x509_openssl_test_create_csr_ca_no_path_length_constraint (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL, NULL, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -233,7 +353,7 @@ static void x509_openssl_test_create_csr_ca_no_path_length_constraint (CuTest *t
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -254,7 +374,7 @@ static void x509_openssl_test_create_csr_ca_with_eku_oid (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, X509_EKU_OID, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, X509_EKU_OID, NULL, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -262,7 +382,7 @@ static void x509_openssl_test_create_csr_ca_with_eku_oid (CuTest *test)
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -284,7 +404,8 @@ static void x509_openssl_test_create_csr_end_entity_with_eku_oid (CuTest *test)
 
 	csr = (uint8_t*) &length;
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_END_ENTITY, X509_EKU_OID, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_END_ENTITY, X509_EKU_OID, NULL, &csr,
+		&length);
 	CuAssertIntEquals (test, X509_ENGINE_NOT_CA_CERT, status);
 	CuAssertPtrEquals (test, NULL, csr);
 
@@ -315,7 +436,7 @@ static void x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension (CuTest *
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -323,7 +444,7 @@ static void x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension (CuTest *
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -355,7 +476,7 @@ static void x509_openssl_test_create_csr_end_entity_tcbinfo_and_ueid_extension (
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -363,7 +484,7 @@ static void x509_openssl_test_create_csr_end_entity_tcbinfo_and_ueid_extension (
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -395,7 +516,7 @@ static void x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1 (CuT
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -403,7 +524,87 @@ static void x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1 (CuT
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
+	x509_testing_end_cert_verification;
+
+	platform_free (csr);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension_sha384 (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	int status;
+	struct x509_dice_tcbinfo tcb;
+	struct x509_dice_ueid ueid;
+	uint8_t *csr = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	ueid.ueid = X509_RIOT_UEID;
+	ueid.length = X509_RIOT_UEID_LEN;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fw_id = X509_RIOT_SHA384_FWID;
+	tcb.fw_id_hash = HASH_TYPE_SHA384;
+	tcb.ueid = &ueid;
+
+	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, csr);
+
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CSR, UTF8STRING, ECDSA_NO_NULL);
+	x509_testing_verify_cert_length (test, csr, length);
+	x509_testing_verify_cert (test, csr);
+	x509_testing_verify_sig_algorithm (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
+	x509_testing_end_cert_verification;
+
+	platform_free (csr);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension_sha512 (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	int status;
+	struct x509_dice_tcbinfo tcb;
+	struct x509_dice_ueid ueid;
+	uint8_t *csr = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	ueid.ueid = X509_RIOT_UEID;
+	ueid.length = X509_RIOT_UEID_LEN;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fw_id = X509_RIOT_SHA512_FWID;
+	tcb.fw_id_hash = HASH_TYPE_SHA512;
+	tcb.ueid = &ueid;
+
+	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, csr);
+
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CSR, UTF8STRING, ECDSA_NO_NULL);
+	x509_testing_verify_cert_length (test, csr, length);
+	x509_testing_verify_cert (test, csr);
+	x509_testing_verify_sig_algorithm (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -435,7 +636,7 @@ static void x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_zero 
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -443,7 +644,7 @@ static void x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_zero 
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -471,7 +672,7 @@ static void x509_openssl_test_create_csr_ca_tcbinfo_extension_ueid_null (CuTest 
 	tcb.ueid = NULL;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -479,7 +680,7 @@ static void x509_openssl_test_create_csr_ca_tcbinfo_extension_ueid_null (CuTest 
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -507,7 +708,7 @@ static void x509_openssl_test_create_csr_end_entity_tcbinfo_extension_ueid_null 
 	tcb.ueid = NULL;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
@@ -515,7 +716,7 @@ static void x509_openssl_test_create_csr_end_entity_tcbinfo_extension_ueid_null 
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
-	x509_testing_verify_signature_ecc (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (csr);
@@ -536,35 +737,35 @@ static void x509_openssl_test_create_csr_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 	CuAssertPtrEquals (test, NULL, csr);
 
 	csr = (uint8_t*) &status;
 	status = engine.base.create_csr (&engine.base, NULL, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 	CuAssertPtrEquals (test, NULL, csr);
 
 	csr = (uint8_t*) &status;
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, 0,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 	CuAssertPtrEquals (test, NULL, csr);
 
 	csr = (uint8_t*) &status;
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		NULL, X509_CERT_CA, NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, NULL, X509_CERT_CA, NULL, NULL, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 	CuAssertPtrEquals (test, NULL, csr);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, NULL, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, NULL, &length);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	csr = (uint8_t*) &status;
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, NULL);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 	CuAssertPtrEquals (test, NULL, csr);
 
@@ -584,14 +785,39 @@ static void x509_openssl_test_create_csr_with_public_key (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
 	CuAssertTrue (test, (status < 0));
 	CuAssertPtrEquals (test, NULL, csr);
 
 	x509_openssl_release (&engine);
 }
 
-static void x509_openssl_test_create_csr_tcbinfo_unknown_hash (CuTest *test)
+static void x509_openssl_test_create_csr_sig_unsupported_hash (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	int status;
+	uint8_t *csr = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA1, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
+	CuAssertIntEquals (test, X509_ENGINE_UNSUPPORTED_SIG_HASH, status);
+	CuAssertPtrEquals (test, NULL, csr);
+
+	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		(enum hash_type) 10, X509_SUBJECT_NAME, X509_CERT_CA, NULL, NULL, &csr, &length);
+	CuAssertIntEquals (test, X509_ENGINE_UNSUPPORTED_SIG_HASH, status);
+	CuAssertPtrEquals (test, NULL, csr);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_csr_ca_tcbinfo_unknown_hash (CuTest *test)
 {
 	struct x509_engine_openssl engine;
 	int status;
@@ -615,13 +841,13 @@ static void x509_openssl_test_create_csr_tcbinfo_unknown_hash (CuTest *test)
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_RIOT_UNSUPPORTED_HASH, status);
 
 	x509_openssl_release (&engine);
 }
 
-static void x509_openssl_test_create_csr_tcbinfo_fwid_null (CuTest *test)
+static void x509_openssl_test_create_csr_ca_tcbinfo_fwid_null (CuTest *test)
 {
 	struct x509_engine_openssl engine;
 	int status;
@@ -645,13 +871,13 @@ static void x509_openssl_test_create_csr_tcbinfo_fwid_null (CuTest *test)
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_RIOT_NO_FWID, status);
 
 	x509_openssl_release (&engine);
 }
 
-static void x509_openssl_test_create_csr_tcbinfo_version_null (CuTest *test)
+static void x509_openssl_test_create_csr_ca_tcbinfo_version_null (CuTest *test)
 {
 	struct x509_engine_openssl engine;
 	int status;
@@ -675,7 +901,7 @@ static void x509_openssl_test_create_csr_tcbinfo_version_null (CuTest *test)
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_DICE_NO_VERSION, status);
 
 	x509_openssl_release (&engine);
@@ -705,7 +931,7 @@ static void x509_openssl_test_create_csr_ueid_null (CuTest *test)
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_DICE_NO_UEID, status);
 
 	x509_openssl_release (&engine);
@@ -735,7 +961,7 @@ static void x509_openssl_test_create_csr_ueid_zero_length (CuTest *test)
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, &tcb, &csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_DICE_NO_UEID, status);
 
 	x509_openssl_release (&engine);
@@ -755,8 +981,8 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_ca (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -768,7 +994,7 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_ca (CuTest *tes
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -791,7 +1017,7 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_end_entity (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
 		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
@@ -804,7 +1030,7 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_end_entity (CuT
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -812,6 +1038,158 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_end_entity (CuT
 
 	x509_openssl_release (&engine);
 }
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
+static void x509_openssl_test_create_self_signed_certificate_ecc384_ca (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC384_PRIVKEY_DER,
+		ECC384_PRIVKEY_DER_LEN, HASH_TYPE_SHA384, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC384_CA, CERTSS, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC384_PUBKEY, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_self_signed_certificate_ecc384_end_entity (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC384_PRIVKEY_DER,
+		ECC384_PRIVKEY_DER_LEN, HASH_TYPE_SHA384, X509_ENTITY_SERIAL_NUM,
+		X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC384_EE, CERTSS, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC384_PUBKEY, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_openssl_release (&engine);
+}
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
+static void x509_openssl_test_create_self_signed_certificate_ecc521_ca (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC521_PRIVKEY_DER,
+		ECC521_PRIVKEY_DER_LEN, HASH_TYPE_SHA512, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC521_CA, CERTSS, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC521_PUBKEY, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_self_signed_certificate_ecc521_end_entity (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC521_PRIVKEY_DER,
+		ECC521_PRIVKEY_DER_LEN, HASH_TYPE_SHA512, X509_ENTITY_SERIAL_NUM,
+		X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC521_EE, CERTSS, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC521_PUBKEY, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_openssl_release (&engine);
+}
+#endif
 
 static void x509_openssl_test_create_self_signed_certificate_rsa_ca (CuTest *test)
 {
@@ -827,8 +1205,8 @@ static void x509_openssl_test_create_self_signed_certificate_rsa_ca (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		NULL);
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -840,7 +1218,7 @@ static void x509_openssl_test_create_self_signed_certificate_rsa_ca (CuTest *tes
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_rsa (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -863,7 +1241,7 @@ static void x509_openssl_test_create_self_signed_certificate_rsa_end_entity (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
 		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
@@ -876,7 +1254,7 @@ static void x509_openssl_test_create_self_signed_certificate_rsa_end_entity (CuT
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_rsa (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -900,8 +1278,8 @@ static void x509_openssl_test_create_self_signed_certificate_ca_non_zero_path_le
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_PATHLEN (1), NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_PATHLEN (1), NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -913,7 +1291,7 @@ static void x509_openssl_test_create_self_signed_certificate_ca_non_zero_path_le
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -937,8 +1315,8 @@ static void x509_openssl_test_create_self_signed_certificate_ca_no_path_length_c
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -950,7 +1328,7 @@ static void x509_openssl_test_create_self_signed_certificate_ca_no_path_length_c
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -985,8 +1363,8 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		&tcb);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -998,7 +1376,7 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1033,7 +1411,7 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_end_entity_tcbi
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
 		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
@@ -1046,7 +1424,7 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_end_entity_tcbi
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1081,8 +1459,8 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		&tcb);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1095,7 +1473,105 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha384 (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate cert;
+	int status;
+	struct x509_dice_tcbinfo tcb;
+	struct x509_dice_ueid ueid;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	ueid.ueid = X509_RIOT_UEID;
+	ueid.length = X509_RIOT_UEID_LEN;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fw_id = X509_RIOT_SHA384_FWID;
+	tcb.fw_id_hash = HASH_TYPE_SHA384;
+	tcb.ueid = &ueid;
+
+	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha512 (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate cert;
+	int status;
+	struct x509_dice_tcbinfo tcb;
+	struct x509_dice_ueid ueid;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	ueid.ueid = X509_RIOT_UEID;
+	ueid.length = X509_RIOT_UEID_LEN;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fw_id = X509_RIOT_SHA512_FWID;
+	tcb.fw_id_hash = HASH_TYPE_SHA512;
+	tcb.ueid = &ueid;
+
+	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1130,8 +1606,8 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		&tcb);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1144,7 +1620,7 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1175,8 +1651,8 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_exte
 	tcb.ueid = NULL;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		&tcb);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1188,7 +1664,7 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_exte
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1219,7 +1695,7 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_end_entity_tcbi
 	tcb.ueid = NULL;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
 		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
@@ -1232,7 +1708,7 @@ static void x509_openssl_test_create_self_signed_certificate_ecc_end_entity_tcbi
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1253,38 +1729,38 @@ static void x509_openssl_test_create_self_signed_certificate_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (NULL, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, NULL, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, NULL,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		0, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		NULL);
+		0, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, NULL, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, NULL, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, 0, X509_SUBJECT_NAME, X509_CERT_CA,
-		NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, 0,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, NULL, X509_CERT_CA,
-		NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		NULL, X509_CERT_CA, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	x509_openssl_release (&engine);
@@ -1302,9 +1778,33 @@ static void x509_openssl_test_create_self_signed_certificate_with_public_key (Cu
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PUBKEY_DER,
-		ECC_PUBKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		NULL);
+		ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
 	CuAssertTrue (test, (status < 0));
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_self_signed_certificate_sig_unsupported_hash (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate cert;
+	int status;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA1, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
+	CuAssertIntEquals (test, X509_ENGINE_UNSUPPORTED_SIG_HASH, status);
+
+	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
+		ECC_PRIVKEY_DER_LEN, (enum hash_type) 10, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
+	CuAssertIntEquals (test, X509_ENGINE_UNSUPPORTED_SIG_HASH, status);
 
 	x509_openssl_release (&engine);
 }
@@ -1333,8 +1833,8 @@ static void x509_openssl_test_create_self_signed_certificate_tcbinfo_unknown_has
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		&tcb);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
 	CuAssertIntEquals (test, X509_ENGINE_RIOT_UNSUPPORTED_HASH, status);
 
 	x509_openssl_release (&engine);
@@ -1363,8 +1863,8 @@ static void x509_openssl_test_create_self_signed_certificate_tcbinfo_fwid_null (
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		&tcb);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
 	CuAssertIntEquals (test, X509_ENGINE_RIOT_NO_FWID, status);
 
 	x509_openssl_release (&engine);
@@ -1393,8 +1893,8 @@ static void x509_openssl_test_create_self_signed_certificate_tcbinfo_version_nul
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		&tcb);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
 	CuAssertIntEquals (test, X509_ENGINE_DICE_NO_VERSION, status);
 
 	x509_openssl_release (&engine);
@@ -1423,8 +1923,8 @@ static void x509_openssl_test_create_self_signed_certificate_ueid_null (CuTest *
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		&tcb);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
 	CuAssertIntEquals (test, X509_ENGINE_DICE_NO_UEID, status);
 
 	x509_openssl_release (&engine);
@@ -1453,8 +1953,8 @@ static void x509_openssl_test_create_self_signed_certificate_ueid_zero_length (C
 	tcb.ueid = &ueid;
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME, X509_CERT_CA,
-		&tcb);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, &tcb);
 	CuAssertIntEquals (test, X509_ENGINE_DICE_NO_UEID, status);
 
 	x509_openssl_release (&engine);
@@ -1473,7 +1973,8 @@ static void x509_openssl_test_create_self_signed_certificate_serial_zero (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, zero, sizeof (zero), X509_SUBJECT_NAME, X509_CERT_CA, NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, zero, sizeof (zero), X509_SUBJECT_NAME, X509_CERT_CA,
+		NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_SERIAL_NUM, status);
 
 	x509_openssl_release (&engine);
@@ -1615,7 +2116,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_ca_private_key (C
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1627,7 +2128,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_ca_private_key (C
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_rsa (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1658,7 +2159,7 @@ static void x509_openssl_test_create_ca_signed_certificate_intermediate_ca_ecc_c
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA3_SUBJECT_NAME,
-		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1670,7 +2171,7 @@ static void x509_openssl_test_create_ca_signed_certificate_intermediate_ca_ecc_c
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1701,7 +2202,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_end_entity_privat
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
 		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN,
-		&ca_cert, NULL);
+		HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1713,7 +2214,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_end_entity_privat
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_rsa (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1722,6 +2223,276 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_end_entity_privat
 
 	x509_openssl_release (&engine);
 }
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
+static void x509_openssl_test_create_ca_signed_certificate_ecc384_ca_private_key (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC384_PRIVKEY_DER,
+		ECC384_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA384, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC384_CA, CERTCA, UTF8STRING,
+		RSA_SHA384_WITH_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private_key (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTCA_ECC384_CA_DER,
+		X509_CERTCA_ECC384_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC384_PRIVKEY2_DER,
+		ECC384_PRIVKEY2_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN,
+		X509_CA3_SUBJECT_NAME, X509_CERT_CA, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA384, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC384_CA2_ICA, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC384_PUBKEY, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_ecc384_end_entity_private_key (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC384_PRIVKEY_DER,
+		ECC384_PRIVKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
+		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA384, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC384_EE, CERTCA, UTF8STRING,
+		RSA_SHA384_WITH_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
+static void x509_openssl_test_create_ca_signed_certificate_ecc521_ca_private_key (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC521_PRIVKEY_DER,
+		ECC521_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA512, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC521_CA, CERTCA, UTF8STRING,
+		RSA_SHA512_WITH_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_intermediate_ca_ecc521_ca_private_key (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTCA_ECC521_CA_DER,
+		X509_CERTCA_ECC521_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC521_PRIVKEY2_DER,
+		ECC521_PRIVKEY2_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN,
+		X509_CA3_SUBJECT_NAME, X509_CERT_CA, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA512, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC521_CA2_ICA, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC521_PUBKEY, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_ecc521_end_entity_private_key (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC521_PRIVKEY_DER,
+		ECC521_PRIVKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
+		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA512, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC521_EE, CERTCA, UTF8STRING,
+		RSA_SHA512_WITH_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+#endif
 
 static void x509_openssl_test_create_ca_signed_certificate_rsa_ca_private_key (CuTest *test)
 {
@@ -1743,7 +2514,7 @@ static void x509_openssl_test_create_ca_signed_certificate_rsa_ca_private_key (C
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, RSA_PRIVKEY_DER,
 		RSA_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1755,7 +2526,7 @@ static void x509_openssl_test_create_ca_signed_certificate_rsa_ca_private_key (C
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1786,7 +2557,7 @@ static void x509_openssl_test_create_ca_signed_certificate_rsa_end_entity_privat
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, RSA_PRIVKEY_DER,
 		RSA_PRIVKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
 		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&ca_cert, NULL);
+		HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1798,7 +2569,7 @@ static void x509_openssl_test_create_ca_signed_certificate_rsa_end_entity_privat
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1828,7 +2599,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_ca_public_key (Cu
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1840,7 +2611,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_ca_public_key (Cu
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_rsa (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1871,7 +2642,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_end_entity_public
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
 		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN,
-		&ca_cert, NULL);
+		HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1883,7 +2654,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_end_entity_public
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_rsa (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1892,6 +2663,186 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_end_entity_public
 
 	x509_openssl_release (&engine);
 }
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
+static void x509_openssl_test_create_ca_signed_certificate_ecc384_ca_public_key (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC384_PUBKEY_DER,
+		ECC384_PUBKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA384, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC384_CA, CERTCA, UTF8STRING,
+		RSA_SHA384_WITH_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_ecc384_end_entity_public_key (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC384_PUBKEY_DER,
+		ECC384_PUBKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
+		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA384, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC384_EE, CERTCA, UTF8STRING,
+		RSA_SHA384_WITH_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
+static void x509_openssl_test_create_ca_signed_certificate_ecc521_ca_public_key (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC521_PUBKEY_DER,
+		ECC521_PUBKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA512, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC521_CA, CERTCA, UTF8STRING,
+		RSA_SHA512_WITH_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_ecc521_end_entity_public_key (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC521_PUBKEY_DER,
+		ECC521_PUBKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
+		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA512, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC521_EE, CERTCA, UTF8STRING,
+		RSA_SHA512_WITH_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+#endif
 
 static void x509_openssl_test_create_ca_signed_certificate_rsa_ca_public_key (CuTest *test)
 {
@@ -1913,7 +2864,7 @@ static void x509_openssl_test_create_ca_signed_certificate_rsa_ca_public_key (Cu
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, RSA_PUBKEY_DER,
 		RSA_PUBKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1925,7 +2876,7 @@ static void x509_openssl_test_create_ca_signed_certificate_rsa_ca_public_key (Cu
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1956,7 +2907,7 @@ static void x509_openssl_test_create_ca_signed_certificate_rsa_end_entity_public
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, RSA_PUBKEY_DER,
 		RSA_PUBKEY_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
 		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&ca_cert, NULL);
+		HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -1968,7 +2919,7 @@ static void x509_openssl_test_create_ca_signed_certificate_rsa_end_entity_public
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -1998,7 +2949,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_ca2_public_key (C
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PUBKEY2_DER,
 		ECC_PUBKEY2_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -2010,7 +2961,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ecc_ca2_public_key (C
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -2042,7 +2993,7 @@ static void x509_openssl_test_create_ca_signed_certificate_end_entity_ecc_ca2_pu
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PUBKEY2_DER,
 		ECC_PUBKEY2_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
 		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&ca_cert, NULL);
+		HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -2054,7 +3005,7 @@ static void x509_openssl_test_create_ca_signed_certificate_end_entity_ecc_ca2_pu
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -2063,6 +3014,186 @@ static void x509_openssl_test_create_ca_signed_certificate_end_entity_ecc_ca2_pu
 
 	x509_openssl_release (&engine);
 }
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
+static void x509_openssl_test_create_ca_signed_certificate_ecc384_ca2_public_key (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC384_CA_DER,
+		X509_CERTSS_ECC384_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC384_PUBKEY2_DER,
+		ECC384_PUBKEY2_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
+		X509_CERT_CA, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN, HASH_TYPE_SHA384, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC384_CA2, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC384_PUBKEY, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_end_entity_ecc384_ca2_public_key (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC384_CA_DER,
+		X509_CERTSS_ECC384_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC384_PUBKEY2_DER,
+		ECC384_PUBKEY2_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
+		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA384, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC384_EE2, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC384_PUBKEY, SHA384);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+#endif
+
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
+static void x509_openssl_test_create_ca_signed_certificate_ecc521_ca2_public_key (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC521_CA_DER,
+		X509_CERTSS_ECC521_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC521_PUBKEY2_DER,
+		ECC521_PUBKEY2_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
+		X509_CERT_CA, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN, HASH_TYPE_SHA512, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC521_CA2, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC521_PUBKEY, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_end_entity_ecc521_ca2_public_key (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC521_CA_DER,
+		X509_CERTSS_ECC521_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC521_PUBKEY2_DER,
+		ECC521_PUBKEY2_DER_LEN, X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN,
+		X509_ENTITY_SUBJECT_NAME, X509_CERT_END_ENTITY, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA512, &ca_cert, NULL);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC521_EE2, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC521_PUBKEY, SHA512);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+#endif
 
 static void x509_openssl_test_create_ca_signed_certificate_ca_non_zero_path_length_constraint (
 	CuTest *test)
@@ -2085,7 +3216,8 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_non_zero_path_leng
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA_PATHLEN (15), RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA_PATHLEN (15), RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert,
+		NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -2097,7 +3229,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_non_zero_path_leng
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_rsa (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -2128,7 +3260,8 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_no_path_length_con
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA_NO_PATHLEN, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert,
+		NULL);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -2140,7 +3273,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_no_path_length_con
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_rsa (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -2182,7 +3315,8 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
-		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, &tcb);
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -2194,7 +3328,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -2237,7 +3371,7 @@ static void x509_openssl_test_create_ca_signed_certificate_end_entity_tcbinfo_an
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
 		X509_RIOT_SUBJECT_NAME, X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&ca_cert, &tcb);
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -2249,7 +3383,7 @@ static void x509_openssl_test_create_ca_signed_certificate_end_entity_tcbinfo_an
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -2291,7 +3425,8 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
-		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, &tcb);
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -2304,7 +3439,119 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha384 (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	struct x509_dice_tcbinfo tcb;
+	struct x509_dice_ueid ueid;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
+		X509_CERTSS_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	ueid.ueid = X509_RIOT_UEID;
+	ueid.length = X509_RIOT_UEID_LEN;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fw_id = X509_RIOT_SHA384_FWID;
+	tcb.fw_id_hash = HASH_TYPE_SHA384;
+	tcb.ueid = &ueid;
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
+		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha512 (
+	CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	struct x509_dice_tcbinfo tcb;
+	struct x509_dice_ueid ueid;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
+		X509_CERTSS_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	ueid.ueid = X509_RIOT_UEID;
+	ueid.length = X509_RIOT_UEID_LEN;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fw_id = X509_RIOT_SHA512_FWID;
+	tcb.fw_id_hash = HASH_TYPE_SHA512;
+	tcb.ueid = &ueid;
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
+		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -2346,7 +3593,8 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
-		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, &tcb);
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -2358,7 +3606,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -2396,7 +3644,8 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_extension_
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
-		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, &tcb);
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -2408,7 +3657,7 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_extension_
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -2447,7 +3696,7 @@ static void x509_openssl_test_create_ca_signed_certificate_end_entity_tcbinfo_ex
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
 		X509_RIOT_SUBJECT_NAME, X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&ca_cert, &tcb);
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, cert.context);
 
@@ -2459,7 +3708,7 @@ static void x509_openssl_test_create_ca_signed_certificate_end_entity_tcbinfo_ex
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
-	x509_testing_verify_signature_ecc (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
 	x509_testing_end_cert_verification;
 
 	platform_free (der);
@@ -2487,52 +3736,52 @@ static void x509_openssl_test_create_ca_signed_certificate_null (CuTest *test)
 
 	status = engine.base.create_ca_signed_certificate (NULL, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, NULL, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, NULL,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		0, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, NULL, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, 0, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, NULL,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, NULL, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, NULL, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, 0, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, 0, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, NULL, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, NULL, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	engine.base.release_certificate (&engine.base, &ca_cert);
@@ -2558,8 +3807,39 @@ static void x509_openssl_test_create_ca_signed_certificate_ca_public_key (CuTest
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PUBKEY_DER, RSA_PUBKEY_DER_LEN, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PUBKEY_DER, RSA_PUBKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertTrue (test, (status < 0));
+
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_openssl_release (&engine);
+}
+
+static void x509_openssl_test_create_ca_signed_certificate_sig_unsupported_hash (CuTest *test)
+{
+	struct x509_engine_openssl engine;
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+
+	TEST_START;
+
+	status = x509_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
+		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA1, &ca_cert, NULL);
+	CuAssertIntEquals (test, X509_ENGINE_UNSUPPORTED_SIG_HASH, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
+		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, (enum hash_type) 10, &ca_cert, NULL);
+	CuAssertIntEquals (test, X509_ENGINE_UNSUPPORTED_SIG_HASH, status);
 
 	engine.base.release_certificate (&engine.base, &ca_cert);
 
@@ -2596,7 +3876,8 @@ static void x509_openssl_test_create_ca_signed_certificate_tcbinfo_extension_unk
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
-		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, &tcb);
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, X509_ENGINE_RIOT_UNSUPPORTED_HASH, status);
 
 	engine.base.release_certificate (&engine.base, &ca_cert);
@@ -2634,7 +3915,8 @@ static void x509_openssl_test_create_ca_signed_certificate_tcbinfo_extension_fwi
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
-		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, &tcb);
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, X509_ENGINE_RIOT_NO_FWID, status);
 
 	engine.base.release_certificate (&engine.base, &ca_cert);
@@ -2672,7 +3954,8 @@ static void x509_openssl_test_create_ca_signed_certificate_tcbinfo_extension_ver
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
-		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, &tcb);
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, X509_ENGINE_DICE_NO_VERSION, status);
 
 	engine.base.release_certificate (&engine.base, &ca_cert);
@@ -2709,7 +3992,8 @@ static void x509_openssl_test_create_ca_signed_certificate_ueid_extension_ueid_n
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
-		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, &tcb);
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, X509_ENGINE_DICE_NO_UEID, status);
 
 	engine.base.release_certificate (&engine.base, &ca_cert);
@@ -2747,7 +4031,8 @@ static void x509_openssl_test_create_ca_signed_certificate_ueid_extension_ueid_z
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY2_DER,
 		ECC_PRIVKEY2_DER_LEN, X509_RIOT_SERIAL_NUM, X509_RIOT_SERIAL_NUM_LEN,
-		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca_cert, &tcb);
+		X509_RIOT_SUBJECT_NAME, X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, &ca_cert, &tcb);
 	CuAssertIntEquals (test, X509_ENGINE_DICE_NO_UEID, status);
 
 	engine.base.release_certificate (&engine.base, &ca_cert);
@@ -2774,7 +4059,7 @@ static void x509_openssl_test_create_ca_signed_certificate_serial_zero (CuTest *
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, zero, sizeof (zero), X509_CA2_SUBJECT_NAME, X509_CERT_CA,
-		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, &ca_cert, NULL);
+		RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_SERIAL_NUM, status);
 
 	engine.base.release_certificate (&engine.base, &ca_cert);
@@ -4021,8 +5306,8 @@ static void x509_openssl_test_authenticate_end_entity_one_intermediate_cert (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, NULL);
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &root, &root_der, &root_der_length);
@@ -4047,7 +5332,7 @@ static void x509_openssl_test_authenticate_end_entity_one_intermediate_cert (CuT
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME,
-		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca, NULL);
+		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -4091,8 +5376,8 @@ static void x509_openssl_test_authenticate_ca_one_intermediate_cert (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, NULL);
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &root, &root_der, &root_der_length);
@@ -4117,7 +5402,7 @@ static void x509_openssl_test_authenticate_ca_one_intermediate_cert (CuTest *tes
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		key_der, X509_SERIAL_NUM_LEN, "CA2", X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&ca, NULL);
+		HASH_TYPE_SHA256, &ca, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -4177,7 +5462,7 @@ static void x509_openssl_test_authenticate_end_entity_root_pathlen_constraint (C
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME,
-		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca, NULL);
+		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	/* At some point after version 1.1.1, openssl stopped ignoring the pathLength constraint for the
@@ -4241,7 +5526,7 @@ static void x509_openssl_test_authenticate_ca_root_pathlen_constraint (CuTest *t
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		key_der, X509_SERIAL_NUM_LEN, "CA", X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&ca, NULL);
+		HASH_TYPE_SHA256, &ca, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	/* At some point after version 1.1.1, openssl stopped ignoring the pathLength constraint for the
@@ -4307,8 +5592,8 @@ static void x509_openssl_test_authenticate_end_entity_multiple_intermediate_cert
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, NULL);
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &root, &root_der, &root_der_length);
@@ -4333,7 +5618,7 @@ static void x509_openssl_test_authenticate_end_entity_multiple_intermediate_cert
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &ca2, key2_der, key2_length,
 		key2_der, X509_SERIAL_NUM_LEN, "CA2", X509_CERT_CA_PATHLEN (1), ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, &ca1, NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca1, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &ca2, &ca2_der, &ca2_der_length);
@@ -4346,7 +5631,8 @@ static void x509_openssl_test_authenticate_end_entity_multiple_intermediate_cert
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &ca3, key3_der, key3_length,
-		key3_der, X509_SERIAL_NUM_LEN, "CA3", X509_CERT_CA, key2_der, key2_length, &ca2, NULL);
+		key3_der, X509_SERIAL_NUM_LEN, "CA3", X509_CERT_CA, key2_der, key2_length, HASH_TYPE_SHA256,
+		&ca2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &ca3, &ca3_der, &ca3_der_length);
@@ -4360,7 +5646,7 @@ static void x509_openssl_test_authenticate_end_entity_multiple_intermediate_cert
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME,
-		X509_CERT_END_ENTITY, key3_der, key3_length, &ca3, NULL);
+		X509_CERT_END_ENTITY, key3_der, key3_length, HASH_TYPE_SHA256, &ca3, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -4430,8 +5716,8 @@ static void x509_openssl_test_authenticate_ca_multiple_intermediate_certs (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, NULL);
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &root, &root_der, &root_der_length);
@@ -4456,7 +5742,7 @@ static void x509_openssl_test_authenticate_ca_multiple_intermediate_certs (CuTes
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &ca2, key2_der, key2_length,
 		key2_der, X509_SERIAL_NUM_LEN, "CA2", X509_CERT_CA_PATHLEN (1), ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, &ca1, NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca1, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &ca2, &ca2_der, &ca2_der_length);
@@ -4469,7 +5755,8 @@ static void x509_openssl_test_authenticate_ca_multiple_intermediate_certs (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &ca3, key3_der, key3_length,
-		key3_der, X509_SERIAL_NUM_LEN, "CA3", X509_CERT_CA, key2_der, key2_length, &ca2, NULL);
+		key3_der, X509_SERIAL_NUM_LEN, "CA3", X509_CERT_CA, key2_der, key2_length, HASH_TYPE_SHA256,
+		&ca2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &ca3, &ca3_der, &ca3_der_length);
@@ -4482,7 +5769,8 @@ static void x509_openssl_test_authenticate_ca_multiple_intermediate_certs (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
-		key_der, X509_SERIAL_NUM_LEN, "CA4", X509_CERT_CA, key3_der, key3_length, &ca3, NULL);
+		key_der, X509_SERIAL_NUM_LEN, "CA4", X509_CERT_CA, key3_der, key3_length, HASH_TYPE_SHA256,
+		&ca3, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -4604,8 +5892,8 @@ static void x509_openssl_test_authenticate_no_path_to_root (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, NULL);
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &root, &root_der, &root_der_length);
@@ -4626,7 +5914,7 @@ static void x509_openssl_test_authenticate_no_path_to_root (CuTest *test)
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME,
-		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca, NULL);
+		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -4688,8 +5976,8 @@ static void x509_openssl_test_authenticate_partial_path_to_root (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, NULL);
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &root, &root_der, &root_der_length);
@@ -4710,7 +5998,7 @@ static void x509_openssl_test_authenticate_partial_path_to_root (CuTest *test)
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &ca2, key2_der, key2_length,
 		key2_der, X509_SERIAL_NUM_LEN, "CA2", X509_CERT_CA_PATHLEN (1), ECC_PRIVKEY_DER,
-		ECC_PRIVKEY_DER_LEN, &ca1, NULL);
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca1, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &ca2, &ca2_der, &ca2_der_length);
@@ -4723,7 +6011,8 @@ static void x509_openssl_test_authenticate_partial_path_to_root (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &ca3, key3_der, key3_length,
-		key3_der, X509_SERIAL_NUM_LEN, "CA3", X509_CERT_CA, key2_der, key2_length, &ca2, NULL);
+		key3_der, X509_SERIAL_NUM_LEN, "CA3", X509_CERT_CA, key2_der, key2_length, HASH_TYPE_SHA256,
+		&ca2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &ca3, &ca3_der, &ca3_der_length);
@@ -4737,7 +6026,7 @@ static void x509_openssl_test_authenticate_partial_path_to_root (CuTest *test)
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME,
-		X509_CERT_END_ENTITY, key3_der, key3_length, &ca3, NULL);
+		X509_CERT_END_ENTITY, key3_der, key3_length, HASH_TYPE_SHA256, &ca3, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -4798,8 +6087,8 @@ static void x509_openssl_test_authenticate_violate_path_length_constraint (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, NULL);
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &root, &root_der, &root_der_length);
@@ -4824,7 +6113,7 @@ static void x509_openssl_test_authenticate_violate_path_length_constraint (CuTes
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &ca2, key2_der, key2_length,
 		key2_der, X509_SERIAL_NUM_LEN, "CA2", X509_CERT_CA, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		&ca1, NULL);
+		HASH_TYPE_SHA256, &ca1, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &ca2, &ca2_der, &ca2_der_length);
@@ -4838,7 +6127,7 @@ static void x509_openssl_test_authenticate_violate_path_length_constraint (CuTes
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME,
-		X509_CERT_END_ENTITY, key2_der, key2_length, &ca2, NULL);
+		X509_CERT_END_ENTITY, key2_der, key2_length, HASH_TYPE_SHA256, &ca2, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -4891,8 +6180,8 @@ static void x509_openssl_test_authenticate_intermediate_bad_signature (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, NULL);
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &root, &root_der, &root_der_length);
@@ -4916,7 +6205,7 @@ static void x509_openssl_test_authenticate_intermediate_bad_signature (CuTest *t
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME,
-		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca, NULL);
+		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -4965,8 +6254,8 @@ static void x509_openssl_test_authenticate_intermediate_corrupt_signature (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN, X509_SUBJECT_NAME,
-		X509_CERT_CA_NO_PATHLEN, NULL);
+		RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA_NO_PATHLEN, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_der (&engine.base, &root, &root_der, &root_der_length);
@@ -4990,7 +6279,7 @@ static void x509_openssl_test_authenticate_intermediate_corrupt_signature (CuTes
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME,
-		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca, NULL);
+		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -5118,7 +6407,7 @@ static void x509_openssl_test_authenticate_no_root_ca (CuTest *test)
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, key_der, key_length,
 		X509_ENTITY_SERIAL_NUM, X509_ENTITY_SERIAL_NUM_LEN, X509_ENTITY_SUBJECT_NAME,
-		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, &ca, NULL);
+		X509_CERT_END_ENTITY, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.authenticate (&engine.base, &cert, &store);
@@ -5237,6 +6526,14 @@ TEST (x509_openssl_test_init_null);
 TEST (x509_openssl_test_release_null);
 TEST (x509_openssl_test_create_csr_ecc_ca);
 TEST (x509_openssl_test_create_csr_ecc_end_entity);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
+TEST (x509_openssl_test_create_csr_ecc384_ca);
+TEST (x509_openssl_test_create_csr_ecc384_end_entity);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
+TEST (x509_openssl_test_create_csr_ecc521_ca);
+TEST (x509_openssl_test_create_csr_ecc521_end_entity);
+#endif
 TEST (x509_openssl_test_create_csr_rsa_ca);
 TEST (x509_openssl_test_create_csr_rsa_end_entity);
 TEST (x509_openssl_test_create_csr_ca_non_zero_path_length_constraint);
@@ -5246,18 +6543,29 @@ TEST (x509_openssl_test_create_csr_end_entity_with_eku_oid);
 TEST (x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension);
 TEST (x509_openssl_test_create_csr_end_entity_tcbinfo_and_ueid_extension);
 TEST (x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1);
+TEST (x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension_sha384);
+TEST (x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension_sha512);
 TEST (x509_openssl_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_zero);
 TEST (x509_openssl_test_create_csr_ca_tcbinfo_extension_ueid_null);
 TEST (x509_openssl_test_create_csr_end_entity_tcbinfo_extension_ueid_null);
 TEST (x509_openssl_test_create_csr_null);
 TEST (x509_openssl_test_create_csr_with_public_key);
-TEST (x509_openssl_test_create_csr_tcbinfo_unknown_hash);
-TEST (x509_openssl_test_create_csr_tcbinfo_fwid_null);
-TEST (x509_openssl_test_create_csr_tcbinfo_version_null);
+TEST (x509_openssl_test_create_csr_sig_unsupported_hash);
+TEST (x509_openssl_test_create_csr_ca_tcbinfo_unknown_hash);
+TEST (x509_openssl_test_create_csr_ca_tcbinfo_fwid_null);
+TEST (x509_openssl_test_create_csr_ca_tcbinfo_version_null);
 TEST (x509_openssl_test_create_csr_ueid_null);
 TEST (x509_openssl_test_create_csr_ueid_zero_length);
 TEST (x509_openssl_test_create_self_signed_certificate_ecc_ca);
 TEST (x509_openssl_test_create_self_signed_certificate_ecc_end_entity);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
+TEST (x509_openssl_test_create_self_signed_certificate_ecc384_ca);
+TEST (x509_openssl_test_create_self_signed_certificate_ecc384_end_entity);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
+TEST (x509_openssl_test_create_self_signed_certificate_ecc521_ca);
+TEST (x509_openssl_test_create_self_signed_certificate_ecc521_end_entity);
+#endif
 TEST (x509_openssl_test_create_self_signed_certificate_rsa_ca);
 TEST (x509_openssl_test_create_self_signed_certificate_rsa_end_entity);
 TEST (x509_openssl_test_create_self_signed_certificate_ca_non_zero_path_length_constraint);
@@ -5265,11 +6573,14 @@ TEST (x509_openssl_test_create_self_signed_certificate_ca_no_path_length_constra
 TEST (x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension);
 TEST (x509_openssl_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_and_ueid_extension);
 TEST (x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha1);
+TEST (x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha384);
+TEST (x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha512);
 TEST (x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_svn_zero);
 TEST (x509_openssl_test_create_self_signed_certificate_ecc_ca_tcbinfo_extension_ueid_null);
 TEST (x509_openssl_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_extension_ueid_null);
 TEST (x509_openssl_test_create_self_signed_certificate_null);
 TEST (x509_openssl_test_create_self_signed_certificate_with_public_key);
+TEST (x509_openssl_test_create_self_signed_certificate_sig_unsupported_hash);
 TEST (x509_openssl_test_create_self_signed_certificate_tcbinfo_unknown_hash);
 TEST (x509_openssl_test_create_self_signed_certificate_tcbinfo_fwid_null);
 TEST (x509_openssl_test_create_self_signed_certificate_tcbinfo_version_null);
@@ -5283,24 +6594,53 @@ TEST (x509_openssl_test_load_certificate_bad);
 TEST (x509_openssl_test_create_ca_signed_certificate_ecc_ca_private_key);
 TEST (x509_openssl_test_create_ca_signed_certificate_intermediate_ca_ecc_ca_private_key);
 TEST (x509_openssl_test_create_ca_signed_certificate_ecc_end_entity_private_key);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
+TEST (x509_openssl_test_create_ca_signed_certificate_ecc384_ca_private_key);
+TEST (x509_openssl_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private_key);
+TEST (x509_openssl_test_create_ca_signed_certificate_ecc384_end_entity_private_key);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
+TEST (x509_openssl_test_create_ca_signed_certificate_ecc521_ca_private_key);
+TEST (x509_openssl_test_create_ca_signed_certificate_intermediate_ca_ecc521_ca_private_key);
+TEST (x509_openssl_test_create_ca_signed_certificate_ecc521_end_entity_private_key);
+#endif
 TEST (x509_openssl_test_create_ca_signed_certificate_rsa_ca_private_key);
 TEST (x509_openssl_test_create_ca_signed_certificate_rsa_end_entity_private_key);
 TEST (x509_openssl_test_create_ca_signed_certificate_ecc_ca_public_key);
 TEST (x509_openssl_test_create_ca_signed_certificate_ecc_end_entity_public_key);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
+TEST (x509_openssl_test_create_ca_signed_certificate_ecc384_ca_public_key);
+TEST (x509_openssl_test_create_ca_signed_certificate_ecc384_end_entity_public_key);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
+TEST (x509_openssl_test_create_ca_signed_certificate_ecc521_ca_public_key);
+TEST (x509_openssl_test_create_ca_signed_certificate_ecc521_end_entity_public_key);
+#endif
 TEST (x509_openssl_test_create_ca_signed_certificate_rsa_ca_public_key);
 TEST (x509_openssl_test_create_ca_signed_certificate_rsa_end_entity_public_key);
 TEST (x509_openssl_test_create_ca_signed_certificate_ecc_ca2_public_key);
 TEST (x509_openssl_test_create_ca_signed_certificate_end_entity_ecc_ca2_public_key);
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
+TEST (x509_openssl_test_create_ca_signed_certificate_ecc384_ca2_public_key);
+TEST (x509_openssl_test_create_ca_signed_certificate_end_entity_ecc384_ca2_public_key);
+#endif
+#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
+TEST (x509_openssl_test_create_ca_signed_certificate_ecc521_ca2_public_key);
+TEST (x509_openssl_test_create_ca_signed_certificate_end_entity_ecc521_ca2_public_key);
+#endif
 TEST (x509_openssl_test_create_ca_signed_certificate_ca_non_zero_path_length_constraint);
 TEST (x509_openssl_test_create_ca_signed_certificate_ca_no_path_length_constraint);
 TEST (x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension);
 TEST (x509_openssl_test_create_ca_signed_certificate_end_entity_tcbinfo_and_ueid_extension);
 TEST (x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha1);
+TEST (x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha384);
+TEST (x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha512);
 TEST (x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_svn_zero);
 TEST (x509_openssl_test_create_ca_signed_certificate_ca_tcbinfo_extension_ueid_null);
 TEST (x509_openssl_test_create_ca_signed_certificate_end_entity_tcbinfo_extension_ueid_null);
 TEST (x509_openssl_test_create_ca_signed_certificate_null);
 TEST (x509_openssl_test_create_ca_signed_certificate_ca_public_key);
+TEST (x509_openssl_test_create_ca_signed_certificate_sig_unsupported_hash);
 TEST (x509_openssl_test_create_ca_signed_certificate_tcbinfo_extension_unknown_hash);
 TEST (x509_openssl_test_create_ca_signed_certificate_tcbinfo_extension_fwid_null);
 TEST (x509_openssl_test_create_ca_signed_certificate_tcbinfo_extension_version_null);

@@ -35,24 +35,32 @@ extern const uint8_t RSA_LABEL_ENCRYPT_TEST[];
 extern const uint8_t RSA_SHA256_ENCRYPT_TEST[];
 extern const uint8_t RSA_SHA256_LABEL_ENCRYPT_TEST[];
 extern const uint8_t RSA_SIGNATURE_TEST[];
+extern const uint8_t RSA_SHA384_SIGNATURE_TEST[];
+extern const uint8_t RSA_SHA512_SIGNATURE_TEST[];
 
 extern const uint8_t RSA_ENCRYPT_TEST2[];
 extern const uint8_t RSA_LABEL_ENCRYPT_TEST2[];
 extern const uint8_t RSA_SHA256_ENCRYPT_TEST2[];
 extern const uint8_t RSA_SHA256_LABEL_ENCRYPT_TEST2[];
 extern const uint8_t RSA_SIGNATURE_TEST2[];
+extern const uint8_t RSA_SHA384_SIGNATURE_TEST2[];
+extern const uint8_t RSA_SHA512_SIGNATURE_TEST2[];
 
 extern const uint8_t RSA_ENCRYPT_NOPE[];
 extern const uint8_t RSA_LABEL_ENCRYPT_NOPE[];
 extern const uint8_t RSA_SHA256_ENCRYPT_NOPE[];
 extern const uint8_t RSA_SHA256_LABEL_ENCRYPT_NOPE[];
 extern const uint8_t RSA_SIGNATURE_NOPE[];
+extern const uint8_t RSA_SHA384_SIGNATURE_NOPE[];
+extern const uint8_t RSA_SHA512_SIGNATURE_NOPE[];
 
 extern const uint8_t RSA_ENCRYPT_BAD[];
 extern const uint8_t RSA_LABEL_ENCRYPT_BAD[];
 extern const uint8_t RSA_SHA256_ENCRYPT_BAD[];
 extern const uint8_t RSA_SHA256_LABEL_ENCRYPT_BAD[];
 extern const uint8_t RSA_SIGNATURE_BAD[];
+extern const uint8_t RSA_SHA384_SIGNATURE_BAD[];
+extern const uint8_t RSA_SHA512_SIGNATURE_BAD[];
 
 extern const struct rsa_public_key RSA_PUBLIC_KEY2;
 

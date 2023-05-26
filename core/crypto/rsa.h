@@ -147,20 +147,22 @@ struct rsa_engine {
 #endif
 
 	/**
-	 * Verify that a signature matches the expected SHA-256 hash.  The signature is expected to be
-	 * in PKCS v1.5 format.
+	 * Verify that a signature matches the expected hash.  The signature is expected to be in PKCS
+	 * v1.5 format.
 	 *
 	 * @param engine The RSA engine to use for signature validation.
 	 * @param key The public key to decrypt the signature.
 	 * @param signature The signature to validate.
 	 * @param sig_length The length of the signature.
+	 * @param sig_hash The type of hash used to generate the signature.
 	 * @param match The value that should match the decrypted signature.
 	 * @param match_length The length of the match value.
 	 *
 	 * @return 0 if the signature matches the digest or an error code.
 	 */
 	int (*sig_verify) (struct rsa_engine *engine, const struct rsa_public_key *key,
-		const uint8_t *signature, size_t sig_length, const uint8_t *match, size_t match_length);
+		const uint8_t *signature, size_t sig_length, enum hash_type sig_hash, const uint8_t *match,
+		size_t match_length);
 };
 
 
@@ -190,6 +192,7 @@ enum {
 	RSA_ENGINE_UNSUPPORTED_KEY_LENGTH = RSA_ENGINE_ERROR (0x0e),	/**< The RSA key length is not supported. */
 	RSA_ENGINE_UNSUPPORTED_HASH_TYPE = RSA_ENGINE_ERROR (0x0f),		/**< The encryption hash type is not supported. */
 	RSA_ENGINE_SELF_TEST_FAILED = RSA_ENGINE_ERROR (0x10),			/**< An internal self-test of the RSA engine failed. */
+	RSA_ENGINE_UNSUPPORTED_SIG_TYPE = RSA_ENGINE_ERROR (0x11),		/**< The signature hash type is not supported. */
 };
 
 

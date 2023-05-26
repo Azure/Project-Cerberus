@@ -240,8 +240,8 @@ int app_image_load_and_verify_with_header (const struct flash *flash, uint32_t s
 		goto hash_fail;
 	}
 
-	status = rsa->sig_verify (rsa, pub_key, app_sig, APP_IMAGE_SIG_LENGTH, hash_out,
-		SHA256_HASH_LENGTH);
+	status = rsa->sig_verify (rsa, pub_key, app_sig, APP_IMAGE_SIG_LENGTH, HASH_TYPE_SHA256,
+		hash_out, SHA256_HASH_LENGTH);
 
 	if (load_length != NULL) {
 		*load_length = length;
