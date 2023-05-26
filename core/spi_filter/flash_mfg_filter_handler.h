@@ -21,7 +21,7 @@ struct flash_mfg_filter_handler {
 	 *
 	 * @return 0 if the SPI filter was configured successfully or an error code.
 	 */
-	int (*set_flash_manufacturer) (struct flash_mfg_filter_handler *handler, uint8_t vendor,
+	int (*set_flash_manufacturer) (const struct flash_mfg_filter_handler *handler, uint8_t vendor,
 		uint16_t device);
 };
 

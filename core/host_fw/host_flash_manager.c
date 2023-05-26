@@ -493,7 +493,7 @@ static int host_flash_manager_detect_flash_address_mode_properties (const struct
  */
 int host_flash_manager_config_spi_filter_flash_type (const struct spi_flash *cs0,
 	const struct spi_flash *cs1, const struct spi_filter_interface *filter,
-	struct flash_mfg_filter_handler *mfg_handler)
+	const struct flash_mfg_filter_handler *mfg_handler)
 {
 	uint8_t vendor[2];
 	uint16_t device[2];

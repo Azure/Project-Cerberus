@@ -12,23 +12,23 @@
  * Manager for protected flash devices for a single host processor with a dual flash configuration.
  */
 struct host_flash_manager_dual {
-	struct host_flash_manager base;					/**< Base flash manager interface. */
-	const struct spi_flash *flash_cs0;				/**< The flash device connected to CS0. */
-	const struct spi_flash *flash_cs1;				/**< The flash device connected to CS1. */
-	struct host_state_manager *host_state;			/**< State information for the host using the flash. */
-	const struct spi_filter_interface *filter;		/**< The SPI filter connected to the flash devices. */
-	struct flash_mfg_filter_handler *mfg_handler;	/**< The filter handler for flash device types. */
-	struct host_flash_initialization *flash_init;	/**< Host flash initialization manager. */
+	struct host_flash_manager base;						/**< Base flash manager interface. */
+	const struct spi_flash *flash_cs0;					/**< The flash device connected to CS0. */
+	const struct spi_flash *flash_cs1;					/**< The flash device connected to CS1. */
+	struct host_state_manager *host_state;				/**< State information for the host using the flash. */
+	const struct spi_filter_interface *filter;			/**< The SPI filter connected to the flash devices. */
+	const struct flash_mfg_filter_handler *mfg_handler;	/**< The filter handler for flash device types. */
+	struct host_flash_initialization *flash_init;		/**< Host flash initialization manager. */
 };
 
 
 int host_flash_manager_dual_init (struct host_flash_manager_dual *manager,
 	const struct spi_flash *cs0, const struct spi_flash *cs1, struct host_state_manager *host_state,
-	const struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler);
+	const struct spi_filter_interface *filter, const struct flash_mfg_filter_handler *mfg_handler);
 int host_flash_manager_dual_init_with_managed_flash_initialization (
 	struct host_flash_manager_dual *manager, const struct spi_flash *cs0,
 	const struct spi_flash *cs1, struct host_state_manager *host_state,
-	const struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler,
+	const struct spi_filter_interface *filter, const struct flash_mfg_filter_handler *mfg_handler,
 	struct host_flash_initialization *flash_init);
 void host_flash_manager_dual_release (struct host_flash_manager_dual *manager);
 

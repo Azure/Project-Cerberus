@@ -413,6 +413,7 @@ enum {
 	SPI_FILTER_GET_ALLOW_WRITE_FAILED = SPI_FILTER_ERROR (0x25),	/**< Could not got the write permissions for single chip. */
 	SPI_FILTER_SET_ALLOW_WRITE_FAILED = SPI_FILTER_ERROR (0x26),	/**< Failed to set single chip write permissions. */
 	SPI_FILTER_INVALID_ADDR_RANGE = SPI_FILTER_ERROR (0x27),		/**< The specified R/W region address range is not valid. */
+	SPI_FILTER_OPCODE_CFG_FAILED = SPI_FILTER_ERROR (0x28),			/**< Failed to configure flash opcode information in the filter. */
 };
 
 

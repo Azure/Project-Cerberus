@@ -339,7 +339,7 @@ static int host_flash_manager_dual_reset_flash (struct host_flash_manager *manag
  */
 int host_flash_manager_dual_init (struct host_flash_manager_dual *manager,
 	const struct spi_flash *cs0, const struct spi_flash *cs1, struct host_state_manager *host_state,
-	const struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler)
+	const struct spi_filter_interface *filter, const struct flash_mfg_filter_handler *mfg_handler)
 {
 	if ((manager == NULL) || (cs0 == NULL) || (cs1 == NULL) || (host_state == NULL) ||
 		(filter == NULL) || (mfg_handler == NULL)) {
@@ -395,7 +395,7 @@ int host_flash_manager_dual_init (struct host_flash_manager_dual *manager,
 int host_flash_manager_dual_init_with_managed_flash_initialization (
 	struct host_flash_manager_dual *manager, const struct spi_flash *cs0,
 	const struct spi_flash *cs1, struct host_state_manager *host_state,
-	const struct spi_filter_interface *filter, struct flash_mfg_filter_handler *mfg_handler,
+	const struct spi_filter_interface *filter, const struct flash_mfg_filter_handler *mfg_handler,
 	struct host_flash_initialization *flash_init)
 {
 	int status;

@@ -260,7 +260,7 @@ void host_flash_manager_free_images (struct host_flash_manager_images *host_img)
 
 int host_flash_manager_config_spi_filter_flash_type (const struct spi_flash *cs0,
 	const struct spi_flash *cs1, const struct spi_filter_interface *filter,
-	struct flash_mfg_filter_handler *mfg_handler);
+	const struct flash_mfg_filter_handler *mfg_handler);
 
 int host_flash_manager_configure_flash_for_rot_access (const struct spi_flash *flash);
 int host_flash_manager_set_flash_for_rot_access (const struct host_control *control,

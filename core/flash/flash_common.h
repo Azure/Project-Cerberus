@@ -77,7 +77,8 @@ enum {
 	FLASH_ID_SST26VF = 0x2600,		/**< Microchip SST26VF flash device IDs. */
 	FLASH_ID_W25Q = 0x4000,			/**< Winbond W25Q flash device IDs. */
 	FLASH_ID_W25Q_DTR = 0x7000,		/**< Winbond W25Q-DTR flash device IDs. */
-	FLASH_ID_MT25Q = 0xba00,		/**< Micron MT25Q flash device IDs. */
+	FLASH_ID_MT25QL = 0xba00,		/**< Micron MT25QL flash device IDs. */
+	FLASH_ID_MT25QU = 0xbb00,		/**< Micron MT25QU flash device IDs. */
 };
 
 /**

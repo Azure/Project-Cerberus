@@ -8,7 +8,7 @@
 
 
 static int flash_mfg_filter_handler_mock_set_flash_manufacturer (
-	struct flash_mfg_filter_handler *handler, uint8_t vendor, uint16_t device)
+	const struct flash_mfg_filter_handler *handler, uint8_t vendor, uint16_t device)
 {
 	struct flash_mfg_filter_handler_mock *mock = (struct flash_mfg_filter_handler_mock*) handler;
 
