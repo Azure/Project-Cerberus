@@ -301,3 +301,17 @@ int platform_semaphore_reset (platform_semaphore *sem)
 	xSemaphoreTake (*sem, 0);
 	return 0;
 }
+
+int platform_os_suspend_scheduler ()
+{
+	vTaskSuspendAll ();
+	return 0;
+}
+
+int platform_os_resume_scheduler ()
+{
+	/* Don't care about the return.  It only indicates if a context switched happened or not.  The
+	 * return could be inspected to force a context switch, but that is probably not necessary. */
+	xTaskResumeAll ();
+	return 0;
+}

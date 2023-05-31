@@ -35,6 +35,7 @@ typedef void (*timer_callback) (void *context);
 #define	PLATFORM_INVALID_ARGUMENT		0
 #define	PLATFORM_NO_MEMORY				1
 #define	PLATFORM_FAILURE				2
+#define	PLATFORM_UNSUPPORTED			3
 
 
 /*******************************
@@ -562,5 +563,38 @@ int platform_semaphore_try_wait (platform_semaphore *sem);
 int platform_semaphore_reset (platform_semaphore *sem);
 #endif
 
+
+/*************************
+ * Task and OS control
+ *************************/
+
+/**
+ * Module defined for OS and task control error codes.  The actual error codes will vary based on
+ * the platform, but the error will be reported with the same module ID.
+ */
+#define	PLATFORM_OS_ERROR(code)		ROT_ERROR (ROT_MODULE_PLATFORM_OS, code)
+
+#ifndef platform_suspend_scheduler
+/**
+ * Suspend the OS scheduler to ensure no task context switches happen, leaving the currently running
+ * task executing.  Depending on the platform, this may cause interrupts to be disabled.
+ *
+ * Every call must be paired with a call to platform_os_resume_scheduler to enable task switching
+ * again.
+ *
+ * @return 0 if the OS task scheduler was suspended or an error code.
+ */
+int platform_os_suspend_scheduler (void);
+#endif
+
+#ifndef platform_resume_scheduler
+/**
+ * Resume the OS scheduler, enabling task context switching.  Depending on the platform, this may
+ * immediately cause a context switch.
+ *
+ * @return 0 if the OS task scheduler was resumed or an error code.
+ */
+int platform_os_resume_scheduler (void);
+#endif
 
 #endif /* PLATFORM_API_H_ */

@@ -474,3 +474,14 @@ int platform_semaphore_reset (platform_semaphore *sem)
 
 	return (status == 1) ? 0 : status;
 }
+
+/* Don't support OS suspending.  This is typically a feature used only in target devices, anyway. */
+int platform_os_suspend_scheduler ()
+{
+	return PLATFORM_OS_ERROR (ENOSYS);
+}
+
+int platform_os_resume_scheduler ()
+{
+	return PLATFORM_OS_ERROR (ENOSYS);
+}

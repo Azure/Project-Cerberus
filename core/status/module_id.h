@@ -118,6 +118,7 @@ enum {
 	ROT_MODULE_ECC_HW = 0x006a,							/**< Driver interface for ECC accelerator hardware. */
 	ROT_MODULE_COMMON_MATH = 0x006b,					/**< Common math operations. */
 	ROT_MODULE_HEAP_WITH_DEFRAG = 0x006c,				/**< Heap allocator with defragmentation.*/
+	ROT_MODULE_PLATFORM_OS = 0x006d,					/**< Platform abstraction for OS and task control. */
 };
 
 

@@ -71,4 +71,16 @@ typedef volatile int platform_semaphore;
 #define	platform_semaphore_post_from_isr	platform_semaphore_post
 
 
+/* Tasks.  Single-threaded environment with no OS running. */
+static inline int platform_os_suspend_scheduler (void)
+{
+	return 0;
+}
+
+static inline int platform_os_resume_scheduler (void)
+{
+	return 0;
+}
+
+
 #endif /* PLATFORM_BASE_H_ */
