@@ -466,7 +466,8 @@ int manifest_flash_get_id (struct manifest_flash *manifest, uint32_t *id)
 	}
 
 	if (manifest->manifest_valid) {
-		*id = manifest->header.id;
+		/* Use memcpy to account for architectures that don't allow unaligned memory accesses. */
+		memcpy (id, &manifest->header.id, sizeof (id));
 	}
 	else {
 		status = MANIFEST_NO_MANIFEST;
