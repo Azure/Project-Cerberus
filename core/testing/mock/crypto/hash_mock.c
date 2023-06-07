@@ -300,14 +300,20 @@ int hash_mock_init (struct hash_engine_mock *mock)
 
 	mock_set_name (&mock->mock, "hash");
 
+#ifdef HASH_ENABLE_SHA1
 	mock->base.calculate_sha1 = hash_mock_calculate_sha1;
 	mock->base.start_sha1 = hash_mock_start_sha1;
+#endif
 	mock->base.calculate_sha256 = hash_mock_calculate_sha256;
 	mock->base.start_sha256 = hash_mock_start_sha256;
+#ifdef HASH_ENABLE_SHA384
 	mock->base.calculate_sha384 = hash_mock_calculate_sha384;
 	mock->base.start_sha384 = hash_mock_start_sha384;
+#endif
+#ifdef HASH_ENABLE_SHA512
 	mock->base.calculate_sha512 = hash_mock_calculate_sha512;
 	mock->base.start_sha512 = hash_mock_start_sha512;
+#endif
 	mock->base.update = hash_mock_update;
 	mock->base.finish = hash_mock_finish;
 	mock->base.cancel = hash_mock_cancel;

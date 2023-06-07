@@ -6,6 +6,7 @@
 #include <string.h>
 #include "base64_riot.h"
 #include "reference/include/RiotBase64.h"
+#include "common/unused.h"
 
 
 /**
@@ -63,5 +64,5 @@ int base64_riot_init (struct base64_engine_riot *engine)
  */
 void base64_riot_release (struct base64_engine_riot *engine)
 {
-
+	UNUSED (engine);
 }

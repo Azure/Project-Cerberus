@@ -567,6 +567,8 @@ int x509_riot_load_certificate (struct x509_engine *engine, struct x509_certific
 
 void x509_riot_release_certificate (struct x509_engine *engine, struct x509_certificate *cert)
 {
+	UNUSED (engine);
+	
 	if (cert) {
 		x509_riot_free_cert (cert->context);
 		memset (cert, 0, sizeof (struct x509_certificate));
