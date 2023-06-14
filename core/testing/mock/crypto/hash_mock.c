@@ -362,17 +362,35 @@ int hash_mock_validate_and_release (struct hash_engine_mock *mock)
  * @param mock The mock to use for the HMAC.
  * @param key The HMAC key.
  * @param key_length he length of the HMAC key.
+ * @param hmac_algo The hash algorithm to use for the HMAC.
  *
  * @return 0 if the expectations were added successfully or an error code.
  */
 int hash_mock_expect_hmac_init (struct hash_engine_mock *mock, const uint8_t *key,
-	size_t key_length)
+	size_t key_length, enum hash_type hmac_algo)
 {
 	int status;
-	uint8_t hmac_key[SHA256_BLOCK_SIZE];
+	uint8_t hmac_key[SHA512_BLOCK_SIZE];
+	size_t hmac_key_length = sizeof (hmac_key);
 	size_t i;
 
-	status = mock_expect (&mock->mock, mock->base.start_sha256, mock, 0);
+	switch (hmac_algo) {
+		case HASH_TYPE_SHA256:
+			status = mock_expect (&mock->mock, mock->base.start_sha256, mock, 0);
+			hmac_key_length = SHA256_BLOCK_SIZE;
+			break;
+
+		case HASH_TYPE_SHA384:
+			status = mock_expect (&mock->mock, mock->base.start_sha384, mock, 0);
+			break;
+
+		case HASH_TYPE_SHA512:
+			status = mock_expect (&mock->mock, mock->base.start_sha512, mock, 0);
+			break;
+
+		default:
+			return HASH_ENGINE_UNKNOWN_HASH;
+	}
 
 	memset (hmac_key, 0x36, sizeof (hmac_key));
 	for (i = 0; i < key_length; i++) {
@@ -380,7 +398,7 @@ int hash_mock_expect_hmac_init (struct hash_engine_mock *mock, const uint8_t *ke
 	}
 
 	status |= mock_expect (&mock->mock, mock->base.update, mock, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (hmac_key, sizeof (hmac_key)), MOCK_ARG (sizeof (hmac_key)));
+		MOCK_ARG_PTR_CONTAINS_TMP (hmac_key, hmac_key_length), MOCK_ARG (hmac_key_length));
 
 	return status;
 }
@@ -393,35 +411,54 @@ int hash_mock_expect_hmac_init (struct hash_engine_mock *mock, const uint8_t *ke
  * @param key_length The length of the HMAC key.
  * @param hmac The expected HMAC output buffer.  Set to null if the output buffer pointer is unknown.
  * @param hmac_length The expected length of the output buffer.
+ * @param hmac_algo The hash algorithm to use for the HMAC.
  * @param expected The expected HMAC output to generate.
  * @param exp_length The length of the HMAC output.
  *
  * @return 0 if the expectations were added successfully or an error code.
  */
 int hash_mock_expect_hmac_finish (struct hash_engine_mock *mock, const uint8_t *key,
-	size_t key_length, uint8_t *hmac, size_t hmac_length, const uint8_t *expected,
-	size_t exp_length)
+	size_t key_length, uint8_t *hmac, size_t hmac_length, enum hash_type hmac_algo,
+	const uint8_t *expected, size_t exp_length)
 {
 	int status;
-	uint8_t hmac_key[SHA256_BLOCK_SIZE];
+	uint8_t hmac_key[SHA512_BLOCK_SIZE];
+	size_t hmac_key_length = sizeof (hmac_key);
 	size_t i;
 	int inner = mock_expect_next_save_id (&mock->mock);
+	int inner_length = hash_get_hash_length (hmac_algo);
 
 	status = mock_expect (&mock->mock, mock->base.finish, mock, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA512_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (inner_length));
 	status |= mock_expect_save_arg (&mock->mock, 0, inner);
 
-	status |= mock_expect (&mock->mock, mock->base.start_sha256, mock, 0);
+	switch (hmac_algo) {
+		case HASH_TYPE_SHA256:
+			status |= mock_expect (&mock->mock, mock->base.start_sha256, mock, 0);
+			hmac_key_length = SHA256_BLOCK_SIZE;
+			break;
+
+		case HASH_TYPE_SHA384:
+			status |= mock_expect (&mock->mock, mock->base.start_sha384, mock, 0);
+			break;
+
+		case HASH_TYPE_SHA512:
+			status |= mock_expect (&mock->mock, mock->base.start_sha512, mock, 0);
+			break;
+
+		default:
+			return HASH_ENGINE_UNKNOWN_HASH;
+	}
 
 	memset (hmac_key, 0x5c, sizeof (hmac_key));
 	for (i = 0; i < key_length; i++) {
 		hmac_key[i] ^= key[i];
 	}
 	status |= mock_expect (&mock->mock, mock->base.update, mock, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (hmac_key, sizeof (hmac_key)), MOCK_ARG (sizeof (hmac_key)));
+		MOCK_ARG_PTR_CONTAINS_TMP (hmac_key, hmac_key_length), MOCK_ARG (hmac_key_length));
 
 	status |= mock_expect (&mock->mock, mock->base.update, mock, 0, MOCK_ARG_SAVED_ARG (inner),
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG (inner_length));
 
 	if (hmac != NULL) {
 		status |= mock_expect (&mock->mock, mock->base.finish, mock, 0, MOCK_ARG_PTR (hmac),
@@ -446,24 +483,25 @@ int hash_mock_expect_hmac_finish (struct hash_engine_mock *mock, const uint8_t *
  * @param length The length of the data.
  * @param hmac The expected HMAC output buffer.  Set to null if the output buffer pointer is unknown.
  * @param hmac_length The expected length of the output buffer.
+ * @param hmac_algo The hash algorithm to use for the HMAC.
  * @param expected The expected HMAC output to generate.
  * @param exp_length The length of the HMAC output.
  *
  * @return 0 if the expectations were added successfully or an error code.
  */
 int hash_mock_expect_hmac (struct hash_engine_mock *mock, const uint8_t *key, size_t key_length,
-	const uint8_t *data, size_t length, uint8_t *hmac, size_t hmac_length, const uint8_t *expected,
-	size_t exp_length)
+	const uint8_t *data, size_t length, uint8_t *hmac, size_t hmac_length, enum hash_type hmac_algo,
+	const uint8_t *expected, size_t exp_length)
 {
 	int status;
 
-	status = hash_mock_expect_hmac_init (mock, key, key_length);
+	status = hash_mock_expect_hmac_init (mock, key, key_length, hmac_algo);
 
 	status |= mock_expect (&mock->mock, mock->base.update, mock, 0,
 		MOCK_ARG_PTR_CONTAINS (data, length), MOCK_ARG (length));
 
-	status |= hash_mock_expect_hmac_finish (mock, key, key_length, hmac, hmac_length, expected,
-		exp_length);
+	status |= hash_mock_expect_hmac_finish (mock, key, key_length, hmac, hmac_length, hmac_algo,
+		expected, exp_length);
 
 	return status;
 }

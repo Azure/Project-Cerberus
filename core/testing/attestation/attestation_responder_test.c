@@ -3005,7 +3005,8 @@ static void attestation_responder_test_aux_attestation_unseal (CuTest *test)
 		&attestation.rsa, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&attestation.hash, KEY_SEED, KEY_SEED_LEN);
+	status = hash_mock_expect_hmac_init (&attestation.hash, KEY_SEED, KEY_SEED_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3018,16 +3019,18 @@ static void attestation_responder_test_aux_attestation_unseal (CuTest *test)
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&attestation.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
-	status |= hash_mock_expect_hmac_init (&attestation.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&attestation.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN),
 		MOCK_ARG (SEALING_POLICY_LEN));
 	status |= hash_mock_expect_hmac_finish (&attestation.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
-	status |= hash_mock_expect_hmac_init (&attestation.hash, KEY_SEED, KEY_SEED_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	status |= hash_mock_expect_hmac_init (&attestation.hash, KEY_SEED, KEY_SEED_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3040,7 +3043,7 @@ static void attestation_responder_test_aux_attestation_unseal (CuTest *test)
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&attestation.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_update_digest (&attestation.store, 0, PCR0_VALUE, PCR0_VALUE_LEN);
@@ -3098,7 +3101,8 @@ static void attestation_responder_test_aux_attestation_unseal_sha256 (CuTest *te
 		&attestation.rsa, 0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&attestation.hash, KEY_SEED, KEY_SEED_LEN);
+	status = hash_mock_expect_hmac_init (&attestation.hash, KEY_SEED, KEY_SEED_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3111,16 +3115,18 @@ static void attestation_responder_test_aux_attestation_unseal_sha256 (CuTest *te
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&attestation.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
-	status |= hash_mock_expect_hmac_init (&attestation.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&attestation.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN),
 		MOCK_ARG (SEALING_POLICY_LEN));
 	status |= hash_mock_expect_hmac_finish (&attestation.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
-	status |= hash_mock_expect_hmac_init (&attestation.hash, KEY_SEED, KEY_SEED_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+	status |= hash_mock_expect_hmac_init (&attestation.hash, KEY_SEED, KEY_SEED_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&attestation.hash.mock, attestation.hash.base.update, &attestation.hash,
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3133,7 +3139,7 @@ static void attestation_responder_test_aux_attestation_unseal_sha256 (CuTest *te
 		0, MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&attestation.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_update_digest (&attestation.store, 0, PCR0_VALUE, PCR0_VALUE_LEN);

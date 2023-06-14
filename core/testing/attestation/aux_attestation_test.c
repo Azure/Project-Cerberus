@@ -31,8 +31,8 @@ TEST_SUITE_LABEL ("aux_attestation");
  * The random seed for key derivation.
  */
 const uint8_t KEY_SEED[] = {
-	0xc1,0x2e,0x04,0x48,0x28,0x26,0x1e,0x80,0x38,0xb0,0x62,0x2a,0x7f,0x41,0xb1,0x9d,
-	0x04,0x11,0xea,0xae,0xbb,0x8c,0xde,0x67,0x5a,0x6b,0xc5,0x18,0x8b,0x59,0xb1,0xd3
+	0xf9,0xf6,0x4e,0xa9,0xe3,0xcb,0x5f,0x5b,0xb0,0x80,0x25,0x5e,0xfa,0xfd,0xa5,0x8a,
+	0x9a,0x1c,0xe6,0xa3,0xb9,0x73,0x16,0xb5,0x9b,0x69,0xc3,0x36,0xf2,0x05,0x1e,0x4b
 };
 
 const size_t KEY_SEED_LEN = sizeof (KEY_SEED);
@@ -41,30 +41,30 @@ const size_t KEY_SEED_LEN = sizeof (KEY_SEED);
  * The random seed encrypted with the RSA3k public key using OAEP SHA1 padding.
  */
 const uint8_t KEY_SEED_ENCRYPT_OAEP[] = {
-	0x64,0x1d,0x5b,0xb2,0xf1,0x71,0x2e,0xca,0xd4,0x88,0x02,0x0a,0xc5,0x5d,0x48,0x54,
-	0xe9,0x14,0x33,0x46,0x4a,0xcf,0x2b,0xff,0x95,0xd0,0x6e,0xdf,0xf5,0xae,0xd4,0x63,
-	0xa8,0x48,0x97,0x92,0x2c,0xaf,0xd0,0x7d,0xaf,0x90,0x7d,0x81,0xbb,0x3a,0xb5,0xe4,
-	0xc4,0xf7,0xb5,0x1a,0xb7,0xdc,0xdc,0x43,0xf6,0x4d,0xb7,0x63,0x50,0x87,0x98,0x5c,
-	0x97,0xb6,0x48,0x1c,0x05,0x52,0x9c,0xb6,0xc0,0x03,0xfa,0x57,0x58,0x64,0x5e,0xdd,
-	0xe5,0x1f,0xc9,0x54,0xf0,0x82,0x2d,0xd8,0x02,0xdf,0x7a,0xcc,0xa1,0x47,0xf7,0x56,
-	0x80,0xc8,0xf2,0x10,0xac,0xb2,0xf0,0x72,0x19,0xf1,0x55,0x46,0x54,0x66,0x99,0x24,
-	0x99,0x5e,0x79,0x72,0x70,0x0d,0x31,0x1d,0x34,0x8e,0xbb,0x0b,0xb0,0xa3,0x30,0x77,
-	0x71,0x63,0xdc,0xfb,0x15,0x27,0x41,0xdf,0x6b,0xef,0x1f,0xfa,0xd3,0x15,0xdc,0x2a,
-	0x64,0x84,0x03,0x7c,0xb3,0x39,0x49,0x98,0xbc,0x18,0xff,0xfa,0xa4,0xfb,0x4a,0xe7,
-	0xe1,0x88,0xe3,0x9e,0x3d,0xe1,0x2e,0x45,0x8d,0x49,0x22,0xf9,0xf2,0x67,0xd9,0xfd,
-	0x72,0x3d,0x56,0xa3,0x13,0xd0,0xf4,0x02,0x95,0xf2,0x6a,0xa8,0x04,0xd2,0x96,0xa6,
-	0x12,0xf6,0x18,0xbd,0x46,0xa6,0x74,0xa9,0xa4,0x08,0x74,0xc7,0xce,0x65,0x4a,0x1e,
-	0xba,0xd6,0xeb,0xd2,0x36,0x59,0x52,0xfd,0x84,0x80,0xe7,0x98,0x4f,0x31,0xe7,0xcf,
-	0xc8,0x5e,0xb6,0x61,0x66,0x01,0x8a,0xdc,0xda,0x6e,0xca,0x31,0x70,0x4a,0x30,0xcf,
-	0x89,0x95,0xda,0xee,0xdc,0x96,0x37,0x97,0x5d,0x10,0x5a,0xdd,0xdc,0xe4,0x91,0xc6,
-	0x59,0xa6,0xb0,0xe3,0x98,0xe6,0x6a,0xbf,0x91,0x37,0xc7,0xf0,0xef,0x35,0x1a,0x41,
-	0xda,0x3c,0x49,0x10,0x9a,0xf6,0x5b,0x29,0x69,0x28,0x88,0xe2,0xf3,0x00,0xb6,0xd9,
-	0x36,0xe0,0x32,0xe2,0x16,0xa6,0xe9,0x55,0x60,0x17,0xe2,0x29,0x6d,0x2e,0x3f,0xb7,
-	0x94,0xd5,0x67,0xc9,0x07,0xca,0x28,0xa0,0xec,0x3d,0x73,0x07,0x59,0x1f,0x96,0x60,
-	0x0a,0xab,0x9e,0x57,0x37,0xbd,0x35,0x4a,0x76,0x73,0xdf,0xf5,0xeb,0xf6,0xe7,0x7c,
-	0x5f,0x5f,0xeb,0x18,0x87,0xfc,0xc1,0x17,0xe4,0xe3,0x3d,0x07,0xaf,0x84,0x1e,0x67,
-	0xe0,0xc4,0x1a,0x38,0x9b,0x29,0xd9,0x25,0xdd,0x09,0x86,0xaa,0x24,0xa2,0x33,0x0c,
-	0x59,0xdc,0x1c,0x33,0x69,0xdc,0xbd,0x4d,0xa0,0xe0,0x3b,0xc5,0x74,0xc7,0x6b,0x3d
+	0x62,0x41,0xfc,0x32,0x40,0x72,0x3d,0x7f,0x56,0xc5,0xb0,0xe2,0xe4,0x51,0x51,0xc3,
+	0x34,0xb2,0x79,0x65,0xf6,0x79,0x44,0xe7,0x8f,0xb7,0x61,0xae,0x57,0xcc,0x83,0xa9,
+	0x6b,0x77,0x8c,0xc0,0xd5,0x1a,0x5c,0x63,0x0c,0x91,0x00,0xfa,0x03,0xdb,0xde,0x0d,
+	0xaa,0x64,0xb8,0xb5,0x24,0x00,0x67,0xbe,0xcf,0xf8,0x47,0x6b,0x7c,0x88,0xdb,0x5e,
+	0x3a,0x1e,0xb9,0x7a,0x99,0xb5,0x6f,0xb2,0xe3,0x52,0x8e,0x4c,0x6a,0xd9,0x7d,0x1c,
+	0x54,0x56,0x0d,0xf4,0xeb,0xf2,0xfa,0x98,0xa8,0xb5,0x66,0x2b,0x87,0xec,0xfb,0x86,
+	0x45,0xf0,0xba,0xcc,0xbb,0x2b,0xbe,0x62,0xa4,0x1c,0xcd,0x5e,0xc1,0x6b,0xcf,0x9d,
+	0x93,0xe4,0xc5,0x67,0xd3,0x2c,0x95,0x97,0x07,0xda,0x12,0xaf,0x5c,0x46,0x2f,0x43,
+	0xba,0xa4,0x07,0x7f,0xa1,0x59,0x57,0x15,0x39,0xd4,0xec,0x2e,0x14,0xf1,0xc3,0x61,
+	0x80,0xee,0x57,0x1e,0x99,0xc1,0xb0,0x1d,0x7f,0xf6,0xd8,0xf5,0xaf,0x26,0x36,0x22,
+	0x40,0xae,0xf0,0x53,0x94,0x6d,0x66,0xbd,0xcd,0xf2,0xba,0x2a,0x5d,0x7b,0x6d,0xe0,
+	0x32,0x94,0x16,0xf5,0xe7,0xc4,0xdc,0xc7,0x52,0x11,0x66,0xb5,0xc1,0x8c,0x74,0x9c,
+	0x28,0x33,0x9d,0x6c,0x49,0x31,0x4d,0x99,0xf2,0xef,0x8d,0x2a,0x23,0x4b,0x1f,0xfb,
+	0x30,0xd4,0x37,0x06,0xe3,0x2e,0x10,0xdd,0x2b,0xcf,0x85,0xf9,0xb2,0x43,0xde,0x83,
+	0x75,0xac,0x8d,0xc4,0x53,0xa6,0xd5,0x62,0x3c,0x6f,0xbc,0x9b,0x88,0x14,0xef,0x0c,
+	0x78,0x15,0x79,0xdd,0x31,0xae,0xc7,0x7b,0x90,0x2b,0xae,0x7f,0xb3,0xf0,0x24,0xe1,
+	0xa0,0xd6,0x4e,0xc3,0x0b,0x0c,0xd4,0x4c,0xf1,0x4e,0x7b,0x6e,0x05,0x5c,0x49,0xc1,
+	0x65,0x66,0x41,0xf7,0xab,0x8a,0xab,0x84,0xf3,0x5b,0x82,0xcd,0xcb,0x5d,0x24,0x11,
+	0x3b,0x13,0xb0,0x2a,0x58,0x83,0x1f,0x0c,0xaf,0x7e,0x0b,0xcb,0x04,0x9b,0x66,0x25,
+	0x91,0x7a,0xcb,0x38,0x44,0x40,0x2d,0x62,0x3a,0x37,0x4a,0x7a,0x0e,0x64,0x08,0x63,
+	0x0f,0x47,0x89,0x13,0xfc,0x3a,0x83,0x3a,0xe2,0x18,0x45,0x9a,0x08,0x4c,0x97,0x8e,
+	0x71,0x00,0x54,0x6f,0x86,0x62,0x8c,0xcd,0x1d,0xb1,0x27,0xfb,0xc7,0xf6,0xa8,0xbd,
+	0xcf,0x9d,0xba,0xf2,0x09,0x55,0xf0,0x6b,0x77,0x62,0x03,0xf5,0x98,0x4e,0xf1,0xca,
+	0xa0,0x3b,0x6f,0x47,0xca,0x17,0x77,0x68,0x5c,0xf7,0xae,0x8d,0x63,0xa9,0x78,0x84
 };
 
 const size_t KEY_SEED_ENCRYPT_OAEP_LEN = sizeof (KEY_SEED_ENCRYPT_OAEP);
@@ -73,30 +73,30 @@ const size_t KEY_SEED_ENCRYPT_OAEP_LEN = sizeof (KEY_SEED_ENCRYPT_OAEP);
  * The random seed encrypted with the RSA3k public key using OAEP SHA256 padding.
  */
 const uint8_t KEY_SEED_ENCRYPT_OAEP_SHA256[] = {
-	0x6b,0x63,0x55,0x15,0xab,0x59,0xf4,0xd1,0x33,0x78,0x37,0x2d,0xe8,0x52,0x80,0xbc,
-	0x5a,0x45,0x1d,0x70,0xff,0x9f,0x3e,0x1c,0x47,0x3e,0xa6,0xaf,0x38,0x66,0xae,0x58,
-	0xd9,0x58,0x68,0x1e,0x02,0x72,0x36,0xef,0x2d,0xad,0x3d,0x3a,0xb4,0xe6,0x6a,0xfc,
-	0xa3,0x3d,0x73,0x7a,0x4f,0x22,0x07,0x46,0xe1,0xb3,0x15,0xfe,0xe3,0x27,0x44,0x41,
-	0x7d,0xd2,0x62,0xd6,0x09,0xf3,0xc3,0x1f,0xe5,0x63,0x12,0x1f,0xb6,0xf2,0x47,0xac,
-	0xfa,0xb0,0x1d,0x3c,0x0e,0x78,0x8e,0xee,0xb8,0xd7,0x90,0xe9,0x4d,0xf2,0x1d,0x4e,
-	0xec,0x8b,0xe9,0x17,0x26,0x26,0xe6,0x13,0xbf,0x7b,0x0b,0x6a,0x59,0xe0,0x2b,0x88,
-	0x8f,0x94,0x1e,0xda,0x64,0x71,0xc7,0x7b,0xda,0xed,0xb9,0xe3,0x72,0xbc,0xc7,0x41,
-	0xa1,0x81,0x76,0x64,0xaf,0x7f,0xe0,0xea,0x37,0x91,0x4a,0xcc,0x38,0x24,0xca,0xd6,
-	0xad,0x91,0x25,0xf2,0xa8,0x07,0xe5,0xee,0x7f,0xd3,0x06,0x76,0x2b,0x85,0xc3,0x1e,
-	0x6e,0xe1,0x1b,0xe6,0xae,0xb4,0xed,0x8d,0x0d,0xc0,0x49,0xbd,0x88,0xd6,0xd8,0xe5,
-	0x60,0x05,0x7f,0x1c,0x1e,0xa4,0xb2,0x77,0xf1,0x7c,0x6d,0x8b,0xa1,0xaf,0x08,0x2e,
-	0x23,0x58,0x6e,0x13,0xb4,0x63,0x1c,0xaf,0x7f,0xf4,0x51,0x97,0x8c,0xae,0xe4,0x88,
-	0x3a,0xfb,0x33,0xbe,0x17,0x94,0x5f,0x97,0xbc,0x59,0x4a,0x5f,0xe0,0xcc,0xa4,0xd9,
-	0xbc,0x64,0xaa,0x93,0x82,0x91,0x4e,0xe0,0x58,0x30,0x33,0x45,0xab,0xca,0x03,0xcc,
-	0x2f,0x1a,0xd4,0x0d,0x29,0xa7,0x72,0x6a,0xc0,0xe9,0x6e,0x7d,0x27,0xb4,0x8d,0xbe,
-	0x90,0x12,0x7e,0x79,0xad,0xb9,0x02,0xc6,0x8f,0xdc,0xe0,0x6d,0x83,0x3c,0xf3,0x0c,
-	0x85,0x3a,0xc2,0x22,0x5b,0x66,0xb6,0xf1,0x73,0x1c,0xe8,0xf0,0xb2,0x70,0x83,0x4b,
-	0xa8,0x63,0x1f,0x93,0xbe,0xce,0xb2,0xad,0x14,0x8f,0xea,0x9b,0x95,0xb5,0xea,0xbe,
-	0xc8,0x0f,0xaa,0xf8,0xc5,0x53,0x06,0x33,0xeb,0x72,0x3a,0x0c,0x95,0x1e,0x24,0x14,
-	0xf8,0xbe,0x06,0xed,0x93,0xfb,0xb4,0xfa,0x77,0x13,0xde,0xc7,0x3d,0xfa,0xb5,0x7a,
-	0x22,0x16,0xa4,0x43,0xb5,0x35,0x51,0x72,0x66,0x2d,0x1f,0xee,0x37,0xc1,0x56,0x3f,
-	0x0d,0xfd,0x48,0x89,0xad,0x8a,0xfb,0x80,0xdd,0xb0,0x72,0x5d,0xc5,0x59,0x9c,0xf3,
-	0x7b,0x12,0x29,0xb7,0x51,0x76,0xe0,0xda,0x5e,0x01,0x26,0xc1,0x2b,0x11,0xb6,0xcd
+	0x71,0x6c,0x41,0xa3,0x5f,0xfa,0x51,0x7d,0x37,0x63,0x38,0x53,0xad,0x43,0x57,0x88,
+	0x24,0x60,0x9f,0xbf,0xd1,0x58,0xd4,0x9f,0x9b,0x03,0x5b,0x21,0xf1,0xb8,0x3f,0x28,
+	0x2c,0xc0,0x63,0x01,0x9f,0x45,0x91,0xe4,0x2a,0x67,0xb9,0x64,0xeb,0xaf,0x26,0x58,
+	0xef,0x1f,0x43,0x1b,0x9d,0xcd,0xbf,0x3f,0x92,0xcb,0xa2,0xd3,0xda,0x4b,0x4c,0x02,
+	0x30,0xa0,0x00,0x00,0xff,0xfd,0x23,0x99,0xa7,0x89,0xc2,0x6e,0x4f,0x60,0x42,0x68,
+	0xa7,0x5d,0xd1,0x7a,0x51,0x1b,0xa7,0xc0,0x09,0x40,0x42,0x4e,0xb9,0xb9,0xad,0xde,
+	0x04,0x35,0x97,0xcd,0xcc,0x5f,0x71,0x50,0xb3,0xc3,0x97,0x99,0x38,0x82,0x9b,0x94,
+	0xf9,0x7d,0xb2,0x96,0xc0,0x72,0x6b,0xac,0xf0,0x73,0x7c,0xd0,0x33,0x0d,0x1c,0xd2,
+	0xa2,0x77,0xf0,0x74,0xd9,0xce,0x40,0x2c,0xde,0x65,0x0a,0xec,0xf9,0xe7,0x43,0xa7,
+	0xee,0x90,0x7b,0x47,0xa1,0xd9,0xf1,0x9a,0xa0,0x48,0x28,0x04,0xe4,0x48,0x6f,0xb8,
+	0x38,0x01,0xc6,0x15,0xd9,0xd5,0xa5,0x0a,0xed,0xb3,0x3f,0xf0,0xbc,0x9c,0xa6,0x1f,
+	0x94,0x0e,0x15,0x0e,0x68,0x41,0x1b,0xcc,0x6a,0x5c,0x82,0x07,0x54,0xc0,0x31,0xbf,
+	0xd4,0xfb,0x3c,0x71,0xb2,0xb7,0x99,0x3b,0x1c,0x7f,0x14,0x11,0x76,0x27,0x0b,0x5f,
+	0x51,0x98,0xca,0x60,0xf2,0xce,0xae,0x26,0x51,0xa7,0x00,0xc5,0x4a,0xb7,0xc2,0xa3,
+	0x16,0x36,0xcc,0x42,0x23,0x16,0x3c,0x3f,0x14,0xb6,0x0d,0x27,0xa3,0x87,0x94,0x7a,
+	0x2b,0xbb,0xd6,0x47,0xb6,0x37,0x81,0xd7,0xd6,0xbe,0x65,0xed,0xa6,0xd2,0xd9,0xa6,
+	0xfe,0xf5,0x95,0xef,0xae,0x92,0xf4,0xa6,0xc1,0xda,0x86,0x98,0xe4,0xbb,0x01,0x4f,
+	0xba,0x02,0xe8,0x8f,0xda,0x54,0xe0,0x07,0x1c,0x89,0x60,0xf9,0xb0,0x16,0xd3,0x4b,
+	0xf5,0x67,0xc1,0x9e,0x56,0x7f,0xda,0x43,0x22,0x0b,0xb6,0x1f,0x11,0x13,0x76,0x87,
+	0xe9,0x1f,0x76,0x5a,0xdd,0xd9,0x79,0xdc,0x4e,0x20,0x42,0xe3,0xbe,0x60,0x80,0x50,
+	0xd8,0xbd,0x74,0x7f,0xe9,0xa2,0x8c,0x19,0xaa,0xb0,0x0a,0xe2,0x01,0xb9,0xfc,0x49,
+	0x2e,0xc2,0xaa,0x72,0x74,0x28,0x6d,0x44,0xfd,0xa2,0x76,0x64,0xf6,0x22,0x9c,0xc4,
+	0x72,0x4d,0xcb,0x18,0x8b,0xa8,0x0d,0x1a,0xc1,0x79,0x1b,0x8a,0xa7,0x00,0x15,0x92,
+	0x61,0xb6,0xc1,0xd7,0xbd,0x08,0x0a,0x43,0x07,0x8b,0xfb,0xa9,0xcb,0x69,0xa1,0x1c
 };
 
 const size_t KEY_SEED_ENCRYPT_OAEP_SHA256_LEN = sizeof (KEY_SEED_ENCRYPT_OAEP_SHA256);
@@ -105,8 +105,8 @@ const size_t KEY_SEED_ENCRYPT_OAEP_SHA256_LEN = sizeof (KEY_SEED_ENCRYPT_OAEP_SH
  * SHA256 hash of the seed.
  */
 const uint8_t KEY_SEED_HASH[] = {
-	0xd6,0x49,0xbf,0x62,0xb4,0xdb,0x01,0x6f,0x32,0x91,0xaa,0x9d,0x82,0x80,0x89,0x4e,
-	0x62,0xe7,0x8a,0x9b,0x63,0x70,0x94,0x90,0xb9,0x32,0x1f,0x28,0x26,0xe8,0x2a,0xd2
+	0x36,0xd3,0xc2,0x37,0x5d,0x53,0x61,0xfa,0xa7,0x6b,0x4e,0xb8,0x74,0xcf,0xbe,0x16,
+	0x20,0x82,0x6e,0xef,0x1d,0xb1,0x9c,0x05,0x38,0x16,0x92,0xd3,0xdc,0x98,0xd2,0x6e
 };
 
 const size_t KEY_SEED_HASH_LEN = sizeof (KEY_SEED_HASH);
@@ -147,8 +147,8 @@ const size_t NIST_KEY_DERIVE_L_LEN = sizeof (NIST_KEY_DERIVE_L);
  * The encryption key derived from the seed.  (Label=encryption key, Context=empty).
  */
 const uint8_t ENCRYPTION_KEY[] = {
-	0xa7,0x57,0x34,0xc6,0x14,0x9c,0x25,0x05,0x29,0xff,0x8e,0x6e,0xd8,0x27,0x74,0x5c,
-	0x58,0xf7,0x97,0xdf,0xce,0xca,0xca,0xb2,0x68,0xa2,0x00,0x98,0xb9,0x5d,0x3e,0x83
+	0xf3,0x38,0xfa,0x33,0xd0,0xe7,0x4a,0xa8,0xf0,0x68,0xa9,0x57,0xbb,0xf4,0x73,0xad,
+	0x2e,0x67,0x3f,0xf6,0xc3,0x1c,0x73,0x2f,0x07,0x92,0x3c,0x3f,0xdf,0x51,0xf7,0xf0
 };
 
 const size_t ENCRYPTION_KEY_LEN = sizeof (ENCRYPTION_KEY);
@@ -157,8 +157,8 @@ const size_t ENCRYPTION_KEY_LEN = sizeof (ENCRYPTION_KEY);
  * The encryption key derived from the seed hash.  (Label=encryption key, Context=empty).
  */
 const uint8_t ENCRYPTION_KEY_SEED_HASH[] = {
-	0x57,0x3e,0x7d,0x92,0xf1,0xe6,0xa6,0xb6,0x6e,0x4f,0x2d,0x22,0x82,0xb4,0xa6,0x4b,
-	0x84,0x2a,0x90,0xf7,0xff,0xd6,0xdc,0xc2,0x1e,0xa7,0xdb,0xe9,0x19,0xcd,0xb6,0xa5
+	0x2f,0x41,0x73,0x39,0x3e,0xa8,0x1d,0x3e,0x16,0xe1,0x8c,0xc2,0x7c,0xa0,0x45,0x28,
+	0xce,0x86,0xea,0x2c,0xe0,0x40,0xbd,0xd0,0xd7,0xa3,0xcb,0x10,0x2a,0x9a,0x53,0x14
 };
 
 const size_t ENCRYPTION_KEY_SEED_HASH_LEN = sizeof (ENCRYPTION_KEY_SEED_HASH);
@@ -167,8 +167,8 @@ const size_t ENCRYPTION_KEY_SEED_HASH_LEN = sizeof (ENCRYPTION_KEY_SEED_HASH);
  * The signing key derived from the seed.  (Label=signing key, Context=empty).
  */
 const uint8_t SIGNING_KEY[] = {
-	0xd4,0xd3,0x21,0x9f,0x70,0x61,0x4e,0x24,0x59,0x5f,0xb3,0xb0,0x34,0xae,0xe3,0x52,
-	0xc2,0xe9,0xcf,0x2f,0xe0,0x99,0xf6,0x98,0x75,0xbd,0xb0,0x1c,0x65,0x66,0x20,0xc3
+	0x30,0xf4,0x4a,0x77,0x7a,0xd1,0x3d,0x71,0x33,0xb7,0x45,0x1f,0x3e,0x12,0x85,0xb3,
+	0x28,0x32,0x20,0x03,0xce,0x27,0x70,0x65,0x0d,0x82,0x30,0x80,0xd0,0x53,0x28,0xb6
 };
 
 const size_t SIGNING_KEY_LEN = sizeof (SIGNING_KEY);
@@ -177,8 +177,8 @@ const size_t SIGNING_KEY_LEN = sizeof (SIGNING_KEY);
  * The signing key derived from the seed hash.  (Label=signing key, Context=empty).
  */
 const uint8_t SIGNING_KEY_SEED_HASH[] = {
-	0xfa,0xb7,0x48,0x07,0x43,0xfc,0x4b,0x8a,0x19,0xf4,0x97,0x10,0x1e,0x50,0xbf,0x91,
-	0xdf,0x9c,0xd7,0x8b,0xb1,0x0b,0xd0,0xd8,0x3c,0xdb,0xf0,0x22,0xcb,0x02,0x2b,0x67
+	0xf8,0x35,0xb9,0xa1,0x6b,0xcd,0xbe,0xb5,0xb2,0x9f,0x1d,0x11,0xcd,0xee,0x24,0xc2,
+	0x15,0x5a,0x8d,0x86,0xb6,0x61,0xfc,0x32,0xd2,0x2d,0x49,0x31,0x13,0xa9,0x92,0x68
 };
 
 const size_t SIGNING_KEY_SEED_HASH_LEN = sizeof (SIGNING_KEY_SEED_HASH);
@@ -210,8 +210,8 @@ const size_t SEALING_POLICY_LEN = sizeof (SEALING_POLICY);
  * HMAC (SIGNING_KEY, CIPHER_TEXT || SEALING_POLICY).
  */
 const uint8_t PAYLOAD_HMAC[] = {
-	0x03,0x89,0x2b,0x36,0x42,0xf1,0x42,0x55,0xff,0x0d,0x25,0xfe,0x96,0xae,0x99,0x59,
-	0xa0,0x37,0xb5,0xc8,0x3a,0xa4,0xcd,0x8e,0x8f,0xad,0x4f,0x6d,0xb3,0xe6,0x34,0xc8
+	0x7e,0xf2,0x81,0xe6,0x52,0x2c,0x99,0x4b,0x59,0x43,0xbd,0xd7,0x73,0xf0,0x0f,0x0d,
+	0x8b,0xa0,0xbf,0x06,0xa6,0x9a,0x1d,0xc2,0xab,0x6e,0x18,0x5f,0x77,0x30,0x63,0x98
 };
 
 const size_t PAYLOAD_HMAC_LEN = sizeof (PAYLOAD_HMAC);
@@ -220,8 +220,8 @@ const size_t PAYLOAD_HMAC_LEN = sizeof (PAYLOAD_HMAC);
  * HMAC (SIGNING_KEY_SEED_HASH, CIPHER_TEXT || SEALING_POLICY).
  */
 const uint8_t PAYLOAD_HMAC_SEED_HASH[] = {
-	0x2a,0x61,0x19,0xf7,0x9d,0x67,0x14,0xbe,0x9e,0xd4,0xb0,0xd0,0x5a,0xb2,0xab,0xd9,
-	0x8a,0x3f,0x2e,0x4e,0xae,0x30,0x91,0x7b,0x74,0x78,0x95,0x85,0xdc,0xf2,0x52,0xf1
+	0xa9,0x7b,0x62,0xa3,0xfd,0x42,0x39,0xf8,0xbc,0xd5,0xca,0x9f,0x64,0xac,0xf9,0x5f,
+	0xc0,0x34,0x3d,0x14,0x3c,0x8a,0x24,0xad,0x03,0x86,0x8b,0x37,0x34,0xec,0xe5,0x6b
 };
 
 const size_t PAYLOAD_HMAC_SEED_HASH_LEN = sizeof (PAYLOAD_HMAC_SEED_HASH);
@@ -256,8 +256,8 @@ const size_t SEALING_POLICY_MULTIPLE_LEN = sizeof (SEALING_POLICY_MULTIPLE);
  * HMAC (SIGNING_KEY, CIPHER_TEXT || SEALING_POLICY_MULTIPLE).
  */
 const uint8_t PAYLOAD_MULTIPLE_HMAC[] = {
-	0xed,0xa9,0x26,0x4e,0x46,0xc6,0x23,0x32,0xc1,0x29,0xe9,0x45,0x6c,0x31,0xfc,0xa1,
-	0x7f,0x5c,0x4f,0xff,0x54,0x91,0x28,0x78,0x03,0x35,0x22,0x10,0xf1,0xb3,0x58,0x41
+	0x18,0x2b,0x0b,0x77,0xbc,0xb4,0x79,0xb2,0x86,0x92,0x39,0x48,0xf0,0x36,0xb9,0xe8,
+	0x02,0x44,0x79,0x28,0x7e,0xc5,0xd6,0x7b,0x3c,0x45,0x23,0x5d,0x92,0x18,0x2e,0x64
 };
 
 const size_t PAYLOAD_MULTIPLE_HMAC_LEN = sizeof (PAYLOAD_MULTIPLE_HMAC);
@@ -276,7 +276,7 @@ const uint8_t SEALING_POLICY_SKIP[][64] = {
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 	},
 	{
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -292,8 +292,8 @@ const size_t SEALING_POLICY_SKIP_LEN = sizeof (SEALING_POLICY_SKIP);
  * HMAC (SIGNING_KEY, CIPHER_TEXT || SEALING_POLICY_SKIP).
  */
 const uint8_t PAYLOAD_SKIP_HMAC[] = {
-	0x15,0x30,0xf3,0x03,0x03,0x66,0x88,0xd2,0x28,0x1d,0x6e,0x59,0xcc,0x76,0xa9,0x79,
-	0x52,0xe1,0x29,0x39,0x9c,0x89,0xa3,0xb4,0x98,0x7f,0xcc,0xb0,0xda,0xc0,0x57,0xf5
+	0xa7,0x64,0xee,0x44,0x1c,0x3a,0x63,0xd8,0xb7,0x84,0x97,0x71,0x3f,0xfe,0xfe,0x4d,
+	0x70,0xa6,0x54,0xd7,0x20,0x12,0x1f,0x41,0x95,0x23,0x69,0x4d,0x1e,0xc2,0x3f,0xd0
 };
 
 const size_t PAYLOAD_SKIP_HMAC_LEN = sizeof (PAYLOAD_SKIP_HMAC);
@@ -324,13 +324,13 @@ const uint8_t SEALING_POLICY_MULTIPLE_UNUSED[][64] = {
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 	},
 	{
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+		0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 	}
 };
 
@@ -340,8 +340,8 @@ const size_t SEALING_POLICY_MULTIPLE_UNUSED_LEN = sizeof (SEALING_POLICY_MULTIPL
  * HMAC (SIGNING_KEY, CIPHER_TEXT || SEALING_POLICY_MULTIPLE_UNUSED).
  */
 const uint8_t PAYLOAD_MULTIPLE_UNUSED_HMAC[] = {
-	0x42,0x78,0x2d,0x8f,0x13,0xdb,0x9e,0xd6,0x9f,0x24,0x23,0x0f,0x43,0x93,0xc3,0xf0,
-	0xb3,0x23,0x3f,0x59,0x34,0x3c,0xf6,0x1b,0x26,0xf7,0xde,0xb8,0x91,0x3f,0x30,0xbb
+	0xc7,0x8f,0x7b,0xed,0xb0,0x02,0x6e,0x7c,0x5b,0x7b,0x9b,0xbe,0xf0,0xa3,0x6b,0x97,
+	0x15,0xe0,0x4e,0xdd,0xd1,0x82,0xe6,0x3b,0x96,0x7b,0x57,0x42,0x98,0x71,0xf1,0xc3
 };
 
 const size_t PAYLOAD_MULTIPLE_UNUSED_HMAC_LEN = sizeof (PAYLOAD_MULTIPLE_UNUSED_HMAC);
@@ -364,8 +364,8 @@ static const size_t SEALING_POLICY_BYPASS_LEN = sizeof (SEALING_POLICY_BYPASS);
  * HMAC (SIGNING_KEY, CIPHER_TEXT || SEALING_POLICY_BYPASS).
  */
 static const uint8_t PAYLOAD_BYPASS_HMAC[] = {
-	0x48,0x4f,0x0b,0x87,0xf2,0xe0,0xd1,0xf8,0x2e,0x04,0x23,0x5a,0x1b,0xbd,0x54,0x55,
-	0xee,0x76,0xa7,0x43,0x1d,0xa6,0xdd,0x45,0x84,0x96,0x32,0xd4,0x49,0x6e,0xeb,0xbb
+	0x19,0xdf,0x15,0x5c,0xa8,0x69,0x61,0xd4,0xb8,0x31,0x1d,0xcb,0xb4,0x68,0x08,0xf6,
+	0x55,0xa7,0xee,0x77,0x22,0x92,0xa8,0x77,0x28,0xa1,0x9b,0xb7,0xa2,0xe7,0xaf,0x27
 };
 
 static const size_t PAYLOAD_BYPASS_HMAC_LEN = sizeof (PAYLOAD_BYPASS_HMAC);
@@ -400,8 +400,8 @@ static const size_t SEALING_POLICY_BYPASS_MULTIPLE_LEN = sizeof (SEALING_POLICY_
  * HMAC (SIGNING_KEY, CIPHER_TEXT || SEALING_POLICY_BYPASS_MULTIPLE).
  */
 static const uint8_t PAYLOAD_BYPASS_MULTIPLE_HMAC[] = {
-	0xea,0x3b,0x7a,0x94,0x19,0xde,0x11,0x06,0x53,0x1d,0xab,0x7f,0x76,0x65,0x11,0xff,
-	0x42,0x88,0x3e,0x9b,0xd9,0x10,0x22,0x96,0x07,0x8e,0xd7,0x1a,0xbc,0x69,0x30,0xa3
+	0xa9,0x30,0x64,0xd0,0x02,0x18,0xc0,0x17,0x40,0xd5,0xb5,0x1c,0xa9,0xcb,0x3f,0xd2,
+	0x5d,0xe1,0xfa,0x7b,0x5a,0x3a,0xa6,0x61,0x52,0x0c,0x44,0xbe,0x96,0x52,0xf2,0x3b
 };
 
 static const size_t PAYLOAD_BYPASS_MULTIPLE_HMAC_LEN = sizeof (PAYLOAD_BYPASS_MULTIPLE_HMAC);
@@ -2183,7 +2183,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha1 (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2196,19 +2196,20 @@ static void aux_attestation_test_unseal_rsa_oaep_sha1 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN), MOCK_ARG (SEALING_POLICY_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
 
 	/* Derive encryption key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2221,7 +2222,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha1 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2286,7 +2287,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha256 (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2299,19 +2300,20 @@ static void aux_attestation_test_unseal_rsa_oaep_sha256 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN), MOCK_ARG (SEALING_POLICY_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
 
 	/* Derive encryption key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2324,7 +2326,7 @@ static void aux_attestation_test_unseal_rsa_oaep_sha256 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2413,7 +2415,7 @@ static void aux_attestation_test_unseal_ecdh_raw (CuTest *test)
 		MOCK_ARG_PTR (NULL), MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2426,19 +2428,20 @@ static void aux_attestation_test_unseal_ecdh_raw (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN), MOCK_ARG (SEALING_POLICY_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
 
 	/* Derive encryption key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2451,7 +2454,7 @@ static void aux_attestation_test_unseal_ecdh_raw (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2517,7 +2520,8 @@ static void aux_attestation_test_unseal_ecdh_sha256 (CuTest *test)
 	status |= mock_expect_output (&aux.hash.mock, 2, KEY_SEED_HASH, KEY_SEED_HASH_LEN, 3);
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED_HASH, KEY_SEED_HASH_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED_HASH, KEY_SEED_HASH_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2530,21 +2534,22 @@ static void aux_attestation_test_unseal_ecdh_sha256 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED_HASH, KEY_SEED_HASH_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY_SEED_HASH, SIGNING_KEY_SEED_HASH_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY_SEED_HASH, SIGNING_KEY_SEED_HASH_LEN);
 
 	/* Validate cipher text and sealing policy */
 	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY_SEED_HASH,
-		SIGNING_KEY_SEED_HASH_LEN);
+		SIGNING_KEY_SEED_HASH_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN), MOCK_ARG (SEALING_POLICY_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY_SEED_HASH,
-		SIGNING_KEY_SEED_HASH_LEN, NULL, SHA256_HASH_LENGTH, PAYLOAD_HMAC_SEED_HASH,
-		PAYLOAD_HMAC_SEED_HASH_LEN);
+		SIGNING_KEY_SEED_HASH_LEN, NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256,
+		PAYLOAD_HMAC_SEED_HASH, PAYLOAD_HMAC_SEED_HASH_LEN);
 
 	/* Derive encryption key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED_HASH, KEY_SEED_HASH_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED_HASH, KEY_SEED_HASH_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2557,7 +2562,8 @@ static void aux_attestation_test_unseal_ecdh_sha256 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED_HASH, KEY_SEED_HASH_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY_SEED_HASH, ENCRYPTION_KEY_SEED_HASH_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY_SEED_HASH,
+		ENCRYPTION_KEY_SEED_HASH_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2627,7 +2633,7 @@ static void aux_attestation_test_unseal_pcr_mismatch (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2640,16 +2646,17 @@ static void aux_attestation_test_unseal_pcr_mismatch (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN), MOCK_ARG (SEALING_POLICY_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2715,7 +2722,7 @@ static void aux_attestation_test_unseal_unused_byte_nonzero (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2728,16 +2735,17 @@ static void aux_attestation_test_unseal_unused_byte_nonzero (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (bad_sealing, sizeof (bad_sealing)), MOCK_ARG (sizeof (bad_sealing)));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2799,7 +2807,7 @@ static void aux_attestation_test_unseal_bypass_pcr_check (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2812,20 +2820,21 @@ static void aux_attestation_test_unseal_bypass_pcr_check (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY_BYPASS, SEALING_POLICY_BYPASS_LEN),
 		MOCK_ARG (SEALING_POLICY_BYPASS_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_BYPASS_HMAC, PAYLOAD_BYPASS_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_BYPASS_HMAC, PAYLOAD_BYPASS_HMAC_LEN);
 
 	/* Derive encryption key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2838,7 +2847,7 @@ static void aux_attestation_test_unseal_bypass_pcr_check (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2905,7 +2914,7 @@ static void aux_attestation_test_unseal_multiple_pcr (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2918,20 +2927,21 @@ static void aux_attestation_test_unseal_multiple_pcr (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY_MULTIPLE, SEALING_POLICY_MULTIPLE_LEN),
 		MOCK_ARG (SEALING_POLICY_MULTIPLE_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_MULTIPLE_HMAC, PAYLOAD_MULTIPLE_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_MULTIPLE_HMAC, PAYLOAD_MULTIPLE_HMAC_LEN);
 
 	/* Derive encryption key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -2944,7 +2954,7 @@ static void aux_attestation_test_unseal_multiple_pcr (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3015,7 +3025,7 @@ static void aux_attestation_test_unseal_multiple_pcr_mismatch (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3028,17 +3038,18 @@ static void aux_attestation_test_unseal_multiple_pcr_mismatch (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY_MULTIPLE, SEALING_POLICY_MULTIPLE_LEN),
 		MOCK_ARG (SEALING_POLICY_MULTIPLE_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_MULTIPLE_HMAC, PAYLOAD_MULTIPLE_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_MULTIPLE_HMAC, PAYLOAD_MULTIPLE_HMAC_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3106,7 +3117,7 @@ static void aux_attestation_test_unseal_multiple_pcr_unused_byte_nonzero (CuTest
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3119,16 +3130,17 @@ static void aux_attestation_test_unseal_multiple_pcr_unused_byte_nonzero (CuTest
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (bad_sealing, sizeof (bad_sealing)), MOCK_ARG (sizeof (bad_sealing)));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_MULTIPLE_HMAC, PAYLOAD_MULTIPLE_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_MULTIPLE_HMAC, PAYLOAD_MULTIPLE_HMAC_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3193,7 +3205,7 @@ static void aux_attestation_test_unseal_multiple_pcr_bypass_single (CuTest *test
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3206,20 +3218,21 @@ static void aux_attestation_test_unseal_multiple_pcr_bypass_single (CuTest *test
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY_SKIP, SEALING_POLICY_SKIP_LEN),
 		MOCK_ARG (SEALING_POLICY_SKIP_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_SKIP_HMAC, PAYLOAD_SKIP_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_SKIP_HMAC, PAYLOAD_SKIP_HMAC_LEN);
 
 	/* Derive encryption key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3232,7 +3245,7 @@ static void aux_attestation_test_unseal_multiple_pcr_bypass_single (CuTest *test
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3299,7 +3312,7 @@ static void aux_attestation_test_unseal_multiple_pcr_bypass_multiple (CuTest *te
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3312,20 +3325,22 @@ static void aux_attestation_test_unseal_multiple_pcr_bypass_multiple (CuTest *te
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY_BYPASS_MULTIPLE, SEALING_POLICY_BYPASS_MULTIPLE_LEN),
 		MOCK_ARG (SEALING_POLICY_BYPASS_MULTIPLE_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_BYPASS_MULTIPLE_HMAC, PAYLOAD_BYPASS_MULTIPLE_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_BYPASS_MULTIPLE_HMAC,
+		PAYLOAD_BYPASS_MULTIPLE_HMAC_LEN);
 
 	/* Derive encryption key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3338,7 +3353,7 @@ static void aux_attestation_test_unseal_multiple_pcr_bypass_multiple (CuTest *te
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3406,7 +3421,7 @@ static void aux_attestation_test_unseal_unused_pcrs (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3419,19 +3434,20 @@ static void aux_attestation_test_unseal_unused_pcrs (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN), MOCK_ARG (SEALING_POLICY_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
 
 	/* Derive encryption key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3444,7 +3460,7 @@ static void aux_attestation_test_unseal_unused_pcrs (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3511,7 +3527,7 @@ static void aux_attestation_test_unseal_unsupported_pcrs_unused (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3524,20 +3540,22 @@ static void aux_attestation_test_unseal_unsupported_pcrs_unused (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY_MULTIPLE_UNUSED, SEALING_POLICY_MULTIPLE_UNUSED_LEN),
 		MOCK_ARG (SEALING_POLICY_MULTIPLE_UNUSED_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_MULTIPLE_UNUSED_HMAC, PAYLOAD_MULTIPLE_UNUSED_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_MULTIPLE_UNUSED_HMAC,
+		PAYLOAD_MULTIPLE_UNUSED_HMAC_LEN);
 
 	/* Derive encryption key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3550,7 +3568,7 @@ static void aux_attestation_test_unseal_unsupported_pcrs_unused (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3616,7 +3634,7 @@ static void aux_attestation_test_unseal_bad_hmac (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -3629,16 +3647,17 @@ static void aux_attestation_test_unseal_bad_hmac (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN), MOCK_ARG (SEALING_POLICY_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4782,7 +4801,7 @@ static void aux_attestation_test_unseal_validate_init_error (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -4795,7 +4814,7 @@ static void aux_attestation_test_unseal_validate_init_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.start_sha256, &aux.hash,
@@ -4861,7 +4880,7 @@ static void aux_attestation_test_unseal_validate_hash_cipher_error (CuTest *test
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -4874,10 +4893,11 @@ static void aux_attestation_test_unseal_validate_hash_cipher_error (CuTest *test
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash,
 		HASH_ENGINE_UPDATE_FAILED, MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN),
 		MOCK_ARG (CIPHER_TEXT_LEN));
@@ -4944,7 +4964,7 @@ static void aux_attestation_test_unseal_validate_hash_policy_error (CuTest *test
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -4957,10 +4977,11 @@ static void aux_attestation_test_unseal_validate_hash_policy_error (CuTest *test
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash,
@@ -5029,7 +5050,7 @@ static void aux_attestation_test_unseal_validate_finish_error (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -5042,10 +5063,11 @@ static void aux_attestation_test_unseal_validate_finish_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
@@ -5116,7 +5138,7 @@ static void aux_attestation_test_unseal_unsupported_pcr (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -5129,17 +5151,18 @@ static void aux_attestation_test_unseal_unsupported_pcr (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY_MULTIPLE, SEALING_POLICY_MULTIPLE_LEN),
 		MOCK_ARG (SEALING_POLICY_MULTIPLE_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_MULTIPLE_HMAC, PAYLOAD_MULTIPLE_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_MULTIPLE_HMAC, PAYLOAD_MULTIPLE_HMAC_LEN);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -5201,7 +5224,7 @@ static void aux_attestation_test_unseal_encryption_key_kdf_error (CuTest *test)
 		MOCK_ARG_SAVED_ARG (0));
 
 	/* Derive signing key */
-	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
@@ -5214,16 +5237,17 @@ static void aux_attestation_test_unseal_encryption_key_kdf_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
 		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
-		SHA256_HASH_LENGTH, SIGNING_KEY, SIGNING_KEY_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
 
 	/* Validate cipher text and sealing policy */
-	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN);
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY, SEALING_POLICY_LEN), MOCK_ARG (SEALING_POLICY_LEN));
 	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
-		SHA256_HASH_LENGTH, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_HMAC, PAYLOAD_HMAC_LEN);
 
 	/* Derive encryption key */
 	status |= mock_expect (&aux.hash.mock, aux.hash.base.start_sha256, &aux.hash,

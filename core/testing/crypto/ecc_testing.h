@@ -137,6 +137,9 @@ extern const size_t ECC_PRIVKEY2_DER_LEN;
 extern const uint8_t ECC_PRIVKEY2_NO_PUBKEY_DER[];
 extern const size_t ECC_PRIVKEY2_NO_PUBKEY_DER_LEN;
 
+extern const uint8_t ECC_PRIVKEY2_ZERO_PAD_DER[];
+extern const size_t ECC_PRIVKEY2_ZERO_PAD_DER_LEN;
+
 extern const uint8_t ECC_PRIVKEY3[];
 extern const size_t ECC_PRIVKEY3_LEN;
 
@@ -473,6 +476,9 @@ extern const size_t ECC384_PRIVKEY3_DER_LEN;
 
 extern const uint8_t ECC384_PRIVKEY3_NO_PUBKEY_DER[];
 extern const size_t ECC384_PRIVKEY3_NO_PUBKEY_DER_LEN;
+
+extern const uint8_t ECC384_PRIVKEY3_ZERO_PAD_DER[];
+extern const size_t ECC384_PRIVKEY3_ZERO_PAD_DER_LEN;
 
 extern const uint8_t ECC384_PRIVKEY4[];
 extern const size_t ECC384_PRIVKEY4_LEN;

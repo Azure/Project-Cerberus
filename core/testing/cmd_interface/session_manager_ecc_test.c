@@ -272,7 +272,8 @@ static void session_manager_ecc_establish_session (CuTest *test,
 	status |= mock_expect_output (&cmd->ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status = hash_mock_expect_hmac_init (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
@@ -284,10 +285,11 @@ static void session_manager_ecc_establish_session (CuTest *test,
 	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, session_key, sizeof (session_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, session_key, sizeof (session_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status = hash_mock_expect_hmac_init (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
@@ -299,16 +301,17 @@ static void session_manager_ecc_establish_session (CuTest *test,
 	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd->hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, HMAC_KEY, sizeof (HMAC_KEY));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, HMAC_KEY, sizeof (HMAC_KEY));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd->hash, HMAC_KEY, sizeof (HMAC_KEY));
+	status = hash_mock_expect_hmac_init (&cmd->hash, HMAC_KEY, sizeof (HMAC_KEY), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd->hash.mock, cmd->hash.base.update, &cmd->hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	status |= hash_mock_expect_hmac_finish (&cmd->hash, HMAC_KEY, sizeof (HMAC_KEY), NULL,
 		rq.max_response - sizeof (struct cerberus_protocol_key_exchange_response_type_0) -
-		ECC_PUBKEY2_DER_LEN - sizeof (uint16_t)*2 - ECC_SIG_TEST_LEN, hmac, sizeof (hmac));
+			ECC_PUBKEY2_DER_LEN - sizeof (uint16_t) * 2 - ECC_SIG_TEST_LEN,
+		HASH_TYPE_SHA256, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd->ecc.mock, cmd->ecc.base.release_key_pair, &cmd->ecc, 0,
@@ -744,7 +747,8 @@ static void session_manager_ecc_test_establish_session (CuTest *test)
 	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -756,10 +760,11 @@ static void session_manager_ecc_test_establish_session (CuTest *test)
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, session_key, sizeof (session_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, session_key, sizeof (session_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -771,16 +776,17 @@ static void session_manager_ecc_test_establish_session (CuTest *test)
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, hmac_key, sizeof (hmac_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, hmac_key, sizeof (hmac_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_CERT_LEN));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL,
 		rq.max_response - sizeof (struct cerberus_protocol_key_exchange_response_type_0) -
-		ECC_PUBKEY2_DER_LEN - sizeof (uint16_t) * 2 - ECC_SIG_TEST_LEN, hmac, sizeof (hmac));
+			ECC_PUBKEY2_DER_LEN - sizeof (uint16_t) * 2 - ECC_SIG_TEST_LEN,
+		HASH_TYPE_SHA256, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.ecc.mock, cmd.ecc.base.release_key_pair, &cmd.ecc, 0,
@@ -2391,7 +2397,8 @@ static void session_manager_ecc_test_establish_session_generate_hmac_key_fail (C
 	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -2403,7 +2410,7 @@ static void session_manager_ecc_test_establish_session_generate_hmac_key_fail (C
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, session_key, sizeof (session_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, session_key, sizeof (session_key));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash,
@@ -2542,7 +2549,8 @@ static void session_manager_ecc_test_establish_session_generate_hmac_fail (CuTes
 	status |= mock_expect_output (&cmd.ecc.mock, 2, SHARED_SECRET, sizeof (SHARED_SECRET), 3);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -2554,10 +2562,11 @@ static void session_manager_ecc_test_establish_session_generate_hmac_fail (CuTes
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, session_key, sizeof (session_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, session_key, sizeof (session_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET));
+	status = hash_mock_expect_hmac_init (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -2569,7 +2578,7 @@ static void session_manager_ecc_test_establish_session_generate_hmac_fail (CuTes
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, SHARED_SECRET, sizeof (SHARED_SECRET),
-		NULL, SHA256_HASH_LENGTH, hmac_key, sizeof (hmac_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, hmac_key, sizeof (hmac_key));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash,
@@ -3369,7 +3378,8 @@ static void session_manager_ecc_test_get_pairing_state (CuTest *test)
 		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -3379,17 +3389,18 @@ static void session_manager_ecc_test_get_pairing_state (CuTest *test)
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
-		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, pairing_key, sizeof (pairing_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL,
-		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -3400,7 +3411,7 @@ static void session_manager_ecc_test_get_pairing_state (CuTest *test)
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, pairing_key, sizeof (pairing_key),
-		NULL, SHA256_HASH_LENGTH, session_key2, sizeof (session_key2));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, session_key2, sizeof (session_key2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.save_key,
@@ -3663,7 +3674,8 @@ static void session_manager_ecc_test_reset_session_paired_device (CuTest *test)
 		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -3673,17 +3685,18 @@ static void session_manager_ecc_test_reset_session_paired_device (CuTest *test)
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
-		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, pairing_key, sizeof (pairing_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL,
-		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -3694,7 +3707,7 @@ static void session_manager_ecc_test_reset_session_paired_device (CuTest *test)
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, pairing_key, sizeof (pairing_key),
-		NULL, SHA256_HASH_LENGTH, session_key2, sizeof (session_key2));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, session_key2, sizeof (session_key2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.save_key,
@@ -3739,11 +3752,11 @@ static void session_manager_ecc_test_reset_session_with_hmac (CuTest *test)
 
 	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (session_key, sizeof (session_key)), MOCK_ARG (sizeof (session_key)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL,
-		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.session.base.reset_session (&cmd.session.base, 0x10, hmac, sizeof (hmac));
@@ -3854,11 +3867,11 @@ static void session_manager_ecc_test_reset_session_with_hmac_not_permitted (CuTe
 
 	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (session_key, sizeof (session_key)), MOCK_ARG (sizeof (session_key)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL,
-		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.session.base.reset_session (&cmd.session.base, 0x10, hmac2, sizeof (hmac2));
@@ -3939,7 +3952,8 @@ static void session_manager_ecc_test_setup_paired_session (CuTest *test)
 		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -3949,17 +3963,18 @@ static void session_manager_ecc_test_setup_paired_session (CuTest *test)
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
-		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, pairing_key, sizeof (pairing_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL,
-		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -3970,7 +3985,7 @@ static void session_manager_ecc_test_setup_paired_session (CuTest *test)
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, pairing_key, sizeof (pairing_key),
-		NULL, SHA256_HASH_LENGTH, session_key2, sizeof (session_key2));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, session_key2, sizeof (session_key2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.save_key,
@@ -4035,14 +4050,15 @@ static void session_manager_ecc_test_setup_paired_session_already_paired (CuTest
 		sizeof (pairing_key_buf_len), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL,
-		SHA256_HASH_LENGTH, hmac2, sizeof (hmac2));
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, hmac2, sizeof (hmac2));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -4053,7 +4069,7 @@ static void session_manager_ecc_test_setup_paired_session_already_paired (CuTest
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, pairing_key, sizeof (pairing_key),
-		NULL, SHA256_HASH_LENGTH, session_key2, sizeof (session_key2));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, session_key2, sizeof (session_key2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.session.base.setup_paired_session (&cmd.session.base, 0x10, SHA256_HASH_LENGTH,
@@ -4215,7 +4231,8 @@ static void session_manager_ecc_test_setup_paired_session_generate_hmac_init_fai
 		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -4225,7 +4242,7 @@ static void session_manager_ecc_test_setup_paired_session_generate_hmac_init_fai
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
-		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, pairing_key, sizeof (pairing_key));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash,
@@ -4275,7 +4292,8 @@ static void session_manager_ecc_test_setup_paired_session_generate_hmac_update_f
 		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -4285,10 +4303,10 @@ static void session_manager_ecc_test_setup_paired_session_generate_hmac_update_f
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
-		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, pairing_key, sizeof (pairing_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, HASH_ENGINE_NO_MEMORY,
 		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.cancel, &cmd.hash, 0);
@@ -4337,7 +4355,8 @@ static void session_manager_ecc_test_setup_paired_session_generate_hmac_finish_f
 		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -4347,10 +4366,10 @@ static void session_manager_ecc_test_setup_paired_session_generate_hmac_finish_f
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
-		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, pairing_key, sizeof (pairing_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.finish, &cmd.hash, HASH_ENGINE_NO_MEMORY,
@@ -4400,7 +4419,8 @@ static void session_manager_ecc_test_setup_paired_session_generate_session_key_f
 		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -4410,14 +4430,14 @@ static void session_manager_ecc_test_setup_paired_session_generate_session_key_f
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
-		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, pairing_key, sizeof (pairing_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL,
-		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.hash.mock, cmd.hash.base.start_sha256, &cmd.hash,
@@ -4470,7 +4490,8 @@ static void session_manager_ecc_test_setup_paired_session_save_pairing_key_fail 
 		&cmd.keys_keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, session_key, sizeof (session_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -4480,17 +4501,18 @@ static void session_manager_ecc_test_setup_paired_session_save_pairing_key_fail 
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, session_key, sizeof (session_key),
-		NULL, SHA256_HASH_LENGTH, pairing_key, sizeof (pairing_key));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, pairing_key, sizeof (pairing_key));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, hmac_key, sizeof (hmac_key), HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS (pairing_key, sizeof (pairing_key)), MOCK_ARG (sizeof (pairing_key)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, hmac_key, sizeof (hmac_key), NULL,
-		SHA256_HASH_LENGTH, hmac, sizeof (hmac));
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, hmac, sizeof (hmac));
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key));
+	status = hash_mock_expect_hmac_init (&cmd.hash, pairing_key, sizeof (pairing_key),
+		HASH_TYPE_SHA256);
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
@@ -4501,7 +4523,7 @@ static void session_manager_ecc_test_setup_paired_session_save_pairing_key_fail 
 	status |= mock_expect (&cmd.hash.mock, cmd.hash.base.update, &cmd.hash, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&L, sizeof (L)), MOCK_ARG (sizeof (L)));
 	status |= hash_mock_expect_hmac_finish (&cmd.hash, pairing_key, sizeof (pairing_key),
-		NULL, SHA256_HASH_LENGTH, session_key2, sizeof (session_key2));
+		NULL, SHA256_HASH_LENGTH, HASH_TYPE_SHA256, session_key2, sizeof (session_key2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&cmd.keys_keystore.mock, cmd.keys_keystore.base.save_key,
@@ -4619,8 +4641,8 @@ static void session_manager_ecc_test_session_sync (CuTest *test)
 	session_manager_ecc_establish_session (test, &cmd, 0x10);
 
 	status = hash_mock_expect_hmac (&cmd.hash, HMAC_KEY, sizeof (HMAC_KEY),
-		(const uint8_t*) &rn_req, sizeof (rn_req), NULL, sizeof (hmac), hmac_expected,
-		sizeof (hmac_expected));
+		(const uint8_t*) &rn_req, sizeof (rn_req), NULL, sizeof (hmac), HASH_TYPE_SHA256,
+		hmac_expected, sizeof (hmac_expected));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd.session.base.session_sync (&cmd.session.base, 0x10, rn_req, hmac, sizeof (hmac));

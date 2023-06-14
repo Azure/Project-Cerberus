@@ -261,8 +261,8 @@ int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv
  *
  * Only P256, P384, and P521 curves are supported.
  *
- * For P521 keys, the private key value may contain one less byte than expected, depending on how
- * the DER is encoded.
+ * For P521 keys, the private key value may contain one less byte than expected, depending on the
+ * value of the private key and how the DER is encoded.
  *
  * @param der An ASN.1/DER encoded ECC private key.
  * @param length Length of the DER data.
@@ -309,14 +309,36 @@ int ecc_der_decode_private_key_no_copy (const uint8_t *der, size_t length,
 	}
 
 	/* Make sure the private key is a supported key length. */
-	key_len = type_len;
-	switch (key_len) {
+	switch (type_len) {
+		case ECC_KEY_LENGTH_256 + 1:
+			/* Some encoders add an extra zero byte if the MSB of the private key is 1, in the same
+			 * way that integers need to be padded so they don't get interpreted as negative. */
+			if (*pos != 0) {
+				return ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH;
+			}
+
+			pos++;
+			type_len--;
+
+			/* fall through */ /* no break */
+
 		case ECC_KEY_LENGTH_256:
 			oid = ECC_DER_P256_OID;
 			oid_len = sizeof (ECC_DER_P256_OID);
 			break;
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384 + 1:
+			/* The same zero byte can exist for P384 private keys. */
+			if (*pos != 0) {
+				return ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH;
+			}
+
+			pos++;
+			type_len--;
+
+			/* fall through */ /* no break */
+
 		case ECC_KEY_LENGTH_384:
 			oid = ECC_DER_P384_OID;
 			oid_len = sizeof (ECC_DER_P384_OID);
@@ -337,6 +359,7 @@ int ecc_der_decode_private_key_no_copy (const uint8_t *der, size_t length,
 			return ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH;
 	}
 
+	key_len = type_len;
 	*priv_key = pos;
 
 	/* We have the private key of a valid length, but we need to make sure it is for the expected

@@ -8,31 +8,82 @@
 #include <stddef.h>
 
 
+/**
+ * Cerberus OID for testing.
+ */
+#define	RIOT_CORE_CERBERUS			"\x2B\x06\x01\x04\x01\x82\x37\x66\x01\x0A\x01"
+
 extern const uint8_t RIOT_CORE_CDI[];
 extern const size_t RIOT_CORE_CDI_LEN;
 
 extern const uint8_t RIOT_CORE_CDI_HASH[];
 extern const size_t RIOT_CORE_CDI_HASH_LEN;
+extern const uint8_t RIOT_CORE_CDI_HASH_384[];
+extern const size_t RIOT_CORE_CDI_HASH_384_LEN;
+extern const uint8_t RIOT_CORE_CDI_HASH_512[];
+extern const size_t RIOT_CORE_CDI_HASH_512_LEN;
 
-extern const uint8_t RIOT_CORE_SERIAL_KDF_DATA[];
-extern const size_t RIOT_CORE_SERIAL_KDF_DATA_LEN;
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF_TEST_LABEL[];
+extern const size_t RIOT_CORE_DEVICE_ID_KDF_TEST_LABEL_LEN;
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF_TEST_CONTEXT[];
+extern const size_t RIOT_CORE_DEVICE_ID_KDF_TEST_CONTEXT_LEN;
 
-extern const size_t RIOT_CORE_SERIAL_LEN;
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF_TEST_256_DATA[];
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF_TEST_384_DATA[];
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF_TEST_521_DATA_1[];
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF_TEST_521_DATA_2[];
+extern const size_t RIOT_CORE_DEVICE_ID_KDF_TEST_DATA_LEN;
+
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF[];
+extern const size_t RIOT_CORE_DEVICE_ID_KDF_LEN;
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF_384[];
+extern const size_t RIOT_CORE_DEVICE_ID_KDF_384_LEN;
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF_521_OUT_1[];
+extern const size_t RIOT_CORE_DEVICE_ID_KDF_521_OUT_1_LEN;
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF_521_OUT_2[];
+extern const size_t RIOT_CORE_DEVICE_ID_KDF_521_OUT_2_LEN;
+extern const uint8_t RIOT_CORE_DEVICE_ID_KDF_521[];
+extern const size_t RIOT_CORE_DEVICE_ID_KDF_521_LEN;
 
 extern const uint8_t RIOT_CORE_DEVICE_ID[];
 extern const size_t RIOT_CORE_DEVICE_ID_LEN;
+extern const uint8_t RIOT_CORE_DEVICE_ID_384[];
+extern const size_t RIOT_CORE_DEVICE_ID_384_LEN;
+extern const uint8_t RIOT_CORE_DEVICE_ID_521[];
+extern const size_t RIOT_CORE_DEVICE_ID_521_LEN;
+
+extern const uint8_t RIOT_CORE_SERIAL_KDF_TEST_DATA[];
+extern const size_t RIOT_CORE_SERIAL_KDF_TEST_DATA_LEN;
+
+extern const size_t RIOT_CORE_SERIAL_LEN;
 
 extern const uint8_t RIOT_CORE_DEVID_SERIAL[];
 extern const size_t RIOT_CORE_DEVID_SERIAL_LEN;
+extern const uint8_t RIOT_CORE_DEVID_SERIAL_384[];
+extern const size_t RIOT_CORE_DEVID_SERIAL_384_LEN;
+extern const uint8_t RIOT_CORE_DEVID_SERIAL_521[];
+extern const size_t RIOT_CORE_DEVID_SERIAL_521_LEN;
 
 extern const char RIOT_CORE_DEVID_NAME[];
 extern const size_t RIOT_CORE_DEVID_NAME_LEN;
+extern const char RIOT_CORE_DEVID_NAME_384[];
+extern const size_t RIOT_CORE_DEVID_NAME_384_LEN;
+extern const char RIOT_CORE_DEVID_NAME_521[];
+extern const size_t RIOT_CORE_DEVID_NAME_521_LEN;
 
 extern const uint8_t RIOT_CORE_DEVID_CSR[];
 extern const size_t RIOT_CORE_DEVID_CSR_LEN;
+extern const uint8_t RIOT_CORE_DEVID_CSR_384[];
+extern const size_t RIOT_CORE_DEVID_CSR_384_LEN;
+extern const uint8_t RIOT_CORE_DEVID_CSR_521[];
+extern const size_t RIOT_CORE_DEVID_CSR_521_LEN;
 
 extern const uint8_t RIOT_CORE_DEVID_CERT[];
 extern const size_t RIOT_CORE_DEVID_CERT_LEN;
+extern const uint8_t RIOT_CORE_DEVID_CERT_384[];
+extern const size_t RIOT_CORE_DEVID_CERT_384_LEN;
+extern const uint8_t RIOT_CORE_DEVID_CERT_521[];
+extern const size_t RIOT_CORE_DEVID_CERT_521_LEN;
 
 extern const uint8_t RIOT_CORE_DEVID_SIGNED_CERT[];
 extern const size_t RIOT_CORE_DEVID_SIGNED_CERT_LEN;
@@ -45,24 +96,81 @@ extern const uint32_t RIOT_CORE_ALIAS_SVN;
 
 extern const uint8_t RIOT_CORE_FWID[];
 extern const size_t RIOT_CORE_FWID_LEN;
+extern const uint8_t RIOT_CORE_FWID_SHA384[];
+extern const size_t RIOT_CORE_FWID_SHA384_LEN;
+extern const uint8_t RIOT_CORE_FWID_SHA512[];
+extern const size_t RIOT_CORE_FWID_SHA512_LEN;
 
 extern const uint8_t RIOT_CORE_FWID_KDF[];
 extern const size_t RIOT_CORE_FWID_KDF_LEN;
+extern const uint8_t RIOT_CORE_FWID_KDF_384[];
+extern const size_t RIOT_CORE_FWID_KDF_384_LEN;
+extern const uint8_t RIOT_CORE_FWID_KDF_521[];
+extern const size_t RIOT_CORE_FWID_KDF_521_LEN;
+
+extern const uint8_t RIOT_CORE_ALIAS_KDF_TEST_LABEL[];
+extern const size_t RIOT_CORE_ALIAS_KDF_TEST_LABEL_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_KDF_TEST_CONTEXT[];
+extern const size_t RIOT_CORE_ALIAS_KDF_TEST_CONTEXT_LEN;
+
+extern const uint8_t RIOT_CORE_ALIAS_KDF_TEST_256_DATA[];
+extern const uint8_t RIOT_CORE_ALIAS_KDF_TEST_384_DATA[];
+extern const uint8_t RIOT_CORE_ALIAS_KDF_TEST_521_DATA_1[];
+extern const uint8_t RIOT_CORE_ALIAS_KDF_TEST_521_DATA_2[];
+extern const size_t RIOT_CORE_ALIAS_KDF_TEST_DATA_LEN;
+
+extern const uint8_t RIOT_CORE_ALIAS_KDF[];
+extern const size_t RIOT_CORE_ALIAS_KDF_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_KDF_384[];
+extern const size_t RIOT_CORE_ALIAS_KDF_384_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_KDF_521_OUT_1[];
+extern const size_t RIOT_CORE_ALIAS_KDF_521_OUT_1_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_KDF_521_OUT_2[];
+extern const size_t RIOT_CORE_ALIAS_KDF_521_OUT_2_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_KDF_521[];
+extern const size_t RIOT_CORE_ALIAS_KDF_521_LEN;
 
 extern const uint8_t RIOT_CORE_ALIAS_KEY[];
 extern const size_t RIOT_CORE_ALIAS_KEY_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_KEY_384[];
+extern const size_t RIOT_CORE_ALIAS_KEY_384_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_KEY_521[];
+extern const size_t RIOT_CORE_ALIAS_KEY_521_LEN;
+
+extern const uint8_t RIOT_CORE_ALIAS_KEY_NO_PUBKEY[];
+extern const size_t RIOT_CORE_ALIAS_KEY_NO_PUBKEY_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_KEY_NO_PUBKEY_384[];
+extern const size_t RIOT_CORE_ALIAS_KEY_NO_PUBKEY_384_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_KEY_NO_PUBKEY_521[];
+extern const size_t RIOT_CORE_ALIAS_KEY_NO_PUBKEY_521_LEN;
 
 extern const uint8_t RIOT_CORE_ALIAS_PUBLIC_KEY[];
 extern const size_t RIOT_CORE_ALIAS_PUBLIC_KEY_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_PUBLIC_KEY_384[];
+extern const size_t RIOT_CORE_ALIAS_PUBLIC_KEY_384_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_PUBLIC_KEY_521[];
+extern const size_t RIOT_CORE_ALIAS_PUBLIC_KEY_521_LEN;
 
 extern const uint8_t RIOT_CORE_ALIAS_SERIAL[];
 extern const size_t RIOT_CORE_ALIAS_SERIAL_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_SERIAL_384[];
+extern const size_t RIOT_CORE_ALIAS_SERIAL_384_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_SERIAL_521[];
+extern const size_t RIOT_CORE_ALIAS_SERIAL_521_LEN;
 
 extern const char RIOT_CORE_ALIAS_NAME[];
 extern const size_t RIOT_CORE_ALIAS_NAME_LEN;
+extern const char RIOT_CORE_ALIAS_NAME_384[];
+extern const size_t RIOT_CORE_ALIAS_NAME_384_LEN;
+extern const char RIOT_CORE_ALIAS_NAME_521[];
+extern const size_t RIOT_CORE_ALIAS_NAME_521_LEN;
 
 extern const uint8_t RIOT_CORE_ALIAS_CERT[];
 extern const size_t RIOT_CORE_ALIAS_CERT_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_CERT_384[];
+extern const size_t RIOT_CORE_ALIAS_CERT_384_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_CERT_521[];
+extern const size_t RIOT_CORE_ALIAS_CERT_521_LEN;
 
 
 #endif /* RIOT_CORE_TESTING_H_ */

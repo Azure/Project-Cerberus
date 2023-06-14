@@ -49,6 +49,65 @@ static const uint8_t kdo_sha256_50[] = {
 };
 
 
+/**
+ * Set up expectations for running a NIST800-108 counter mode KDF with a mock hash engine.
+ *
+ * @param hash The hash mock being used.
+ * @param hash_algo The hash algorithm to use for the KDF.
+ * @param ki The input HMAC key for the KDF.
+ * @param ki_length Length of the input key.
+ * @param round The KDF round being executed.
+ * @param label The KDF Label value.
+ * @param label_length Length of the KDF Label.
+ * @param context The KDF Context value.  Null if no Context is expected.
+ * @param context_length Length of the KDF Context.
+ * @param bytes_out The number of bytes being requested for the KDF.
+ * @param result Output to provide from at the end of the KDF round.
+ * @param result_length Length of the KDF output.
+ *
+ * @return 0 if the expectations were set up successfully or non-zero on error.
+ */
+int kdf_testing_expect_nist800_108_counter_mode (struct hash_engine_mock *hash,
+	enum hash_type hash_algo, const uint8_t *ki, size_t ki_length, uint32_t round,
+	const uint8_t *label, size_t label_length, const uint8_t *context, size_t context_length,
+	uint32_t bytes_out, const uint8_t *result, size_t result_length)
+{
+	uint8_t separator = 0;
+	int status;
+
+	round = platform_htonl (round);
+	bytes_out = platform_htonl (bytes_out * 8);
+
+	status = hash_mock_expect_hmac_init (hash, ki, ki_length, hash_algo);
+
+	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&round, sizeof (round)), MOCK_ARG (sizeof (round)));
+
+	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (label, label_length), MOCK_ARG (label_length));
+
+	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+
+	if (context != NULL) {
+		status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
+			MOCK_ARG_PTR_CONTAINS_TMP (context, context_length), MOCK_ARG (context_length));
+	}
+
+	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (&bytes_out, sizeof (bytes_out)), MOCK_ARG (sizeof (bytes_out)));
+
+	status |= hash_mock_expect_hmac_finish (hash, ki, ki_length, NULL, result_length, hash_algo,
+		result, result_length);
+
+	return status;
+}
+
+
+/*******************
+ * Test cases
+ *******************/
+
 static void kdf_test_nist800_108_counter_mode_sha1 (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
@@ -273,7 +332,7 @@ static void kdf_test_nist800_108_counter_mode_update_index_hmac_fail (CuTest *te
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki));
+	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki), HASH_TYPE_SHA256);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_NO_MEMORY,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
@@ -311,7 +370,7 @@ static void kdf_test_nist800_108_counter_mode_update_label_hmac_fail (CuTest *te
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki));
+	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki), HASH_TYPE_SHA256);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_NO_MEMORY,
@@ -352,7 +411,7 @@ static void kdf_test_nist800_108_counter_mode_update_separator_hmac_fail (CuTest
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki));
+	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki), HASH_TYPE_SHA256);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
@@ -395,7 +454,7 @@ static void kdf_test_nist800_108_counter_mode_update_context_hmac_fail (CuTest *
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki));
+	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki), HASH_TYPE_SHA256);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
@@ -441,7 +500,7 @@ static void kdf_test_nist800_108_counter_mode_update_ko_len_hmac_fail (CuTest *t
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki));
+	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki), HASH_TYPE_SHA256);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
@@ -489,7 +548,7 @@ static void kdf_test_nist800_108_counter_mode_finish_hmac_fail (CuTest *test)
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki));
+	status = hash_mock_expect_hmac_init (&hash, ki, sizeof (ki), HASH_TYPE_SHA256);
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
 		MOCK_ARG_PTR_CONTAINS (&i_1, sizeof (i_1)), MOCK_ARG (sizeof (i_1)));
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,

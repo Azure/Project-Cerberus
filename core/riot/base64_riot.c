@@ -5,8 +5,8 @@
 #include <stddef.h>
 #include <string.h>
 #include "base64_riot.h"
-#include "reference/include/RiotBase64.h"
 #include "common/unused.h"
+#include "reference/include/RiotBase64.h"
 
 
 /**

@@ -143,6 +143,10 @@ extern const uint8_t SHA256_TEST_HMAC[];
 extern const uint8_t SHA384_TEST_HMAC[];
 extern const uint8_t SHA512_TEST_HMAC[];
 
+extern const uint8_t SHA1_FULL_BLOCK_1024_HMAC[];
+extern const uint8_t SHA256_FULL_BLOCK_1024_HMAC[];
+extern const uint8_t SHA384_FULL_BLOCK_1024_HMAC[];
+extern const uint8_t SHA512_FULL_BLOCK_1024_HMAC[];
 
 
 #endif /* HASH_TESTING_H_ */
