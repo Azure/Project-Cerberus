@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include "FreeRTOS.h"
+#include "platform_api.h"
 
 
 /* Unoptimized implementation of an inlined context switch as indicated by the ISR API.  This file
