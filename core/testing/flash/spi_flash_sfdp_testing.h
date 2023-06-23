@@ -45,6 +45,17 @@ extern const uint32_t SFDP_PARAMS_ADDR_MX25L25645G;
 extern const uint32_t SFDP_PARAMS_MX25L25645G[];
 extern const size_t SFDP_PARAMS_MX25L25645G_LEN;
 
+/* MX25L51245G */
+extern const uint8_t FLASH_ID_MX25L51245G[];
+
+extern const uint32_t SFDP_HEADER_MX25L51245G[];
+extern const size_t SFDP_HEADER_MX25L51245G_LEN;
+
+extern const uint32_t SFDP_PARAMS_ADDR_MX25L51245G;
+
+extern const uint32_t SFDP_PARAMS_MX25L51245G[];
+extern const size_t SFDP_PARAMS_MX25L51245G_LEN;
+
 /* MX25U51245G */
 extern const uint8_t FLASH_ID_MX25U51245G[];
 
@@ -80,6 +91,17 @@ extern const uint32_t SFDP_PARAMS_ADDR_W25Q256JV;
 
 extern const uint32_t SFDP_PARAMS_W25Q256JV[];
 extern const size_t SFDP_PARAMS_W25Q256JV_LEN;
+
+/* W25Q512JV */
+extern const uint8_t FLASH_ID_W25Q512JV[];
+
+extern const uint32_t SFDP_HEADER_W25Q512JV[];
+extern const size_t SFDP_HEADER_W25Q512JV_LEN;
+
+extern const uint32_t SFDP_PARAMS_ADDR_W25Q512JV;
+
+extern const uint32_t SFDP_PARAMS_W25Q512JV[];
+extern const size_t SFDP_PARAMS_W25Q512JV_LEN;
 
 
 /* Micron flash */
