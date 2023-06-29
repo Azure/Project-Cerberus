@@ -20,8 +20,8 @@
  *
  * @return 0 if the base64 engine successfully encoded the input data block.
 */
-static int base64_riot_encode (struct base64_engine *engine, const uint8_t *data,
-	size_t length, uint8_t *encoded, size_t enc_length)
+int base64_riot_encode (struct base64_engine *engine, const uint8_t *data, size_t length,
+	uint8_t *encoded, size_t enc_length)
 {
 	int status;
 
@@ -38,7 +38,7 @@ static int base64_riot_encode (struct base64_engine *engine, const uint8_t *data
 }
 
 /**
- * Initialize an instance for base64 encoding using reference RIoT core.
+ * Initialize an instance for base64 encoding using reference RIoT crypto.
  *
  * @param engine The base64 engine to initialize.
  *
@@ -58,7 +58,7 @@ int base64_riot_init (struct base64_engine_riot *engine)
 }
 
 /**
- * Release the resources used by a reference RIoT core base64 engine.
+ * Release the resources used by a reference RIoT crypto base64 engine.
  *
  * @param engine The base64 engine to release.
  */

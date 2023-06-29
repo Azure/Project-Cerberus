@@ -8,6 +8,8 @@ projects/*
 !projects/keil
 !projects/linux
 build*
+!build*.h
+!build*.c
 .vscode
 *~
 *.bin
