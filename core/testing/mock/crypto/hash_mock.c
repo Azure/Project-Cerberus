@@ -380,13 +380,17 @@ int hash_mock_expect_hmac_init (struct hash_engine_mock *mock, const uint8_t *ke
 			hmac_key_length = SHA256_BLOCK_SIZE;
 			break;
 
+#ifdef HASH_ENABLE_SHA384
 		case HASH_TYPE_SHA384:
 			status = mock_expect (&mock->mock, mock->base.start_sha384, mock, 0);
 			break;
+#endif
 
+#ifdef HASH_ENABLE_SHA512
 		case HASH_TYPE_SHA512:
 			status = mock_expect (&mock->mock, mock->base.start_sha512, mock, 0);
 			break;
+#endif
 
 		default:
 			return HASH_ENGINE_UNKNOWN_HASH;
@@ -438,13 +442,17 @@ int hash_mock_expect_hmac_finish (struct hash_engine_mock *mock, const uint8_t *
 			hmac_key_length = SHA256_BLOCK_SIZE;
 			break;
 
+#ifdef HASH_ENABLE_SHA384
 		case HASH_TYPE_SHA384:
 			status |= mock_expect (&mock->mock, mock->base.start_sha384, mock, 0);
 			break;
+#endif
 
+#ifdef HASH_ENABLE_SHA512
 		case HASH_TYPE_SHA512:
 			status |= mock_expect (&mock->mock, mock->base.start_sha512, mock, 0);
 			break;
+#endif
 
 		default:
 			return HASH_ENGINE_UNKNOWN_HASH;
