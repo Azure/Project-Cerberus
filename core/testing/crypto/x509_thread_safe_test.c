@@ -7,6 +7,7 @@
 #include <string.h>
 #include "testing.h"
 #include "crypto/x509_thread_safe.h"
+#include "testing/mock/asn1/x509_extension_builder_mock.h"
 #include "testing/mock/crypto/x509_mock.h"
 #include "testing/crypto/x509_testing.h"
 
@@ -88,6 +89,10 @@ static void x509_thread_safe_test_create_csr (CuTest *test)
 	struct x509_engine_thread_safe engine;
 	struct x509_engine_mock mock;
 	int status;
+	struct x509_extension_builder_mock ext1;
+	struct x509_extension_builder_mock ext2;
+	struct x509_extension_builder_mock ext3;
+	const struct x509_extension_builder *extensions[] = {&ext1.base, &ext2.base, &ext3.base};
 	uint8_t *csr = NULL;
 	size_t length;
 
@@ -102,11 +107,13 @@ static void x509_thread_safe_test_create_csr (CuTest *test)
 	status = mock_expect (&mock.mock, mock.base.create_csr, &mock, 0,
 		MOCK_ARG_PTR (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (X509_EKU_OID),
-		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&csr), MOCK_ARG_PTR (&length));
+		MOCK_ARG (X509_EKU_OID_LEN), MOCK_ARG_PTR_CONTAINS (extensions, sizeof (extensions)),
+		MOCK_ARG (3), MOCK_ARG_PTR (&csr), MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, X509_EKU_OID, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, X509_EKU_OID, X509_EKU_OID_LEN,
+		extensions, 3, &csr, &length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&mock.mock);
@@ -138,11 +145,13 @@ static void x509_thread_safe_test_create_csr_error (CuTest *test)
 	status = mock_expect (&mock.mock, mock.base.create_csr, &mock, X509_ENGINE_CSR_FAILED,
 		MOCK_ARG_PTR (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (X509_EKU_OID),
-		MOCK_ARG_PTR (NULL), MOCK_ARG_PTR (&csr), MOCK_ARG_PTR (&length));
+		MOCK_ARG (X509_EKU_OID_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_PTR (&csr),
+		MOCK_ARG_PTR (&length));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		HASH_TYPE_SHA384, X509_SUBJECT_NAME, X509_CERT_CA, X509_EKU_OID, NULL, &csr, &length);
+		HASH_TYPE_SHA384, X509_SUBJECT_NAME, X509_CERT_CA, X509_EKU_OID, X509_EKU_OID_LEN, NULL, 0,
+		&csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_CSR_FAILED, status);
 
 	status = mock_validate (&mock.mock);
@@ -172,7 +181,8 @@ static void x509_thread_safe_test_create_csr_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
-		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, X509_EKU_OID, NULL, &csr, &length);
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, X509_EKU_OID, X509_EKU_OID_LEN, NULL, 0,
+		&csr, &length);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -190,6 +200,10 @@ static void x509_thread_safe_test_create_self_signed_certificate (CuTest *test)
 	struct x509_engine_thread_safe engine;
 	struct x509_engine_mock mock;
 	int status;
+	struct x509_extension_builder_mock ext1;
+	struct x509_extension_builder_mock ext2;
+	struct x509_extension_builder_mock ext3;
+	const struct x509_extension_builder *extensions[] = {&ext1.base, &ext2.base, &ext3.base};
 	struct x509_certificate cert;
 
 	TEST_START;
@@ -204,12 +218,12 @@ static void x509_thread_safe_test_create_self_signed_certificate (CuTest *test)
 		MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (ECC_PRIVKEY_DER), MOCK_ARG (ECC_PRIVKEY_DER_LEN),
 		MOCK_ARG ( HASH_TYPE_SHA256), MOCK_ARG_PTR (X509_SERIAL_NUM),
 		MOCK_ARG (X509_SERIAL_NUM_LEN), MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA),
-		MOCK_ARG_PTR (NULL));
+		MOCK_ARG_PTR_CONTAINS (extensions, sizeof (extensions)), MOCK_ARG (3));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
+		X509_SUBJECT_NAME, X509_CERT_CA, extensions, 3);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&mock.mock);
@@ -241,12 +255,13 @@ static void x509_thread_safe_test_create_self_signed_certificate_error (CuTest *
 		X509_ENGINE_SELF_SIGNED_FAILED, MOCK_ARG_PTR (&cert), MOCK_ARG_PTR (ECC_PRIVKEY_DER),
 		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG ( HASH_TYPE_SHA384),
 		MOCK_ARG_PTR (X509_SERIAL_NUM), MOCK_ARG (X509_SERIAL_NUM_LEN),
-		MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL));
+		MOCK_ARG_PTR (X509_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
+		MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA384, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_SELF_SIGNED_FAILED, status);
 
 	status = mock_validate (&mock.mock);
@@ -276,7 +291,7 @@ static void x509_thread_safe_test_create_self_signed_certificate_null (CuTest *t
 
 	status = engine.base.create_self_signed_certificate (NULL, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
-		X509_SUBJECT_NAME, X509_CERT_CA, NULL);
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);
@@ -294,6 +309,10 @@ static void x509_thread_safe_test_create_ca_signed_certificate (CuTest *test)
 	struct x509_engine_thread_safe engine;
 	struct x509_engine_mock mock;
 	int status;
+	struct x509_extension_builder_mock ext1;
+	struct x509_extension_builder_mock ext2;
+	struct x509_extension_builder_mock ext3;
+	const struct x509_extension_builder *extensions[] = {&ext1.base, &ext2.base, &ext3.base};
 	struct x509_certificate cert;
 	struct x509_certificate ca_cert;
 
@@ -310,12 +329,14 @@ static void x509_thread_safe_test_create_ca_signed_certificate (CuTest *test)
 		MOCK_ARG_PTR (X509_CA2_SERIAL_NUM), MOCK_ARG (X509_CA2_SERIAL_NUM_LEN),
 		MOCK_ARG_PTR (X509_CA2_SUBJECT_NAME), MOCK_ARG (X509_CERT_CA),
 		MOCK_ARG_PTR (RSA_PRIVKEY_DER), MOCK_ARG (RSA_PRIVKEY_DER_LEN), MOCK_ARG (HASH_TYPE_SHA256),
-		MOCK_ARG_PTR (&ca_cert), MOCK_ARG_PTR (NULL));
+		MOCK_ARG_PTR (&ca_cert), MOCK_ARG_PTR_CONTAINS (extensions, sizeof (extensions)),
+		MOCK_ARG (3));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, extensions,
+		3);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&mock.mock);
@@ -349,12 +370,12 @@ static void x509_thread_safe_test_create_ca_signed_certificate_error (CuTest *te
 		MOCK_ARG (ECC_PRIVKEY_DER_LEN), MOCK_ARG_PTR (X509_CA2_SERIAL_NUM),
 		MOCK_ARG (X509_CA2_SERIAL_NUM_LEN), MOCK_ARG_PTR (X509_CA2_SUBJECT_NAME),
 		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (RSA_PRIVKEY_DER), MOCK_ARG (RSA_PRIVKEY_DER_LEN),
-		MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_PTR (&ca_cert), MOCK_ARG_PTR (NULL));
+		MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_PTR (&ca_cert), MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA384, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA384, &ca_cert, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_CA_SIGNED_FAILED, status);
 
 	status = mock_validate (&mock.mock);
@@ -385,7 +406,7 @@ static void x509_thread_safe_test_create_ca_signed_certificate_null (CuTest *tes
 
 	status = engine.base.create_ca_signed_certificate (NULL, &cert, ECC_PRIVKEY_DER,
 		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
-		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL);
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 
 	status = mock_validate (&mock.mock);

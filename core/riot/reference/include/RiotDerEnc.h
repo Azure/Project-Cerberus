@@ -65,7 +65,8 @@ DERAddOID(
 int
 DERAddEncodedOID(
     DERBuilderContext   *Context,
-    const char          *Oid
+    const uint8_t       *Oid,
+    size_t               OidLength
 );
 
 int

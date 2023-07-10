@@ -6,10 +6,11 @@
 
 #include <stdbool.h>
 #include "riot_core.h"
-#include "crypto/hash.h"
-#include "crypto/ecc.h"
-#include "crypto/x509.h"
+#include "asn1/x509_extension_builder.h"
 #include "crypto/base64.h"
+#include "crypto/ecc.h"
+#include "crypto/hash.h"
+#include "crypto/x509.h"
 
 
 /**
@@ -24,7 +25,6 @@ struct riot_core_common_state {
 	struct ecc_private_key dev_id;							/**< The Device ID key pair. */
 	uint8_t *dev_id_der;									/**< DER formatted Device ID private key. */
 	size_t dev_id_length;									/**< The length of the Device ID private key. */
-	const struct x509_dice_tcbinfo *tcb;					/**< TCB information for the Device ID certificate. */
 	struct x509_certificate dev_id_cert;					/**< The X.509 certificate for the Device ID. */
 	struct ecc_private_key alias_key;						/**< The Alias key pair. */
 	uint8_t *alias_der;										/**< DER formatted Alias private key. */
@@ -41,19 +41,25 @@ struct riot_core_common_state {
  * implementations.
  */
 struct riot_core_common {
-	struct riot_core base;					/**< The base RIoT core instance. */
-	struct riot_core_common_state *state;	/**< Variable context for RIoT Core. */
-	struct hash_engine *hash;				/**< The hash engine for RIoT Core operations. */
-	struct ecc_engine *ecc;					/**< The ECC engine for RIoT Core operations. */
-	struct x509_engine *x509;				/**< The X.509 engine for RIoT Core operations. */
-	struct base64_engine *base64;			/**< The base64 engine for RIoT Core operations. */
-	size_t key_length;						/**< Length of the ECC keys to generate. */
+	struct riot_core base;									/**< The base RIoT core instance. */
+	struct riot_core_common_state *state;					/**< Variable context for RIoT Core. */
+	struct hash_engine *hash;								/**< The hash engine for RIoT Core operations. */
+	struct ecc_engine *ecc;									/**< The ECC engine for RIoT Core operations. */
+	struct base64_engine *base64;							/**< The base64 engine for RIoT Core operations. */
+	struct x509_engine *x509;								/**< The X.509 engine for RIoT Core operations. */
+	const struct x509_extension_builder *const *dev_id_ext;	/**< List of custom extensions added to the Device ID certificate. */
+	size_t dev_id_ext_count;								/**< Number of custom extensions in the Device ID certificate. */
+	const struct x509_extension_builder *const *alias_ext;	/**< List of custom extensions added to the Alias certificate. */
+	size_t alias_ext_count;									/**< Number of custom extensions in the Alias certificate. */
+	size_t key_length;										/**< Length of the ECC keys to generate. */
 };
 
 
 int riot_core_common_init (struct riot_core_common *riot, struct riot_core_common_state *state,
 	struct hash_engine *hash, struct ecc_engine *ecc, struct x509_engine *x509,
-	struct base64_engine *base64, size_t key_length);
+	struct base64_engine *base64, size_t key_length,
+	const struct x509_extension_builder *const *device_id_ext, size_t device_id_ext_count,
+	const struct x509_extension_builder *const *alias_ext, size_t alias_ext_count);
 int riot_core_common_init_state (const struct riot_core_common *riot);
 void riot_core_common_release (const struct riot_core_common *riot);
 

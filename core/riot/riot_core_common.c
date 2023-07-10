@@ -63,7 +63,7 @@ int riot_core_common_create_device_id_certificate (const struct riot_core_common
 
 	status = riot->x509->create_self_signed_certificate (riot->x509, &riot->state->dev_id_cert,
 		riot->state->dev_id_der, riot->state->dev_id_length, riot->state->hash_algo, serial_num, 8,
-		riot->state->dev_id_name, X509_CERT_CA, riot->state->tcb);
+		riot->state->dev_id_name, X509_CERT_CA, riot->dev_id_ext, riot->dev_id_ext_count);
 	if (status != 0) {
 		return status;
 	}
@@ -73,18 +73,16 @@ int riot_core_common_create_device_id_certificate (const struct riot_core_common
 }
 
 int riot_core_common_generate_device_id (const struct riot_core *riot, const uint8_t *cdi,
-	size_t length, const struct x509_dice_tcbinfo *riot_tcb)
+	size_t length)
 {
 	const struct riot_core_common *core = (const struct riot_core_common*) riot;
 	uint8_t cdi_kdf[ECC_MAX_KEY_LENGTH];
 	int status;
 	uint8_t first;
 
-	if ((core == NULL) || (length == 0) || (riot_tcb == NULL)) {
+	if ((core == NULL) || (length == 0)) {
 		return RIOT_CORE_INVALID_ARGUMENT;
 	}
-
-	core->state->tcb = riot_tcb;
 
 	/* In order to accommodate CDI buffers that are at address 0, we can't just directly hash the
 	 * buffer pointer.  Instead, we copy the first byte locally and add it to the hash, then add
@@ -141,8 +139,8 @@ cdi_error:
 	return status;
 }
 
-int riot_core_common_get_device_id_csr (const struct riot_core *riot, const char *oid,
-	uint8_t **csr, size_t *length)
+int riot_core_common_get_device_id_csr (const struct riot_core *riot, const uint8_t *oid,
+	size_t oid_length, uint8_t **csr, size_t *length)
 {
 	const struct riot_core_common *core = (const struct riot_core_common*) riot;
 
@@ -155,8 +153,8 @@ int riot_core_common_get_device_id_csr (const struct riot_core *riot, const char
 	}
 
 	return core->x509->create_csr (core->x509, core->state->dev_id_der, core->state->dev_id_length,
-		core->state->hash_algo, core->state->dev_id_name, X509_CERT_CA, oid, core->state->tcb, csr,
-		length);
+		core->state->hash_algo, core->state->dev_id_name, X509_CERT_CA, oid, oid_length,
+		core->dev_id_ext, core->dev_id_ext_count, csr, length);
 }
 
 int riot_core_common_get_device_id_cert (const struct riot_core *riot, uint8_t **device_id,
@@ -176,17 +174,16 @@ int riot_core_common_get_device_id_cert (const struct riot_core *riot, uint8_t *
 		length);
 }
 
-int riot_core_common_generate_alias_key (const struct riot_core *riot,
-	const struct x509_dice_tcbinfo *alias_tcb)
+int riot_core_common_generate_alias_key (const struct riot_core *riot, const uint8_t *fwid,
+	size_t length)
 {
 	const struct riot_core_common *core = (const struct riot_core_common*) riot;
-	int fw_id_length;
 	uint8_t fwid_hmac[HASH_MAX_HASH_LEN];
 	uint8_t alias_kdf[ECC_MAX_KEY_LENGTH];
 	uint8_t subject[BASE64_LENGTH (HASH_MAX_HASH_LEN)];
 	int status;
 
-	if ((riot == NULL) || (alias_tcb == NULL) || (alias_tcb->fw_id == NULL)) {
+	if ((riot == NULL) || (fwid == NULL) || (length == 0)) {
 		return RIOT_CORE_INVALID_ARGUMENT;
 	}
 
@@ -194,13 +191,8 @@ int riot_core_common_generate_alias_key (const struct riot_core *riot,
 		return RIOT_CORE_NO_DEVICE_ID;
 	}
 
-	fw_id_length = hash_get_hash_length (alias_tcb->fw_id_hash);
-	if (ROT_IS_ERROR (fw_id_length)) {
-		return RIOT_CORE_BAD_FWID_LENGTH;
-	}
-
 	status = hash_generate_hmac (core->hash, core->state->cdi_hash, core->state->digest_length,
-		alias_tcb->fw_id, fw_id_length, core->state->kdf_algo, fwid_hmac, sizeof (fwid_hmac));
+		fwid, length, core->state->kdf_algo, fwid_hmac, sizeof (fwid_hmac));
 	if (status != 0) {
 		return status;
 	}
@@ -247,7 +239,7 @@ int riot_core_common_generate_alias_key (const struct riot_core *riot,
 	status = core->x509->create_ca_signed_certificate (core->x509, &core->state->alias_cert,
 		core->state->alias_der, core->state->alias_length, alias_kdf, 8, (char*) subject,
 		X509_CERT_END_ENTITY, core->state->dev_id_der, core->state->dev_id_length,
-		core->state->hash_algo, &core->state->dev_id_cert, alias_tcb);
+		core->state->hash_algo, &core->state->dev_id_cert, core->alias_ext, core->alias_ext_count);
 	if (status != 0) {
 		return status;
 	}
@@ -306,12 +298,22 @@ int riot_core_common_get_alias_key_cert (const struct riot_core *riot, uint8_t *
  * @param x509 The X.509 certificate engine to use with RIoT Core.
  * @param base64 The base64 encoding engine to use with RIoT Core.
  * @param key_length Length of the DICE keys that should be created.
+ * @param device_id_ext A list of additional, custom extensions that should be added to the
+ * Device ID certificate and CSR.  At minimum, this should include the DICE TcbInfo extension for
+ * layer 0.
+ * @param device_id_ext_count The number of custom extensions to add to the Device ID certificate
+ * and CSR.
+ * @param alias_ext A list of additional, custom extensions that should be added to the
+ * Alias certificate.  At minimum, this should include the DICE TcbInfo extension for layer 1.
+ * @param alias_ext_count The number of custom extensions to add to the Alias certificate.
  *
  * @return 0 if RIoT Core was been initialize successfully or an error code.
  */
 int riot_core_common_init (struct riot_core_common *riot, struct riot_core_common_state *state,
 	struct hash_engine *hash, struct ecc_engine *ecc, struct x509_engine *x509,
-	struct base64_engine *base64, size_t key_length)
+	struct base64_engine *base64, size_t key_length,
+	const struct x509_extension_builder *const *device_id_ext, size_t device_id_ext_count,
+	const struct x509_extension_builder *const *alias_ext, size_t alias_ext_count)
 {
 	if ((riot == NULL) || (state == NULL) || (hash == NULL) || (ecc == NULL) || (x509 == NULL) ||
 		(base64 == NULL)) {
@@ -323,8 +325,12 @@ int riot_core_common_init (struct riot_core_common *riot, struct riot_core_commo
 	riot->state = state;
 	riot->hash = hash;
 	riot->ecc = ecc;
-	riot->x509 = x509;
 	riot->base64 = base64;
+	riot->x509 = x509;
+	riot->dev_id_ext = device_id_ext;
+	riot->dev_id_ext_count = device_id_ext_count;
+	riot->alias_ext = alias_ext;
+	riot->alias_ext_count = alias_ext_count;
 	riot->key_length = key_length;
 
 	riot->base.generate_device_id = riot_core_common_generate_device_id;
@@ -351,6 +357,12 @@ int riot_core_common_init_state (const struct riot_core_common *riot)
 {
 	if ((riot == NULL) || (riot->state == NULL) || (riot->hash == NULL) || (riot->ecc == NULL) ||
 		(riot->x509 == NULL) || (riot->base64 == NULL)) {
+		return RIOT_CORE_INVALID_ARGUMENT;
+	}
+
+	/* These cases should also be caught by the X.509 engine, but check it here to fail fast. */
+	if (((riot->dev_id_ext_count != 0) && (riot->dev_id_ext == NULL)) ||
+		((riot->alias_ext_count != 0) && (riot->alias_ext == NULL))) {
 		return RIOT_CORE_INVALID_ARGUMENT;
 	}
 

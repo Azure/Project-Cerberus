@@ -6,9 +6,11 @@
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
+#include "common/array_size.h"
 #include "crypto/ecc_der_util.h"
 #include "riot/riot_core_common.h"
 #include "riot/riot_core_common_static.h"
+#include "testing/mock/asn1/x509_extension_builder_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/x509_mock.h"
@@ -17,6 +19,8 @@
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/engines/x509_testing_engine.h"
 #include "testing/engines/base64_testing_engine.h"
+#include "testing/asn1/dice/x509_extension_builder_dice_tcbinfo_testing.h"
+#include "testing/asn1/dice/x509_extension_builder_dice_ueid_testing.h"
 #include "testing/crypto/kdf_testing.h"
 #include "testing/crypto/x509_testing.h"
 #include "testing/riot/riot_core_testing.h"
@@ -29,16 +33,18 @@ TEST_SUITE_LABEL ("riot_core_common");
  * Dependencies for testing the generic DICE layer 0 handler.
  */
 struct riot_core_common_testing {
-	struct hash_engine_mock hash;				/**< Mock for the hash engine. */
-	struct ecc_engine_mock ecc;					/**< Mock for the ECC engine. */
-	struct base64_engine_mock base64;			/**< Mock for the base64 engine. */
-	struct x509_engine_mock x509;				/**< Mock for the X.509 engine. */
-	struct x509_dice_ueid ueid;					/**< Ueid extension information. */
-	struct x509_dice_tcbinfo tcb;				/**< TcbInfo extension information. */
-	struct x509_dice_tcbinfo alias_tcb;			/**< Alias key TcbInfo extension information. */
-	struct riot_core_common_state zero_state;	/**< An empty DICE state. */
-	struct riot_core_common_state state;		/**< Variable context for the DICE handler. */
-	struct riot_core_common test;				/**< DICE handler under test. */
+	struct hash_engine_mock hash;						/**< Mock for the hash engine. */
+	struct ecc_engine_mock ecc;							/**< Mock for the ECC engine. */
+	struct base64_engine_mock base64;					/**< Mock for the base64 engine. */
+	struct x509_engine_mock x509;						/**< Mock for the X.509 engine. */
+	struct x509_extension_builder_mock tcb;				/**< Mock for the TcbInfo extension. */
+	struct x509_extension_builder_mock ueid;			/**< Mock for the Ueid extension. */
+	const struct x509_extension_builder *dev_id_ext[2];	/**< List of Device ID extensions. */
+	struct x509_extension_builder_mock alias_tcb;		/**< Alias key TcbInfo extension information. */
+	const struct x509_extension_builder *alias_ext[1];	/**< List of Alias extensions. */
+	struct riot_core_common_state zero_state;			/**< An empty DICE state. */
+	struct riot_core_common_state state;				/**< Variable context for the DICE handler. */
+	struct riot_core_common test;						/**< DICE handler under test. */
 };
 
 
@@ -65,22 +71,22 @@ static void riot_core_common_testing_init_dependencies (CuTest *test,
 	status = x509_mock_init (&riot->x509);
 	CuAssertIntEquals (test, 0, status);
 
-	riot->ueid.ueid = X509_RIOT_UEID;
-	riot->ueid.length = X509_RIOT_UEID_LEN;
+	status = x509_extension_builder_mock_init (&riot->tcb);
+	CuAssertIntEquals (test, 0, status);
+	mock_set_name (&riot->tcb.mock, "tcb");
 
-	memset (&riot->tcb, 0, sizeof (riot->tcb));
-	riot->tcb.version = X509_RIOT_VERSION;
-	riot->tcb.svn = X509_RIOT_SVN;
-	riot->tcb.fw_id = X509_RIOT_SHA256_FWID;
-	riot->tcb.fw_id_hash = HASH_TYPE_SHA256;
-	riot->tcb.ueid = &riot->ueid;
+	status = x509_extension_builder_mock_init (&riot->ueid);
+	CuAssertIntEquals (test, 0, status);
+	mock_set_name (&riot->ueid.mock, "ueid");
 
-	memset (&riot->alias_tcb, 0, sizeof (riot->alias_tcb));
-	riot->alias_tcb.version = RIOT_CORE_ALIAS_VERSION;
-	riot->alias_tcb.svn = RIOT_CORE_ALIAS_SVN;
-	riot->alias_tcb.fw_id = RIOT_CORE_FWID;
-	riot->alias_tcb.fw_id_hash = HASH_TYPE_SHA256;
-	riot->alias_tcb.ueid = NULL;
+	status = x509_extension_builder_mock_init (&riot->alias_tcb);
+	CuAssertIntEquals (test, 0, status);
+	mock_set_name (&riot->alias_tcb.mock, "alias_tcb");
+
+	riot->dev_id_ext[0] = &riot->tcb.base;
+	riot->dev_id_ext[1] = &riot->ueid.base;
+
+	riot->alias_ext[0] = &riot->alias_tcb.base;
 
 	memset (&riot->zero_state, 0, sizeof (riot->zero_state));
 }
@@ -100,6 +106,9 @@ static void riot_core_common_testing_release_dependencies (CuTest *test,
 	status |= ecc_mock_validate_and_release (&riot->ecc);
 	status |= base64_mock_validate_and_release (&riot->base64);
 	status |= x509_mock_validate_and_release (&riot->x509);
+	status |= x509_extension_builder_mock_validate_and_release (&riot->tcb);
+	status |= x509_extension_builder_mock_validate_and_release (&riot->ueid);
+	status |= x509_extension_builder_mock_validate_and_release (&riot->alias_tcb);
 
 	CuAssertIntEquals (test, 0, status);
 }
@@ -120,6 +129,9 @@ static void riot_core_common_testing_validate_mocks (CuTest *test,
 	status |= mock_validate (&riot->ecc.mock);
 	status |= mock_validate (&riot->base64.mock);
 	status |= mock_validate (&riot->x509.mock);
+	status |= mock_validate (&riot->tcb.mock);
+	status |= mock_validate (&riot->ueid.mock);
+	status |= mock_validate (&riot->alias_tcb.mock);
 
 	CuAssertIntEquals (test, 0, status);
 }
@@ -139,7 +151,8 @@ static void riot_core_common_testing_init (CuTest *test, struct riot_core_common
 	riot_core_common_testing_init_dependencies (test, riot);
 
 	status = riot_core_common_init (&riot->test, &riot->state, &riot->hash.base, &riot->ecc.base,
-		&riot->x509.base, &riot->base64.base, key_length);
+		&riot->x509.base, &riot->base64.base, key_length, riot->dev_id_ext,
+		ARRAY_SIZE (riot->dev_id_ext), riot->alias_ext, ARRAY_SIZE (riot->alias_ext));
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -248,13 +261,14 @@ static void riot_core_common_testing_device_id_generation_256 (CuTest *test,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS_TMP (&riot->tcb, sizeof (riot->tcb)));
+		MOCK_ARG (X509_CERT_CA),
+		MOCK_ARG_PTR_CONTAINS (&riot->dev_id_ext, sizeof (riot->dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot->dev_id_ext)));
 	status |= mock_expect_save_arg (&riot->x509.mock, 0, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = dice->base.generate_device_id (&dice->base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot->tcb);
+	status = dice->base.generate_device_id (&dice->base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, riot);
@@ -321,9 +335,6 @@ static void riot_core_common_testing_device_id_generation_384 (CuTest *test,
 	status |= mock_expect_output (&riot->base64.mock, 2, RIOT_CORE_DEVID_NAME_384,
 		RIOT_CORE_DEVID_NAME_384_LEN, 3);
 
-	riot->tcb.fw_id = X509_RIOT_SHA384_FWID;
-	riot->tcb.fw_id_hash = HASH_TYPE_SHA384;
-
 	status |= mock_expect (&riot->x509.mock, riot->x509.base.create_self_signed_certificate,
 		&riot->x509, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_384, RIOT_CORE_DEVICE_ID_384_LEN),
@@ -331,13 +342,14 @@ static void riot_core_common_testing_device_id_generation_384 (CuTest *test,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL_384, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME_384, RIOT_CORE_DEVID_NAME_384_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS_TMP (&riot->tcb, sizeof (riot->tcb)));
+		MOCK_ARG (X509_CERT_CA),
+		MOCK_ARG_PTR_CONTAINS (&riot->dev_id_ext, sizeof (riot->dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot->dev_id_ext)));
 	status |= mock_expect_save_arg (&riot->x509.mock, 0, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = dice->base.generate_device_id (&dice->base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot->tcb);
+	status = dice->base.generate_device_id (&dice->base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, riot);
@@ -411,9 +423,6 @@ static void riot_core_common_testing_device_id_generation_521 (CuTest *test,
 	status |= mock_expect_output (&riot->base64.mock, 2, RIOT_CORE_DEVID_NAME_521,
 		RIOT_CORE_DEVID_NAME_521_LEN, 3);
 
-	riot->tcb.fw_id = X509_RIOT_SHA512_FWID;
-	riot->tcb.fw_id_hash = HASH_TYPE_SHA512;
-
 	status |= mock_expect (&riot->x509.mock, riot->x509.base.create_self_signed_certificate,
 		&riot->x509, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_521, RIOT_CORE_DEVICE_ID_521_LEN),
@@ -421,13 +430,14 @@ static void riot_core_common_testing_device_id_generation_521 (CuTest *test,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL_521, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME_521, RIOT_CORE_DEVID_NAME_521_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS_TMP (&riot->tcb, sizeof (riot->tcb)));
+		MOCK_ARG (X509_CERT_CA),
+		MOCK_ARG_PTR_CONTAINS (&riot->dev_id_ext, sizeof (riot->dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot->dev_id_ext)));
 	status |= mock_expect_save_arg (&riot->x509.mock, 0, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = dice->base.generate_device_id (&dice->base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot->tcb);
+	status = dice->base.generate_device_id (&dice->base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, riot);
@@ -498,12 +508,13 @@ static void riot_core_common_testing_alias_generation_256 (CuTest *test,
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&riot->alias_tcb, sizeof (riot->alias_tcb)));
+		MOCK_ARG_PTR_CONTAINS (&riot->alias_ext, sizeof (riot->alias_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot->alias_ext)));
 	status |= mock_expect_save_arg (&riot->x509.mock, 0, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = dice->base.generate_alias_key (&dice->base, &riot->alias_tcb);
+	status = dice->base.generate_alias_key (&dice->base, RIOT_CORE_FWID, RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, riot);
@@ -524,7 +535,8 @@ static void riot_core_common_test_init (CuTest *test)
 	riot_core_common_testing_init_dependencies (test, &riot);
 
 	status = riot_core_common_init (&riot.test, &riot.state, &riot.hash.base, &riot.ecc.base,
-		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, riot.test.base.generate_device_id);
@@ -547,7 +559,8 @@ static void riot_core_common_test_static_init (CuTest *test)
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 
 	TEST_START;
@@ -584,7 +597,8 @@ static void riot_core_common_test_init_ecc384 (CuTest *test)
 	riot_core_common_testing_init_dependencies (test, &riot);
 
 	status = riot_core_common_init (&riot.test, &riot.state, &riot.hash.base, &riot.ecc.base,
-		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_384);
+		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_384, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_release (&riot.test);
@@ -600,7 +614,8 @@ static void riot_core_common_test_static_init_ecc384 (CuTest *test)
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_384);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_384,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 
 	TEST_START;
@@ -631,7 +646,8 @@ static void riot_core_common_test_init_ecc521 (CuTest *test)
 	riot_core_common_testing_init_dependencies (test, &riot);
 
 	status = riot_core_common_init (&riot.test, &riot.state, &riot.hash.base, &riot.ecc.base,
-		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_521);
+		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_521, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_release (&riot.test);
@@ -647,7 +663,8 @@ static void riot_core_common_test_static_init_ecc521 (CuTest *test)
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_521);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_521,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 
 	TEST_START;
@@ -677,27 +694,43 @@ static void riot_core_common_test_init_null (CuTest *test)
 	riot_core_common_testing_init_dependencies (test, &riot);
 
 	status = riot_core_common_init (NULL, &riot.state, &riot.hash.base, &riot.ecc.base,
-		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	status = riot_core_common_init (&riot.test, NULL, &riot.hash.base, &riot.ecc.base,
-		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	status = riot_core_common_init (&riot.test, &riot.state, NULL, &riot.ecc.base,
-		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	status = riot_core_common_init (&riot.test, &riot.state, &riot.hash.base, NULL,
-		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	status = riot_core_common_init (&riot.test, &riot.state, &riot.hash.base, &riot.ecc.base,
-		NULL, &riot.base64.base, ECC_KEY_LENGTH_256);
+		NULL, &riot.base64.base, ECC_KEY_LENGTH_256, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	status = riot_core_common_init (&riot.test, &riot.state, &riot.hash.base, &riot.ecc.base,
-		&riot.x509.base, NULL, ECC_KEY_LENGTH_256);
+		&riot.x509.base, NULL, ECC_KEY_LENGTH_256, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
+	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
+
+	status = riot_core_common_init (&riot.test, &riot.state, &riot.hash.base, &riot.ecc.base,
+		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256, NULL,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
+	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
+
+	status = riot_core_common_init (&riot.test, &riot.state, &riot.hash.base, &riot.ecc.base,
+		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), NULL, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	riot_core_common_testing_release_dependencies (test, &riot);
@@ -713,7 +746,8 @@ static void riot_core_common_test_init_unknown_key_length (CuTest *test)
 	riot_core_common_testing_init_dependencies (test, &riot);
 
 	status = riot_core_common_init (&riot.test, &riot.state, &riot.hash.base, &riot.ecc.base,
-		&riot.x509.base, &riot.base64.base, 64);
+		&riot.x509.base, &riot.base64.base, 64, riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext),
+		riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, RIOT_CORE_UNSUPPORTED_KEY_LENGTH, status);
 
 
@@ -724,7 +758,8 @@ static void riot_core_common_test_static_init_null (CuTest *test)
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 
 	TEST_START;
@@ -749,12 +784,22 @@ static void riot_core_common_test_static_init_null (CuTest *test)
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	test_static.ecc = &riot.ecc.base;
+	test_static.base64 = NULL;
+	status = riot_core_common_init_state (&test_static);
+	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
+
+	test_static.base64 = &riot.base64.base;
 	test_static.x509 = NULL;
 	status = riot_core_common_init_state (&test_static);
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	test_static.x509 = &riot.x509.base;
-	test_static.base64 = NULL;
+	test_static.dev_id_ext = NULL;
+	status = riot_core_common_init_state (&test_static);
+	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
+
+	test_static.dev_id_ext = riot.dev_id_ext;
+	test_static.alias_ext = NULL;
 	status = riot_core_common_init_state (&test_static);
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
@@ -765,7 +810,8 @@ static void riot_core_common_test_static_init_unknown_key_length (CuTest *test)
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, 96);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, 96, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 
 	TEST_START;
@@ -795,7 +841,8 @@ static void riot_core_common_test_release_twice (CuTest *test)
 	riot_core_common_testing_init_dependencies (test, &riot);
 
 	status = riot_core_common_init (&riot.test, &riot.state, &riot.hash.base, &riot.ecc.base,
-		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256, riot.dev_id_ext,
+		ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_release (&riot.test);
@@ -873,13 +920,13 @@ static void riot_core_common_test_generate_device_id (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)));
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -899,7 +946,8 @@ static void riot_core_common_test_generate_device_id_static_init (CuTest *test)
 
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *der;
 	size_t der_length = RIOT_CORE_DEVICE_ID_LEN;
@@ -960,13 +1008,14 @@ static void riot_core_common_test_generate_device_id_static_init (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)));
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base.generate_device_id (&test_static.base, RIOT_CORE_CDI,
-		RIOT_CORE_CDI_LEN, &riot.tcb);
+		RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -1040,9 +1089,6 @@ static void riot_core_common_test_generate_device_id_ecc384 (CuTest *test)
 	status |= mock_expect_output (&riot.base64.mock, 2, RIOT_CORE_DEVID_NAME_384,
 		RIOT_CORE_DEVID_NAME_384_LEN, 3);
 
-	riot.tcb.fw_id = X509_RIOT_SHA384_FWID;
-	riot.tcb.fw_id_hash = HASH_TYPE_SHA384;
-
 	status |= mock_expect (&riot.x509.mock, riot.x509.base.create_self_signed_certificate,
 		&riot.x509, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_384, RIOT_CORE_DEVICE_ID_384_LEN),
@@ -1050,13 +1096,13 @@ static void riot_core_common_test_generate_device_id_ecc384 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL_384, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME_384, RIOT_CORE_DEVID_NAME_384_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)));
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -1076,7 +1122,8 @@ static void riot_core_common_test_generate_device_id_static_init_ecc384 (CuTest 
 
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_384);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_384,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *der;
 	size_t der_length = RIOT_CORE_DEVICE_ID_384_LEN;
@@ -1131,9 +1178,6 @@ static void riot_core_common_test_generate_device_id_static_init_ecc384 (CuTest 
 	status |= mock_expect_output (&riot.base64.mock, 2, RIOT_CORE_DEVID_NAME_384,
 		RIOT_CORE_DEVID_NAME_384_LEN, 3);
 
-	riot.tcb.fw_id = X509_RIOT_SHA384_FWID;
-	riot.tcb.fw_id_hash = HASH_TYPE_SHA384;
-
 	status |= mock_expect (&riot.x509.mock, riot.x509.base.create_self_signed_certificate,
 		&riot.x509, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_384, RIOT_CORE_DEVICE_ID_384_LEN),
@@ -1141,13 +1185,14 @@ static void riot_core_common_test_generate_device_id_static_init_ecc384 (CuTest 
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL_384, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME_384, RIOT_CORE_DEVID_NAME_384_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)));
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base.generate_device_id (&test_static.base, RIOT_CORE_CDI,
-		RIOT_CORE_CDI_LEN, &riot.tcb);
+		RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -1228,9 +1273,6 @@ static void riot_core_common_test_generate_device_id_ecc521 (CuTest *test)
 	status |= mock_expect_output (&riot.base64.mock, 2, RIOT_CORE_DEVID_NAME_521,
 		RIOT_CORE_DEVID_NAME_521_LEN, 3);
 
-	riot.tcb.fw_id = X509_RIOT_SHA512_FWID;
-	riot.tcb.fw_id_hash = HASH_TYPE_SHA512;
-
 	status |= mock_expect (&riot.x509.mock, riot.x509.base.create_self_signed_certificate,
 		&riot.x509, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_521, RIOT_CORE_DEVICE_ID_521_LEN),
@@ -1238,13 +1280,13 @@ static void riot_core_common_test_generate_device_id_ecc521 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL_521, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME_521, RIOT_CORE_DEVID_NAME_521_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)));
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -1264,7 +1306,8 @@ static void riot_core_common_test_generate_device_id_static_init_ecc521 (CuTest 
 
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_521);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_521,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *der;
 	size_t der_length = RIOT_CORE_DEVICE_ID_521_LEN;
@@ -1325,9 +1368,6 @@ static void riot_core_common_test_generate_device_id_static_init_ecc521 (CuTest 
 	status |= mock_expect_output (&riot.base64.mock, 2, RIOT_CORE_DEVID_NAME_521,
 		RIOT_CORE_DEVID_NAME_521_LEN, 3);
 
-	riot.tcb.fw_id = X509_RIOT_SHA512_FWID;
-	riot.tcb.fw_id_hash = HASH_TYPE_SHA512;
-
 	status |= mock_expect (&riot.x509.mock, riot.x509.base.create_self_signed_certificate,
 		&riot.x509, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_521, RIOT_CORE_DEVICE_ID_521_LEN),
@@ -1335,13 +1375,14 @@ static void riot_core_common_test_generate_device_id_static_init_ecc521 (CuTest 
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL_521, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME_521, RIOT_CORE_DEVID_NAME_521_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)));
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 0);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base.generate_device_id (&test_static.base, RIOT_CORE_CDI,
-		RIOT_CORE_CDI_LEN, &riot.tcb);
+		RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -1366,16 +1407,10 @@ static void riot_core_common_test_generate_device_id_null (CuTest *test)
 
 	riot_core_common_testing_init (test, &riot, ECC_KEY_LENGTH_256);
 
-	status = riot.test.base.generate_device_id (NULL, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (NULL, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, 0,
-		&riot.tcb);
-	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
-
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		NULL);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, 0);
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	riot_core_common_testing_release (test, &riot, &riot.test);
@@ -1396,8 +1431,7 @@ static void riot_core_common_test_generate_device_id_cdi_hash_start_error (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	riot_core_common_testing_release (test, &riot, &riot.test);
@@ -1421,8 +1455,7 @@ static void riot_core_common_test_generate_device_id_cdi_hash_first_byte_error (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
 	riot_core_common_testing_release (test, &riot, &riot.test);
@@ -1449,8 +1482,7 @@ static void riot_core_common_test_generate_device_id_cdi_hash_error (CuTest *tes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
 	riot_core_common_testing_release (test, &riot, &riot.test);
@@ -1478,8 +1510,7 @@ static void riot_core_common_test_generate_device_id_cdi_hash_finish_error (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
 	riot_core_common_testing_release (test, &riot, &riot.test);
@@ -1511,8 +1542,7 @@ static void riot_core_common_test_generate_device_id_key_pair_hmac_error (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	riot_core_common_testing_release (test, &riot, &riot.test);
@@ -1552,8 +1582,7 @@ static void riot_core_common_test_generate_device_id_key_pair_error (CuTest *tes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_DERIVED_KEY_FAILED, status);
 
 	riot_core_common_testing_release (test, &riot, &riot.test);
@@ -1598,8 +1627,7 @@ static void riot_core_common_test_generate_device_id_der_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_PRIVATE_KEY_DER_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -1662,8 +1690,7 @@ static void riot_core_common_test_generate_device_id_serial_hmac_error (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -1733,8 +1760,7 @@ static void riot_core_common_test_generate_device_id_subject_name_error (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, BASE64_ENGINE_ENCODE_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -1810,12 +1836,12 @@ static void riot_core_common_test_generate_device_id_cert_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_SERIAL, RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG (RIOT_CORE_SERIAL_LEN),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)));
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, X509_ENGINE_SELF_SIGNED_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -1852,15 +1878,15 @@ static void riot_core_common_test_get_device_id_csr (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)), MOCK_ARG_PTR (&out),
-		MOCK_ARG_PTR (&out_length));
-	status |= mock_expect_output (&riot.x509.mock, 7, &csr, sizeof (csr), -1);
-	status |= mock_expect_output (&riot.x509.mock, 8, &csr_length, sizeof (csr_length), -1);
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)), MOCK_ARG_PTR (&out), MOCK_ARG_PTR (&out_length));
+	status |= mock_expect_output (&riot.x509.mock, 9, &csr, sizeof (csr), -1);
+	status |= mock_expect_output (&riot.x509.mock, 10, &csr_length, sizeof (csr_length), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, &out, &out_length);
+	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, 0, &out, &out_length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_CSR_LEN, out_length);
 	CuAssertPtrEquals (test, csr, out);
@@ -1904,16 +1930,17 @@ static void riot_core_common_test_get_device_id_csr_with_oid (CuTest *test)
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
 		MOCK_ARG (X509_CERT_CA),
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_CERBERUS, strlen (RIOT_CORE_CERBERUS) + 1),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)), MOCK_ARG_PTR (&out),
-		MOCK_ARG_PTR (&out_length));
-	status |= mock_expect_output (&riot.x509.mock, 7, &csr, sizeof (csr), -1);
-	status |= mock_expect_output (&riot.x509.mock, 8, &csr_length, sizeof (csr_length), -1);
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN),
+		MOCK_ARG (RIOT_CORE_DEVICE_ID_OID_LEN),
+		MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)), MOCK_ARG_PTR (&out), MOCK_ARG_PTR (&out_length));
+	status |= mock_expect_output (&riot.x509.mock, 9, &csr, sizeof (csr), -1);
+	status |= mock_expect_output (&riot.x509.mock, 10, &csr_length, sizeof (csr_length), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.get_device_id_csr (&riot.test.base, RIOT_CORE_CERBERUS, &out,
-		&out_length);
+	status = riot.test.base.get_device_id_csr (&riot.test.base, RIOT_CORE_DEVICE_ID_OID,
+		RIOT_CORE_DEVICE_ID_OID_LEN, &out, &out_length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_CSR_LEN, out_length);
 	CuAssertPtrEquals (test, csr, out);
@@ -1931,11 +1958,13 @@ static void riot_core_common_test_get_device_id_csr_with_oid (CuTest *test)
 
 	platform_free (csr);
 }
+
 static void riot_core_common_test_get_device_id_csr_static_init (CuTest *test)
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *csr;
 	size_t csr_length = RIOT_CORE_DEVID_CSR_LEN;
@@ -1957,15 +1986,15 @@ static void riot_core_common_test_get_device_id_csr_static_init (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)), MOCK_ARG_PTR (&out),
-		MOCK_ARG_PTR (&out_length));
-	status |= mock_expect_output (&riot.x509.mock, 7, &csr, sizeof (csr), -1);
-	status |= mock_expect_output (&riot.x509.mock, 8, &csr_length, sizeof (csr_length), -1);
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)), MOCK_ARG_PTR (&out), MOCK_ARG_PTR (&out_length));
+	status |= mock_expect_output (&riot.x509.mock, 9, &csr, sizeof (csr), -1);
+	status |= mock_expect_output (&riot.x509.mock, 10, &csr_length, sizeof (csr_length), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base.get_device_id_csr (&test_static.base, NULL, &out, &out_length);
+	status = test_static.base.get_device_id_csr (&test_static.base, NULL, 0, &out, &out_length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_CSR_LEN, out_length);
 	CuAssertPtrEquals (test, csr, out);
@@ -2009,15 +2038,15 @@ static void riot_core_common_test_get_device_id_csr_ecc384 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_384, RIOT_CORE_DEVICE_ID_384_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_384_LEN), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME_384, RIOT_CORE_DEVID_NAME_384_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)), MOCK_ARG_PTR (&out),
-		MOCK_ARG_PTR (&out_length));
-	status |= mock_expect_output (&riot.x509.mock, 7, &csr, sizeof (csr), -1);
-	status |= mock_expect_output (&riot.x509.mock, 8, &csr_length, sizeof (csr_length), -1);
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),  MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)), MOCK_ARG_PTR (&out), MOCK_ARG_PTR (&out_length));
+	status |= mock_expect_output (&riot.x509.mock, 9, &csr, sizeof (csr), -1);
+	status |= mock_expect_output (&riot.x509.mock, 10, &csr_length, sizeof (csr_length), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, &out, &out_length);
+	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, 0, &out, &out_length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_CSR_384_LEN, out_length);
 	CuAssertPtrEquals (test, csr, out);
@@ -2040,7 +2069,8 @@ static void riot_core_common_test_get_device_id_csr_static_init_ecc384 (CuTest *
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_384);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_384,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *csr;
 	size_t csr_length = RIOT_CORE_DEVID_CSR_384_LEN;
@@ -2062,15 +2092,15 @@ static void riot_core_common_test_get_device_id_csr_static_init_ecc384 (CuTest *
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_384, RIOT_CORE_DEVICE_ID_384_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_384_LEN), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME_384, RIOT_CORE_DEVID_NAME_384_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)), MOCK_ARG_PTR (&out),
-		MOCK_ARG_PTR (&out_length));
-	status |= mock_expect_output (&riot.x509.mock, 7, &csr, sizeof (csr), -1);
-	status |= mock_expect_output (&riot.x509.mock, 8, &csr_length, sizeof (csr_length), -1);
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)), MOCK_ARG_PTR (&out), MOCK_ARG_PTR (&out_length));
+	status |= mock_expect_output (&riot.x509.mock, 9, &csr, sizeof (csr), -1);
+	status |= mock_expect_output (&riot.x509.mock, 10, &csr_length, sizeof (csr_length), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base.get_device_id_csr (&test_static.base, NULL, &out, &out_length);
+	status = test_static.base.get_device_id_csr (&test_static.base, NULL, 0, &out, &out_length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_CSR_384_LEN, out_length);
 	CuAssertPtrEquals (test, csr, out);
@@ -2115,15 +2145,15 @@ static void riot_core_common_test_get_device_id_csr_ecc521 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_521, RIOT_CORE_DEVICE_ID_521_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_521_LEN), MOCK_ARG (HASH_TYPE_SHA512),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME_521, RIOT_CORE_DEVID_NAME_521_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)), MOCK_ARG_PTR (&out),
-		MOCK_ARG_PTR (&out_length));
-	status |= mock_expect_output (&riot.x509.mock, 7, &csr, sizeof (csr), -1);
-	status |= mock_expect_output (&riot.x509.mock, 8, &csr_length, sizeof (csr_length), -1);
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)), MOCK_ARG_PTR (&out), MOCK_ARG_PTR (&out_length));
+	status |= mock_expect_output (&riot.x509.mock, 9, &csr, sizeof (csr), -1);
+	status |= mock_expect_output (&riot.x509.mock, 10, &csr_length, sizeof (csr_length), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, &out, &out_length);
+	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, 0, &out, &out_length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_CSR_521_LEN, out_length);
 	CuAssertPtrEquals (test, csr, out);
@@ -2146,7 +2176,8 @@ static void riot_core_common_test_get_device_id_csr_static_init_ecc521 (CuTest *
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_521);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_521,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *csr;
 	size_t csr_length = RIOT_CORE_DEVID_CSR_521_LEN;
@@ -2168,15 +2199,15 @@ static void riot_core_common_test_get_device_id_csr_static_init_ecc521 (CuTest *
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_521, RIOT_CORE_DEVICE_ID_521_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_521_LEN), MOCK_ARG (HASH_TYPE_SHA512),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME_521, RIOT_CORE_DEVID_NAME_521_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)), MOCK_ARG_PTR (&out),
-		MOCK_ARG_PTR (&out_length));
-	status |= mock_expect_output (&riot.x509.mock, 7, &csr, sizeof (csr), -1);
-	status |= mock_expect_output (&riot.x509.mock, 8, &csr_length, sizeof (csr_length), -1);
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)), MOCK_ARG_PTR (&out), MOCK_ARG_PTR (&out_length));
+	status |= mock_expect_output (&riot.x509.mock, 9, &csr, sizeof (csr), -1);
+	status |= mock_expect_output (&riot.x509.mock, 10, &csr_length, sizeof (csr_length), -1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base.get_device_id_csr (&test_static.base, NULL, &out, &out_length);
+	status = test_static.base.get_device_id_csr (&test_static.base, NULL, 0, &out, &out_length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, RIOT_CORE_DEVID_CSR_521_LEN, out_length);
 	CuAssertPtrEquals (test, csr, out);
@@ -2215,13 +2246,13 @@ static void riot_core_common_test_get_device_id_csr_null (CuTest *test)
 	riot_core_common_testing_init (test, &riot, ECC_KEY_LENGTH_256);
 	riot_core_common_testing_device_id_generation_256 (test, &riot, &riot.test);
 
-	status = riot.test.base.get_device_id_csr (NULL, NULL, &out, &out_length);
+	status = riot.test.base.get_device_id_csr (NULL, NULL, 0, &out, &out_length);
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
-	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, NULL, &out_length);
+	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, 0, NULL, &out_length);
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
-	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, &out, NULL);
+	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, 0, &out, NULL);
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
 	status = mock_expect (&riot.ecc.mock, riot.ecc.base.release_key_pair, &riot.ecc, 0,
@@ -2247,7 +2278,7 @@ static void riot_core_common_test_get_device_id_csr_no_device_id (CuTest *test)
 
 	riot_core_common_testing_init (test, &riot, ECC_KEY_LENGTH_256);
 
-	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, &out, &out_length);
+	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, 0, &out, &out_length);
 	CuAssertIntEquals (test, RIOT_CORE_NO_DEVICE_ID, status);
 
 	riot_core_common_testing_release (test, &riot, &riot.test);
@@ -2271,13 +2302,13 @@ static void riot_core_common_test_get_device_id_csr_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_NAME, RIOT_CORE_DEVID_NAME_LEN),
-		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL),
-		MOCK_ARG_PTR_CONTAINS_TMP (&riot.tcb, sizeof (riot.tcb)), MOCK_ARG_PTR (&out),
-		MOCK_ARG_PTR (&out_length));
+		MOCK_ARG (X509_CERT_CA), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (riot.dev_id_ext, sizeof (riot.dev_id_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.dev_id_ext)), MOCK_ARG_PTR (&out), MOCK_ARG_PTR (&out_length));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, &out, &out_length);
+	status = riot.test.base.get_device_id_csr (&riot.test.base, NULL, 0, &out, &out_length);
 	CuAssertIntEquals (test, X509_ENGINE_CSR_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -2342,7 +2373,8 @@ static void riot_core_common_test_get_device_id_cert_static_init (CuTest *test)
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *cert;
 	size_t cert_length = RIOT_CORE_DEVID_CERT_LEN;
@@ -2529,12 +2561,14 @@ static void riot_core_common_test_generate_alias_key (CuTest *test)
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&riot.alias_tcb, sizeof (riot.alias_tcb)));
+		MOCK_ARG_PTR_CONTAINS (&riot.alias_ext, sizeof (riot.alias_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.alias_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -2557,7 +2591,8 @@ static void riot_core_common_test_generate_alias_key_static_init (CuTest *test)
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *alias_der;
 	size_t alias_der_length = RIOT_CORE_ALIAS_KEY_LEN;
@@ -2616,12 +2651,14 @@ static void riot_core_common_test_generate_alias_key_static_init (CuTest *test)
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&riot.alias_tcb, sizeof (riot.alias_tcb)));
+		MOCK_ARG_PTR_CONTAINS (&riot.alias_ext, sizeof (riot.alias_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.alias_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base.generate_alias_key (&test_static.base, &riot.alias_tcb);
+	status = test_static.base.generate_alias_key (&test_static.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -2658,9 +2695,6 @@ static void riot_core_common_test_generate_alias_key_ecc384 (CuTest *test)
 	riot_core_common_testing_init (test, &riot, ECC_KEY_LENGTH_384);
 	riot_core_common_testing_device_id_generation_384 (test, &riot, &riot.test);
 
-	riot.alias_tcb.fw_id = RIOT_CORE_FWID_SHA384;
-	riot.alias_tcb.fw_id_hash = HASH_TYPE_SHA384;
-
 	/* Calculate the Alias key. */
 	status = hash_mock_expect_hmac (&riot.hash, RIOT_CORE_CDI_HASH_384, RIOT_CORE_CDI_HASH_384_LEN,
 		RIOT_CORE_FWID_SHA384, RIOT_CORE_FWID_SHA384_LEN, NULL, SHA384_HASH_LENGTH,
@@ -2707,12 +2741,14 @@ static void riot_core_common_test_generate_alias_key_ecc384 (CuTest *test)
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_384, RIOT_CORE_DEVICE_ID_384_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_384_LEN), MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&riot.alias_tcb, sizeof (riot.alias_tcb)));
+		MOCK_ARG_PTR_CONTAINS (&riot.alias_ext, sizeof (riot.alias_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.alias_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID_SHA384,
+		RIOT_CORE_FWID_SHA384_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -2735,7 +2771,8 @@ static void riot_core_common_test_generate_alias_key_static_init_ecc384 (CuTest 
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_384);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_384,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *alias_der;
 	size_t alias_der_length = RIOT_CORE_ALIAS_KEY_384_LEN;
@@ -2749,9 +2786,6 @@ static void riot_core_common_test_generate_alias_key_static_init_ecc384 (CuTest 
 
 	riot_core_common_testing_init_static (test, &riot, &test_static);
 	riot_core_common_testing_device_id_generation_384 (test, &riot, &test_static);
-
-	riot.alias_tcb.fw_id = RIOT_CORE_FWID_SHA384;
-	riot.alias_tcb.fw_id_hash = HASH_TYPE_SHA384;
 
 	/* Calculate the Alias key. */
 	status = hash_mock_expect_hmac (&riot.hash, RIOT_CORE_CDI_HASH_384, RIOT_CORE_CDI_HASH_384_LEN,
@@ -2799,12 +2833,14 @@ static void riot_core_common_test_generate_alias_key_static_init_ecc384 (CuTest 
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_384, RIOT_CORE_DEVICE_ID_384_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_384_LEN), MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&riot.alias_tcb, sizeof (riot.alias_tcb)));
+		MOCK_ARG_PTR_CONTAINS (&riot.alias_ext, sizeof (riot.alias_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.alias_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base.generate_alias_key (&test_static.base, &riot.alias_tcb);
+	status = test_static.base.generate_alias_key (&test_static.base, RIOT_CORE_FWID_SHA384,
+		RIOT_CORE_FWID_SHA384_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -2842,9 +2878,6 @@ static void riot_core_common_test_generate_alias_key_ecc521 (CuTest *test)
 	riot_core_common_testing_init (test, &riot, ECC_KEY_LENGTH_521);
 	riot_core_common_testing_device_id_generation_521 (test, &riot, &riot.test);
 
-	riot.alias_tcb.fw_id = RIOT_CORE_FWID_SHA512;
-	riot.alias_tcb.fw_id_hash = HASH_TYPE_SHA512;
-
 	/* Calculate the Alias key. */
 	status = hash_mock_expect_hmac (&riot.hash, RIOT_CORE_CDI_HASH_512, RIOT_CORE_CDI_HASH_512_LEN,
 		RIOT_CORE_FWID_SHA512, RIOT_CORE_FWID_SHA512_LEN, NULL, SHA512_HASH_LENGTH,
@@ -2897,12 +2930,14 @@ static void riot_core_common_test_generate_alias_key_ecc521 (CuTest *test)
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_521, RIOT_CORE_DEVICE_ID_521_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_521_LEN), MOCK_ARG (HASH_TYPE_SHA512), MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&riot.alias_tcb, sizeof (riot.alias_tcb)));
+		MOCK_ARG_PTR_CONTAINS (&riot.alias_ext, sizeof (riot.alias_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.alias_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID_SHA512,
+		RIOT_CORE_FWID_SHA512_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -2925,7 +2960,8 @@ static void riot_core_common_test_generate_alias_key_static_init_ecc521 (CuTest 
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_521);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_521,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *alias_der;
 	size_t alias_der_length = RIOT_CORE_ALIAS_KEY_521_LEN;
@@ -2939,9 +2975,6 @@ static void riot_core_common_test_generate_alias_key_static_init_ecc521 (CuTest 
 
 	riot_core_common_testing_init_static (test, &riot, &test_static);
 	riot_core_common_testing_device_id_generation_521 (test, &riot, &test_static);
-
-	riot.alias_tcb.fw_id = RIOT_CORE_FWID_SHA512;
-	riot.alias_tcb.fw_id_hash = HASH_TYPE_SHA512;
 
 	/* Calculate the Alias key. */
 	status = hash_mock_expect_hmac (&riot.hash, RIOT_CORE_CDI_HASH_512, RIOT_CORE_CDI_HASH_512_LEN,
@@ -2995,12 +3028,14 @@ static void riot_core_common_test_generate_alias_key_static_init_ecc521 (CuTest 
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID_521, RIOT_CORE_DEVICE_ID_521_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_521_LEN), MOCK_ARG (HASH_TYPE_SHA512), MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&riot.alias_tcb, sizeof (riot.alias_tcb)));
+		MOCK_ARG_PTR_CONTAINS (&riot.alias_ext, sizeof (riot.alias_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.alias_ext)));
 	status |= mock_expect_save_arg (&riot.x509.mock, 0, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.base.generate_alias_key (&test_static.base, &riot.alias_tcb);
+	status = test_static.base.generate_alias_key (&test_static.base, RIOT_CORE_FWID_SHA512,
+		RIOT_CORE_FWID_SHA512_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -3030,39 +3065,17 @@ static void riot_core_common_test_generate_alias_key_null (CuTest *test)
 	riot_core_common_testing_init (test, &riot, ECC_KEY_LENGTH_256);
 	riot_core_common_testing_device_id_generation_256 (test, &riot, &riot.test);
 
-	status = riot.test.base.generate_alias_key (NULL, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (NULL, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, NULL);
+	status = riot.test.base.generate_alias_key (&riot.test.base, NULL,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
 
-	riot.alias_tcb.fw_id = NULL;
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		0);
 	CuAssertIntEquals (test, RIOT_CORE_INVALID_ARGUMENT, status);
-
-	status = mock_expect (&riot.ecc.mock, riot.ecc.base.release_key_pair, &riot.ecc, 0,
-		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
-	status |= mock_expect (&riot.x509.mock, riot.x509.base.release_certificate, &riot.x509, 0,
-		MOCK_ARG_SAVED_ARG (0));
-
-	CuAssertIntEquals (test, 0, status);
-
-	riot_core_common_testing_release (test, &riot, &riot.test);
-}
-
-static void riot_core_common_test_generate_alias_key_invalid_fwid_hash (CuTest *test)
-{
-	struct riot_core_common_testing riot;
-	int status;
-
-	TEST_START;
-
-	riot_core_common_testing_init (test, &riot, ECC_KEY_LENGTH_256);
-	riot_core_common_testing_device_id_generation_256 (test, &riot, &riot.test);
-
-	riot.alias_tcb.fw_id_hash = (enum hash_type) 10;
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
-	CuAssertIntEquals (test, RIOT_CORE_BAD_FWID_LENGTH, status);
 
 	status = mock_expect (&riot.ecc.mock, riot.ecc.base.release_key_pair, &riot.ecc, 0,
 		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
@@ -3083,7 +3096,8 @@ static void riot_core_common_test_generate_alias_key_no_device_id (CuTest *test)
 
 	riot_core_common_testing_init (test, &riot, ECC_KEY_LENGTH_256);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, RIOT_CORE_NO_DEVICE_ID, status);
 
 	riot_core_common_testing_release (test, &riot, &riot.test);
@@ -3105,7 +3119,8 @@ static void riot_core_common_test_generate_alias_key_alias_kdf_error (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -3141,7 +3156,8 @@ static void riot_core_common_test_generate_alias_key_key_pair_hmac_error (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -3185,7 +3201,8 @@ static void riot_core_common_test_generate_alias_key_key_pair_error (CuTest *tes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_DERIVED_KEY_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -3234,7 +3251,8 @@ static void riot_core_common_test_generate_alias_key_der_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, ECC_ENGINE_PRIVATE_KEY_DER_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -3297,7 +3315,8 @@ static void riot_core_common_test_generate_alias_key_serial_hmac_error (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -3367,7 +3386,8 @@ static void riot_core_common_test_generate_alias_key_subject_name_error (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, BASE64_ENGINE_ENCODE_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -3446,11 +3466,13 @@ static void riot_core_common_test_generate_alias_key_cert_error (CuTest *test)
 		MOCK_ARG (X509_CERT_END_ENTITY),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVICE_ID, RIOT_CORE_DEVICE_ID_LEN),
 		MOCK_ARG (RIOT_CORE_DEVICE_ID_LEN), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_SAVED_ARG (0),
-		MOCK_ARG_PTR_CONTAINS (&riot.alias_tcb, sizeof (riot.alias_tcb)));
+		MOCK_ARG_PTR_CONTAINS (&riot.alias_ext, sizeof (riot.alias_ext)),
+		MOCK_ARG (ARRAY_SIZE (riot.alias_ext)));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, X509_ENGINE_CA_SIGNED_FAILED, status);
 
 	riot_core_common_testing_validate_mocks (test, &riot);
@@ -3508,7 +3530,8 @@ static void riot_core_common_test_get_alias_key_static_init (CuTest *test)
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *out;
 	size_t out_length;
@@ -3659,7 +3682,8 @@ static void riot_core_common_test_get_alias_key_cert_static_init (CuTest *test)
 {
 	struct riot_core_common_testing riot;
 	struct riot_core_common test_static = riot_core_common_static_init (&riot.state,
-		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256);
+		&riot.hash.base, &riot.ecc.base, &riot.x509.base, &riot.base64.base, ECC_KEY_LENGTH_256,
+		riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext), riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	int status;
 	uint8_t *cert;
 	size_t cert_length = RIOT_CORE_ALIAS_CERT_LEN;
@@ -3842,15 +3866,45 @@ static void riot_core_common_test_authenticate_generated_keys (CuTest *test)
 	status = BASE64_TESTING_ENGINE_INIT (&base64);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&riot.tcb.mock, riot.tcb.base.build, &riot.tcb, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&riot.tcb.mock, 0, 0);
+	status |= mock_expect_output (&riot.tcb.mock, 0,
+		&X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_EXTENSION_SHA256,
+		sizeof (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_EXTENSION_SHA256), -1);
+
+	status |= mock_expect (&riot.tcb.mock, riot.tcb.base.free, &riot.tcb, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&riot.ueid.mock, riot.ueid.base.build, &riot.ueid, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&riot.ueid.mock, 0, 0);
+	status |= mock_expect_output (&riot.ueid.mock, 0,
+		&X509_EXTENSION_BUILDER_DICE_UEID_TESTING_EXTENSION,
+		sizeof (X509_EXTENSION_BUILDER_DICE_UEID_TESTING_EXTENSION), -1);
+
+	status |= mock_expect (&riot.ueid.mock, riot.ueid.base.free, &riot.ueid, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status = mock_expect (&riot.alias_tcb.mock, riot.alias_tcb.base.build, &riot.alias_tcb, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&riot.alias_tcb.mock, 0, 0);
+	status |= mock_expect_output (&riot.alias_tcb.mock, 0, &RIOT_CORE_ALIAS_TCBINFO_EXTENSION,
+		sizeof (RIOT_CORE_ALIAS_TCBINFO_EXTENSION), -1);
+
+	status |= mock_expect (&riot.alias_tcb.mock, riot.alias_tcb.base.free, &riot.alias_tcb, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
 	status = riot_core_common_init (&riot.test, &riot.state, &hash.base, &ecc.base, &x509.base,
-		&base64.base, ECC_KEY_LENGTH_256);
+		&base64.base, ECC_KEY_LENGTH_256, riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext),
+		riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID,
+		RIOT_CORE_FWID_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = riot.test.base.get_device_id_cert (&riot.test.base, &der, &der_length);
@@ -3932,20 +3986,46 @@ static void riot_core_common_test_authenticate_generated_keys_ecc384 (CuTest *te
 	status = BASE64_TESTING_ENGINE_INIT (&base64);
 	CuAssertIntEquals (test, 0, status);
 
-	riot.tcb.fw_id = X509_RIOT_SHA384_FWID;
-	riot.tcb.fw_id_hash = HASH_TYPE_SHA384;
-	riot.alias_tcb.fw_id = RIOT_CORE_FWID_SHA384;
-	riot.alias_tcb.fw_id_hash = HASH_TYPE_SHA384;
+	status = mock_expect (&riot.tcb.mock, riot.tcb.base.build, &riot.tcb, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&riot.tcb.mock, 0, 0);
+	status |= mock_expect_output (&riot.tcb.mock, 0,
+		&X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_EXTENSION_SHA384,
+		sizeof (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_EXTENSION_SHA384), -1);
+
+	status |= mock_expect (&riot.tcb.mock, riot.tcb.base.free, &riot.tcb, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&riot.ueid.mock, riot.ueid.base.build, &riot.ueid, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&riot.ueid.mock, 0, 0);
+	status |= mock_expect_output (&riot.ueid.mock, 0,
+		&X509_EXTENSION_BUILDER_DICE_UEID_TESTING_EXTENSION,
+		sizeof (X509_EXTENSION_BUILDER_DICE_UEID_TESTING_EXTENSION), -1);
+
+	status |= mock_expect (&riot.ueid.mock, riot.ueid.base.free, &riot.ueid, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status = mock_expect (&riot.alias_tcb.mock, riot.alias_tcb.base.build, &riot.alias_tcb, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&riot.alias_tcb.mock, 0, 0);
+	status |= mock_expect_output (&riot.alias_tcb.mock, 0,
+		&RIOT_CORE_ALIAS_TCBINFO_EXTENSION_SHA384,
+		sizeof (RIOT_CORE_ALIAS_TCBINFO_EXTENSION_SHA384), -1);
+
+	status |= mock_expect (&riot.alias_tcb.mock, riot.alias_tcb.base.free, &riot.alias_tcb, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
 
 	status = riot_core_common_init (&riot.test, &riot.state, &hash.base, &ecc.base, &x509.base,
-		&base64.base, ECC_KEY_LENGTH_384);
+		&base64.base, ECC_KEY_LENGTH_384, riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext),
+		riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID_SHA384,
+		RIOT_CORE_FWID_SHA384_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = riot.test.base.get_device_id_cert (&riot.test.base, &der, &der_length);
@@ -4029,20 +4109,46 @@ static void riot_core_common_test_authenticate_generated_keys_ecc521 (CuTest *te
 	status = BASE64_TESTING_ENGINE_INIT (&base64);
 	CuAssertIntEquals (test, 0, status);
 
-	riot.tcb.fw_id = X509_RIOT_SHA512_FWID;
-	riot.tcb.fw_id_hash = HASH_TYPE_SHA512;
-	riot.alias_tcb.fw_id = RIOT_CORE_FWID_SHA512;
-	riot.alias_tcb.fw_id_hash = HASH_TYPE_SHA512;
+	status = mock_expect (&riot.tcb.mock, riot.tcb.base.build, &riot.tcb, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&riot.tcb.mock, 0, 0);
+	status |= mock_expect_output (&riot.tcb.mock, 0,
+		&X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_EXTENSION_SHA512,
+		sizeof (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_EXTENSION_SHA512), -1);
+
+	status |= mock_expect (&riot.tcb.mock, riot.tcb.base.free, &riot.tcb, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&riot.ueid.mock, riot.ueid.base.build, &riot.ueid, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&riot.ueid.mock, 0, 0);
+	status |= mock_expect_output (&riot.ueid.mock, 0,
+		&X509_EXTENSION_BUILDER_DICE_UEID_TESTING_EXTENSION,
+		sizeof (X509_EXTENSION_BUILDER_DICE_UEID_TESTING_EXTENSION), -1);
+
+	status |= mock_expect (&riot.ueid.mock, riot.ueid.base.free, &riot.ueid, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	status = mock_expect (&riot.alias_tcb.mock, riot.alias_tcb.base.build, &riot.alias_tcb, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&riot.alias_tcb.mock, 0, 0);
+	status |= mock_expect_output (&riot.alias_tcb.mock, 0,
+		&RIOT_CORE_ALIAS_TCBINFO_EXTENSION_SHA512,
+		sizeof (RIOT_CORE_ALIAS_TCBINFO_EXTENSION_SHA512), -1);
+
+	status |= mock_expect (&riot.alias_tcb.mock, riot.alias_tcb.base.free, &riot.alias_tcb, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
 
 	status = riot_core_common_init (&riot.test, &riot.state, &hash.base, &ecc.base, &x509.base,
-		&base64.base, ECC_KEY_LENGTH_521);
+		&base64.base, ECC_KEY_LENGTH_521, riot.dev_id_ext, ARRAY_SIZE (riot.dev_id_ext),
+		riot.alias_ext, ARRAY_SIZE (riot.alias_ext));
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN,
-		&riot.tcb);
+	status = riot.test.base.generate_device_id (&riot.test.base, RIOT_CORE_CDI, RIOT_CORE_CDI_LEN);
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot.test.base.generate_alias_key (&riot.test.base, &riot.alias_tcb);
+	status = riot.test.base.generate_alias_key (&riot.test.base, RIOT_CORE_FWID_SHA512,
+		RIOT_CORE_FWID_SHA512_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = riot.test.base.get_device_id_cert (&riot.test.base, &der, &der_length);
@@ -4161,7 +4267,6 @@ TEST (riot_core_common_test_generate_alias_key_ecc521);
 TEST (riot_core_common_test_generate_alias_key_static_init_ecc521);
 #endif
 TEST (riot_core_common_test_generate_alias_key_null);
-TEST (riot_core_common_test_generate_alias_key_invalid_fwid_hash);
 TEST (riot_core_common_test_generate_alias_key_no_device_id);
 TEST (riot_core_common_test_generate_alias_key_alias_kdf_error);
 TEST (riot_core_common_test_generate_alias_key_key_pair_hmac_error);

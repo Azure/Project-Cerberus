@@ -119,6 +119,9 @@ enum {
 	ROT_MODULE_COMMON_MATH = 0x006b,					/**< Common math operations. */
 	ROT_MODULE_HEAP_WITH_DEFRAG = 0x006c,				/**< Heap allocator with defragmentation.*/
 	ROT_MODULE_PLATFORM_OS = 0x006d,					/**< Platform abstraction for OS and task control. */
+	ROT_MODULE_X509_EXTENSION = 0x006e,					/**< Extension handler for X.509 certificates. */
+	ROT_MODULE_DICE_TCBINFO_EXTENSION = 0x006f,			/**< Extension handler for TCG DICE TcbInfo extensions. */
+	ROT_MODULE_DICE_UEID_EXTENSION = 0x0070,			/**< Extension handler for TCG DICE Ueid extensions. */
 };
 
 

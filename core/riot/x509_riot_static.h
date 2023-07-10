@@ -9,17 +9,18 @@
 
 /* Internal functions declared to allow for static initialization. */
 int x509_riot_create_csr (struct x509_engine *engine, const uint8_t *priv_key, size_t key_length,
-	enum hash_type sig_hash, const char *name, int type, const char *eku,
-	const struct x509_dice_tcbinfo *dice, uint8_t **csr, size_t *csr_length);
+	enum hash_type sig_hash, const char *name, int type, const uint8_t *eku, size_t eku_length,
+	const struct x509_extension_builder *const *extra_extensions, size_t ext_count, uint8_t **csr,
+	size_t *csr_length);
 int x509_riot_create_self_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
-	int type, const struct x509_dice_tcbinfo *dice);
+	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
 int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
-	const struct x509_dice_tcbinfo *dice);
+	const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
 int x509_riot_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
 	const uint8_t *der, size_t length);
 void x509_riot_release_certificate (struct x509_engine *engine, struct x509_certificate *cert);
@@ -44,7 +45,7 @@ int x509_riot_get_certificate_der (struct x509_engine *engine, const struct x509
 #endif
 
 /**
- * Constant initializer for the ECC API.
+ * Constant initializer for the X.509 API.
  */
 #define	X509_RIOT_API_INIT  { \
 		X509_RIOT_CREATE_CERTIFICATES \
@@ -55,7 +56,7 @@ int x509_riot_get_certificate_der (struct x509_engine *engine, const struct x509
 
 
 /**
- * Initialize a static instance for RSA signature verification.  This can be a constant instance.
+ * Initialize a static instance for X.509 certificate creation.  This can be a constant instance.
  *
  * There is no validation done on the arguments.
  *

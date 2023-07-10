@@ -276,7 +276,8 @@ extern const size_t X509_RSA_SHA512_WITH_NULL_SIG_ALGO_DER_LEN;
 extern const char *X509_SUBJECT_NAME;
 extern const uint8_t X509_SERIAL_NUM[];
 extern const size_t X509_SERIAL_NUM_LEN;
-extern const char *X509_EKU_OID;
+extern const uint8_t X509_EKU_OID[];
+extern const size_t X509_EKU_OID_LEN;
 
 extern const char *X509_CA2_SUBJECT_NAME;
 extern const uint8_t X509_CA2_SERIAL_NUM[];
@@ -437,6 +438,7 @@ extern const size_t X509_RIOT_UEID_LEN;
 extern const char *X509_RIOT_VERSION;
 extern const uint32_t X509_RIOT_SVN;
 
+
 /* TCB Info and UEID */
 extern const uint8_t X509_CSR_ECC_CA_UEID_DER[];
 extern const size_t X509_CSR_ECC_CA_UEID_DER_LEN;
@@ -483,16 +485,22 @@ extern const size_t X509_CERTCA_ECC_CA_UEID_SVN_DER_LEN;
 /* TCB Info */
 extern const uint8_t X509_CSR_ECC_CA_TCBINFO_DER[];
 extern const size_t X509_CSR_ECC_CA_TCBINFO_DER_LEN;
+extern const uint8_t X509_CSR_ECC_CA_TCBINFO_CRIT_DER[];
+extern const size_t X509_CSR_ECC_CA_TCBINFO_CRIT_DER_LEN;
 extern const uint8_t X509_CSR_ECC_EE_TCBINFO_DER[];
 extern const size_t X509_CSR_ECC_EE_TCBINFO_DER_LEN;
 
 extern const uint8_t X509_CERTSS_ECC_CA_TCBINFO_DER[];
 extern const size_t X509_CERTSS_ECC_CA_TCBINFO_DER_LEN;
+extern const uint8_t X509_CERTSS_ECC_CA_TCBINFO_CRIT_DER[];
+extern const size_t X509_CERTSS_ECC_CA_TCBINFO_CRIT_DER_LEN;
 extern const uint8_t X509_CERTSS_ECC_EE_TCBINFO_DER[];
 extern const size_t X509_CERTSS_ECC_EE_TCBINFO_DER_LEN;
 
 extern const uint8_t X509_CERTCA_ECC_CA_TCBINFO_DER[];
 extern const size_t X509_CERTCA_ECC_CA_TCBINFO_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC_CA_TCBINFO_CRIT_DER[];
+extern const size_t X509_CERTCA_ECC_CA_TCBINFO_CRIT_DER_LEN;
 extern const uint8_t X509_CERTCA_ECC_EE_TCBINFO_DER[];
 extern const size_t X509_CERTCA_ECC_EE_TCBINFO_DER_LEN;
 

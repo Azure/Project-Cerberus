@@ -6,6 +6,7 @@
 
 #include "testing.h"
 #include "platform_all_tests.h"
+#include "asn1/asn1_all_tests.h"
 #include "attestation/attestation_all_tests.h"
 #include "cmd_interface/cmd_interface_all_tests.h"
 #include "common/common_all_tests.h"
@@ -36,6 +37,7 @@
  */
 void add_all_core_tests (CuSuite *suite)
 {
+	add_all_asn1_tests (suite);
 	add_all_attestation_tests (suite);
 	add_all_cmd_interface_tests (suite);
 	add_all_common_tests (suite);

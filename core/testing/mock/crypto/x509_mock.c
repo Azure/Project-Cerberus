@@ -8,8 +8,9 @@
 
 
 static int x509_mock_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
-	size_t key_length, enum hash_type sig_hash, const char *name, int type, const char *eku,
-	const struct x509_dice_tcbinfo *dice, uint8_t **csr, size_t *csr_length)
+	size_t key_length, enum hash_type sig_hash, const char *name, int type, const uint8_t *eku,
+	size_t eku_length, const struct x509_extension_builder *const *extra_extensions,
+	size_t ext_count, uint8_t **csr, size_t *csr_length)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
 
@@ -19,14 +20,15 @@ static int x509_mock_create_csr (struct x509_engine *engine, const uint8_t *priv
 
 	MOCK_RETURN (&mock->mock, x509_mock_create_csr, engine, MOCK_ARG_PTR_CALL (priv_key),
 		MOCK_ARG_CALL (key_length), MOCK_ARG_CALL (sig_hash), MOCK_ARG_PTR_CALL (name),
-		MOCK_ARG_CALL (type), MOCK_ARG_PTR_CALL (eku), MOCK_ARG_PTR_CALL (dice),
-		MOCK_ARG_PTR_CALL (csr), MOCK_ARG_PTR_CALL (csr_length));
+		MOCK_ARG_CALL (type), MOCK_ARG_PTR_CALL (eku), MOCK_ARG_CALL (eku_length),
+		MOCK_ARG_PTR_CALL (extra_extensions), MOCK_ARG_CALL (ext_count), MOCK_ARG_PTR_CALL (csr),
+		MOCK_ARG_PTR_CALL (csr_length));
 }
 
 static int x509_mock_create_self_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
-	int type, const struct x509_dice_tcbinfo *dice)
+	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
 
@@ -37,14 +39,15 @@ static int x509_mock_create_self_signed_certificate (struct x509_engine *engine,
 	MOCK_RETURN (&mock->mock, x509_mock_create_self_signed_certificate, engine,
 		MOCK_ARG_PTR_CALL (cert), MOCK_ARG_PTR_CALL (priv_key), MOCK_ARG_CALL (key_length),
 		MOCK_ARG_CALL (sig_hash), MOCK_ARG_PTR_CALL (serial_num),  MOCK_ARG_CALL (serial_length),
-		MOCK_ARG_PTR_CALL (name), MOCK_ARG_CALL (type), MOCK_ARG_PTR_CALL (dice));
+		MOCK_ARG_PTR_CALL (name), MOCK_ARG_CALL (type), MOCK_ARG_PTR_CALL (extra_extensions),
+		MOCK_ARG_CALL (ext_count));
 }
 
 static int x509_mock_create_ca_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t *ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
-	const struct x509_dice_tcbinfo *dice)
+	const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
 	struct x509_engine_mock *mock = (struct x509_engine_mock*) engine;
 
@@ -56,7 +59,8 @@ static int x509_mock_create_ca_signed_certificate (struct x509_engine *engine,
 		MOCK_ARG_PTR_CALL (cert), MOCK_ARG_PTR_CALL (key), MOCK_ARG_CALL (key_length),
 		MOCK_ARG_PTR_CALL (serial_num),  MOCK_ARG_CALL (serial_length), MOCK_ARG_PTR_CALL (name),
 		MOCK_ARG_CALL (type), MOCK_ARG_PTR_CALL (ca_priv_key), MOCK_ARG_CALL (ca_key_length),
-		MOCK_ARG_CALL (sig_hash), MOCK_ARG_PTR_CALL (ca_cert), MOCK_ARG_PTR_CALL (dice));
+		MOCK_ARG_CALL (sig_hash), MOCK_ARG_PTR_CALL (ca_cert), MOCK_ARG_PTR_CALL (extra_extensions),
+		MOCK_ARG_CALL (ext_count));
 }
 
 static int x509_mock_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
@@ -226,10 +230,13 @@ static int x509_mock_authenticate (struct x509_engine *engine, const struct x509
 static int x509_mock_func_arg_count (void *func)
 {
 	if (func == x509_mock_create_ca_signed_certificate) {
-		return 12;
+		return 13;
 	}
-	else if ((func == x509_mock_create_csr) || (func == x509_mock_create_self_signed_certificate)) {
-		return 9;
+	else if (func == x509_mock_create_csr) {
+		return 11;
+	}
+	else if (func == x509_mock_create_self_signed_certificate) {
+		return 10;
 	}
 	else if ((func == x509_mock_load_certificate) || (func == x509_mock_get_certificate_der) ||
 		(func == x509_mock_get_serial_number) || (func == x509_mock_get_public_key) ||
@@ -328,12 +335,18 @@ static const char* x509_mock_arg_name_map (void *func, int arg)
 				return "eku";
 
 			case 6:
-				return "dice";
+				return "eku_length";
 
 			case 7:
-				return "csr";
+				return "extra_extensions";
 
 			case 8:
+				return "ext_count";
+
+			case 9:
+				return "csr";
+
+			case 10:
 				return "csr_length";
 		}
 	}
@@ -364,7 +377,10 @@ static const char* x509_mock_arg_name_map (void *func, int arg)
 				return "type";
 
 			case 8:
-				return "dice";
+				return "extra_extensions";
+
+			case 9:
+				return "ext_count";
 		}
 	}
 	else if (func == x509_mock_create_ca_signed_certificate) {
@@ -403,7 +419,10 @@ static const char* x509_mock_arg_name_map (void *func, int arg)
 				return "ca_cert";
 
 			case 11:
-				return "dice";
+				return "extra_extensions";
+
+			case 12:
+				return "ext_count";
 		}
 	}
 	else if (func == x509_mock_load_certificate) {

@@ -7,7 +7,7 @@
 #include "include/RiotDerEnc.h"
 #include "include/RiotX509Bldr.h"
 #include "include/RiotDerDec.h"
-#include "crypto/x509.h"
+#include "riot/tcg_dice.h"
 
 #define ASRT(_X) if(!(_X))      {goto Error;}
 #define CHK(_X)  if(((_X)) < 0) {goto Error;}
@@ -88,9 +88,10 @@ Error:
 
 static int
 X509AddExtendedKeyUsageExtension(
-	DERBuilderContext	*Tbs,
-	int					Type,
-	const char			*OID
+	DERBuilderContext   *Tbs,
+	int                 Type,
+	const uint8_t       *Oid,
+    size_t              OidLength
 )
 {
 	if (Type == X509_CERT_END_ENTITY) {
@@ -104,12 +105,12 @@ X509AddExtendedKeyUsageExtension(
 		CHK(	DERPopNesting(Tbs));
 		CHK(DERPopNesting(Tbs));
 	}
-	else if (OID != NULL) {
+	else if (Oid != NULL) {
 		CHK(DERStartSequenceOrSet(Tbs, true));
 		CHK(	DERAddOID(Tbs, extKeyUsageOID));
 		CHK(	DERStartEnvelopingOctetString(Tbs));
 		CHK(		DERStartSequenceOrSet(Tbs, true));
-		CHK(			DERAddEncodedOID(Tbs, OID));
+		CHK(			DERAddEncodedOID(Tbs, Oid, OidLength));
 		CHK(		DERPopNesting(Tbs));
 		CHK(	DERPopNesting(Tbs));
 		CHK(DERPopNesting(Tbs));
@@ -142,45 +143,6 @@ X509AddBasicConstraintsExtension(
     return 0;
 Error:
     return -1;
-}
-
-static int
-get_fw_id_info(
-	size_t                  *fw_id_len,
-	const int               **sha_oid,
-	const uint8_t           *fw_id,
-	const enum hash_type    fw_id_hash
-)
-{
-	if (fw_id == NULL) {
-		return X509_ENGINE_RIOT_NO_FWID;
-	}
-
-	switch (fw_id_hash) {
-		case HASH_TYPE_SHA1:
-			*fw_id_len = SHA1_HASH_LENGTH;
-			*sha_oid = sha1OID;
-			break;
-
-		case HASH_TYPE_SHA256:
-			*fw_id_len = SHA256_HASH_LENGTH;
-			*sha_oid = sha256OID;
-			break;
-
-        case HASH_TYPE_SHA384:
-            *fw_id_len = SHA384_HASH_LENGTH;
-            *sha_oid = sha384OID;
-            break;
-
-        case HASH_TYPE_SHA512:
-            *fw_id_len = SHA512_HASH_LENGTH;
-            *sha_oid = sha512OID;
-            break;
-
-		default:
-			return X509_ENGINE_RIOT_UNSUPPORTED_HASH;
-	}
-    return 0;
 }
 
 static int
@@ -220,7 +182,7 @@ Error:
 static int
 X509AddTcbInfoExtension(
 	DERBuilderContext	           *Tbs,
-	const struct x509_dice_tcbinfo *Tcb,
+	const struct tcg_dice_tcbinfo *Tcb,
 	const int                      *shaOID,
 	size_t                         FwidLen
 )
@@ -235,30 +197,9 @@ X509AddTcbInfoExtension(
 		CHK(			DERStartConstructed(Tbs, 0xA6));
 		CHK(				DERStartSequenceOrSet(Tbs, true));
 		CHK(					DERAddOID(Tbs, shaOID));
-		CHK(					DERAddOctetString(Tbs, Tcb->fw_id, FwidLen));
+		CHK(					DERAddOctetString(Tbs, Tcb->fwid, FwidLen));
 		CHK(				DERPopNesting(Tbs));
 		CHK(			DERPopNesting(Tbs));
-		CHK(		DERPopNesting(Tbs));
-		CHK(	DERPopNesting(Tbs));
-		CHK(DERPopNesting(Tbs));
-	}
-    return 0;
-Error:
-    return -1;
-}
-
-static int
-X509AddUeidExtension(
-	DERBuilderContext	           *Tbs,
-	const struct x509_dice_tcbinfo *Dice
-)
-{
-	if (Dice && Dice->ueid) {
-		CHK(DERStartSequenceOrSet(Tbs, true));
-		CHK(	DERAddOID(Tbs, ueidOID));
-		CHK(	DERStartEnvelopingOctetString(Tbs));
-		CHK(		DERStartSequenceOrSet(Tbs, true));
-		CHK(			DERAddOctetString(Tbs, Dice->ueid->ueid, Dice->ueid->length));
 		CHK(		DERPopNesting(Tbs));
 		CHK(	DERPopNesting(Tbs));
 		CHK(DERPopNesting(Tbs));
@@ -356,27 +297,27 @@ X509GetDeviceCertTBS(
     const uint8_t                       *SubjectKeyIdentifier,
     const uint8_t                       *AuthKeyIdentifier,
     int                                 Type,
-    const struct x509_dice_tcbinfo      *Dice
+    const struct tcg_dice_tcbinfo      *Dice
 )
 {
 	const int *sha_oid = NULL;
 	size_t fw_id_len = 0;
-	int status;
 
-	if (Dice) {
-		if (Dice->version == NULL) {
-			return X509_ENGINE_DICE_NO_VERSION;
-		}
+    // DEPRECATED
+	// if (Dice) {
+	// 	if (Dice->version == NULL) {
+	// 		return X509_ENGINE_DICE_NO_VERSION;
+	// 	}
 
-		status = get_fw_id_info(&fw_id_len, &sha_oid, Dice->fw_id, Dice->fw_id_hash);
-		if (status != 0) {
-			return status;
-		}
+	// 	status = get_fw_id_info(&fw_id_len, &sha_oid, Dice->fw_id, Dice->fw_id_hash);
+	// 	if (status != 0) {
+	// 		return status;
+	// 	}
 
-		if (Dice->ueid && ((Dice->ueid->ueid == NULL) || (Dice->ueid->length == 0))) {
-			return X509_ENGINE_DICE_NO_UEID;
-		}
-	}
+	// 	if (Dice->ueid && ((Dice->ueid->ueid == NULL) || (Dice->ueid->length == 0))) {
+	// 		return X509_ENGINE_DICE_NO_UEID;
+	// 	}
+	// }
 
     CHK(DERStartSequenceOrSet(Tbs, true));
     CHK(    DERAddShortExplicitInteger(Tbs, 2));
@@ -396,10 +337,9 @@ X509GetDeviceCertTBS(
 	CHK(           X509AddSubjectKeyIdentifierExtension(Tbs, SubjectKeyIdentifier));
 	CHK(           X509AddAuthorityKeyIdentifierExtension(Tbs, AuthKeyIdentifier));
 	CHK(           X509AddKeyUsageExtension(Tbs, Type));
-	CHK(           X509AddExtendedKeyUsageExtension(Tbs, Type, NULL));
+	CHK(           X509AddExtendedKeyUsageExtension(Tbs, Type, NULL, 0));
 	CHK(           X509AddBasicConstraintsExtension(Tbs, Type));
 	CHK(           X509AddTcbInfoExtension(Tbs, Dice, sha_oid, fw_id_len));
-	CHK(           X509AddUeidExtension(Tbs, Dice));
     CHK(        DERPopNesting(Tbs));
     CHK(    DERPopNesting(Tbs));
     CHK(DERPopNesting(Tbs));
@@ -443,27 +383,27 @@ X509GetCASignedCertTBS(
     const uint8_t                       *SubjectKeyIdentifier,
     const uint8_t                       *AuthKeyIdentifier,
     int                                 Type,
-    const struct x509_dice_tcbinfo      *Dice
+    const struct tcg_dice_tcbinfo      *Dice
 )
 {
 	const int *sha_oid = NULL;
 	size_t fw_id_len = 0;
-	int status;
 
-	if (Dice) {
-		if (Dice->version == NULL) {
-			return X509_ENGINE_DICE_NO_VERSION;
-		}
+    // DEPRECATED
+	// if (dice) {
+	// 	if (dice->version == NULL) {
+	// 		return X509_ENGINE_DICE_NO_VERSION;
+	// 	}
 
-		status = get_fw_id_info(&fw_id_len, &sha_oid, Dice->fw_id, Dice->fw_id_hash);
-		if (status != 0) {
-			return status;
-		}
+	// 	status = get_fw_id_info (&fw_id_len, &sha_oid, dice->fw_id, dice->fw_id_hash);
+	// 	if (status != 0) {
+	// 		return status;
+	// 	}
 
-		if (Dice->ueid && ((Dice->ueid->ueid == NULL) || (Dice->ueid->length == 0))) {
-			return X509_ENGINE_DICE_NO_UEID;
-		}
-	}
+	// 	if (dice->ueid && ((dice->ueid->ueid == NULL) || (dice->ueid->length == 0))) {
+	// 		return X509_ENGINE_DICE_NO_UEID;
+	// 	}
+	// }
 
     CHK(DERStartSequenceOrSet(Tbs, true));
     CHK(    DERAddShortExplicitInteger(Tbs, 2));
@@ -483,10 +423,9 @@ X509GetCASignedCertTBS(
     CHK(            X509AddSubjectKeyIdentifierExtension(Tbs, SubjectKeyIdentifier));
     CHK(            X509AddAuthorityKeyIdentifierExtension(Tbs, AuthKeyIdentifier));
     CHK(            X509AddKeyUsageExtension(Tbs, Type));
-    CHK(            X509AddExtendedKeyUsageExtension(Tbs, Type, NULL));
+    CHK(            X509AddExtendedKeyUsageExtension(Tbs, Type, NULL, 0));
     CHK(            X509AddBasicConstraintsExtension (Tbs, Type));
     CHK(            X509AddTcbInfoExtension(Tbs, Dice, sha_oid, fw_id_len));
-    CHK(            X509AddUeidExtension(Tbs, Dice));
     CHK(        DERPopNesting(Tbs));
     CHK(    DERPopNesting(Tbs));
     CHK(DERPopNesting(Tbs));
@@ -559,7 +498,7 @@ X509GetAliasCertTBS(
     CHK(    DERStartExplicit(Tbs, 3));
     CHK(        DERStartSequenceOrSet(Tbs, true));
 	CHK(            X509AddKeyUsageExtension(Tbs, type));
-	CHK(            X509AddExtendedKeyUsageExtension(Tbs, type, NULL));
+	CHK(            X509AddExtendedKeyUsageExtension(Tbs, type, NULL, 0));
 	CHK(            X509AddAuthorityKeyIdentifierExtension(Tbs, authKeyIdentifier));
 	CHK(            X509AddRiotExtension(Tbs, encBuffer, encBufferLen, Fwid, FwidLen, sha256OID));
     CHK(        DERPopNesting(Tbs));
@@ -664,28 +603,29 @@ X509GetDERCsrTbs(
     uint8_t                        *DeviceIDPub,
 	size_t                         key_len,
 	int                            type,
-	const char                     *oid,
-	const struct x509_dice_tcbinfo *dice
+	const uint8_t                  *oid,
+    size_t                         oid_len,
+	const struct tcg_dice_tcbinfo *dice
 )
 {
 	const int *sha_oid = NULL;
 	size_t fw_id_len = 0;
-	int status;
 
-	if (dice) {
-		if (dice->version == NULL) {
-			return X509_ENGINE_DICE_NO_VERSION;
-		}
+    // DEPRECATED
+	// if (dice) {
+	// 	if (dice->version == NULL) {
+	// 		return X509_ENGINE_DICE_NO_VERSION;
+	// 	}
 
-		status = get_fw_id_info(&fw_id_len, &sha_oid, dice->fw_id, dice->fw_id_hash);
-		if (status != 0) {
-			return status;
-		}
+	// 	status = get_fw_id_info (&fw_id_len, &sha_oid, dice->fw_id, dice->fw_id_hash);
+	// 	if (status != 0) {
+	// 		return status;
+	// 	}
 
-		if (dice->ueid && ((dice->ueid->ueid == NULL) || (dice->ueid->length == 0))) {
-			return X509_ENGINE_DICE_NO_UEID;
-		}
-	}
+	// 	if (dice->ueid && ((dice->ueid->ueid == NULL) || (dice->ueid->length == 0))) {
+	// 		return X509_ENGINE_DICE_NO_UEID;
+	// 	}
+	// }
 
     CHK(DERStartSequenceOrSet(Context, true));
     CHK(    DERAddInteger(Context, 0));
@@ -697,10 +637,9 @@ X509GetDERCsrTbs(
     CHK(            DERStartSequenceOrSet(Context,false));
     CHK(                DERStartSequenceOrSet(Context, true));
 	CHK(                    X509AddKeyUsageExtension(Context, type));
-	CHK(    	            X509AddExtendedKeyUsageExtension(Context, type, oid));
+	CHK(    	            X509AddExtendedKeyUsageExtension(Context, type, oid, oid_len));
 	CHK(                    X509AddBasicConstraintsExtension(Context, type));
 	CHK(				    X509AddTcbInfoExtension(Context, dice, sha_oid, fw_id_len));
-	CHK(                    X509AddUeidExtension(Context, dice));
     CHK(                DERPopNesting(Context));
     CHK(            DERPopNesting(Context));
     CHK(        DERPopNesting(Context));

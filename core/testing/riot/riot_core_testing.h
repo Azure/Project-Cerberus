@@ -6,12 +6,11 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "asn1/x509_extension_builder.h"
 
 
-/**
- * Cerberus OID for testing.
- */
-#define	RIOT_CORE_CERBERUS			"\x2B\x06\x01\x04\x01\x82\x37\x66\x01\x0A\x01"
+extern const uint8_t RIOT_CORE_DEVICE_ID_OID[];
+extern const size_t RIOT_CORE_DEVICE_ID_OID_LEN;
 
 extern const uint8_t RIOT_CORE_CDI[];
 extern const size_t RIOT_CORE_CDI_LEN;
@@ -100,6 +99,18 @@ extern const uint8_t RIOT_CORE_FWID_SHA384[];
 extern const size_t RIOT_CORE_FWID_SHA384_LEN;
 extern const uint8_t RIOT_CORE_FWID_SHA512[];
 extern const size_t RIOT_CORE_FWID_SHA512_LEN;
+
+extern const uint8_t RIOT_CORE_ALIAS_TCBINFO_DATA[];
+extern const size_t RIOT_CORE_ALIAS_TCBINFO_DATA_LEN;
+extern const struct x509_extension RIOT_CORE_ALIAS_TCBINFO_EXTENSION;
+
+extern const uint8_t RIOT_CORE_ALIAS_TCBINFO_DATA_SHA384[];
+extern const size_t RIOT_CORE_ALIAS_TCBINFO_DATA_SHA384_LEN;
+extern const struct x509_extension RIOT_CORE_ALIAS_TCBINFO_EXTENSION_SHA384;
+
+extern const uint8_t RIOT_CORE_ALIAS_TCBINFO_DATA_SHA512[];
+extern const size_t RIOT_CORE_ALIAS_TCBINFO_DATA_SHA512_LEN;
+extern const struct x509_extension RIOT_CORE_ALIAS_TCBINFO_EXTENSION_SHA512;
 
 extern const uint8_t RIOT_CORE_FWID_KDF[];
 extern const size_t RIOT_CORE_FWID_KDF_LEN;

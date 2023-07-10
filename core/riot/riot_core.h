@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
-#include "crypto/x509.h"
 
 
 extern const uint8_t RIOT_CORE_SERIAL_NUM_KDF_DATA[];
@@ -18,7 +17,7 @@ void riot_core_clear (void *data, size_t length);
 
 
 /**
- * The interface to execute RIoT Core functionality.
+ * The interface to execute DICE layer 0 functionality.
  */
 struct riot_core {
 	/**
@@ -26,41 +25,40 @@ struct riot_core {
 	 *
 	 * Once this operation has completed, the CDI is no longer necessary and doesn't need to be
 	 * maintained by the calling application.  However, in order to accommodate any situation with
-	 * respect to storage of the CDI, the value of the CDI is not cleared by the RIoT Core.  THE
+	 * respect to storage of the CDI, the value of the CDI is not cleared by the DICE handler.  THE
 	 * CALLING APPLICATION MUST BE SURE THE CDI VALUE IS WIPED OUT PRIOR TO STARTING THE NEXT
 	 * APPLICATION STAGE.
 	 *
-	 * @param riot The RIoT Core instance.
+	 * @param riot The DICE layer 0 handler.
 	 * @param cdi The CDI for the device.  No validation will be done against this pointer, since
 	 * where the CDI is stored is platform defined.  The platform may choose to put the CDI in
 	 * memory locations that are typically invalid, such as address 0.
 	 * @param length The length of the CDI.
-	 * @param riot_tcb TCB information for the RIoT Core context.
 	 *
 	 * @return 0 if the Device ID was successfully generated or an error code.
 	 */
-	int (*generate_device_id) (const struct riot_core *riot, const uint8_t *cdi, size_t length,
-		const struct x509_dice_tcbinfo *riot_tcb);
+	int (*generate_device_id) (const struct riot_core *riot, const uint8_t *cdi, size_t length);
 
 	/**
 	 * Get the Certificate Signing Request for the Device ID.
 	 *
-	 * @param riot The RIoT Core instance to query.
+	 * @param riot The DICE layer 0 handler to query.
 	 * @param oid A custom OID to add to the Extended Key Usage extension of the CSR.  This is
 	 * optional and can be set to null.
+	 * @param oid_length Length of the custom EKU OID to add.
 	 * @param csr Output for the CSR data.  This will be DER encoded in a dynamically allocated
 	 * buffer.  It is the caller's responsibility to free the buffer.
 	 * @param length Output for the length of the CSR data.
 	 *
 	 * @return 0 if the CSR was successfully retrieved or an error code.
 	 */
-	int (*get_device_id_csr) (const struct riot_core *riot, const char *oid, uint8_t **csr,
-		size_t *length);
+	int (*get_device_id_csr) (const struct riot_core *riot, const uint8_t *oid, size_t oid_length,
+		uint8_t **csr, size_t *length);
 
 	/**
 	 * Get the X.509 certificate for the Device ID.  This certificate will be self-signed.
 	 *
-	 * @param riot The RIoT Core instance to query.
+	 * @param riot The DICE layer 0 handler to query.
 	 * @param device_id Output for the certificate data.  This will be DER encoded in a dynamically
 	 * allocated buffer.  It is the caller's responsibility to free the buffer.
 	 * @param length Output for the length of the certificate data.
@@ -73,18 +71,18 @@ struct riot_core {
 	 * Generate the Alias key from the Firmware ID.  The Device ID must have already been
 	 * generated.
 	 *
-	 * @param riot The RIoT Core instance.
-	 * @param alias_tcb TCB information for the Alias context.
+	 * @param riot The DICE layer 0 handler.
+	 * @param fwid The FWID value that should be used to derive the Alias key.
+	 * @param length Length of the Alias FWID.
 	 *
 	 * @return 0 if the Alias Key was successfully generated or an error code.
 	 */
-	int (*generate_alias_key) (const struct riot_core *riot,
-		const struct x509_dice_tcbinfo *alias_tcb);
+	int (*generate_alias_key) (const struct riot_core *riot, const uint8_t *fwid, size_t length);
 
 	/**
 	 * Get the Alias private key.
 	 *
-	 * @param riot The RIoT Core instance to query.
+	 * @param riot The DICE layer 0 handler to query.
 	 * @param key Output for the private key.  This will be DER encoded in a dynamically allocated
 	 * buffer.  It is the caller's responsibility to free the buffer.
 	 * @param length The length of the key data.
@@ -97,7 +95,7 @@ struct riot_core {
 	 * Get the X.509 certificate for the Alias key.  This certificate will be signed by the Device
 	 * ID.
 	 *
-	 * @param riot The RIoT Core instance to query.
+	 * @param riot The DICE layer 0 handler to query.
 	 * @param alias_key Output for the certificate data.  This will be DER encoded in a dynamically
 	 * allocated buffer.  It is the caller's responsibility to free the buffer.
 	 * @param length Output for the length of the certificate data.

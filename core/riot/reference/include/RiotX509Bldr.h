@@ -10,6 +10,7 @@
 #include "crypto/x509.h"
 #include "crypto/hash.h"
 #include "crypto/base64.h"
+#include "riot/tcg_dice.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,9 +63,28 @@ typedef struct
 } RIOT_X509_PUBLIC_KEY;
 
 // OIDs used in cert generation.
+extern const int riotOID[];
 extern const int ecdsaWithSHA256OID[];
 extern const int ecdsaWithSHA384OID[];
 extern const int ecdsaWithSHA512OID[];
+extern const int ecPublicKeyOID[];
+extern const int prime256v1OID[];
+extern const int keyUsageOID[];
+extern const int extKeyUsageOID[];
+extern const int extAuthKeyIdentifierOID[];
+extern const int extSubjectKeyIdentifierOID[];
+extern const int clientAuthOID[];
+extern const int sha1OID[];
+extern const int sha256OID[];
+extern const int sha384OID[];
+extern const int sha512OID[];
+extern const int commonNameOID[];
+extern const int countryNameOID[];
+extern const int orgNameOID[];
+extern const int basicConstraintsOID[];
+extern const int extensionRequestOID[];
+extern const int tcbInfoOID[];
+extern const int ueidOID[];
 
 int
 X509GetDeviceCertTBS(
@@ -75,7 +95,7 @@ X509GetDeviceCertTBS(
     const uint8_t                       *SubjectKeyIdentifier,
     const uint8_t                       *AuthKeyIdentifier,
     int                                 Type,
-    const struct x509_dice_tcbinfo      *Dice
+    const struct tcg_dice_tcbinfo      *Dice
 );
 
 int
@@ -87,7 +107,7 @@ X509GetCASignedCertTBS(
     const uint8_t                       *SubjectKeyIdentifier,
     const uint8_t                       *AuthKeyIdentifier,
     int                                 Type,
-    const struct x509_dice_tcbinfo      *Dice
+    const struct tcg_dice_tcbinfo      *Dice
 );
 
 int
@@ -137,8 +157,9 @@ X509GetDERCsrTbs(
     uint8_t                        *DeviceIDPub,
 	size_t                         key_len,
 	int                            type,
-	const char                     *oid,
-	const struct x509_dice_tcbinfo *dice
+	const uint8_t                  *oid,
+    size_t                         oid_len,
+	const struct tcg_dice_tcbinfo *dice
 );
 
 int

@@ -220,250 +220,49 @@ static int x509_mbedtls_add_basic_constraints_extension (mbedtls_asn1_named_data
 }
 
 /**
- * Encode the FWID into an extension buffer.
+ * Add a custom extensions to a certificate.
  *
- * @param engine The X.509 engine encoding the information.
- * @param fw_id The firmware ID to encode.
- * @param fw_id_hash The hash algorithm used to generate the firmware ID.
- * @param pos The current position in the extension buffer.  Will be updated upon return.
- * @param length The total encoded length.  Will be updated upon return.
+ * @param builder The extension to add.
+ * @param extensions List of extensions for the certificate that will be updated with the new
+ * extension.
  *
- * @return 0 if the FWID was successfully encoded or an error code.
+ * @return 0 if the extension was add successfully or an error code.
  */
-static int x509_mbedtls_add_fwid (struct x509_engine_mbedtls *engine, const uint8_t *fw_id,
-	enum hash_type fw_id_hash, uint8_t **pos, int *length)
+static int x509_mbedtls_add_custom_extension (const struct x509_extension_builder *builder,
+	mbedtls_asn1_named_data **extensions)
 {
-	int fw_id_length;
-	char *hash_oid;
-	size_t hash_oid_length;
-	int ret;
-
-	if (fw_id == NULL) {
-		return X509_ENGINE_RIOT_NO_FWID;
-	}
-
-	switch (fw_id_hash) {
-		case HASH_TYPE_SHA1:
-			fw_id_length = SHA1_HASH_LENGTH;
-			hash_oid = MBEDTLS_OID_DIGEST_ALG_SHA1;
-			hash_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA1);
-			break;
-
-		case HASH_TYPE_SHA256:
-			fw_id_length = SHA256_HASH_LENGTH;
-			hash_oid = MBEDTLS_OID_DIGEST_ALG_SHA256;
-			hash_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA256);
-			break;
-
-		case HASH_TYPE_SHA384:
-			fw_id_length = SHA384_HASH_LENGTH;
-			hash_oid = MBEDTLS_OID_DIGEST_ALG_SHA384;
-			hash_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA384);
-			break;
-
-		case HASH_TYPE_SHA512:
-			fw_id_length = SHA512_HASH_LENGTH;
-			hash_oid = MBEDTLS_OID_DIGEST_ALG_SHA512;
-			hash_oid_length = MBEDTLS_OID_SIZE (MBEDTLS_OID_DIGEST_ALG_SHA512);
-			break;
-
-		default:
-			return X509_ENGINE_RIOT_UNSUPPORTED_HASH;
-	}
-
-	/* fwid				OCTET_STRING */
-	MBEDTLS_ASN1_CHK_ADD (*length, mbedtls_asn1_write_raw_buffer (pos, engine->der_buf, fw_id,
-		fw_id_length));
-	ret = x509_mbedtls_close_asn1_object (pos, engine->der_buf, MBEDTLS_ASN1_OCTET_STRING,
-		length);
-	if (ret != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_ASN1_CLOSE_EC, ret, 0);
-
-		return ret;
-	}
-
-	/* hashAlg			OBJECT IDENTIFIER */
-	MBEDTLS_ASN1_CHK_ADD (*length, mbedtls_asn1_write_oid (pos, engine->der_buf, hash_oid,
-		hash_oid_length));
-
-	/* fwid SEQUENCE */
-	ret = x509_mbedtls_close_asn1_object (pos, engine->der_buf,
-		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), length);
-	if (ret != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_ASN1_CLOSE_EC, ret, 0);
-
-		return ret;
-	}
-
-	return 0;
-}
-
-/**
- * Create and add a DICE TCB Info extension to a certificate.
- *
- * @param engine The mbedTLS X.509 engine creating the certificate.
- * @param extensions The list of extensions to update.
- * @param tcb The information for the extension.
- *
- * @return 0 if the extension was added or an error code.
- */
-static int x509_mbedtls_add_tcbinfo_extension (struct x509_engine_mbedtls *engine,
-	mbedtls_asn1_named_data **extensions, const struct x509_dice_tcbinfo *tcb)
-{
-	uint8_t *pos;
-	int length = 0;
-	mbedtls_mpi svn;
-	uint32_t be_svn;
-	int ret;
-
-	if (tcb->version == NULL) {
-		return X509_ENGINE_DICE_NO_VERSION;
-	}
-
-	pos = engine->der_buf + sizeof (engine->der_buf);
-
-	/* fwids		Fwids		OPTIONAL */
-	ret = x509_mbedtls_add_fwid (engine, tcb->fw_id, tcb->fw_id_hash, &pos, &length);
-	if (ret != 0) {
-		return ret;
-	}
-
-	ret = x509_mbedtls_close_asn1_object (&pos, engine->der_buf,
-		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_CONTEXT_SPECIFIC | 6), &length);
-	if (ret != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_ASN1_CLOSE_EC, ret, 0);
-
-		return ret;
-	}
-
-	/* svn			INTEGER		OPTIONAL */
-	/* mbedtls_asn1_write_int only writes 1 byte integers.  MPI is needed for larger ones. */
-	if (tcb->svn < 256) {
-		MBEDTLS_ASN1_CHK_ADD (length, mbedtls_asn1_write_int (&pos, engine->der_buf, tcb->svn));
-	}
-	else {
-		mbedtls_mpi_init (&svn);
-		be_svn = platform_htonl (tcb->svn);
-		ret = mbedtls_mpi_read_binary (&svn, (uint8_t*) &be_svn, sizeof (uint32_t));
-		if (ret != 0) {
-			return ret;
-		}
-
-		ret = mbedtls_asn1_write_mpi (&pos, engine->der_buf, &svn);
-		mbedtls_mpi_free (&svn);
-		if (ret < 0) {
-			return ret;
-		}
-
-		length += ret;
-	}
-
-	*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 3);
-
-	/* version		IA5String	OPTIONAL */
-	MBEDTLS_ASN1_CHK_ADD (length, mbedtls_asn1_write_ia5_string (&pos, engine->der_buf,
-		tcb->version, strlen (tcb->version)));
-	*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 2);
-
-	/* DiceTcbInfo ::= SEQUENCE */
-	ret = x509_mbedtls_close_asn1_object (&pos, engine->der_buf,
-		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &length);
-	if (ret != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_ASN1_CLOSE_EC, ret, 0);
-
-		return ret;
-	}
-
-	return mbedtls_x509_set_extension (extensions, X509_TCG_DICE_TCBINFO_OID_RAW,
-		MBEDTLS_OID_SIZE (X509_TCG_DICE_TCBINFO_OID_RAW), 0, pos, length);
-}
-
-/**
- * Create and add a DICE UEID extension to a certificate.
- *
- * @param engine The mbedTLS X.509 engine creating the certificate.
- * @param extensions The list of extensions to update.
- * @param tcb The information for the extension.
- *
- * @return 0 if the extension was added or an error code.
- */
-static int x509_mbedtls_add_ueid_extension (struct x509_engine_mbedtls *engine,
-	mbedtls_asn1_named_data **extensions, const struct x509_dice_ueid *dice)
-{
-	uint8_t *pos;
-	int length = 0;
-	int ret;
-
-	if ((dice->ueid == NULL) || (dice->length == 0)) {
-		return X509_ENGINE_DICE_NO_UEID;
-	}
-
-	pos = engine->der_buf + sizeof (engine->der_buf);
-
-	/* ueid			OCTET STRING */
-	MBEDTLS_ASN1_CHK_ADD (length, mbedtls_asn1_write_octet_string (&pos, engine->der_buf,
-		dice->ueid, dice->length));
-
-	/* TcgUeid ::= SEQUENCE */
-	ret = x509_mbedtls_close_asn1_object (&pos, engine->der_buf,
-		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &length);
-	if (ret != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_ASN1_CLOSE_EC, ret, 0);
-
-		return ret;
-	}
-
-	return mbedtls_x509_set_extension (extensions, X509_TCG_DICE_UEID_OID_RAW,
-		MBEDTLS_OID_SIZE (X509_TCG_DICE_UEID_OID_RAW), 0, pos, length);
-}
-
-/**
- * Add DICE extenions to a certificate.
- *
- * @param engine The mbedTLS X.509 engine creating the certificate.
- * @param extensions The list of extensions to update.
- * @param tcb DICE information to add to the certificate.
- *
- * @return 0 if the extensions were added or an error code.
- */
-static int x509_mbedtls_add_dice_extensions (struct x509_engine_mbedtls *engine,
-	mbedtls_asn1_named_data **extensions, const struct x509_dice_tcbinfo *tcb)
-{
+	struct x509_extension extension;
 	int status;
 
-	status = x509_mbedtls_add_tcbinfo_extension (engine, extensions, tcb);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_TCBINFO_EC, status, 0);
+	if (builder == NULL) {
+		/* Silently skip null extension builders. */
+		return 0;
+	}
 
+	status = builder->build (builder, &extension);
+	if (status != 0) {
 		return status;
 	}
 
-	if (tcb->ueid) {
-		status = x509_mbedtls_add_ueid_extension (engine, extensions, tcb->ueid);
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-				CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_UEID_EC, status, 0);
-		}
-	}
+	status = mbedtls_x509_set_extension (extensions, (char*) extension.oid, extension.oid_length,
+		extension.critical, extension.data, extension.data_length);
+
+	builder->free (builder, &extension);
 
 	return status;
 }
 
 static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
-	size_t key_length, enum hash_type sig_hash, const char *name, int type, const char *eku,
-	const struct x509_dice_tcbinfo *dice, uint8_t **csr, size_t *csr_length)
+	size_t key_length, enum hash_type sig_hash, const char *name, int type, const uint8_t *eku,
+	size_t eku_length, const struct x509_extension_builder *const *extra_extensions,
+	size_t ext_count, uint8_t **csr, size_t *csr_length)
 {
 	struct x509_engine_mbedtls *mbedtls = (struct x509_engine_mbedtls*) engine;
 	mbedtls_x509write_csr x509;
 	mbedtls_pk_context key;
 	mbedtls_md_type_t md_alg;
 	char *subject;
+	size_t i;
 	int status;
 
 	if (csr == NULL) {
@@ -473,6 +272,14 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 	*csr = NULL;
 	if ((mbedtls == NULL) || (priv_key == NULL) || (name == NULL) || (csr_length == NULL) ||
 		(key_length == 0)) {
+		return X509_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if ((eku_length != 0) && (eku == NULL)) {
+		return X509_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if ((ext_count != 0) && (extra_extensions == NULL)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -553,8 +360,8 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 	}
 
 	if (eku != NULL) {
-		status = x509_mbedtls_add_extended_key_usage_extension (&x509.extensions, eku,
-			strlen (eku), false);
+		status = x509_mbedtls_add_extended_key_usage_extension (&x509.extensions, (char*) eku,
+			eku_length, false);
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 				CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_EXT_KEY_USAGE_EC, status, 0);
@@ -574,8 +381,8 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 		}
 	}
 
-	if (dice) {
-		status = x509_mbedtls_add_dice_extensions (mbedtls, &x509.extensions, dice);
+	for (i = 0; i < ext_count; i++) {
+		status = x509_mbedtls_add_custom_extension (extra_extensions[i], &x509.extensions);
 		if (status != 0) {
 			goto err_free_subject;
 		}
@@ -626,8 +433,8 @@ err_free_csr:
  * self-signed certificate.
  * @param ca_cert The certificate for the CA key.  This is unused for a self-signed certificate and
  * can be set to null.
- * @param dice DICE information to add to the certificate.  Set this to null to create a certificate
- * with no DICE extensions.
+ * @param extra_extensions List of custom extensions that should be added to the certificate.
+ * @param ext_count The number of custom extensions to add.
  *
  * @return 0 if the certificate was successfully created or an error code.
  */
@@ -635,7 +442,7 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 	struct x509_certificate *cert, mbedtls_pk_context *cert_key, enum hash_type sig_hash,
 	const uint8_t *serial_num, size_t serial_length, const char *name, int type,
 	mbedtls_pk_context *ca_key, const struct x509_certificate *ca_cert,
-	const struct x509_dice_tcbinfo *dice)
+	const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
 	mbedtls_x509_crt *x509;
 	mbedtls_x509_crt *ca_x509;
@@ -643,6 +450,7 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 	mbedtls_pk_context *signing_key;
 	mbedtls_md_type_t md_alg;
 	char *subject;
+	size_t i;
 	int status;
 
 	switch (sig_hash) {
@@ -789,8 +597,8 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 		}
 	}
 
-	if (dice) {
-		status = x509_mbedtls_add_dice_extensions (mbedtls, &x509_build.extensions, dice);
+	for (i = 0; i < ext_count; i++) {
+		status = x509_mbedtls_add_custom_extension (extra_extensions[i], &x509_build.extensions);
 		if (status != 0) {
 			goto err_free_subject;
 		}
@@ -834,13 +642,17 @@ err_free_crt:
 static int x509_mbedtls_create_self_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
-	int type, const struct x509_dice_tcbinfo *dice)
+	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
 	mbedtls_pk_context cert_key;
 	int status;
 
 	if ((engine == NULL) || (cert == NULL) || (priv_key == NULL) || (key_length == 0) ||
 		(serial_num == NULL) || (serial_length == 0) || (name == NULL)) {
+		return X509_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if ((ext_count != 0) && (extra_extensions == NULL)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -853,7 +665,7 @@ static int x509_mbedtls_create_self_signed_certificate (struct x509_engine *engi
 	}
 
 	status = x509_mbedtls_create_certificate ((struct x509_engine_mbedtls*) engine, cert, &cert_key,
-		sig_hash, serial_num, serial_length, name, type, NULL, NULL, dice);
+		sig_hash, serial_num, serial_length, name, type, NULL, NULL, extra_extensions, ext_count);
 
 	mbedtls_pk_free (&cert_key);
 err_exit:
@@ -864,7 +676,7 @@ static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
-	const struct x509_dice_tcbinfo *dice)
+	const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
 	mbedtls_pk_context cert_key;
 	mbedtls_pk_context ca_key;
@@ -873,6 +685,10 @@ static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine
 	if ((engine == NULL) || (cert == NULL) || (key == NULL) || (key_length == 0) ||
 		(serial_num == NULL) || (serial_length == 0) || (name == NULL) || (ca_priv_key == NULL) ||
 		(ca_key_length == 0) || (ca_cert == NULL)) {
+		return X509_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if ((ext_count != 0) && (extra_extensions == NULL)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -893,7 +709,8 @@ static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine
 	}
 
 	status = x509_mbedtls_create_certificate ((struct x509_engine_mbedtls*) engine, cert, &cert_key,
-		sig_hash, serial_num, serial_length, name, type, &ca_key, ca_cert, dice);
+		sig_hash, serial_num, serial_length, name, type, &ca_key, ca_cert, extra_extensions,
+		ext_count);
 
 	mbedtls_pk_free (&ca_key);
 err_free_key:

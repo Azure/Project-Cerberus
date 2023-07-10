@@ -7,7 +7,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
-#include "hash.h"
+#include "asn1/x509_extension_builder.h"
+#include "crypto/hash.h"
 
 
 /**
@@ -29,45 +30,6 @@
  * Helper macro to get the path length constraint from the type.
  */
 #define	X509_CERT_PATHLEN(x)		(x - X509_CERT_CA)
-
-
-/**
- * The OID for the legacy RIoT extension to X.509 certificates.
- */
-#define	X509_RIOT_OID					"1.3.6.1.4.1.311.89.3.1"
-#define	X509_RIOT_OID_RAW				"\x2b\x06\x01\x04\x01\x82\x37\x59\x03\x01"
-
-/**
- * The OID for the TCB Info extension from TCG DICE.
- */
-#define	X509_TCG_DICE_TCBINFO_OID		"2.23.133.5.4.1"
-#define	X509_TCG_DICE_TCBINFO_OID_RAW	"\x67\x81\x05\x05\x04\x01"
-
-/**
- * The OID for the UEID extension from TCG DICE.
- */
-#define	X509_TCG_DICE_UEID_OID			"2.23.133.5.4.4"
-#define	X509_TCG_DICE_UEID_OID_RAW		"\x67\x81\x05\x05\x04\x04"
-
-/**
- * Information for the device UEID.
- */
-struct x509_dice_ueid {
-	const uint8_t *ueid;				/**< Raw data for the unique identifier. */
-	size_t length;						/**< Length of the UEID data. */
-};
-
-/**
- * Information necessary to populate DICE X.509 extensions.
- */
-struct x509_dice_tcbinfo {
-	const char *version;				/**< Version identifier for the firmware. */
-	uint32_t svn;						/**< Security state of the device. */
-	const uint8_t *fw_id;				/**< The firmware ID hash. */
-	enum hash_type fw_id_hash;			/**< The type of hash used to generate the firmware ID. */
-	const struct x509_dice_ueid *ueid;	/**< Optional Device unique identifier.  If this is not
-											null, a UEID extension will be added. */
-};
 
 
 /**
@@ -136,11 +98,14 @@ struct x509_engine {
 	 * @param sig_hash The hash algorithm to use when generating the signature for the CSR.
 	 * @param name The subject common name to apply to the CSR.
 	 * @param type The type of certificate being requested for signing.
-	 * @param eku An optional Extended Key Usage OID string that will be added to the CSR.  Set to
-	 * null if no EKU OID is necessary.  If provided, this string must be a string for an encoded
-	 * hex string of the OID.
-	 * @param dice Optional information that can be provided to add a DICE extensions to the CSR.
-	 * Set to null to not add any DICE extensions.
+	 * @param eku An optional Extended Key Usage OID that will be added to the CSR.  Set to null if
+	 * no EKU OID is necessary.  If provided, this must be the encoded value for the OID.
+	 * @param eku_length Length of the EKU OID.
+	 * @param extra_extensions Optional list of additional extensions to add to the CSR.  Each entry
+	 * in the list is a pointer to a builder for the extension that should be added.  Set to null if
+	 * no additional extensions should be added.
+	 * @param ext_count The number of additional extensions to add to the CSR.  If this is non-zero,
+	 * extra_extensions must not be null.
 	 * @param csr Output buffer for the DER formatted CSR.  This is a dynamically allocated buffer,
 	 * and it is the responsibility of the caller to free it.  This will return null in the case of
 	 * an error.
@@ -149,8 +114,9 @@ struct x509_engine {
 	 * @return 0 if the CSR was successfully generated or an error code.
 	 */
 	int (*create_csr) (struct x509_engine *engine, const uint8_t *priv_key, size_t key_length,
-		enum hash_type sig_hash, const char *name, int type, const char *eku,
-		const struct x509_dice_tcbinfo *dice, uint8_t **csr, size_t *csr_length);
+		enum hash_type sig_hash, const char *name, int type, const uint8_t *eku, size_t eku_length,
+		const struct x509_extension_builder *const *extra_extensions, size_t ext_count,
+		uint8_t **csr, size_t *csr_length);
 
 	/**
 	 * Generate a self-signed certificate for the public key of an asymmetric encryption key pair.
@@ -164,15 +130,18 @@ struct x509_engine {
 	 * @param serial_length The length of the serial number.
 	 * @param name The subject common name to apply to the certificate.
 	 * @param type The type of certificate to generate.
-	 * @param dice Optional information that can be provided to add DICE extensions to the
-	 * certificate.  Set to null to not add any DICE extensions.
+	 * @param extra_extensions Optional list of additional extensions to add to the certificate.
+	 * Each entry in the list is a pointer to a builder for the extension that should be added.  Set
+	 * to null if no additional extensions should be added.
+	 * @param ext_count The number of additional extensions to add to the certificate.  If this is
+	 * non-zero, extra_extensions must not be null.
 	 *
 	 * @return 0 if the certificate was successfully generated or an error code.
 	 */
 	int (*create_self_signed_certificate) (struct x509_engine *engine,
 		struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 		enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
-		int type, const struct x509_dice_tcbinfo *dice);
+		int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
 
 	/**
 	 * Generate a cross-certificate (signed by a CA) for the public key of an asymmetric encryption
@@ -192,8 +161,11 @@ struct x509_engine {
 	 * @param sig_hash The hash algorithm to use when generating the signature for the certificate.
 	 * @param ca_cert The certificate for the CA issuing the new certificate.  This must have been
 	 * initialized by the same instance that will be using it.
-	 * @param dice Optional information that can be provided to add a DICE extensions to the
-	 * certificate.  Set to null to not add any DICE extensions.
+	 * @param extra_extensions Optional list of additional extensions to add to the certificate.
+	 * Each entry in the list is a pointer to a builder for the extension that should be added.  Set
+	 * to null if no additional extensions should be added.
+	 * @param ext_count The number of additional extensions to add to the certificate.  If this is
+	 * non-zero, extra_extensions must not be null.
 	 *
 	 * @return 0 if the certificate was successfully generated or an error code.
 	 */
@@ -201,7 +173,7 @@ struct x509_engine {
 		const uint8_t *key, size_t key_length, const uint8_t *serial_num, size_t serial_length,
 		const char *name, int type, const uint8_t* ca_priv_key, size_t ca_key_length,
 		enum hash_type sig_hash, const struct x509_certificate *ca_cert,
-		const struct x509_dice_tcbinfo *dice);
+		const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
 #endif
 
 	/**
@@ -380,45 +352,47 @@ struct x509_engine {
 
 /**
  * Error codes that can be generated by an X.509 engine.
+ *
+ * Note: Commented error codes have been deprecated.
  */
 enum {
-	X509_ENGINE_INVALID_ARGUMENT = X509_ENGINE_ERROR (0x00),		/**< Input parameter is null or not valid. */
-	X509_ENGINE_NO_MEMORY = X509_ENGINE_ERROR (0x01),				/**< Memory allocation failed. */
-	X509_ENGINE_CSR_FAILED = X509_ENGINE_ERROR (0x02),				/**< The CSR was not created. */
-	X509_ENGINE_SELF_SIGNED_FAILED = X509_ENGINE_ERROR (0x03),		/**< The self-signed certificate was not created. */
-	X509_ENGINE_CA_SIGNED_FAILED = X509_ENGINE_ERROR (0x04),		/**< The CA-signed certificate was not created. */
-	X509_ENGINE_LOAD_FAILED = X509_ENGINE_ERROR (0x05),				/**< The certificate DER was not loaded. */
-	X509_ENGINE_CERT_DER_FAILED = X509_ENGINE_ERROR (0x06),			/**< The certificate was not encoded to DER. */
-	X509_ENGINE_KEY_TYPE_FAILED = X509_ENGINE_ERROR (0x07),			/**< Failed to get the key type from the certificate. */
-	X509_ENGINE_KEY_FAILED = X509_ENGINE_ERROR (0x08),				/**< Failed to get the key from the certificate. */
-	X509_ENGINE_ROOT_CA_FAILED = X509_ENGINE_ERROR (0x09),			/**< The root CA was not added for path validation. */
-	X509_ENGINE_INIT_STORE_FAILED = X509_ENGINE_ERROR (0x0a),		/**< The intermediate CA certificate store was not initialized. */
-	X509_ENGINE_INTER_CA_FAILED = X509_ENGINE_ERROR (0x0b),			/**< The intermediate CA was not added for path validation. */
-	X509_ENGINE_AUTH_FAILED = X509_ENGINE_ERROR (0x0c),				/**< An error unrelated to path validation caused authentication to fail. */
-	X509_ENGINE_RIOT_NO_FWID = X509_ENGINE_ERROR (0x0d),			/**< No FWID provided for the RIoT extension. */
-	X509_ENGINE_RIOT_UNSUPPORTED_HASH = X509_ENGINE_ERROR (0x0e),	/**< The RIoT FWID uses an unsupported hash algorithm. */
-	X509_ENGINE_UNSUPPORTED_KEY_TYPE = X509_ENGINE_ERROR (0x0f),	/**< A certificate contains a key for an unsupported algorithm. */
-	X509_ENGINE_UNKNOWN_KEY_TYPE = X509_ENGINE_ERROR (0x10),		/**< The type of key in a certificate could not be determined. */
-	X509_ENGINE_UNSUPPORTED_SIG_TYPE = X509_ENGINE_ERROR (0x11),	/**< The certificate signature uses an unsupported algorithm. */
-	X509_ENGINE_NOT_CA_CERT = X509_ENGINE_ERROR (0x12),				/**< The certificate is not a CA. */
-	X509_ENGINE_NOT_SELF_SIGNED = X509_ENGINE_ERROR (0x13),			/**< The certificate is not self-signed. */
-	X509_ENGINE_IS_SELF_SIGNED = X509_ENGINE_ERROR (0x14),			/**< The certificate is self-signed. */
-	X509_ENGINE_BAD_SIGNATURE = X509_ENGINE_ERROR (0x15),			/**< The certificate failed signature verification. */
-	X509_ENGINE_CERT_NOT_VALID = X509_ENGINE_ERROR (0x16),			/**< Path validation for the certificate failed. */
-	X509_ENGINE_RIOT_AUTH_FAILED = X509_ENGINE_ERROR (0x17),		/**< Path validation for the certificate succeeded, but the RIoT extension was not valid. */
-	X509_ENGINE_HW_NOT_INIT = X509_ENGINE_ERROR (0x18),				/**< The X.509 hardware has not been initialized. */
-	X509_ENGINE_CERT_SIGN_FAILED = X509_ENGINE_ERROR (0x19),		/**< Failure related to signing the certificate. */
-	X509_ENGINE_LONG_SERIAL_NUM = X509_ENGINE_ERROR (0x1a),			/**< The certificate serial number exceeds the length supported by the engine. */
-	X509_ENGINE_BIG_CERT_SIZE = X509_ENGINE_ERROR (0x1b),			/**< The certificate length exceeds the size supported by the engine. */
-	X509_ENGINE_VERSION_FAILED = X509_ENGINE_ERROR (0x1c),			/**< Failed to get the version number from the certificate. */
-	X509_ENGINE_SERIAL_NUM_FAILED = X509_ENGINE_ERROR (0x1d),		/**< Failed to get the serial number from the certificate. */
-	X509_ENGINE_KEY_LENGTH_FAILED = X509_ENGINE_ERROR (0x1e),		/**< Failed to get the key length from the certificate. */
-	X509_ENGINE_SMALL_SERIAL_BUFFER = X509_ENGINE_ERROR (0x1f),		/**< Insufficient buffer space for the serial number. */
-	X509_ENGINE_LONG_OID = X509_ENGINE_ERROR (0x20),				/**< An OID is too long to be processed. */
-	X509_ENGINE_DICE_NO_VERSION = X509_ENGINE_ERROR (0x21),			/**< No version information for the DICE extension. */
-	X509_ENGINE_DICE_NO_UEID = X509_ENGINE_ERROR (0x22),			/**< No UEID information for the DICE extension. */
-	X509_ENGINE_INVALID_SERIAL_NUM = X509_ENGINE_ERROR (0x23),		/**< Provided serial number is an invalid value. */
-	X509_ENGINE_UNSUPPORTED_SIG_HASH = X509_ENGINE_ERROR (0x24),	/**< The certificate signature uses an unsupported digest. */
+	X509_ENGINE_INVALID_ARGUMENT = X509_ENGINE_ERROR (0x00),			/**< Input parameter is null or not valid. */
+	X509_ENGINE_NO_MEMORY = X509_ENGINE_ERROR (0x01),					/**< Memory allocation failed. */
+	X509_ENGINE_CSR_FAILED = X509_ENGINE_ERROR (0x02),					/**< The CSR was not created. */
+	X509_ENGINE_SELF_SIGNED_FAILED = X509_ENGINE_ERROR (0x03),			/**< The self-signed certificate was not created. */
+	X509_ENGINE_CA_SIGNED_FAILED = X509_ENGINE_ERROR (0x04),			/**< The CA-signed certificate was not created. */
+	X509_ENGINE_LOAD_FAILED = X509_ENGINE_ERROR (0x05),					/**< The certificate DER was not loaded. */
+	X509_ENGINE_CERT_DER_FAILED = X509_ENGINE_ERROR (0x06),				/**< The certificate was not encoded to DER. */
+	X509_ENGINE_KEY_TYPE_FAILED = X509_ENGINE_ERROR (0x07),				/**< Failed to get the key type from the certificate. */
+	X509_ENGINE_KEY_FAILED = X509_ENGINE_ERROR (0x08),					/**< Failed to get the key from the certificate. */
+	X509_ENGINE_ROOT_CA_FAILED = X509_ENGINE_ERROR (0x09),				/**< The root CA was not added for path validation. */
+	X509_ENGINE_INIT_STORE_FAILED = X509_ENGINE_ERROR (0x0a),			/**< The intermediate CA certificate store was not initialized. */
+	X509_ENGINE_INTER_CA_FAILED = X509_ENGINE_ERROR (0x0b),				/**< The intermediate CA was not added for path validation. */
+	X509_ENGINE_AUTH_FAILED = X509_ENGINE_ERROR (0x0c),					/**< An error unrelated to path validation caused authentication to fail. */
+	// X509_ENGINE_RIOT_NO_FWID = X509_ENGINE_ERROR (0x0d),				/**< No FWID provided for the RIoT extension. */
+	// X509_ENGINE_RIOT_UNSUPPORTED_HASH = X509_ENGINE_ERROR (0x0e),	/**< The RIoT FWID uses an unsupported hash algorithm. */
+	X509_ENGINE_UNSUPPORTED_KEY_TYPE = X509_ENGINE_ERROR (0x0f),		/**< A certificate contains a key for an unsupported algorithm. */
+	X509_ENGINE_UNKNOWN_KEY_TYPE = X509_ENGINE_ERROR (0x10),			/**< The type of key in a certificate could not be determined. */
+	X509_ENGINE_UNSUPPORTED_SIG_TYPE = X509_ENGINE_ERROR (0x11),		/**< The certificate signature uses an unsupported algorithm. */
+	X509_ENGINE_NOT_CA_CERT = X509_ENGINE_ERROR (0x12),					/**< The certificate is not a CA. */
+	X509_ENGINE_NOT_SELF_SIGNED = X509_ENGINE_ERROR (0x13),				/**< The certificate is not self-signed. */
+	X509_ENGINE_IS_SELF_SIGNED = X509_ENGINE_ERROR (0x14),				/**< The certificate is self-signed. */
+	X509_ENGINE_BAD_SIGNATURE = X509_ENGINE_ERROR (0x15),				/**< The certificate failed signature verification. */
+	X509_ENGINE_CERT_NOT_VALID = X509_ENGINE_ERROR (0x16),				/**< Path validation for the certificate failed. */
+	// X509_ENGINE_RIOT_AUTH_FAILED = X509_ENGINE_ERROR (0x17),			/**< Path validation for the certificate succeeded, but the RIoT extension was not valid. */
+	X509_ENGINE_HW_NOT_INIT = X509_ENGINE_ERROR (0x18),					/**< The X.509 hardware has not been initialized. */
+	X509_ENGINE_CERT_SIGN_FAILED = X509_ENGINE_ERROR (0x19),			/**< Failure related to signing the certificate. */
+	X509_ENGINE_LONG_SERIAL_NUM = X509_ENGINE_ERROR (0x1a),				/**< The certificate serial number exceeds the length supported by the engine. */
+	X509_ENGINE_BIG_CERT_SIZE = X509_ENGINE_ERROR (0x1b),				/**< The certificate length exceeds the size supported by the engine. */
+	X509_ENGINE_VERSION_FAILED = X509_ENGINE_ERROR (0x1c),				/**< Failed to get the version number from the certificate. */
+	X509_ENGINE_SERIAL_NUM_FAILED = X509_ENGINE_ERROR (0x1d),			/**< Failed to get the serial number from the certificate. */
+	X509_ENGINE_KEY_LENGTH_FAILED = X509_ENGINE_ERROR (0x1e),			/**< Failed to get the key length from the certificate. */
+	X509_ENGINE_SMALL_SERIAL_BUFFER = X509_ENGINE_ERROR (0x1f),			/**< Insufficient buffer space for the serial number. */
+	X509_ENGINE_LONG_OID = X509_ENGINE_ERROR (0x20),					/**< An OID is too long to be processed. */
+	// X509_ENGINE_DICE_NO_VERSION = X509_ENGINE_ERROR (0x21),			/**< No version information for the DICE extension. */
+	// X509_ENGINE_DICE_NO_UEID = X509_ENGINE_ERROR (0x22),				/**< No UEID information for the DICE extension. */
+	X509_ENGINE_INVALID_SERIAL_NUM = X509_ENGINE_ERROR (0x23),			/**< Provided serial number is an invalid value. */
+	X509_ENGINE_UNSUPPORTED_SIG_HASH = X509_ENGINE_ERROR (0x24),		/**< The certificate signature uses an unsupported digest. */
 };
 
 

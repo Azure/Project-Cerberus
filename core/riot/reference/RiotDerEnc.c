@@ -202,18 +202,19 @@ Error:
 int
 DERAddEncodedOID(
     DERBuilderContext   *Context,
-    const char          *Oid
+    const uint8_t       *Oid,
+    size_t               OidLength
 )
 {
-    uint32_t j, numChar = (uint32_t)strlen(Oid);
+    uint32_t j;
 
-    ASRT(numChar < 127);
-    CHECK_SPACE2(Context, numChar);
+    ASRT(OidLength < 127);
+    CHECK_SPACE2(Context, OidLength);
 
     Context->Buffer[Context->Position++] = 0x06;
-    Context->Buffer[Context->Position++] = (uint8_t)numChar;
+    Context->Buffer[Context->Position++] = (uint8_t)OidLength;
 
-    for (j = 0; j < numChar; j++) {
+    for (j = 0; j < OidLength; j++) {
         Context->Buffer[Context->Position++] = Oid[j];
     }
     return 0;
