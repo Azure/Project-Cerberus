@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include "testing/asn1/x509_testing.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_tcbinfo_testing.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_ueid_testing.h"
-#include "testing/crypto/x509_testing.h"
 
 
 /**

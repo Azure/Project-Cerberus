@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include "testing/crypto/base64_testing.h"
+#include "testing/asn1/base64_testing.h"
 
 
 const uint8_t BASE64_DATA_BLOCK[] = {

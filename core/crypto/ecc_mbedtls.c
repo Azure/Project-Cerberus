@@ -7,13 +7,13 @@
 #include <string.h>
 #include "platform_api.h"
 #include "ecc_mbedtls.h"
+#include "asn1/ecc_der_util.h"
 #include "mbedtls/pk.h"
 #include "mbedtls/ecp.h"
 #include "mbedtls/ecdsa.h"
 #include "mbedtls/ecdh.h"
 #include "mbedtls/bignum.h"
 #include "crypto/crypto_logging.h"
-#include "crypto/ecc_der_util.h"
 #include "crypto/hash.h"
 #include "common/unused.h"
 

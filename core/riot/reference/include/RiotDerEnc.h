@@ -5,7 +5,7 @@
 
 #include <string.h>
 #include <stdbool.h>
-#include "crypto/base64.h"
+#include "asn1/base64.h"
 #pragma once
 
 #ifdef __cplusplus

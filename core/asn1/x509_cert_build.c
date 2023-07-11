@@ -6,13 +6,13 @@
 #include <stdbool.h>
 #include <string.h>
 #include "platform_api.h"
-#include "x509_riot.h"
-#include "reference/include/RiotDerEnc.h"
-#include "reference/include/RiotX509Bldr.h"
-#include "reference/include/RiotDerDec.h"
+#include "x509_cert_build.h"
+#include "asn1/ecc_der_util.h"
 #include "common/unused.h"
 #include "crypto/ecc.h"
-#include "crypto/ecc_der_util.h"
+#include "riot/reference/include/RiotDerEnc.h"
+#include "riot/reference/include/RiotX509Bldr.h"
+#include "riot/reference/include/RiotDerDec.h"
 
 
 /**
@@ -30,11 +30,11 @@
 
 
 /**
- * Create a new riot certificate instance.
+ * Create a new DER certificate instance.
  *
  * @return The allocated certificate or null.
  */
-static DERBuilderContext* x509_riot_new_cert ()
+static DERBuilderContext* x509_cert_build_new_cert ()
 {
 	DERBuilderContext *x509;
 	uint8_t *der_buf;
@@ -44,23 +44,23 @@ static DERBuilderContext* x509_riot_new_cert ()
 		return NULL;
 	}
 
-	der_buf = platform_malloc (X509_MAX_SIZE);
+	der_buf = platform_malloc (X509_CERT_BUILD_MAX_SIZE);
 	if (der_buf == NULL) {
 		platform_free (x509);
 		return NULL;
 	}
 
-	DERInitContext (x509, der_buf, X509_MAX_SIZE);
+	DERInitContext (x509, der_buf, X509_CERT_BUILD_MAX_SIZE);
 
 	return x509;
 }
 
 /**
- * Free a riot certificate instance.
+ * Free a DER certificate instance.
  *
  * @param cert The certificate to free.
  */
-static void x509_riot_free_cert (void *cert)
+static void x509_cert_build_free_cert (void *cert)
 {
 	DERBuilderContext *x509 = (DERBuilderContext*) cert;
 
@@ -83,7 +83,7 @@ static void x509_riot_free_cert (void *cert)
  *
  * @return 0 if the extension was added successfully or an error code.
  */
-static int x509_riot_add_subject_key_identifier_extension (DERBuilderContext *der,
+static int x509_cert_build_add_subject_key_identifier_extension (DERBuilderContext *der,
 	const uint8_t *key_identifier, size_t id_length)
 {
 	int status;
@@ -111,7 +111,7 @@ error:
  *
  * @return 0 if the extension was added successfully or an error code.
  */
-static int x509_riot_add_authority_key_identifier_extension (DERBuilderContext *der,
+static int x509_cert_build_add_authority_key_identifier_extension (DERBuilderContext *der,
 	const uint8_t *key_identifier, size_t id_length)
 {
 	int status;
@@ -139,7 +139,7 @@ error:
  *
  * @return 0 if the extension was added successfully or an error code.
  */
-static int x509_riot_add_key_usage_extension (DERBuilderContext *der, int type)
+static int x509_cert_build_add_key_usage_extension (DERBuilderContext *der, int type)
 {
 	uint8_t key_usage;
 	uint8_t bits;
@@ -172,14 +172,14 @@ error:
  * Add an Extended Key Usage extension to the certificate.
  *
  * @param der DER encoder to update.
- * @param oid The key usage OID to
- * @param oid_length
- * @param critical
+ * @param oid The key usage OID to add in the extension.
+ * @param oid_length Length of the key usage OID.
+ * @param critical True to indicate the EKU extension should be marked as critical.
  *
  * @return 0 if the extension was added successfully or an error code.
  */
-static int x509_riot_add_extended_key_usage_extension (DERBuilderContext *der, const uint8_t *oid,
-	size_t oid_length, bool critical)
+static int x509_cert_build_add_extended_key_usage_extension (DERBuilderContext *der,
+	const uint8_t *oid, size_t oid_length, bool critical)
 {
 	int status;
 
@@ -214,7 +214,7 @@ error:
  *
  * @return 0 if the extension was added successfully or an error code.
  */
-static int x509_riot_add_basic_constraints_extension (DERBuilderContext *der, int type)
+static int x509_cert_build_add_basic_constraints_extension (DERBuilderContext *der, int type)
 {
 	int status;
 
@@ -248,7 +248,7 @@ error:
  *
  * @return 0 if the extension was added successfully or an error code.
  */
-static int x509_riot_add_custom_extension (DERBuilderContext *der,
+static int x509_cert_build_add_custom_extension (DERBuilderContext *der,
 	const struct x509_extension_builder *builder)
 {
 	struct x509_extension extension;
@@ -281,14 +281,14 @@ error:
 }
 
 /**
- * Add a X.509 Name to the certificate.
+ * Add an X.509 Name to the certificate.
  *
  * @param der DER encoder to update.
  * @param common_name The common name to encode in the certificate.
  *
- * @return 0 if the name was added successfully or -1 if not.
+ * @return 0 if the name was added successfully or an error code.
  */
-static int x509_riot_add_x509_name (DERBuilderContext *der, const char *common_name)
+static int x509_cert_build_add_x509_name (DERBuilderContext *der, const char *common_name)
 {
 	int status;
 
@@ -322,7 +322,7 @@ error:
  *
  * @return 0 if the CSR TBS was generated successfully or an error code.
  */
-static int x509_riot_build_csr_tbs_data (DERBuilderContext *der, const char *subject_name,
+static int x509_cert_build_build_csr_tbs_data (DERBuilderContext *der, const char *subject_name,
 	const uint8_t *pub_key_der, size_t pub_key_length, int type, const uint8_t *eku,
 	size_t eku_length, const struct x509_extension_builder *const *extra_extensions,
 	size_t ext_count)
@@ -332,21 +332,23 @@ static int x509_riot_build_csr_tbs_data (DERBuilderContext *der, const char *sub
 
 	DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
 		DER_CHK_ENCODE (DERAddInteger (der, 0));
-		DER_CHK_ENCODE (x509_riot_add_x509_name (der, subject_name));
+		DER_CHK_ENCODE (x509_cert_build_add_x509_name (der, subject_name));
 		DER_CHK_ENCODE (DERAddPublicKey (der, pub_key_der, pub_key_length));
 		DER_CHK_ENCODE (DERStartExplicit (der, 0));
 			DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
 				DER_CHK_ENCODE (DERAddOID (der, extensionRequestOID));
 				DER_CHK_ENCODE (DERStartSequenceOrSet (der,false));
 					DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-						DER_CHK_ENCODE (x509_riot_add_key_usage_extension (der, type));
+						DER_CHK_ENCODE (x509_cert_build_add_key_usage_extension (der, type));
 					if ((type == X509_CERT_END_ENTITY) || (eku != NULL)) {
-						DER_CHK_ENCODE (x509_riot_add_extended_key_usage_extension (der, eku,
+						DER_CHK_ENCODE (x509_cert_build_add_extended_key_usage_extension (der, eku,
 							eku_length, (type == X509_CERT_END_ENTITY)));
 					}
-						DER_CHK_ENCODE (x509_riot_add_basic_constraints_extension (der, type));
+						DER_CHK_ENCODE (x509_cert_build_add_basic_constraints_extension (der,
+							type));
 					for (i = 0; i < ext_count; i++) {
-						DER_CHK_ENCODE (x509_riot_add_custom_extension (der, extra_extensions[i]));
+						DER_CHK_ENCODE (x509_cert_build_add_custom_extension (der,
+							extra_extensions[i]));
 					}
 					DER_CHK_ENCODE (DERPopNesting (der));
 				DER_CHK_ENCODE (DERPopNesting (der));
@@ -373,7 +375,7 @@ error:
  *
  * @return 0 if the certificate was signed successfully or an error code.
  */
-static int x509_riot_sign_certificate (DERBuilderContext *der, struct ecc_private_key *priv_key,
+static int x509_cert_build_sign_certificate (DERBuilderContext *der, struct ecc_private_key *priv_key,
 	struct ecc_engine *ecc, struct hash_engine *hash, enum hash_type sig_hash, const int *sig_oid)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
@@ -416,14 +418,14 @@ error:
 	return status;
 }
 
-int x509_riot_create_csr (struct x509_engine *engine, const uint8_t *priv_key, size_t key_length,
-	enum hash_type sig_hash, const char *name, int type, const uint8_t *eku, size_t eku_length,
-	const struct x509_extension_builder *const *extra_extensions, size_t ext_count, uint8_t **csr,
-	size_t *csr_length)
+int x509_cert_build_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
+	size_t key_length, enum hash_type sig_hash, const char *name, int type, const uint8_t *eku,
+	size_t eku_length, const struct x509_extension_builder *const *extra_extensions,
+	size_t ext_count, uint8_t **csr, size_t *csr_length)
 {
-	const struct x509_engine_riot *riot = (const struct x509_engine_riot*) engine;
-	DERBuilderContext der_ctx;
-	uint8_t der_buf[X509_MAX_SIZE];
+	const struct x509_engine_cert_build *x509 = (const struct x509_engine_cert_build*) engine;
+	DERBuilderContext der;
+	uint8_t der_buf[X509_CERT_BUILD_MAX_SIZE];
 	size_t der_len;
 	struct ecc_private_key ecc_priv_key;
 	struct ecc_public_key ecc_pub_key;
@@ -438,7 +440,7 @@ int x509_riot_create_csr (struct x509_engine *engine, const uint8_t *priv_key, s
 
 	*csr = NULL;
 
-	if ((riot == NULL) || (priv_key == NULL) || (name == NULL) || (csr_length == NULL) ||
+	if ((x509 == NULL) || (priv_key == NULL) || (name == NULL) || (csr_length == NULL) ||
 		(key_length == 0)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
@@ -472,41 +474,41 @@ int x509_riot_create_csr (struct x509_engine *engine, const uint8_t *priv_key, s
 			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
 	};
 
-	status = riot->ecc->init_key_pair (riot->ecc, priv_key, key_length, &ecc_priv_key,
+	status = x509->ecc->init_key_pair (x509->ecc, priv_key, key_length, &ecc_priv_key,
 		&ecc_pub_key);
 	if (status != 0) {
 		return status;
 	}
 
-	status = riot->ecc->get_public_key_der (riot->ecc, &ecc_pub_key, &pub_key_der,
+	status = x509->ecc->get_public_key_der (x509->ecc, &ecc_pub_key, &pub_key_der,
 		&pub_key_der_len);
 	if (status != 0) {
 		goto err_free_key;
 	}
 
-	DERInitContext (&der_ctx, der_buf, sizeof (der_buf));
-	status = x509_riot_build_csr_tbs_data (&der_ctx, name, pub_key_der, pub_key_der_len, type, eku,
-		eku_length, extra_extensions, ext_count);
+	DERInitContext (&der, der_buf, sizeof (der_buf));
+	status = x509_cert_build_build_csr_tbs_data (&der, name, pub_key_der, pub_key_der_len, type,
+		eku, eku_length, extra_extensions, ext_count);
 	if (status != 0) {
 		status = (status == -1) ? X509_ENGINE_CSR_FAILED : status;
 		goto err_free_key_der;
 	}
 
-	status = x509_riot_sign_certificate (&der_ctx, &ecc_priv_key, riot->ecc, riot->hash, sig_hash,
-		sig_oid);
+	status = x509_cert_build_sign_certificate (&der, &ecc_priv_key, x509->ecc,  x509->hash,
+		sig_hash, sig_oid);
 	if (status != 0) {
 		status = (status == -1) ? X509_ENGINE_CSR_FAILED : status;
 		goto err_free_key_der;
 	}
 
-	der_len = DERGetEncodedLength (&der_ctx);
+	der_len = DERGetEncodedLength (&der);
 	*csr = platform_malloc (der_len);
 	if (*csr == NULL) {
 		status = X509_ENGINE_NO_MEMORY;
 		goto err_free_key_der;
 	}
 
-	memcpy (*csr, der_ctx.Buffer, der_len);
+	memcpy (*csr, der.Buffer, der_len);
 	*csr_length = der_len;
 
 	status = 0;
@@ -514,7 +516,7 @@ int x509_riot_create_csr (struct x509_engine *engine, const uint8_t *priv_key, s
 err_free_key_der:
 	platform_free (pub_key_der);
 err_free_key:
-	riot->ecc->release_key_pair (riot->ecc, &ecc_priv_key, &ecc_pub_key);
+	x509->ecc->release_key_pair (x509->ecc, &ecc_priv_key, &ecc_pub_key);
 
 	return status;
 }
@@ -527,7 +529,7 @@ err_free_key:
  *
  * @return 0 if the serial number is valid or an error code.
  */
-static int x509_riot_check_serial_number (const uint8_t *serial_num, size_t serial_length)
+static int x509_cert_build_check_serial_number (const uint8_t *serial_num, size_t serial_length)
 {
 	size_t i;
 	int status;
@@ -561,10 +563,10 @@ static int x509_riot_check_serial_number (const uint8_t *serial_num, size_t seri
  *
  * @return 0 if the certificate TBS was generated successfully or an error code.
  */
-static int x509_riot_build_certificate_tbs_data (DERBuilderContext *der, const char *issuer_name,
-	const uint8_t *auth_key_id, const char *subject_name, const uint8_t *subject_key_id,
-	const uint8_t *serial_num, size_t serial_length, const uint8_t *pub_key_der,
-	size_t pub_key_length, const int *sig_oid, int type,
+static int x509_cert_build_build_certificate_tbs_data (DERBuilderContext *der,
+	const char *issuer_name, const uint8_t *auth_key_id, const char *subject_name,
+	const uint8_t *subject_key_id, const uint8_t *serial_num, size_t serial_length,
+	const uint8_t *pub_key_der, size_t pub_key_length, const int *sig_oid, int type,
 	const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
 	size_t i;
@@ -576,26 +578,27 @@ static int x509_riot_build_certificate_tbs_data (DERBuilderContext *der, const c
 		DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
 			DER_CHK_ENCODE (DERAddOID (der, sig_oid));
 		DER_CHK_ENCODE (DERPopNesting (der));
-		DER_CHK_ENCODE (x509_riot_add_x509_name (der, issuer_name));
+		DER_CHK_ENCODE (x509_cert_build_add_x509_name (der, issuer_name));
 		DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
 			DER_CHK_ENCODE (DERAddTime (der, VALID_FROM));
 			DER_CHK_ENCODE (DERAddTime (der, VALID_TO));
 		DER_CHK_ENCODE (DERPopNesting (der));
-		DER_CHK_ENCODE (x509_riot_add_x509_name (der, subject_name));
+		DER_CHK_ENCODE (x509_cert_build_add_x509_name (der, subject_name));
 		DER_CHK_ENCODE (DERAddPublicKey (der, pub_key_der, pub_key_length));
 		DER_CHK_ENCODE (DERStartExplicit (der, 3));
 			DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
-				DER_CHK_ENCODE (x509_riot_add_subject_key_identifier_extension (der, subject_key_id,
-					SHA1_HASH_LENGTH));
-				DER_CHK_ENCODE (x509_riot_add_authority_key_identifier_extension (der, auth_key_id,
-					SHA1_HASH_LENGTH));
-				DER_CHK_ENCODE (x509_riot_add_key_usage_extension (der, type));
+				DER_CHK_ENCODE (x509_cert_build_add_subject_key_identifier_extension (der,
+					subject_key_id, SHA1_HASH_LENGTH));
+				DER_CHK_ENCODE (x509_cert_build_add_authority_key_identifier_extension (der,
+					auth_key_id, SHA1_HASH_LENGTH));
+				DER_CHK_ENCODE (x509_cert_build_add_key_usage_extension (der, type));
 			if (type == X509_CERT_END_ENTITY) {
-				DER_CHK_ENCODE (x509_riot_add_extended_key_usage_extension (der, NULL, 0, true));
+				DER_CHK_ENCODE (x509_cert_build_add_extended_key_usage_extension (der, NULL, 0,
+					true));
 			}
-				DER_CHK_ENCODE (x509_riot_add_basic_constraints_extension (der, type));
+				DER_CHK_ENCODE (x509_cert_build_add_basic_constraints_extension (der, type));
 			for (i = 0; i < ext_count; i++) {
-				DER_CHK_ENCODE (x509_riot_add_custom_extension (der, extra_extensions[i]));
+				DER_CHK_ENCODE (x509_cert_build_add_custom_extension (der, extra_extensions[i]));
 			}
 			DER_CHK_ENCODE (DERPopNesting (der));
 		DER_CHK_ENCODE (DERPopNesting (der));
@@ -607,13 +610,13 @@ error:
 	return status;
 }
 
-int x509_riot_create_self_signed_certificate (struct x509_engine *engine,
+int x509_cert_build_create_self_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
 	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
-	const struct x509_engine_riot *riot = (const struct x509_engine_riot*) engine;
-	DERBuilderContext *x509_ctx;
+	const struct x509_engine_cert_build *x509 = (const struct x509_engine_cert_build*) engine;
+	DERBuilderContext *der;
 	struct ecc_private_key ecc_priv_key;
 	struct ecc_public_key ecc_pub_key;
 	uint8_t *pub_key_der = NULL;
@@ -623,7 +626,7 @@ int x509_riot_create_self_signed_certificate (struct x509_engine *engine,
 	const int *sig_oid;
 	int status;
 
-	if ((riot == NULL) || (cert == NULL) || (priv_key == NULL) || (key_length == 0) ||
+	if ((x509 == NULL) || (cert == NULL) || (priv_key == NULL) || (key_length == 0) ||
 		(serial_num == NULL) || (serial_length == 0) || (name == NULL)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
@@ -649,20 +652,20 @@ int x509_riot_create_self_signed_certificate (struct x509_engine *engine,
 			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
 	};
 
-	status = x509_riot_check_serial_number (serial_num, serial_length);
+	status = x509_cert_build_check_serial_number (serial_num, serial_length);
 	if (status != 0) {
 		return status;
 	}
 
 	cert->context = NULL;
 
-	status = riot->ecc->init_key_pair (riot->ecc, priv_key, key_length, &ecc_priv_key,
+	status = x509->ecc->init_key_pair (x509->ecc, priv_key, key_length, &ecc_priv_key,
 		&ecc_pub_key);
 	if (status != 0) {
 		return status;
 	}
 
-	status = riot->ecc->get_public_key_der (riot->ecc, &ecc_pub_key, &pub_key_der,
+	status = x509->ecc->get_public_key_der (x509->ecc, &ecc_pub_key, &pub_key_der,
 		&pub_key_der_len);
 	if (status != 0) {
 		goto err_free_key;
@@ -674,19 +677,19 @@ int x509_riot_create_self_signed_certificate (struct x509_engine *engine,
 		goto err_free_key;
 	}
 
-	status = riot->hash->calculate_sha1 (riot->hash, auth_key, status, auth_key_digest,
+	status = x509->hash->calculate_sha1 (x509->hash, auth_key, status, auth_key_digest,
 		sizeof (auth_key_digest));
 	if (status != 0) {
 		goto err_free_key_der;
 	}
 
-	x509_ctx = x509_riot_new_cert ();
-	if (x509_ctx ==  NULL) {
+	der = x509_cert_build_new_cert ();
+	if (der ==  NULL) {
 		status = X509_ENGINE_NO_MEMORY;
 		goto err_free_key_der;
 	}
 
-	status = x509_riot_build_certificate_tbs_data (x509_ctx, name, auth_key_digest, name,
+	status = x509_cert_build_build_certificate_tbs_data (der, name, auth_key_digest, name,
 		auth_key_digest, serial_num, serial_length, pub_key_der, pub_key_der_len, sig_oid, type,
 		extra_extensions, ext_count);
 	if (status != 0) {
@@ -694,35 +697,35 @@ int x509_riot_create_self_signed_certificate (struct x509_engine *engine,
 		goto err_free_cert;
 	}
 
-	status = x509_riot_sign_certificate (x509_ctx, &ecc_priv_key, riot->ecc, riot->hash, sig_hash,
-		sig_oid);
+	status = x509_cert_build_sign_certificate (der, &ecc_priv_key, x509->ecc, x509->hash,
+		sig_hash, sig_oid);
 	if (status == -1) {
 		status = X509_ENGINE_SELF_SIGNED_FAILED;
 	}
 
 err_free_cert:
 	if (status == 0) {
-		cert->context = x509_ctx;
+		cert->context = der;
 	}
 	else {
-		x509_riot_free_cert (x509_ctx);
+		x509_cert_build_free_cert (der);
 	}
 err_free_key_der:
 	platform_free (pub_key_der);
 err_free_key:
-	riot->ecc->release_key_pair (riot->ecc, &ecc_priv_key, &ecc_pub_key);
+	x509->ecc->release_key_pair (x509->ecc, &ecc_priv_key, &ecc_pub_key);
 
 	return status;
 }
 
-int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
+int x509_cert_build_create_ca_signed_certificate (struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t* ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
 	const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
-	const struct x509_engine_riot *riot = (const struct x509_engine_riot*) engine;
-	DERBuilderContext *x509_ctx;
+	const struct x509_engine_cert_build *x509 = (const struct x509_engine_cert_build*) engine;
+	DERBuilderContext *der;
 	DERBuilderContext *ca_ctx;
 	struct ecc_private_key auth_priv_key;
 	struct ecc_public_key auth_pub_key;
@@ -740,7 +743,7 @@ int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 	char *issuer = NULL;
 	int status;
 
-	if ((engine == NULL) || (cert == NULL) || (key == NULL) || (key_length == 0) ||
+	if ((x509 == NULL) || (cert == NULL) || (key == NULL) || (key_length == 0) ||
 		(serial_num == NULL) || (serial_length == 0) || (name == NULL) || (ca_priv_key == NULL) ||
 		(ca_key_length == 0) || (ca_cert == NULL)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
@@ -767,7 +770,7 @@ int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 			return X509_ENGINE_UNSUPPORTED_SIG_HASH;
 	};
 
-	status = x509_riot_check_serial_number (serial_num, serial_length);
+	status = x509_cert_build_check_serial_number (serial_num, serial_length);
 	if (status != 0) {
 		return status;
 	}
@@ -775,13 +778,13 @@ int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 	cert->context = NULL;
 	ca_ctx = (DERBuilderContext*) ca_cert->context;
 
-	status = riot->ecc->init_key_pair (riot->ecc, ca_priv_key, ca_key_length, &auth_priv_key,
+	status = x509->ecc->init_key_pair (x509->ecc, ca_priv_key, ca_key_length, &auth_priv_key,
 		&auth_pub_key);
 	if (status != 0) {
 		return status;
 	}
 
-	status = riot->ecc->get_public_key_der (riot->ecc, &auth_pub_key, &auth_key_der,
+	status = x509->ecc->get_public_key_der (x509->ecc, &auth_pub_key, &auth_key_der,
 		&auth_key_der_len);
 	if (status != 0) {
 		goto err_free_key;
@@ -793,7 +796,7 @@ int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 		goto err_free_key;
 	}
 
-	status = riot->hash->calculate_sha1 (riot->hash, auth_key, status, auth_key_digest,
+	status = x509->hash->calculate_sha1 (x509->hash, auth_key, status, auth_key_digest,
 		sizeof (auth_key_digest));
 	if (status != 0) {
 		goto err_free_key_der;
@@ -802,14 +805,14 @@ int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 	status = DERDECGetPubKey (&subject_key, &subject_key_len, key, key_length);
 	if (status != 0) {
 		/* The key data does not contain a public key.  Get the public key from the private key. */
-		status = riot->ecc->init_key_pair (riot->ecc, key, key_length, NULL, &subject_pub_key);
+		status = x509->ecc->init_key_pair (x509->ecc, key, key_length, NULL, &subject_pub_key);
 		if (status != 0) {
 			goto err_free_key_der;
 		}
 
-		status = riot->ecc->get_public_key_der (riot->ecc, &subject_pub_key,
+		status = x509->ecc->get_public_key_der (x509->ecc, &subject_pub_key,
 			(uint8_t**) &subject_key_der, &subject_key_der_len);
-		riot->ecc->release_key_pair (riot->ecc, NULL, &subject_pub_key);
+		x509->ecc->release_key_pair (x509->ecc, NULL, &subject_pub_key);
 		if (status != 0) {
 			goto err_free_key_der;
 		}
@@ -824,7 +827,7 @@ int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 		subject_key_len = status;
 	}
 
-	status = riot->hash->calculate_sha1 (riot->hash, subject_key, subject_key_len,
+	status = x509->hash->calculate_sha1 (x509->hash, subject_key, subject_key_len,
 		subject_key_digest, sizeof (subject_key_digest));
 	if (status != 0) {
 		goto err_free_key_der;
@@ -836,13 +839,13 @@ int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 		goto err_free_key_der;
 	}
 
-	x509_ctx = x509_riot_new_cert ();
-	if (x509_ctx ==  NULL) {
+	der = x509_cert_build_new_cert ();
+	if (der ==  NULL) {
 		status = X509_ENGINE_NO_MEMORY;
 		goto err_free_name;
 	}
 
-	status = x509_riot_build_certificate_tbs_data (x509_ctx, issuer, auth_key_digest, name,
+	status = x509_cert_build_build_certificate_tbs_data (der, issuer, auth_key_digest, name,
 		subject_key_digest, serial_num, serial_length, subject_key_der, subject_key_der_len,
 		sig_oid, type, extra_extensions, ext_count);
 	if (status != 0) {
@@ -850,7 +853,7 @@ int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 		goto err_free_cert;
 	}
 
-	status = x509_riot_sign_certificate (x509_ctx, &auth_priv_key, riot->ecc, riot->hash, sig_hash,
+	status = x509_cert_build_sign_certificate (der, &auth_priv_key, x509->ecc, x509->hash, sig_hash,
 		sig_oid);
 	if (status == -1) {
 		status = X509_ENGINE_CA_SIGNED_FAILED;
@@ -858,10 +861,10 @@ int x509_riot_create_ca_signed_certificate (struct x509_engine *engine,
 
 err_free_cert:
 	if (status == 0) {
-		cert->context = x509_ctx;
+		cert->context = der;
 	}
 	else {
-		x509_riot_free_cert (x509_ctx);
+		x509_cert_build_free_cert (der);
 	}
 err_free_name:
 	platform_free (issuer);
@@ -871,13 +874,13 @@ err_free_key_der:
 		platform_free ((void*) subject_key_der);
 	}
 err_free_key:
-	riot->ecc->release_key_pair (riot->ecc, &auth_priv_key, &auth_pub_key);
+	x509->ecc->release_key_pair (x509->ecc, &auth_priv_key, &auth_pub_key);
 
 	return status;
 }
 #endif
 
-int x509_riot_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
+int x509_cert_build_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
 	const uint8_t *der, size_t length)
 {
 	DERBuilderContext *x509;
@@ -887,7 +890,7 @@ int x509_riot_load_certificate (struct x509_engine *engine, struct x509_certific
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (length > X509_MAX_SIZE) {
+	if (length > X509_CERT_BUILD_MAX_SIZE) {
 		return X509_ENGINE_BIG_CERT_SIZE;
 	}
 
@@ -898,7 +901,7 @@ int x509_riot_load_certificate (struct x509_engine *engine, struct x509_certific
 		return X509_ENGINE_LOAD_FAILED;
 	}
 
-	x509 = x509_riot_new_cert ();
+	x509 = x509_cert_build_new_cert ();
 	if (x509 == NULL) {
 		return X509_ENGINE_NO_MEMORY;
 	}
@@ -911,18 +914,18 @@ int x509_riot_load_certificate (struct x509_engine *engine, struct x509_certific
 	return 0;
 }
 
-void x509_riot_release_certificate (struct x509_engine *engine, struct x509_certificate *cert)
+void x509_cert_build_release_certificate (struct x509_engine *engine, struct x509_certificate *cert)
 {
 	UNUSED (engine);
 
 	if (cert) {
-		x509_riot_free_cert (cert->context);
+		x509_cert_build_free_cert (cert->context);
 		memset (cert, 0, sizeof (struct x509_certificate));
 	}
 }
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
-int x509_riot_get_certificate_der (struct x509_engine *engine, const struct x509_certificate *cert,
+int x509_cert_build_get_certificate_der (struct x509_engine *engine, const struct x509_certificate *cert,
 	uint8_t **der, size_t *length)
 {
 	DERBuilderContext *cert_ctx;
@@ -953,35 +956,36 @@ int x509_riot_get_certificate_der (struct x509_engine *engine, const struct x509
 #endif
 
 /**
- * Initialize an instance for handling X.509 certificates using riot.
+ * Initialize an instance for building X.509 certificates using a native ASN.1/DER encoder and
+ * abstracted crypto engines.
  *
  * @param engine The X.509 engine to initialize.
- * @param ecc The ECC engine to use for X.509 operations.
- * @param hash The hash engine to use for X.509 operations.
+ * @param ecc The ECC engine to use for ECC key operations.
+ * @param hash The hash engine to use for calculating digests.
  *
  * @return 0 if the X.509 engine was successfully initialized or an error code.
  */
-int x509_riot_init (struct x509_engine_riot *engine, struct ecc_engine *ecc,
+int x509_cert_build_init (struct x509_engine_cert_build *engine, struct ecc_engine *ecc,
 	struct hash_engine *hash)
 {
 	if ((engine == NULL) || (ecc == NULL) || (hash == NULL)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
-	memset (engine, 0, sizeof (struct x509_engine_riot));
+	memset (engine, 0, sizeof (struct x509_engine_cert_build));
 
 	engine->ecc = ecc;
 	engine->hash = hash;
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
-	engine->base.create_csr = x509_riot_create_csr;
-	engine->base.create_self_signed_certificate = x509_riot_create_self_signed_certificate;
-	engine->base.create_ca_signed_certificate = x509_riot_create_ca_signed_certificate;
+	engine->base.create_csr = x509_cert_build_create_csr;
+	engine->base.create_self_signed_certificate = x509_cert_build_create_self_signed_certificate;
+	engine->base.create_ca_signed_certificate = x509_cert_build_create_ca_signed_certificate;
 #endif
-	engine->base.load_certificate = x509_riot_load_certificate;
-	engine->base.release_certificate = x509_riot_release_certificate;
+	engine->base.load_certificate = x509_cert_build_load_certificate;
+	engine->base.release_certificate = x509_cert_build_release_certificate;
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
-	engine->base.get_certificate_der = x509_riot_get_certificate_der;
+	engine->base.get_certificate_der = x509_cert_build_get_certificate_der;
 #endif
 #ifdef X509_ENABLE_AUTHENTICATION
 	/* None of the authentication APIs are supported by this implementation and will remain NULL. */
@@ -991,11 +995,11 @@ int x509_riot_init (struct x509_engine_riot *engine, struct ecc_engine *ecc,
 }
 
 /**
- * Release a riot X.509 engine.
+ * Release an X.509 engine for building certificates.
  *
  * @param engine The X.509 engine to release.
  */
-void x509_riot_release (struct x509_engine_riot *engine)
+void x509_cert_build_release (struct x509_engine_cert_build *engine)
 {
 	UNUSED (engine);
 }

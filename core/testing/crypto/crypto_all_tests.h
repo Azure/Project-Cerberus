@@ -21,41 +21,17 @@ static void add_all_crypto_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
-#if (defined TESTING_RUN_ASN1_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_ASN1_SUITE
-	TESTING_RUN_SUITE (asn1);
-#endif
 #if (defined TESTING_RUN_AES_MBEDTLS_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_AES_MBEDTLS_SUITE
 	TESTING_RUN_SUITE (aes_mbedtls);
 #endif
-#if (defined TESTING_RUN_BASE64_MBEDTLS_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_BASE64_MBEDTLS_SUITE
-	TESTING_RUN_SUITE (base64_mbedtls);
-#endif
-#if (defined TESTING_RUN_BASE64_THREAD_SAFE_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_BASE64_THREAD_SAFE_SUITE
-	TESTING_RUN_SUITE (base64_thread_safe);
-#endif
 #if (defined TESTING_RUN_CHECKSUM_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_CHECKSUM_SUITE
 	TESTING_RUN_SUITE (checksum);
-#endif
-#if (defined TESTING_RUN_ECC_DER_UTIL_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_ECC_DER_UTIL_SUITE
-	TESTING_RUN_SUITE (ecc_der_util);
 #endif
 #if (defined TESTING_RUN_ECC_ECC_HW_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
@@ -146,18 +122,6 @@ static void add_all_crypto_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_SIGNATURE_VERIFICATION_RSA_SUITE
 	TESTING_RUN_SUITE (signature_verification_rsa);
-#endif
-#if (defined TESTING_RUN_X509_MBEDTLS_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_X509_MBEDTLS_SUITE
-	TESTING_RUN_SUITE (x509_mbedtls);
-#endif
-#if (defined TESTING_RUN_X509_THREAD_SAFE_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_X509_THREAD_SAFE_SUITE
-	TESTING_RUN_SUITE (x509_thread_safe);
 #endif
 }
 

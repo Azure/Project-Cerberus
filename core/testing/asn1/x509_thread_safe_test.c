@@ -6,10 +6,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "crypto/x509_thread_safe.h"
+#include "asn1/x509_thread_safe.h"
 #include "testing/mock/asn1/x509_extension_builder_mock.h"
-#include "testing/mock/crypto/x509_mock.h"
-#include "testing/crypto/x509_testing.h"
+#include "testing/mock/asn1/x509_mock.h"
+#include "testing/asn1/x509_testing.h"
 
 
 TEST_SUITE_LABEL ("x509_thread_safe");

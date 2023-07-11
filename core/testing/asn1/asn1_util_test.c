@@ -2,12 +2,12 @@
 // Licensed under the MIT license.
 
 #include "testing.h"
-#include "crypto/asn1.h"
+#include "asn1/asn1_util.h"
+#include "testing/asn1/x509_testing.h"
 #include "testing/crypto/ecc_testing.h"
-#include "testing/crypto/x509_testing.h"
 
 
-TEST_SUITE_LABEL ("asn1");
+TEST_SUITE_LABEL ("asn1_util");
 
 
 static void asn1_get_der_item_len_test_single_byte_length (CuTest *test)
@@ -121,10 +121,10 @@ static void asn1_get_der_item_len_test_invalid_length_identifier (CuTest *test)
 	TEST_START;
 
 	status = asn1_get_der_item_len (buffer_80, sizeof (buffer_85));
-	CuAssertIntEquals (test, ASN1_NOT_VALID, status);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, status);
 
 	status = asn1_get_der_item_len (buffer_85, sizeof (buffer_85));
-	CuAssertIntEquals (test, ASN1_NOT_VALID, status);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, status);
 }
 
 static void asn1_get_der_item_len_test_short_buffer (CuTest *test)
@@ -134,7 +134,7 @@ static void asn1_get_der_item_len_test_short_buffer (CuTest *test)
 	TEST_START;
 
 	status = asn1_get_der_item_len (X509_ECDSA_NO_NULL_SIG_ALGO_DER, 1);
-	CuAssertIntEquals (test, ASN1_NOT_VALID, status);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, status);
 }
 
 static void asn1_get_der_item_len_test_short_buffer_two_byte_length (CuTest *test)
@@ -144,7 +144,7 @@ static void asn1_get_der_item_len_test_short_buffer_two_byte_length (CuTest *tes
 	TEST_START;
 
 	status = asn1_get_der_item_len (X509_CSR_ECC_CA_DER, 2);
-	CuAssertIntEquals (test, ASN1_NOT_VALID, status);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, status);
 }
 
 static void asn1_get_der_item_len_test_short_buffer_three_byte_length (CuTest *test)
@@ -154,7 +154,7 @@ static void asn1_get_der_item_len_test_short_buffer_three_byte_length (CuTest *t
 	TEST_START;
 
 	status = asn1_get_der_item_len (X509_CERTSS_ECC_CA_DER, 3);
-	CuAssertIntEquals (test, ASN1_NOT_VALID, status);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, status);
 }
 
 static void asn1_get_der_item_len_test_short_buffer_four_byte_length (CuTest *test)
@@ -165,7 +165,7 @@ static void asn1_get_der_item_len_test_short_buffer_four_byte_length (CuTest *te
 	TEST_START;
 
 	status = asn1_get_der_item_len (buffer_83, 4);
-	CuAssertIntEquals (test, ASN1_NOT_VALID, status);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, status);
 }
 
 static void asn1_get_der_item_len_test_short_buffer_five_byte_length (CuTest *test)
@@ -176,7 +176,7 @@ static void asn1_get_der_item_len_test_short_buffer_five_byte_length (CuTest *te
 	TEST_START;
 
 	status = asn1_get_der_item_len (buffer_84, 5);
-	CuAssertIntEquals (test, ASN1_NOT_VALID, status);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, status);
 }
 
 static void asn1_get_der_encoded_length_test (CuTest *test)
@@ -362,7 +362,7 @@ static void asn1_encode_integer_test_null (CuTest *test)
 	TEST_START;
 
 	der_length = asn1_encode_integer (value, NULL, sizeof (der));
-	CuAssertIntEquals (test, ASN1_INVALID_ARGUMENT, der_length);
+	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, der_length);
 }
 
 static void asn1_encode_integer_test_buffer_less_than_min (CuTest *test)
@@ -374,13 +374,13 @@ static void asn1_encode_integer_test_buffer_less_than_min (CuTest *test)
 	TEST_START;
 
 	der_length = asn1_encode_integer (value, der, 0);
-	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, der_length);
 
 	der_length = asn1_encode_integer (value, der, 1);
-	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, der_length);
 
 	der_length = asn1_encode_integer (value, der, 2);
-	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, der_length);
 }
 
 static void asn1_encode_integer_test_buffer_too_small (CuTest *test)
@@ -392,7 +392,7 @@ static void asn1_encode_integer_test_buffer_too_small (CuTest *test)
 	TEST_START;
 
 	der_length = asn1_encode_integer (value, der, sizeof (der));
-	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, der_length);
 }
 
 static void asn1_encode_integer_test_buffer_too_small_not_last_byte (CuTest *test)
@@ -404,7 +404,7 @@ static void asn1_encode_integer_test_buffer_too_small_not_last_byte (CuTest *tes
 	TEST_START;
 
 	der_length = asn1_encode_integer (value, der, sizeof (der));
-	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, der_length);
 }
 
 static void asn1_encode_integer_test_buffer_too_small_with_padding (CuTest *test)
@@ -416,7 +416,7 @@ static void asn1_encode_integer_test_buffer_too_small_with_padding (CuTest *test
 	TEST_START;
 
 	der_length = asn1_encode_integer (value, der, sizeof (der));
-	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, der_length);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, der_length);
 }
 
 static void asn1_decode_integer_test (CuTest *test)
@@ -540,10 +540,10 @@ static void asn1_decode_integer_test_null (CuTest *test)
 	TEST_START;
 
 	status = asn1_decode_integer (NULL, sizeof (der), &value);
-	CuAssertIntEquals (test, ASN1_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, status);
 
 	status = asn1_decode_integer (der, sizeof (der), NULL);
-	CuAssertIntEquals (test, ASN1_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, status);
 }
 
 static void asn1_decode_integer_test_buffer_less_than_min (CuTest *test)
@@ -555,10 +555,10 @@ static void asn1_decode_integer_test_buffer_less_than_min (CuTest *test)
 	TEST_START;
 
 	der_length = asn1_decode_integer (der, 0, &value);
-	CuAssertIntEquals (test, ASN1_NOT_VALID, der_length);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, der_length);
 
 	der_length = asn1_decode_integer (der, 1, &value);
-	CuAssertIntEquals (test, ASN1_NOT_VALID, der_length);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, der_length);
 }
 
 static void asn1_decode_integer_test_buffer_too_small (CuTest *test)
@@ -570,7 +570,7 @@ static void asn1_decode_integer_test_buffer_too_small (CuTest *test)
 	TEST_START;
 
 	status = asn1_decode_integer (der, sizeof (der) - 1, &value);
-	CuAssertIntEquals (test, ASN1_SMALL_DER_BUFFER, status);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, status);
 }
 
 static void asn1_decode_integer_test_value_out_of_range (CuTest *test)
@@ -582,7 +582,7 @@ static void asn1_decode_integer_test_value_out_of_range (CuTest *test)
 	TEST_START;
 
 	status = asn1_decode_integer (der, sizeof (der), &value);
-	CuAssertIntEquals (test, ASN1_OUT_OF_RANGE, status);
+	CuAssertIntEquals (test, ASN1_UTIL_OUT_OF_RANGE, status);
 }
 
 static void asn1_decode_integer_test_value_out_of_range_multiple_bytes (CuTest *test)
@@ -594,7 +594,7 @@ static void asn1_decode_integer_test_value_out_of_range_multiple_bytes (CuTest *
 	TEST_START;
 
 	status = asn1_decode_integer (der, sizeof (der), &value);
-	CuAssertIntEquals (test, ASN1_OUT_OF_RANGE, status);
+	CuAssertIntEquals (test, ASN1_UTIL_OUT_OF_RANGE, status);
 }
 
 static void asn1_decode_integer_test_negative_value (CuTest *test)
@@ -606,7 +606,7 @@ static void asn1_decode_integer_test_negative_value (CuTest *test)
 	TEST_START;
 
 	status = asn1_decode_integer (der, sizeof (der), &value);
-	CuAssertIntEquals (test, ASN1_OUT_OF_RANGE, status);
+	CuAssertIntEquals (test, ASN1_UTIL_OUT_OF_RANGE, status);
 }
 
 static void asn1_decode_integer_test_not_integer_tag (CuTest *test)
@@ -618,11 +618,11 @@ static void asn1_decode_integer_test_not_integer_tag (CuTest *test)
 	TEST_START;
 
 	status = asn1_decode_integer (der, sizeof (der), &value);
-	CuAssertIntEquals (test, ASN1_UNEXPECTED_TAG, status);
+	CuAssertIntEquals (test, ASN1_UTIL_UNEXPECTED_TAG, status);
 }
 
 
-TEST_SUITE_START (asn1);
+TEST_SUITE_START (asn1_util);
 
 TEST (asn1_get_der_item_len_test_single_byte_length);
 TEST (asn1_get_der_item_len_test_two_byte_length);

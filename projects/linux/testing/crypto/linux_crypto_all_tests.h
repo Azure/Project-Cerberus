@@ -27,12 +27,6 @@ static void add_all_linux_crypto_tests (CuSuite *suite)
 	!defined TESTING_SKIP_AES_OPENSSL_SUITE
 	TESTING_RUN_SUITE (aes_openssl);
 #endif
-#if (defined TESTING_RUN_BASE64_OPENSSL_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
-	!defined TESTING_SKIP_BASE64_OPENSSL_SUITE
-	TESTING_RUN_SUITE (base64_openssl);
-#endif
 #if (defined TESTING_RUN_HASH_OPENSSL_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
@@ -56,12 +50,6 @@ static void add_all_linux_crypto_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
 	!defined TESTING_SKIP_RSA_OPENSSL_SUITE
 	TESTING_RUN_SUITE (rsa_openssl);
-#endif
-#if (defined TESTING_RUN_X509_OPENSSL_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_LINUX_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_LINUX_TESTS)) && \
-	!defined TESTING_SKIP_X509_OPENSSL_SUITE
-	TESTING_RUN_SUITE (x509_openssl);
 #endif
 }
 

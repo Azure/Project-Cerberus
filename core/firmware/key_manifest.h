@@ -7,9 +7,9 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
+#include "asn1/ecc_der_util.h"
 #include "crypto/rsa.h"
 #include "crypto/ecc.h"
-#include "crypto/ecc_der_util.h"
 #include "crypto/hash.h"
 
 

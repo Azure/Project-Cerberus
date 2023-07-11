@@ -10,9 +10,9 @@
 #include "cmd_interface/cerberus_protocol_required_commands.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
 #include "testing/mock/cmd_interface/session_manager_mock.h"
+#include "testing/asn1/x509_testing.h"
 #include "testing/cmd_interface/cerberus_protocol_required_commands_testing.h"
 #include "testing/cmd_interface/cmd_interface_system_testing.h"
-#include "testing/crypto/x509_testing.h"
 #include "testing/riot/riot_core_testing.h"
 
 

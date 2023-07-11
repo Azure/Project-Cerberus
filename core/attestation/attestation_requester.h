@@ -5,10 +5,10 @@
 #define ATTESTATION_REQUESTER_H_
 
 #include <stdint.h>
+#include "asn1/x509.h"
 #include "crypto/hash.h"
 #include "crypto/ecc.h"
 #include "crypto/rsa.h"
-#include "crypto/x509.h"
 #include "crypto/rng.h"
 #include "cmd_interface/cerberus_protocol_observer.h"
 #include "cmd_interface/device_manager.h"

@@ -11,8 +11,8 @@
 #include "testing/mock/manifest/manifest_manager_mock.h"
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
 #include "testing/mock/state_manager/state_manager_mock.h"
+#include "testing/asn1/x509_testing.h"
 #include "testing/cmd_interface/config_reset_testing.h"
-#include "testing/crypto/x509_testing.h"
 #include "testing/riot/riot_core_testing.h"
 
 

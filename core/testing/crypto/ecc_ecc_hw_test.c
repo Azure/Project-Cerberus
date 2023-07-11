@@ -6,7 +6,7 @@
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
-#include "crypto/ecc_der_util.h"
+#include "asn1/ecc_der_util.h"
 #include "crypto/ecc_ecc_hw.h"
 #include "crypto/ecc_ecc_hw_static.h"
 #include "testing/mock/crypto/ecc_hw_mock.h"

@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "crypto/base64_mbedtls.h"
-#include "testing/crypto/base64_testing.h"
+#include "asn1/base64_mbedtls.h"
+#include "testing/asn1/base64_testing.h"
 
 
 TEST_SUITE_LABEL ("base64_mbedtls");

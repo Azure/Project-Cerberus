@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "status/rot_status.h"
-#include "crypto/ecc_der_util.h"
+#include "asn1/ecc_der_util.h"
 #include "crypto/rsa.h"
 #include "crypto/hash.h"
 #include "crypto/signature_verification.h"

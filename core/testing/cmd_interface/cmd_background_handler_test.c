@@ -23,9 +23,9 @@
 #include "testing/mock/state_manager/state_manager_mock.h"
 #include "testing/mock/system/event_task_mock.h"
 #include "testing/engines/hash_testing_engine.h"
+#include "testing/asn1/x509_testing.h"
 #include "testing/attestation/aux_attestation_testing.h"
 #include "testing/cmd_interface/config_reset_testing.h"
-#include "testing/crypto/x509_testing.h"
 #include "testing/logging/debug_log_testing.h"
 #include "testing/riot/riot_core_testing.h"
 

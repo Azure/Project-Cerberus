@@ -11,8 +11,8 @@
 #include <openssl/ecdsa.h>
 #include <openssl/obj_mac.h>
 #include <openssl/err.h>
+#include "asn1/ecc_der_util.h"
 #include "crypto/hash.h"
-#include "crypto/ecc_der_util.h"
 #include "crypto/ecc_openssl.h"
 #include "common/unused.h"
 

@@ -8,8 +8,8 @@
 #include "testing.h"
 #include "asn1/dice/x509_extension_builder_dice_tcbinfo.h"
 #include "asn1/dice/x509_extension_builder_dice_tcbinfo_static.h"
+#include "testing/asn1/x509_testing.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_tcbinfo_testing.h"
-#include "testing/crypto/x509_testing.h"
 
 
 TEST_SUITE_LABEL ("x509_extension_builder_dice_tcbinfo");

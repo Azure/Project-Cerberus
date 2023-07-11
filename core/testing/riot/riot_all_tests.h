@@ -21,12 +21,6 @@ static void add_all_riot_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
-#if (defined TESTING_RUN_BASE64_RIOT_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_BASE64_RIOT_SUITE
-	TESTING_RUN_SUITE (base64_riot);
-#endif
 #if (defined TESTING_RUN_ECC_RIOT_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
@@ -50,12 +44,6 @@ static void add_all_riot_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_RIOT_KEY_MANAGER_SUITE
 	TESTING_RUN_SUITE (riot_key_manager);
-#endif
-#if (defined TESTING_RUN_X509_RIOT_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_X509_RIOT_SUITE
-	TESTING_RUN_SUITE (x509_riot);
 #endif
 }
 

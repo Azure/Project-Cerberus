@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 #include <stdint.h>
-#include "asn1.h"
+#include "asn1_util.h"
 
 
 /**
@@ -19,7 +19,7 @@ enum {
  * @param der The DER formatted ASN.1 data.
  * @param der_len Total length of der buffer.
  *
- * @return The total length of the item, including the header, or ASN1_NOT_VALID if the length
+ * @return The total length of the item, including the header, or ASN1_UTIL_NOT_VALID if the length
  * cannot be determined.
  */
 int asn1_get_der_item_len (const uint8_t *der, size_t der_len)
@@ -32,13 +32,13 @@ int asn1_get_der_item_len (const uint8_t *der, size_t der_len)
 	}
 
 	if (der_len < 2) {
-		return ASN1_NOT_VALID;
+		return ASN1_UTIL_NOT_VALID;
 	}
 
 	switch (der[1]) {
 		case 0x81:
 			if (der_len < 3) {
-				return ASN1_NOT_VALID;
+				return ASN1_UTIL_NOT_VALID;
 			}
 
 			header_len = 3;
@@ -48,7 +48,7 @@ int asn1_get_der_item_len (const uint8_t *der, size_t der_len)
 
 		case 0x82:
 			if (der_len < 4) {
-				return ASN1_NOT_VALID;
+				return ASN1_UTIL_NOT_VALID;
 			}
 
 			header_len = 4;
@@ -58,7 +58,7 @@ int asn1_get_der_item_len (const uint8_t *der, size_t der_len)
 
 		case 0x83:
 			if (der_len < 5) {
-				return ASN1_NOT_VALID;
+				return ASN1_UTIL_NOT_VALID;
 			}
 
 			header_len = 5;
@@ -68,7 +68,7 @@ int asn1_get_der_item_len (const uint8_t *der, size_t der_len)
 
 		case 0x84:
 			if (der_len < 6) {
-				return ASN1_NOT_VALID;
+				return ASN1_UTIL_NOT_VALID;
 			}
 
 			header_len = 6;
@@ -82,7 +82,7 @@ int asn1_get_der_item_len (const uint8_t *der, size_t der_len)
 				length = der[1];
 			}
 			else {
-				return ASN1_NOT_VALID;
+				return ASN1_UTIL_NOT_VALID;
 			}
 
 			break;
@@ -133,12 +133,12 @@ int asn1_encode_integer (uint64_t value, uint8_t *der, size_t length)
 	size_t der_length = 0;
 
 	if (der == NULL) {
-		return ASN1_INVALID_ARGUMENT;
+		return ASN1_UTIL_INVALID_ARGUMENT;
 	}
 
 	if (length < 3) {
 		/* Every encoded integer will be at least 3 bytes. */
-		return ASN1_SMALL_DER_BUFFER;
+		return ASN1_UTIL_SMALL_DER_BUFFER;
 	}
 
 	/* Find the first non-zero byte. */
@@ -161,7 +161,7 @@ int asn1_encode_integer (uint64_t value, uint8_t *der, size_t length)
 			der[2 + der_length++] = value >> i;
 		}
 		else {
-			return ASN1_SMALL_DER_BUFFER;
+			return ASN1_UTIL_SMALL_DER_BUFFER;
 		}
 	} while (i > 0);
 
@@ -188,20 +188,20 @@ int asn1_decode_integer (const uint8_t *der, size_t length, uint64_t *value)
 	uint64_t tmp = 0;
 
 	if ((der == NULL) || (value == NULL)) {
-		return ASN1_INVALID_ARGUMENT;
+		return ASN1_UTIL_INVALID_ARGUMENT;
 	}
 
 	der_length = asn1_get_der_item_len (der, length);
-	if (der_length == ASN1_NOT_VALID) {
+	if (der_length == ASN1_UTIL_NOT_VALID) {
 		return der_length;
 	}
 
 	if ((size_t) der_length > length) {
-		return ASN1_SMALL_DER_BUFFER;
+		return ASN1_UTIL_SMALL_DER_BUFFER;
 	}
 
 	if (der[0] != ASN1_TAG_INTEGER) {
-		return ASN1_UNEXPECTED_TAG;
+		return ASN1_UTIL_UNEXPECTED_TAG;
 	}
 
 	der_length -= 2;
@@ -209,12 +209,12 @@ int asn1_decode_integer (const uint8_t *der, size_t length, uint64_t *value)
 
 	if (der[0] & 0x80) {
 		/* This API does not support negative integers. */
-		return ASN1_OUT_OF_RANGE;
+		return ASN1_UTIL_OUT_OF_RANGE;
 	}
 
 	if ((der_length > 9) || ((der_length == 9) && (der[0] != 0))) {
 		/* Anything larger than 8 bytes will not fit into a 64-bit integer. */
-		return ASN1_OUT_OF_RANGE;
+		return ASN1_UTIL_OUT_OF_RANGE;
 	}
 
 	for (i = 0; i < der_length; i++) {

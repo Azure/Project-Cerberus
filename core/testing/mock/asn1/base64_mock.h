@@ -4,7 +4,7 @@
 #ifndef BASE64_MOCK_H_
 #define BASE64_MOCK_H_
 
-#include "crypto/base64.h"
+#include "asn1/base64.h"
 #include "mock.h"
 
 

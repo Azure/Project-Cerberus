@@ -8,12 +8,12 @@
 #include "testing.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cerberus_protocol_debug_commands.h"
+#include "testing/mock/asn1/x509_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/rsa_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
-#include "testing/mock/crypto/x509_mock.h"
 #include "testing/cmd_interface/cerberus_protocol_debug_commands_testing.h"
-#include "testing/crypto/x509_testing.h"
+#include "testing/asn1/x509_testing.h"
 
 
 // TEST_SUITE_LABEL ("cerberus_protocol_debug_commands");

@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 #include <string.h>
-#include "asn1.h"
+#include "asn1_util.h"
 #include "ecc_der_util.h"
 
 

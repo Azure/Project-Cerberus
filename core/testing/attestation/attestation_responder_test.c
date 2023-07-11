@@ -11,16 +11,16 @@
 #include "attestation/attestation_responder.h"
 #include "attestation/pcr_store.h"
 #include "attestation/aux_attestation.h"
+#include "testing/mock/asn1/x509_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/rsa_mock.h"
-#include "testing/mock/crypto/x509_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
 #include "testing/mock/keystore/keystore_mock.h"
 #include "testing/mock/logging/logging_mock.h"
+#include "testing/asn1/x509_testing.h"
 #include "testing/attestation/aux_attestation_testing.h"
 #include "testing/attestation/attestation_testing.h"
-#include "testing/crypto/x509_testing.h"
 #include "testing/riot/riot_core_testing.h"
 
 

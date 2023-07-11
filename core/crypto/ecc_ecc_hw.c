@@ -7,10 +7,10 @@
 #include <string.h>
 #include "platform_api.h"
 #include "ecc_ecc_hw.h"
+#include "asn1/ecc_der_util.h"
 #include "common/buffer_util.h"
 #include "common/unused.h"
 #include "crypto/crypto_logging.h"
-#include "crypto/ecc_der_util.h"
 #include "crypto/hash.h"
 
 

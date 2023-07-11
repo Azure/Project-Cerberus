@@ -8,7 +8,7 @@
 
 
 #ifndef	BASE64_TESTING_ENGINE_NAME
-#include "crypto/base64_mbedtls.h"
+#include "asn1/base64_mbedtls.h"
 #define	BASE64_TESTING_ENGINE_NAME	mbedtls
 #endif
 

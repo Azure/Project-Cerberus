@@ -6,7 +6,7 @@
 
 #include "testing.h"
 #include "riot/riot_key_manager.h"
-#include "testing/mock/crypto/x509_mock.h"
+#include "testing/mock/asn1/x509_mock.h"
 #include "testing/mock/keystore/keystore_mock.h"
 
 

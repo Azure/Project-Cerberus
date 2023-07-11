@@ -5,7 +5,7 @@
 #define X509_OPENSSL_H_
 
 #include <openssl/x509_vfy.h>
-#include "crypto/x509.h"
+#include "asn1/x509.h"
 
 
 /**

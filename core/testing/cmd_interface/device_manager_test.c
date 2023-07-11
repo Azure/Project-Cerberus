@@ -9,9 +9,9 @@
 #include "testing.h"
 #include "cmd_interface/device_manager.h"
 #include "mctp/mctp_base_protocol.h"
-#include "testing/crypto/x509_testing.h"
 #include "testing/mock/cmd_interface/device_manager_observer_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
+#include "testing/asn1/x509_testing.h"
 
 
 TEST_SUITE_LABEL ("device_manager");

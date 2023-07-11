@@ -7,9 +7,9 @@
 
 #include "RiotCrypt.h"
 #include "RiotDerEnc.h"
-#include "crypto/x509.h"
+#include "asn1/base64.h"
+#include "asn1/x509.h"
 #include "crypto/hash.h"
-#include "crypto/base64.h"
 #include "riot/tcg_dice.h"
 
 #ifdef __cplusplus

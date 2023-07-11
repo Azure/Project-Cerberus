@@ -7,10 +7,10 @@
 #include <stdbool.h>
 #include "riot_core.h"
 #include "asn1/x509_extension_builder.h"
-#include "crypto/base64.h"
+#include "asn1/base64.h"
+#include "asn1/x509.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
-#include "crypto/x509.h"
 
 
 /**

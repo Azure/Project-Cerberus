@@ -9,10 +9,10 @@
 #include <stdbool.h>
 #include "status/rot_status.h"
 #include "platform_api.h"
+#include "asn1/x509.h"
+#include "common/certificate.h"
 #include "keystore/keystore.h"
 #include "riot_keys.h"
-#include "crypto/x509.h"
-#include "common/certificate.h"
 
 
 /**

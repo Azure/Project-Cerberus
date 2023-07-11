@@ -42,6 +42,6 @@ set(
 		X509_ENABLE_AUTHENTICATION
 		X509_ENABLE_CREATE_CERTIFICATES
 
-		# This an mbedTLS definition needed for unit tests to pass.
+		# This is an mbedTLS definition needed for unit tests to pass.
 		MBEDTLS_X509_ALLOW_UNSUPPORTED_CRITICAL_EXTENSION
 	)

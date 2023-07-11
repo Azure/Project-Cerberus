@@ -5,7 +5,7 @@
 #include "include/RiotStatus.h"
 #include "include/RiotX509Bldr.h"
 #include "platform_api.h"
-#include "riot/x509_riot.h"
+#include "asn1/x509_cert_build.h"
 
 
 #define ASRT(_X) if(!(_X))     {goto Error;}
@@ -376,7 +376,7 @@ RIOT_STATUS DERDECGetSubjectName(char **name, const uint8_t *der, const size_t l
 
 	*name = NULL;
 
-	ASRT(length <= X509_MAX_SIZE);
+	ASRT(length <= X509_CERT_BUILD_MAX_SIZE);
 
 	status = read_cert_subject_name(&len, &position, der, length);
 	if ((status != 0) || ((position + len) > length)) {
@@ -401,7 +401,7 @@ RIOT_STATUS DERDECVerifyCert(const uint8_t *der, const size_t length)
 	int status;
 
 	ASRT(der != NULL);
-	ASRT(length <= X509_MAX_SIZE);
+	ASRT(length <= X509_CERT_BUILD_MAX_SIZE);
 
 	status = read_cert_subject_name(&len, &position, der, length);
 	if (status != 0 || ((position + len) > length)) {

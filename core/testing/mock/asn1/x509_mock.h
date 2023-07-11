@@ -4,7 +4,7 @@
 #ifndef X509_MOCK_H_
 #define X509_MOCK_H_
 
-#include "crypto/x509.h"
+#include "asn1/x509.h"
 #include "mock.h"
 
 

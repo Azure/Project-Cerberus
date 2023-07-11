@@ -9,16 +9,16 @@
 #include <stdbool.h>
 #include "platform_config.h"
 #include "status/rot_status.h"
-#include "keystore/keystore.h"
+#include "asn1/x509.h"
+#include "attestation/pcr_store.h"
+#include "cmd_interface/cerberus_protocol_optional_commands.h"
 #include "crypto/rsa.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
-#include "crypto/x509.h"
 #include "crypto/rng.h"
 #include "common/certificate.h"
-#include "attestation/pcr_store.h"
+#include "keystore/keystore.h"
 #include "riot/riot_key_manager.h"
-#include "cmd_interface/cerberus_protocol_optional_commands.h"
 
 
 /* Configurable auxiliary attestation protocol parameters.

@@ -3,11 +3,11 @@
 
 #include <stdint.h>
 #include <string.h>
+#include "asn1/asn1_util.h"
+#include "asn1/ecc_der_util.h"
 #include "common/common_math.h"
 #include "common/type_cast.h"
 #include "common/unused.h"
-#include "crypto/asn1.h"
-#include "crypto/ecc_der_util.h"
 #include "logging/debug_log.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
 #include "cmd_interface/cerberus_protocol_master_commands.h"
