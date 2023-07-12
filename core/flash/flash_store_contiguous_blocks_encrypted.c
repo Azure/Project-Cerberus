@@ -15,11 +15,11 @@
 #define	FLASH_STORE_AES_IV_LENGTH		12
 
 
-static int flash_store_contiguous_blocks_encrypted_write (struct flash_store *flash_store, int id,
+int flash_store_contiguous_blocks_encrypted_write (const struct flash_store *flash_store, int id,
 	const uint8_t *data, size_t length)
 {
-	struct flash_store_contiguous_blocks_encrypted *encrypted =
-		(struct flash_store_contiguous_blocks_encrypted*) flash_store;
+	const struct flash_store_contiguous_blocks_encrypted *encrypted =
+		(const struct flash_store_contiguous_blocks_encrypted*) flash_store;
 	uint8_t *enc_data;
 	uint8_t iv_tag[FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH];
 	int status;
@@ -55,11 +55,11 @@ exit:
 	return status;
 }
 
-static int flash_store_contiguous_blocks_encrypted_read (struct flash_store *flash_store, int id,
+int flash_store_contiguous_blocks_encrypted_read (const struct flash_store *flash_store, int id,
 	uint8_t *data, size_t length)
 {
-	struct flash_store_contiguous_blocks_encrypted *encrypted =
-		(struct flash_store_contiguous_blocks_encrypted*) flash_store;
+	const struct flash_store_contiguous_blocks_encrypted *encrypted =
+		(const struct flash_store_contiguous_blocks_encrypted*) flash_store;
 	uint8_t iv_tag[FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH];
 	int status;
 
@@ -101,7 +101,8 @@ static int flash_store_contiguous_blocks_encrypted_read (struct flash_store *fla
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 static int flash_store_contiguous_blocks_encrypted_init_storage_common (
-	struct flash_store_contiguous_blocks_encrypted *store, const struct flash *flash,
+	struct flash_store_contiguous_blocks_encrypted *store,
+	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, struct aes_engine *aes,
 	struct rng_engine *rng, bool decreasing, bool variable)
 {
@@ -111,8 +112,14 @@ static int flash_store_contiguous_blocks_encrypted_init_storage_common (
 		return FLASH_STORE_INVALID_ARGUMENT;
 	}
 
-	status = flash_store_contiguous_blocks_init_storage_common (&store->base, flash, base_addr,
-		block_count, data_length, decreasing, variable, FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH);
+	status = flash_store_contiguous_blocks_init_storage_common (&store->base, state, flash,
+		base_addr, block_count, data_length, decreasing, variable);
+	if (status != 0) {
+		return status;
+	}
+
+	status = flash_store_contiguous_blocks_encrypted_init_state (store, block_count,
+		data_length);
 	if (status != 0) {
 		return status;
 	}
@@ -142,12 +149,13 @@ static int flash_store_contiguous_blocks_encrypted_init_storage_common (
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 int flash_store_contiguous_blocks_encrypted_init_fixed_storage (
-	struct flash_store_contiguous_blocks_encrypted *store, const struct flash *flash,
+	struct flash_store_contiguous_blocks_encrypted *store,
+	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, struct aes_engine *aes,
 	struct rng_engine *rng)
 {
-	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, flash, base_addr,
-		block_count, data_length, aes, rng, false, false);
+	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, state, flash,
+		base_addr, block_count, data_length, aes, rng, false, false);
 }
 
 /**
@@ -167,12 +175,13 @@ int flash_store_contiguous_blocks_encrypted_init_fixed_storage (
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 int flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (
-	struct flash_store_contiguous_blocks_encrypted *store, const struct flash *flash,
-	uint32_t base_addr,	size_t block_count, size_t data_length,	struct aes_engine *aes,
+	struct flash_store_contiguous_blocks_encrypted *store,
+	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
+	uint32_t base_addr, size_t block_count, size_t data_length, struct aes_engine *aes,
 	struct rng_engine *rng)
 {
-	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, flash, base_addr,
-		block_count, data_length, aes, rng, true, false);
+	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, state, flash,
+		base_addr, block_count, data_length, aes, rng, true, false);
 }
 
 /**
@@ -192,12 +201,12 @@ int flash_store_contiguous_blocks_encrypted_init_fixed_storage_decreasing (
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 int flash_store_contiguous_blocks_encrypted_init_variable_storage (
-	struct flash_store_contiguous_blocks_encrypted *store, const struct flash *flash,
-	uint32_t base_addr, size_t block_count, size_t min_length, struct aes_engine *aes,
-	struct rng_engine *rng)
+	struct flash_store_contiguous_blocks_encrypted *store,
+	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,uint32_t base_addr,
+	size_t block_count, size_t min_length, struct aes_engine *aes, struct rng_engine *rng)
 {
-	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, flash, base_addr,
-		block_count, min_length, aes, rng, false, true);
+	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, state, flash,
+		base_addr, block_count, min_length, aes, rng, false, true);
 }
 
 /**
@@ -218,12 +227,30 @@ int flash_store_contiguous_blocks_encrypted_init_variable_storage (
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 int flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (
-	struct flash_store_contiguous_blocks_encrypted *store, const struct flash *flash,
-	uint32_t base_addr,	size_t block_count, size_t min_length, struct aes_engine *aes,
+	struct flash_store_contiguous_blocks_encrypted *store,
+	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
+	uint32_t base_addr, size_t block_count, size_t min_length, struct aes_engine *aes,
 	struct rng_engine *rng)
 {
-	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, flash, base_addr,
-		block_count, min_length, aes, rng, true, true);
+	return flash_store_contiguous_blocks_encrypted_init_storage_common (store, state, flash,
+		base_addr, block_count, min_length, aes, rng, true, true);
+}
+
+/**
+ * Initialize the variable state for encrypted flash store interface.
+ *
+ * @param store The flash storage to initialize.
+ * @param block_count The number of data blocks used for storage.
+ * @param data_length The minimum length of each data block.
+ *
+ * @return 0 if the flash storage was successfully initialized or an error code.
+ */
+int flash_store_contiguous_blocks_encrypted_init_state (
+	const struct flash_store_contiguous_blocks_encrypted *store, size_t block_count,
+	size_t data_length)
+{
+	return flash_store_contiguous_blocks_init_state_common (&store->base, block_count, data_length,
+		FLASH_STORE_AES_IV_LENGTH + AES_TAG_LENGTH);
 }
 
 /**
@@ -232,7 +259,7 @@ int flash_store_contiguous_blocks_encrypted_init_variable_storage_decreasing (
  * @param store The flash storage to relaese.
  */
 void flash_store_contiguous_blocks_encrypted_release (
-	struct flash_store_contiguous_blocks_encrypted *store)
+	const struct flash_store_contiguous_blocks_encrypted *store)
 {
 	flash_store_contiguous_blocks_release (&store->base);
 }

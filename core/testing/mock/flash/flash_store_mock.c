@@ -7,8 +7,8 @@
 #include "flash_store_mock.h"
 
 
-static int flash_store_mock_write (struct flash_store *flash_store, int id, const uint8_t *data,
-	size_t length)
+static int flash_store_mock_write (const struct flash_store *flash_store, int id,
+	const uint8_t *data, size_t length)
 {
 	struct flash_store_mock *mock = (struct flash_store_mock*) flash_store;
 
@@ -20,7 +20,8 @@ static int flash_store_mock_write (struct flash_store *flash_store, int id, cons
 		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
-static int flash_store_mock_read (struct flash_store *flash_store, int id, uint8_t *data, size_t length)
+static int flash_store_mock_read (const struct flash_store *flash_store, int id, uint8_t *data,
+	size_t length)
 {
 	struct flash_store_mock *mock = (struct flash_store_mock*) flash_store;
 
@@ -32,7 +33,7 @@ static int flash_store_mock_read (struct flash_store *flash_store, int id, uint8
 		MOCK_ARG_PTR_CALL (data), MOCK_ARG_CALL (length));
 }
 
-static int flash_store_mock_erase (struct flash_store *flash_store, int id)
+static int flash_store_mock_erase (const struct flash_store *flash_store, int id)
 {
 	struct flash_store_mock *mock = (struct flash_store_mock*) flash_store;
 
@@ -43,7 +44,7 @@ static int flash_store_mock_erase (struct flash_store *flash_store, int id)
 	MOCK_RETURN (&mock->mock, flash_store_mock_erase, flash_store, MOCK_ARG_CALL (id));
 }
 
-static int flash_store_mock_erase_all (struct flash_store *flash_store)
+static int flash_store_mock_erase_all (const struct flash_store *flash_store)
 {
 	struct flash_store_mock *mock = (struct flash_store_mock*) flash_store;
 
@@ -54,7 +55,7 @@ static int flash_store_mock_erase_all (struct flash_store *flash_store)
 	MOCK_RETURN_NO_ARGS (&mock->mock, flash_store_mock_erase_all, flash_store);
 }
 
-static int flash_store_mock_get_data_length (struct flash_store *flash_store, int id)
+static int flash_store_mock_get_data_length (const struct flash_store *flash_store, int id)
 {
 	struct flash_store_mock *mock = (struct flash_store_mock*) flash_store;
 
@@ -65,7 +66,7 @@ static int flash_store_mock_get_data_length (struct flash_store *flash_store, in
 	MOCK_RETURN (&mock->mock, flash_store_mock_get_data_length, flash_store, MOCK_ARG_CALL (id));
 }
 
-static int flash_store_mock_has_data_stored (struct flash_store *flash_store, int id)
+static int flash_store_mock_has_data_stored (const struct flash_store *flash_store, int id)
 {
 	struct flash_store_mock *mock = (struct flash_store_mock*) flash_store;
 
@@ -76,7 +77,7 @@ static int flash_store_mock_has_data_stored (struct flash_store *flash_store, in
 	MOCK_RETURN (&mock->mock, flash_store_mock_has_data_stored, flash_store, MOCK_ARG_CALL (id));
 }
 
-static int flash_store_mock_get_max_data_length (struct flash_store *flash_store)
+static int flash_store_mock_get_max_data_length (const struct flash_store *flash_store)
 {
 	struct flash_store_mock *mock = (struct flash_store_mock*) flash_store;
 
@@ -87,7 +88,7 @@ static int flash_store_mock_get_max_data_length (struct flash_store *flash_store
 	MOCK_RETURN_NO_ARGS (&mock->mock, flash_store_mock_get_max_data_length, flash_store);
 }
 
-static int flash_store_mock_get_flash_size (struct flash_store *flash_store)
+static int flash_store_mock_get_flash_size (const struct flash_store *flash_store)
 {
 	struct flash_store_mock *mock = (struct flash_store_mock*) flash_store;
 
@@ -98,7 +99,7 @@ static int flash_store_mock_get_flash_size (struct flash_store *flash_store)
 	MOCK_RETURN_NO_ARGS (&mock->mock, flash_store_mock_get_flash_size, flash_store);
 }
 
-static int flash_store_mock_get_num_blocks (struct flash_store *flash_store)
+static int flash_store_mock_get_num_blocks (const struct flash_store *flash_store)
 {
 	struct flash_store_mock *mock = (struct flash_store_mock*) flash_store;
 

@@ -9,21 +9,6 @@
 #include <stdbool.h>
 #include "status/rot_status.h"
 
-
-/**
- * Header on each block of variable length data.
- */
-struct flash_store_header {
-	uint8_t header_len;				/**< Total length of the header. */
-	uint8_t marker;					/**< Marker byte indicating valid data. */
-	uint16_t length;				/**< Length of the variable data. */
-} __attribute__((__packed__));
-
-#define	FLASH_STORE_HEADER_MARKER		0xa5
-#define	FLASH_STORE_HEADER_LENGTH		(sizeof (struct flash_store_header))
-#define	FLASH_STORE_HEADER_MIN_LENGTH	4
-
-
 /**
  * Base interface to manage the indexed data blocks in flash.
  */
@@ -38,7 +23,8 @@ struct flash_store {
 	 *
 	 * @return 0 if the data was written successfully or an error code.
 	 */
-	int (*write) (struct flash_store *flash_store, int id, const uint8_t *data, size_t length);
+	int (*write) (const struct flash_store *flash_store, int id, const uint8_t *data,
+		size_t length);
 
 	/**
 	 * Read a block of data from flash.
@@ -51,7 +37,7 @@ struct flash_store {
 	 * @return The number of bytes read from flash or an error code.  Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*read) (struct flash_store *flash_store, int id, uint8_t *data, size_t length);
+	int (*read) (const struct flash_store *flash_store, int id, uint8_t *data, size_t length);
 
 	/**
 	 * Erase a block of data.
@@ -61,7 +47,7 @@ struct flash_store {
 	 *
 	 * @return 0 if the data was erased successfully or an error code.
 	 */
-	int (*erase) (struct flash_store *flash_store, int id);
+	int (*erase) (const struct flash_store *flash_store, int id);
 
 	/**
 	 * Erase all managed data.
@@ -70,7 +56,7 @@ struct flash_store {
 	 *
 	 * @return 0 if all data was erase successfully or an error code.
 	 */
-	int (*erase_all) (struct flash_store *flash_store);
+	int (*erase_all) (const struct flash_store *flash_store);
 
 	/**
 	 * Get the length of the data stored in flash block.
@@ -82,7 +68,7 @@ struct flash_store {
 	 * ROT_IS_ERROR to check the return value.  FLASH_STORE_NO_DATA is returned if there is not
 	 * valid data stored in the block.
 	 */
-	int (*get_data_length) (struct flash_store *flash_store, int id);
+	int (*get_data_length) (const struct flash_store *flash_store, int id);
 
 	/**
 	 * Determine if there is data stored in a flash block.
@@ -92,7 +78,7 @@ struct flash_store {
 	 *
 	 * @return 0 if there is no data stored, 1 if there is, or an error code.
 	 */
-	int (*has_data_stored) (struct flash_store *flash_store, int id);
+	int (*has_data_stored) (const struct flash_store *flash_store, int id);
 
 	/**
 	 * Get the maximum amount of data that can be stored in a single flash block.
@@ -102,7 +88,7 @@ struct flash_store {
 	 * @return The maximum data length or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*get_max_data_length) (struct flash_store *flash_store);
+	int (*get_max_data_length) (const struct flash_store *flash_store);
 
 	/**
 	 * Gets the total amount of flash reserved for storage.  This includes all overhead for sector
@@ -113,7 +99,7 @@ struct flash_store {
 	 * @return The total flash reserved or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*get_flash_size) (struct flash_store *flash_store);
+	int (*get_flash_size) (const struct flash_store *flash_store);
 
 	/**
 	 * Get the number of managed data blocks.
@@ -123,7 +109,7 @@ struct flash_store {
 	 * @return The number of managed data blocks or an error code. Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*get_num_blocks) (struct flash_store *flash_store);
+	int (*get_num_blocks) (const struct flash_store *flash_store);
 };
 
 

@@ -274,6 +274,7 @@ static void keystore_flash_test_load_key_backwards_compatibility (CuTest *test)
 	struct spi_flash_state state;
 	struct spi_flash spi;
 	struct flash_store_contiguous_blocks flash;
+	struct flash_store_contiguous_blocks_state context;
 	struct keystore_flash store;
 	int status;
 	uint16_t read_len = RSA_PRIVKEY_DER_LEN;
@@ -294,8 +295,8 @@ static void keystore_flash_test_load_key_backwards_compatibility (CuTest *test)
 	status = spi_flash_set_device_size (&spi, 0x100000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_init_variable_storage (&flash, &spi.base, 0x10000, 4, 0,
-		&hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage (&flash, &context, &spi.base,
+		0x10000, 4, 0, &hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = keystore_flash_init (&store, &flash.base);
@@ -354,6 +355,7 @@ static void keystore_flash_test_load_key_backwards_compatibility_encrypted (CuTe
 	struct spi_flash_state state;
 	struct spi_flash spi;
 	struct flash_store_contiguous_blocks_encrypted flash;
+	struct flash_store_contiguous_blocks_state context;
 	struct keystore_flash store;
 	int status;
 	uint16_t read_len = AES_RSA_PRIVKEY_DER_LEN;
@@ -381,8 +383,8 @@ static void keystore_flash_test_load_key_backwards_compatibility_encrypted (CuTe
 	status = spi_flash_set_device_size (&spi, 0x100000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&flash, &spi.base,
-		0x10000, 4, 0, &aes.base, &rng.base);
+	status = flash_store_contiguous_blocks_encrypted_init_variable_storage (&flash, &context,
+		&spi.base, 0x10000, 4, 0, &aes.base, &rng.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = keystore_flash_init (&store, &flash.base.base);

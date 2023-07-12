@@ -21,12 +21,12 @@
  * @return 0 if the flash store and block index identified successfully, otherwise error code.
  */
 static int flash_store_aggregator_get_flash_store_and_block_index (
-	struct flash_store_aggregator *flash_aggregator, int id, struct flash_store **flash_store,
-	int *block_index)
+	const struct flash_store_aggregator *flash_aggregator, int id,
+	const struct flash_store **flash_store, int *block_index)
 {
 	size_t iterator = 0;
 	int num_blocks;
-	struct flash_store **flash_store_array = flash_aggregator->flash_store_array;
+	const struct flash_store *const *flash_store_array = flash_aggregator->flash_store_array;
 	int status = FLASH_STORE_UNSUPPORTED_ID;
 
 	while (iterator < flash_aggregator->flash_store_cnt) {
@@ -57,11 +57,12 @@ static int flash_store_aggregator_get_flash_store_and_block_index (
 	return status;
 }
 
-static int flash_store_aggregtor_write (struct flash_store *flash_store, int id, const uint8_t *data,
+int flash_store_aggregtor_write (const struct flash_store *flash_store, int id, const uint8_t *data,
 	size_t length)
 {
-	struct flash_store_aggregator *flash_aggregator = (struct flash_store_aggregator*) flash_store;
-	struct flash_store *flash = NULL;
+	const struct flash_store_aggregator *flash_aggregator =
+		(const struct flash_store_aggregator*) flash_store;
+	const struct flash_store *flash = NULL;
 	int status;
 	int index;
 
@@ -79,11 +80,12 @@ static int flash_store_aggregtor_write (struct flash_store *flash_store, int id,
 	return status;
 }
 
-static int flash_store_aggregtor_read (struct flash_store *flash_store, int id, uint8_t *data,
+int flash_store_aggregtor_read (const struct flash_store *flash_store, int id, uint8_t *data,
 	size_t length)
 {
-	struct flash_store_aggregator *flash_aggregator = (struct flash_store_aggregator*) flash_store;
-	struct flash_store *flash = NULL;
+	const struct flash_store_aggregator *flash_aggregator =
+		(const struct flash_store_aggregator*) flash_store;
+	const struct flash_store *flash = NULL;
 	int status;
 	int index;
 
@@ -101,10 +103,11 @@ static int flash_store_aggregtor_read (struct flash_store *flash_store, int id, 
 	return status;
 }
 
-static int flash_store_aggregtor_erase (struct flash_store *flash_store, int id)
+int flash_store_aggregtor_erase (const struct flash_store *flash_store, int id)
 {
-	struct flash_store_aggregator *flash_aggregator = (struct flash_store_aggregator*) flash_store;
-	struct flash_store *flash = NULL;
+	const struct flash_store_aggregator *flash_aggregator =
+		(const struct flash_store_aggregator*) flash_store;
+	const struct flash_store *flash = NULL;
 	int status;
 	int index;
 
@@ -122,9 +125,10 @@ static int flash_store_aggregtor_erase (struct flash_store *flash_store, int id)
 	return status;
 }
 
-static int flash_store_aggregtor_erase_all (struct flash_store *flash_store)
+int flash_store_aggregtor_erase_all (const struct flash_store *flash_store)
 {
-	struct flash_store_aggregator *flash_aggregator = (struct flash_store_aggregator*) flash_store;
+	const struct flash_store_aggregator *flash_aggregator =
+		(const struct flash_store_aggregator*) flash_store;
 	int status = 0;
 	size_t loop;
 
@@ -143,10 +147,11 @@ static int flash_store_aggregtor_erase_all (struct flash_store *flash_store)
 	return status;
 }
 
-static int flash_store_aggregtor_get_data_length (struct flash_store *flash_store, int id)
+int flash_store_aggregtor_get_data_length (const struct flash_store *flash_store, int id)
 {
-	struct flash_store_aggregator *flash_aggregator = (struct flash_store_aggregator*) flash_store;
-	struct flash_store *flash = NULL;
+	const struct flash_store_aggregator *flash_aggregator =
+		(const struct flash_store_aggregator*) flash_store;
+	const struct flash_store *flash = NULL;
 	int status;
 	int index;
 
@@ -164,10 +169,11 @@ static int flash_store_aggregtor_get_data_length (struct flash_store *flash_stor
 	return status;
 }
 
-static int flash_store_aggregtor_has_data_stored (struct flash_store *flash_store, int id)
+int flash_store_aggregtor_has_data_stored (const struct flash_store *flash_store, int id)
 {
-	struct flash_store_aggregator *flash_aggregator = (struct flash_store_aggregator*) flash_store;
-	struct flash_store *flash = NULL;
+	const struct flash_store_aggregator *flash_aggregator =
+		(const struct flash_store_aggregator*) flash_store;
+	const struct flash_store *flash = NULL;
 	int status;
 	int index;
 
@@ -185,9 +191,10 @@ static int flash_store_aggregtor_has_data_stored (struct flash_store *flash_stor
 	return status;
 }
 
-static int flash_store_aggregtor_get_max_data_length (struct flash_store *flash_store)
+int flash_store_aggregtor_get_max_data_length (const struct flash_store *flash_store)
 {
-	struct flash_store_aggregator *flash_aggregator = (struct flash_store_aggregator*) flash_store;
+	const struct flash_store_aggregator *flash_aggregator =
+		(const struct flash_store_aggregator*) flash_store;
 	int max_data_length = INT_MAX;
 	int status = 0;
 	size_t loop;
@@ -209,9 +216,10 @@ static int flash_store_aggregtor_get_max_data_length (struct flash_store *flash_
 	return max_data_length;
 }
 
-static int flash_store_aggregtor_get_flash_size (struct flash_store *flash_store)
+int flash_store_aggregtor_get_flash_size (const struct flash_store *flash_store)
 {
-	struct flash_store_aggregator *flash_aggregator = (struct flash_store_aggregator*) flash_store;
+	const struct flash_store_aggregator *flash_aggregator =
+		(const struct flash_store_aggregator*) flash_store;
 	size_t flash_size = 0;
 	int status;
 	size_t loop;
@@ -233,9 +241,10 @@ static int flash_store_aggregtor_get_flash_size (struct flash_store *flash_store
 	return flash_size;
 }
 
-static int flash_store_aggregtor_get_num_blocks (struct flash_store *flash_store)
+int flash_store_aggregtor_get_num_blocks (const struct flash_store *flash_store)
 {
-	struct flash_store_aggregator *flash_aggregator = (struct flash_store_aggregator*) flash_store;
+	const struct flash_store_aggregator *flash_aggregator =
+		(const struct flash_store_aggregator*) flash_store;
 	int num_blocks = 0;
 	int status;
 	size_t loop;
@@ -262,12 +271,12 @@ static int flash_store_aggregtor_get_num_blocks (struct flash_store *flash_store
  *
  * @param aggregator The flash storage aggregator to initialize.
  * @param flash_store_array Array that holds flash store instances.
- * @param falsh_store_cnt Max number of flash store instances of
- * 	flash_store_array
+ * @param falsh_store_cnt Max number of flash store instances of flash_store_array.
+ *
  * @return 0 if the flash storage was successfully initialized or an error code.
  */
 int flash_store_aggregator_init (struct flash_store_aggregator *aggregator,
-	struct flash_store **flash_store_array, size_t falsh_store_cnt)
+	const struct flash_store *const *flash_store_array, size_t falsh_store_cnt)
 {
 	if ((aggregator == NULL) || (flash_store_array == NULL) || (falsh_store_cnt == 0)) {
 		return FLASH_STORE_INVALID_ARGUMENT;
@@ -284,6 +293,7 @@ int flash_store_aggregator_init (struct flash_store_aggregator *aggregator,
 	aggregator->base.get_max_data_length = flash_store_aggregtor_get_max_data_length;
 	aggregator->base.get_num_blocks = flash_store_aggregtor_get_num_blocks;
 	aggregator->base.has_data_stored = flash_store_aggregtor_has_data_stored;
+
 	aggregator->flash_store_array = flash_store_array;
 	aggregator->flash_store_cnt = falsh_store_cnt;
 
@@ -295,7 +305,7 @@ int flash_store_aggregator_init (struct flash_store_aggregator *aggregator,
  *
  * @param aggregator The flash store aggregator to release.
  */
-void flash_store_aggregator_release (struct flash_store_aggregator *aggregator)
+void flash_store_aggregator_release (const struct flash_store_aggregator *aggregator)
 {
 	UNUSED (aggregator);
 }
