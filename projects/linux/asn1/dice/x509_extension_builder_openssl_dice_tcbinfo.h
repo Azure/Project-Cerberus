@@ -9,7 +9,7 @@
 
 
 /**
- * Builder for the TCG DICE TcbInfo extension.  The extension builder uses mbedTLS ASN.1/DER
+ * Builder for the TCG DICE TcbInfo extension.  The extension builder uses OpenSSL ASN.1/DER
  * encoding functions.
  */
 struct x509_extension_builder_openssl_dice_tcbinfo {

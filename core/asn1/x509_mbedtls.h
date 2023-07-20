@@ -30,5 +30,8 @@ struct x509_engine_mbedtls {
 int x509_mbedtls_init (struct x509_engine_mbedtls *engine);
 void x509_mbedtls_release (struct x509_engine_mbedtls *engine);
 
+/* ASN.1 encoding helper functions. */
+int x509_mbedtls_close_asn1_object (uint8_t **pos, uint8_t *start, uint8_t tag, int *length);
+
 
 #endif /* X509_MBEDTLS_H_ */

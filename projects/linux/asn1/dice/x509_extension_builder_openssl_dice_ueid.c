@@ -15,16 +15,16 @@
 /**
  * Defines the structure of the Ueid extension for use with the OpenSSL ASN.1 encoding framework.
  */
-typedef struct x509_ueid_st {
+typedef struct dice_ueid_st {
 	ASN1_OCTET_STRING *ueid;		/**< The UEID string. */
 	ASN1_ENCODING enc;				/**< ASN1 encoding. */
-} X509_UEID;
+} DICE_UEID;
 
-ASN1_SEQUENCE_enc (X509_UEID, enc, 0) = {
-	ASN1_SIMPLE (X509_UEID, ueid, ASN1_OCTET_STRING)
-} ASN1_SEQUENCE_END_enc (X509_UEID, X509_UEID)
+ASN1_SEQUENCE_enc (DICE_UEID, enc, 0) = {
+	ASN1_SIMPLE (DICE_UEID, ueid, ASN1_OCTET_STRING)
+} ASN1_SEQUENCE_END_enc (DICE_UEID, DICE_UEID)
 
-IMPLEMENT_ASN1_FUNCTIONS (X509_UEID)
+IMPLEMENT_ASN1_FUNCTIONS (DICE_UEID)
 
 
 int x509_extension_builder_openssl_dice_ueid_build (const struct x509_extension_builder *builder,
@@ -32,7 +32,7 @@ int x509_extension_builder_openssl_dice_ueid_build (const struct x509_extension_
 {
 	const struct x509_extension_builder_openssl_dice_ueid *dice =
 		(const struct x509_extension_builder_openssl_dice_ueid*) builder;
-	X509_UEID *ueid_ext;
+	DICE_UEID *ueid_ext;
 	int status;
 	uint8_t *ueid_der = NULL;
 	int ueid_len;
@@ -41,7 +41,7 @@ int x509_extension_builder_openssl_dice_ueid_build (const struct x509_extension_
 		return DICE_UEID_EXTENSION_INVALID_ARGUMENT;
 	}
 
-	ueid_ext = X509_UEID_new ();
+	ueid_ext = DICE_UEID_new ();
 	if (ueid_ext == NULL) {
 		return -ERR_get_error ();
 	}
@@ -52,7 +52,7 @@ int x509_extension_builder_openssl_dice_ueid_build (const struct x509_extension_
 		goto exit;
 	}
 
-	ueid_len = i2d_X509_UEID (ueid_ext, &ueid_der);
+	ueid_len = i2d_DICE_UEID (ueid_ext, &ueid_der);
 	if (ueid_len < 0) {
 		status = -ERR_get_error ();
 		goto exit;
@@ -65,7 +65,7 @@ int x509_extension_builder_openssl_dice_ueid_build (const struct x509_extension_
 	status = 0;
 
 exit:
-	X509_UEID_free (ueid_ext);
+	DICE_UEID_free (ueid_ext);
 	return status;
 }
 

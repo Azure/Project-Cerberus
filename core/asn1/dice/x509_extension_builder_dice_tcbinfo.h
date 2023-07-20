@@ -16,7 +16,7 @@ struct x509_extension_builder_dice_tcbinfo {
 	struct x509_extension_builder base;		/**< Base extension builder API. */
 	const struct tcg_dice_tcbinfo *tcb;		/**< The TCB information to encode in the extension. */
 	uint8_t *ext_buffer;					/**< Buffer to use for building the extension data. */
-	size_t ext_length;						/**< Length of th extension data duffer. */
+	size_t ext_length;						/**< Length of the extension data duffer. */
 };
 
 
@@ -28,14 +28,13 @@ int x509_extension_builder_dice_tcbinfo_init_with_buffer (
 void x509_extension_builder_dice_tcbinfo_release (
 	const struct x509_extension_builder_dice_tcbinfo *builder);
 
+size_t x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (
+	const struct tcg_dice_tcbinfo *tcb);
 
-/* Internal definitions for use by Ueid extension builders. */
+
+/* Internal definitions for use by TcbInfo extension builders. */
 extern const uint8_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID[];
-
-/**
- * Length of the encoded TCG DICE Ueid extension OID.
- */
-#define	X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH		6
+extern const size_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH;
 
 
 #define	DICE_TCBINFO_EXTENSION_ERROR(code)		ROT_ERROR (ROT_MODULE_DICE_TCBINFO_EXTENSION, code)

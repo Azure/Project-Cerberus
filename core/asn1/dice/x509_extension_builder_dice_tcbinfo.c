@@ -25,12 +25,6 @@
  */
 #define	X509_EXTENSION_BUILDER_DICE_TCBINFO_BUFFER_PADDING		32
 
-/**
- * Buffer space to allocate for dynamic extension buffers.
- */
-#define	X509_EXTENSION_BUILDER_DICE_TCBINFO_DATA_LENGTH			\
-	(256 + X509_EXTENSION_BUILDER_DICE_TCBINFO_BUFFER_PADDING)
-
 
 /**
  * The encoded OID for the TCG DICE TcbInfo extension:  2.23.133.5.4.1
@@ -38,6 +32,12 @@
 const uint8_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID[] = {
 	0x67,0x81,0x05,0x05,0x04,0x01
 };
+
+/**
+ * Length of the encoded TCG DICE TcbInfo extension OID.
+ */
+const size_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH =
+	sizeof (X509_EXTENSION_BUILDER_DICE_TCBINFO_OID);
 
 
 /**
@@ -133,7 +133,8 @@ int x509_extension_builder_dice_tcbinfo_build_dynamic (const struct x509_extensi
 		return DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT;
 	}
 
-	length = X509_EXTENSION_BUILDER_DICE_TCBINFO_DATA_LENGTH;
+	length = x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (dice->tcb) +
+		X509_EXTENSION_BUILDER_DICE_TCBINFO_BUFFER_PADDING;
 	buffer = platform_malloc (length);
 	if (buffer == NULL) {
 		return DICE_TCBINFO_EXTENSION_NO_MEMORY;
@@ -246,4 +247,34 @@ void x509_extension_builder_dice_tcbinfo_release (
 	const struct x509_extension_builder_dice_tcbinfo *builder)
 {
 	UNUSED (builder);
+}
+
+/**
+ * Determine an appropriately sized buffer to use for TCG DICE TcbInfo extension building based on
+ * the TCB information.  This is not an exact extension length, but will provide sufficient space to
+ * fit the encoded extension.
+ *
+ * @param tcb The TCG DICE TCB information that will be encoded into an extension.
+ *
+ * @return The buffer length needed for the TCG DICE TcbInfo extension.
+ */
+size_t x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (
+	const struct tcg_dice_tcbinfo *tcb)
+{
+	size_t length = 4;	/* Space for the top-level sequence header. */
+
+	if (tcb != NULL) {
+		if (tcb->version != NULL) {
+			length += strlen (tcb->version);
+		}
+
+		length += sizeof (tcb->svn);
+		length += 9;					/* Worst-case FWID OID length. */
+		length += SHA512_HASH_LENGTH;	/* Worst-case FWID length */
+
+		/* Extra space for headers and sequence tags. */
+		length += (4 * 4) + (4 * 2);
+	}
+
+	return length;
 }

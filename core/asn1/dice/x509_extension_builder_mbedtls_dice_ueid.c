@@ -32,13 +32,13 @@ int x509_extension_builder_mbedtls_dice_ueid_create_extension (
 	pos = buffer + length;
 
 	/* ueid			OCTET STRING */
-	MBEDTLS_ASN1_CHK_ADD (enc_length, mbedtls_asn1_write_octet_string (&pos, buffer, dice->ueid,
-		dice->ueid_length));
+	MBEDTLS_ASN1_CHK_ADD (enc_length,
+		mbedtls_asn1_write_octet_string (&pos, buffer, dice->ueid, dice->ueid_length));
 
 	/* TcgUeid ::= SEQUENCE */
 	MBEDTLS_ASN1_CHK_ADD (enc_length, mbedtls_asn1_write_len (&pos, buffer, enc_length));
-	MBEDTLS_ASN1_CHK_ADD (enc_length, mbedtls_asn1_write_tag (&pos, buffer,
-		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)));
+	MBEDTLS_ASN1_CHK_ADD (enc_length,
+		mbedtls_asn1_write_tag (&pos, buffer, (MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)));
 
 	if (pos != buffer) {
 		memmove (buffer, pos, enc_length);

@@ -7,40 +7,12 @@
 #include "platform_api.h"
 #include "x509_extension_builder_dice_tcbinfo.h"
 #include "x509_extension_builder_mbedtls_dice_tcbinfo.h"
+#include "asn1/x509_mbedtls.h"
 #include "common/unused.h"
 #include "mbedtls/asn1write.h"
 #include "mbedtls/bignum.h"
 #include "mbedtls/oid.h"
 
-
-/**
- * Buffer space to allocate for dynamic extension buffers.
- */
-#define	X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_DATA_LENGTH		256
-
-
-/**
- * Write the ASN.1 header to an object.
- *
- * TODO:  Perhaps there should be a common set of mbedTLS ASN.1 utility functions?
- *
- * @param pos The current buffer position.
- * @param start The start of the buffer.
- * @param tag The object tag to write.
- * @param length The length of the object, updated with the header length.
- *
- * @return 0 if the object header was written or an error code.
- */
-static int x509_extension_builder_mbedtls_dice_tcbinfo_close_asn1_object (uint8_t **pos,
-	uint8_t *start, uint8_t tag, size_t *length)
-{
-	int ret;
-
-	MBEDTLS_ASN1_CHK_ADD (*length, mbedtls_asn1_write_len (pos, start, *length));
-	MBEDTLS_ASN1_CHK_ADD (*length, mbedtls_asn1_write_tag (pos, start, tag));
-
-	return 0;
-}
 
 /**
  * Create the TCG DICE TcbInfo extension.
@@ -57,7 +29,7 @@ int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 	struct x509_extension *extension)
 {
 	uint8_t *pos;
-	size_t enc_length = 0;
+	int enc_length = 0;
 	mbedtls_mpi svn;
 	uint32_t be_svn;
 	int fwid_length;
@@ -111,26 +83,25 @@ int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 	/* fwids		Fwids		OPTIONAL */
 
 	/* fwid				OCTET_STRING */
-	MBEDTLS_ASN1_CHK_ADD (enc_length, mbedtls_asn1_write_raw_buffer (&pos, buffer, dice->tcb->fwid,
-		fwid_length));
-	ret = x509_extension_builder_mbedtls_dice_tcbinfo_close_asn1_object (&pos, buffer,
-		MBEDTLS_ASN1_OCTET_STRING, &enc_length);
+	MBEDTLS_ASN1_CHK_ADD (enc_length,
+		mbedtls_asn1_write_raw_buffer (&pos, buffer, dice->tcb->fwid, fwid_length));
+	ret = x509_mbedtls_close_asn1_object (&pos, buffer, MBEDTLS_ASN1_OCTET_STRING, &enc_length);
 	if (ret != 0) {
 		return ret;
 	}
 
 	/* hashAlg			OBJECT IDENTIFIER */
-	MBEDTLS_ASN1_CHK_ADD (enc_length, mbedtls_asn1_write_oid (&pos, buffer, fwid_oid,
-		fwid_oid_length));
+	MBEDTLS_ASN1_CHK_ADD (enc_length,
+		mbedtls_asn1_write_oid (&pos, buffer, fwid_oid, fwid_oid_length));
 
 	/* fwid SEQUENCE */
-	ret = x509_extension_builder_mbedtls_dice_tcbinfo_close_asn1_object (&pos, buffer,
+	ret = x509_mbedtls_close_asn1_object (&pos, buffer,
 		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &enc_length);
 	if (ret != 0) {
 		return ret;
 	}
 
-	ret = x509_extension_builder_mbedtls_dice_tcbinfo_close_asn1_object (&pos, buffer,
+	ret = x509_mbedtls_close_asn1_object (&pos, buffer,
 		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_CONTEXT_SPECIFIC | 6), &enc_length);
 	if (ret != 0) {
 		return ret;
@@ -159,12 +130,13 @@ int x509_extension_builder_mbedtls_dice_tcbinfo_create_extension (
 	*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 3);
 
 	/* version		IA5String	OPTIONAL */
-	MBEDTLS_ASN1_CHK_ADD (enc_length, mbedtls_asn1_write_ia5_string (&pos, buffer,
-		dice->tcb->version, strlen (dice->tcb->version)));
+	MBEDTLS_ASN1_CHK_ADD (enc_length,
+		mbedtls_asn1_write_ia5_string (&pos, buffer, dice->tcb->version,
+			strlen (dice->tcb->version)));
 	*pos = (MBEDTLS_ASN1_CONTEXT_SPECIFIC | 2);
 
 	/* DiceTcbInfo ::= SEQUENCE */
-	ret = x509_extension_builder_mbedtls_dice_tcbinfo_close_asn1_object (&pos, buffer,
+	ret = x509_mbedtls_close_asn1_object (&pos, buffer,
 		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &enc_length);
 	if (ret != 0) {
 		return ret;
@@ -194,7 +166,7 @@ int x509_extension_builder_mbedtls_dice_tcbinfo_build_dynamic (
 		return DICE_TCBINFO_EXTENSION_INVALID_ARGUMENT;
 	}
 
-	length = X509_EXTENSION_BUILDER_MBEDTLS_DICE_TCBINFO_DATA_LENGTH;
+	length = x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (dice->tcb);
 	buffer = platform_malloc (length);
 	if (buffer == NULL) {
 		return DICE_TCBINFO_EXTENSION_NO_MEMORY;

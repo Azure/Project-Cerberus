@@ -25,6 +25,12 @@ const uint8_t X509_EXTENSION_BUILDER_DICE_UEID_OID[] = {
 	0x67,0x81,0x05,0x05,0x04,0x04
 };
 
+/**
+ * Length of the encoded TCG DICE Ueid extension OID.
+ */
+const size_t X509_EXTENSION_BUILDER_DICE_UEID_OID_LENGTH =
+	sizeof (X509_EXTENSION_BUILDER_DICE_UEID_OID);
+
 
 /**
  * Create the TCG DICE Ueid extension.

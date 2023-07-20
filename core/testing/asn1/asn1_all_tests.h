@@ -7,6 +7,7 @@
 #include "testing.h"
 #include "platform_all_tests.h"
 #include "dice/asn1_dice_all_tests.h"
+#include "dme/asn1_dme_all_tests.h"
 
 
 /**
@@ -19,6 +20,7 @@
 static void add_all_asn1_tests (CuSuite *suite)
 {
 	add_all_asn1_dice_tests (suite);
+	add_all_asn1_dme_tests (suite);
 
 #if (defined TESTING_RUN_ASN1_UTIL_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \

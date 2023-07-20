@@ -87,8 +87,7 @@ err_bio:
  *
  * @return 0 if the OID was parsed successfully or an error code.
  */
-static int x509_openssl_parse_encoded_oid (const uint8_t *encoded_oid, size_t length,
-	ASN1_OBJECT **oid)
+int x509_openssl_parse_encoded_oid (const uint8_t *encoded_oid, size_t length, ASN1_OBJECT **oid)
 {
 	uint8_t oid_der[256];
 	uint8_t *oid_ptr = oid_der;
@@ -107,6 +106,32 @@ static int x509_openssl_parse_encoded_oid (const uint8_t *encoded_oid, size_t le
 		status = -ERR_get_error ();
 		return status;
 	}
+
+	return 0;
+}
+
+/**
+ * Set the value of an ASN.1 BIT STRING, ensuring that the unused bits field is always 0.
+ *
+ * @param data The data to encode as a BIT STRING.
+ * @param length Length of the data.
+ * @param bits The BIT STRING object that will be updated.
+ *
+ * @return 0 if the bit string was updated successfully or an error code.
+ */
+int x509_openssl_set_bit_string (const uint8_t *data, size_t length, ASN1_BIT_STRING *bits)
+{
+	int status;
+
+	status = ASN1_BIT_STRING_set (bits, (uint8_t*) data, length);
+	if (status == 0) {
+		status = -ERR_get_error ();
+		return status;
+	}
+
+	/* Make sure unused bits is always 0. */
+	bits->flags &= ~(ASN1_STRING_FLAG_BITS_LEFT | 0x07);
+    bits->flags |= ASN1_STRING_FLAG_BITS_LEFT;
 
 	return 0;
 }

@@ -33,7 +33,7 @@ struct x509_extension_builder_dice_ueid {
 	const uint8_t *ueid;					/**< The UEID to encode in the extension. */
 	size_t ueid_length;						/**< Length of the UEID. */
 	uint8_t *ext_buffer;					/**< Buffer to use for building the extension data. */
-	size_t ext_length;						/**< Length of th extension data duffer. */
+	size_t ext_length;						/**< Length of the extension data duffer. */
 };
 
 
@@ -48,11 +48,7 @@ void x509_extension_builder_dice_ueid_release (
 
 /* Internal definitions for use by Ueid extension builders. */
 extern const uint8_t X509_EXTENSION_BUILDER_DICE_UEID_OID[];
-
-/**
- * Length of the encoded TCG DICE Ueid extension OID.
- */
-#define	X509_EXTENSION_BUILDER_DICE_UEID_OID_LENGTH		6
+extern const size_t X509_EXTENSION_BUILDER_DICE_UEID_OID_LENGTH;
 
 
 #define	DICE_UEID_EXTENSION_ERROR(code)		ROT_ERROR (ROT_MODULE_DICE_UEID_EXTENSION, code)

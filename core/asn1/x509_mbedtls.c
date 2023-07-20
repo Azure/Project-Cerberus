@@ -102,8 +102,7 @@ exit:
  *
  * @return 0 if the object header was written or an error code.
  */
-static int x509_mbedtls_close_asn1_object (uint8_t **pos, uint8_t *start, uint8_t tag,
-	int *length)
+int x509_mbedtls_close_asn1_object (uint8_t **pos, uint8_t *start, uint8_t tag, int *length)
 {
 	int ret;
 

@@ -42,9 +42,8 @@ void x509_extension_builder_dice_tcbinfo_free_static (const struct x509_extensio
  *
  * There is no validation done on the arguments.
  *
- * @param tcb_ptr The device unique identifier that should be encoded in the extension.  This
- * does not need to be constant.  The contents can be updated at run-time to affect what will be
- * encoded in the extension.
+ * @param tcb_ptr The firmware TCB to encode in the extension.  This does not need to be constant.
+ * The contents can be updated at run-time to affect what will be encoded in the extension.
  */
 #define	x509_extension_builder_dice_tcbinfo_static_init(tcb_ptr)	{ \
 		.base = X509_EXTENSION_BUILDER_DICE_TCBINFO_DYNAMIC_API_INIT, \
@@ -59,9 +58,8 @@ void x509_extension_builder_dice_tcbinfo_free_static (const struct x509_extensio
  *
  * There is no validation done on the arguments.
  *
- * @param tcb_ptr The device unique identifier that should be encoded in the extension.  This
- * does not need to be constant.  The contents can be updated at run-time to affect what will be
- * encoded in the extension.
+ * @param tcb_ptr The firmware TCB to encode in the extension.  This does not need to be constant.
+ * The contents can be updated at run-time to affect what will be encoded in the extension.
  * @param ext_buffer_ptr Buffer for the encoded TcbInfo extension data.
  * @param buffer_length Length of the extension data buffer.
  */

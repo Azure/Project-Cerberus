@@ -205,8 +205,7 @@ void x509_extension_builder_openssl_dice_tcbinfo_free (const struct x509_extensi
 }
 
 /**
- * Initialize an extension builder for a TCG DICE TcbInfo extension.  The buffer that will be used
- * for the extension data will be dynamically allocated.
+ * Initialize an extension builder for a TCG DICE TcbInfo extension.
  *
  * @param builder The extension builder to initialize.
  * @param tcb The firmware TCB to encode in the extension.  This does not need to be constant.  The

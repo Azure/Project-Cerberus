@@ -1028,6 +1028,118 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_small_buf
 	x509_extension_builder_dice_tcbinfo_release (&builder);
 }
 
+static void x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length (CuTest *test)
+{
+	struct tcg_dice_tcbinfo tcb;
+	size_t length;
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fwid = X509_RIOT_SHA256_FWID;
+	tcb.fwid_hash = HASH_TYPE_SHA256;
+
+	length = x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (&tcb);
+	CuAssertTrue (test, (length >= X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_SHA256_LEN));
+}
+
+static void x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_sha1 (CuTest *test)
+{
+	struct tcg_dice_tcbinfo tcb;
+	size_t length;
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fwid = X509_RIOT_SHA1_FWID;
+	tcb.fwid_hash = HASH_TYPE_SHA1;
+
+	length = x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (&tcb);
+	CuAssertTrue (test, (length >= X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_SHA1_LEN));
+}
+
+static void x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_sha384 (CuTest *test)
+{
+	struct tcg_dice_tcbinfo tcb;
+	size_t length;
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fwid = X509_RIOT_SHA384_FWID;
+	tcb.fwid_hash = HASH_TYPE_SHA384;
+
+	length = x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (&tcb);
+	CuAssertTrue (test, (length >= X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_SHA384_LEN));
+}
+
+static void x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_sha512 (CuTest *test)
+{
+	struct tcg_dice_tcbinfo tcb;
+	size_t length;
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fwid = X509_RIOT_SHA512_FWID;
+	tcb.fwid_hash = HASH_TYPE_SHA512;
+
+	length = x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (&tcb);
+	CuAssertTrue (test, (length >= X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_SHA512_LEN));
+}
+
+static void x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_svn_zero (CuTest *test)
+{
+	struct tcg_dice_tcbinfo tcb;
+	size_t length;
+
+
+	TEST_START;
+
+	tcb.version = X509_RIOT_VERSION;
+	tcb.svn = 0;
+	tcb.fwid = X509_RIOT_SHA256_FWID;
+	tcb.fwid_hash = HASH_TYPE_SHA256;
+
+	length = x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (&tcb);
+	CuAssertTrue (test, (length >= X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_SVN_ZERO_LEN));
+}
+
+static void x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_version_null (
+	CuTest *test)
+{
+	struct tcg_dice_tcbinfo tcb;
+	size_t length;
+	size_t min_length;
+
+	TEST_START;
+
+	tcb.version = NULL;
+	tcb.svn = X509_RIOT_SVN;
+	tcb.fwid = X509_RIOT_SHA256_FWID;
+	tcb.fwid_hash = HASH_TYPE_SHA256;
+
+	min_length = (X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_SHA256_LEN -
+		sizeof (X509_RIOT_VERSION) + 2);
+
+	length = x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (&tcb);
+	CuAssertTrue (test, (length >= min_length));
+}
+
+static void x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_null (CuTest *test)
+{
+	size_t length;
+
+	TEST_START;
+
+	length = x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (NULL);
+	CuAssertIntEquals (test, 4, length);
+}
+
 
 TEST_SUITE_START (x509_extension_builder_dice_tcbinfo);
 
@@ -1059,5 +1171,12 @@ TEST (x509_extension_builder_dice_tcbinfo_test_build_with_buffer_null);
 TEST (x509_extension_builder_dice_tcbinfo_test_build_with_buffer_static_init_null_buffer);
 TEST (x509_extension_builder_dice_tcbinfo_test_build_with_buffer_static_init_null_tcb);
 TEST (x509_extension_builder_dice_tcbinfo_test_build_with_buffer_small_buffer);
+TEST (x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length);
+TEST (x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_sha1);
+TEST (x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_sha384);
+TEST (x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_sha512);
+TEST (x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_svn_zero);
+TEST (x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_version_null);
+TEST (x509_extension_builder_dice_tcbinfo_test_get_ext_buffer_length_null);
 
 TEST_SUITE_END;

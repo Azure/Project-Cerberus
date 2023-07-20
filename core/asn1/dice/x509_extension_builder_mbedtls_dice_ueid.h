@@ -25,7 +25,7 @@ struct x509_extension_builder_mbedtls_dice_ueid {
 	const uint8_t *ueid;					/**< The UEID to encode in the extension. */
 	size_t ueid_length;						/**< Length of the UEID. */
 	uint8_t *ext_buffer;					/**< Buffer to use for building the extension data. */
-	size_t ext_length;						/**< Length of th extension data duffer. */
+	size_t ext_length;						/**< Length of the extension data duffer. */
 };
 
 
