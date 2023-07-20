@@ -64,11 +64,13 @@ int x509_cert_build_get_certificate_der (struct x509_engine *engine,
  *
  * @param ecc_ptr The ECC engine to use for ECC key operations.
  * @param hash_ptr The hash engine to use for calculating digests.
+ * @param max_size The maximum certificate length that can be constructed.
  */
-#define	x509_cert_build_static_init(ecc_ptr, hash_ptr)	{ \
+#define	x509_cert_build_static_init(ecc_ptr, hash_ptr, max_size)	{ \
 		.base = X509_CERT_BUILD_API_INIT, \
 		.ecc = ecc_ptr, \
-		.hash = hash_ptr \
+		.hash = hash_ptr, \
+		.max_cert_length = max_size, \
 	}
 
 

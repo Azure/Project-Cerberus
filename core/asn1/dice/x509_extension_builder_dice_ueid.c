@@ -15,7 +15,7 @@
  *
  * TODO:  Put this in a common location.
  */
-#define	DER_CHK_ENCODE(func)	if((status = (func)) != 0) {goto error;}
+#define	DER_CHK_ENCODE(func)	if ((status = (func)) != 0) {goto error;}
 
 
 /**

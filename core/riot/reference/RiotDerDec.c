@@ -376,8 +376,6 @@ RIOT_STATUS DERDECGetSubjectName(char **name, const uint8_t *der, const size_t l
 
 	*name = NULL;
 
-	ASRT(length <= X509_CERT_BUILD_MAX_SIZE);
-
 	status = read_cert_subject_name(&len, &position, der, length);
 	if ((status != 0) || ((position + len) > length)) {
 		goto Error;
@@ -401,7 +399,6 @@ RIOT_STATUS DERDECVerifyCert(const uint8_t *der, const size_t length)
 	int status;
 
 	ASRT(der != NULL);
-	ASRT(length <= X509_CERT_BUILD_MAX_SIZE);
 
 	status = read_cert_subject_name(&len, &position, der, length);
 	if (status != 0 || ((position + len) > length)) {

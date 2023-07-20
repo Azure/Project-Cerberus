@@ -26,33 +26,35 @@
  *
  * TODO:  Put this is a common location.
  */
-#define	DER_CHK_ENCODE(func)	if((status = (func)) != 0) {goto error;}
+#define	DER_CHK_ENCODE(func)	if ((status = (func)) != 0) {goto error;}
 
 
 /**
  * Create a new DER certificate instance.
  *
+ * @param x509 The certificate builder to use for cert allocation.
+ *
  * @return The allocated certificate or null.
  */
-static DERBuilderContext* x509_cert_build_new_cert ()
+static DERBuilderContext* x509_cert_build_new_cert (const struct x509_engine_cert_build *x509)
 {
-	DERBuilderContext *x509;
+	DERBuilderContext *der;
 	uint8_t *der_buf;
 
-	x509 = platform_malloc (sizeof (DERBuilderContext));
-	if (x509 == NULL) {
+	der = platform_malloc (sizeof (DERBuilderContext));
+	if (der == NULL) {
 		return NULL;
 	}
 
-	der_buf = platform_malloc (X509_CERT_BUILD_MAX_SIZE);
+	der_buf = platform_malloc (x509->max_cert_length);
 	if (der_buf == NULL) {
-		platform_free (x509);
+		platform_free (der);
 		return NULL;
 	}
 
-	DERInitContext (x509, der_buf, X509_CERT_BUILD_MAX_SIZE);
+	DERInitContext (der, der_buf, x509->max_cert_length);
 
-	return x509;
+	return der;
 }
 
 /**
@@ -425,9 +427,7 @@ int x509_cert_build_create_csr (struct x509_engine *engine, const uint8_t *priv_
 	size_t ext_count, uint8_t **csr, size_t *csr_length)
 {
 	const struct x509_engine_cert_build *x509 = (const struct x509_engine_cert_build*) engine;
-	DERBuilderContext der;
-	uint8_t der_buf[X509_CERT_BUILD_MAX_SIZE];
-	size_t der_len;
+	DERBuilderContext *der;
 	struct ecc_private_key ecc_priv_key;
 	struct ecc_public_key ecc_pub_key;
 	uint8_t *pub_key_der = NULL;
@@ -487,33 +487,34 @@ int x509_cert_build_create_csr (struct x509_engine *engine, const uint8_t *priv_
 		goto err_free_key;
 	}
 
-	DERInitContext (&der, der_buf, sizeof (der_buf));
-	status = x509_cert_build_build_csr_tbs_data (&der, name, pub_key_der, pub_key_der_len, type,
-		eku, eku_length, extra_extensions, ext_count);
-	if (status != 0) {
-		status = (status == -1) ? X509_ENGINE_CSR_FAILED : status;
-		goto err_free_key_der;
-	}
-
-	status = x509_cert_build_sign_certificate (&der, &ecc_priv_key, x509->ecc, x509->hash, sig_hash,
-		sig_oid);
-	if (status != 0) {
-		status = (status == -1) ? X509_ENGINE_CSR_FAILED : status;
-		goto err_free_key_der;
-	}
-
-	der_len = DERGetEncodedLength (&der);
-	*csr = platform_malloc (der_len);
-	if (*csr == NULL) {
+	der = x509_cert_build_new_cert (x509);
+	if (der == NULL) {
 		status = X509_ENGINE_NO_MEMORY;
 		goto err_free_key_der;
 	}
 
-	memcpy (*csr, der.Buffer, der_len);
-	*csr_length = der_len;
+	status = x509_cert_build_build_csr_tbs_data (der, name, pub_key_der, pub_key_der_len, type,
+		eku, eku_length, extra_extensions, ext_count);
+	if (status != 0) {
+		status = (status == -1) ? X509_ENGINE_CSR_FAILED : status;
+		goto err_free_cert;
+	}
 
+	status = x509_cert_build_sign_certificate (der, &ecc_priv_key, x509->ecc, x509->hash, sig_hash,
+		sig_oid);
+	if (status != 0) {
+		status = (status == -1) ? X509_ENGINE_CSR_FAILED : status;
+		goto err_free_cert;
+	}
+
+	*csr_length = DERGetEncodedLength (der);
+	*csr = der->Buffer;
+
+	der->Buffer = NULL;
 	status = 0;
 
+err_free_cert:
+	x509_cert_build_free_cert (der);
 err_free_key_der:
 	platform_free (pub_key_der);
 err_free_key:
@@ -684,7 +685,7 @@ int x509_cert_build_create_self_signed_certificate (struct x509_engine *engine,
 		goto err_free_key_der;
 	}
 
-	der = x509_cert_build_new_cert ();
+	der = x509_cert_build_new_cert (x509);
 	if (der ==  NULL) {
 		status = X509_ENGINE_NO_MEMORY;
 		goto err_free_key_der;
@@ -840,7 +841,7 @@ int x509_cert_build_create_ca_signed_certificate (struct x509_engine *engine,
 		goto err_free_key_der;
 	}
 
-	der = x509_cert_build_new_cert ();
+	der = x509_cert_build_new_cert (x509);
 	if (der ==  NULL) {
 		status = X509_ENGINE_NO_MEMORY;
 		goto err_free_name;
@@ -884,14 +885,15 @@ err_free_key:
 int x509_cert_build_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
 	const uint8_t *der, size_t length)
 {
-	DERBuilderContext *x509;
+	const struct x509_engine_cert_build *x509 = (const struct x509_engine_cert_build*) engine;
+	DERBuilderContext *load_cert;
 	int status;
 
-	if ((engine == NULL) || (cert == NULL) || (der == NULL) || (length == 0)) {
+	if ((x509 == NULL) || (cert == NULL) || (der == NULL) || (length == 0)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (length > X509_CERT_BUILD_MAX_SIZE) {
+	if (length > x509->max_cert_length) {
 		return X509_ENGINE_BIG_CERT_SIZE;
 	}
 
@@ -902,15 +904,15 @@ int x509_cert_build_load_certificate (struct x509_engine *engine, struct x509_ce
 		return X509_ENGINE_LOAD_FAILED;
 	}
 
-	x509 = x509_cert_build_new_cert ();
-	if (x509 == NULL) {
+	load_cert = x509_cert_build_new_cert (x509);
+	if (load_cert == NULL) {
 		return X509_ENGINE_NO_MEMORY;
 	}
 
-	memcpy (x509->Buffer, der, length);
-	x509->Position = length;
+	memcpy (load_cert->Buffer, der, length);
+	load_cert->Position = length;
 
-	cert->context = x509;
+	cert->context = load_cert;
 
 	return 0;
 }
@@ -926,8 +928,8 @@ void x509_cert_build_release_certificate (struct x509_engine *engine, struct x50
 }
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
-int x509_cert_build_get_certificate_der (struct x509_engine *engine, const struct x509_certificate *cert,
-	uint8_t **der, size_t *length)
+int x509_cert_build_get_certificate_der (struct x509_engine *engine,
+	const struct x509_certificate *cert, uint8_t **der, size_t *length)
 {
 	DERBuilderContext *cert_ctx;
 	size_t enc_len;
@@ -963,13 +965,14 @@ int x509_cert_build_get_certificate_der (struct x509_engine *engine, const struc
  * @param engine The X.509 engine to initialize.
  * @param ecc The ECC engine to use for ECC key operations.
  * @param hash The hash engine to use for calculating digests.
+ * @param max_length The maximum certificate length that can be constructed.
  *
  * @return 0 if the X.509 engine was successfully initialized or an error code.
  */
 int x509_cert_build_init (struct x509_engine_cert_build *engine, struct ecc_engine *ecc,
-	struct hash_engine *hash)
+	struct hash_engine *hash, size_t max_cert_length)
 {
-	if ((engine == NULL) || (ecc == NULL) || (hash == NULL)) {
+	if ((engine == NULL) || (ecc == NULL) || (hash == NULL) || (max_cert_length == 0)) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -977,6 +980,7 @@ int x509_cert_build_init (struct x509_engine_cert_build *engine, struct ecc_engi
 
 	engine->ecc = ecc;
 	engine->hash = hash;
+	engine->max_cert_length = max_cert_length;
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
 	engine->base.create_csr = x509_cert_build_create_csr;

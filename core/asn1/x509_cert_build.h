@@ -10,12 +10,6 @@
 
 
 /**
- * The maximum size allowed for a DER encoded certificate.
- */
-#define	X509_CERT_BUILD_MAX_SIZE		1024
-
-
-/**
  * An X.509 handler that only supports building certificates.  This support is provided without
  * requiring any external ASN.1 encoders.  The primary use-case for this would be for DICE layer 0
  * code to build the DICE identity certificate chain.
@@ -37,11 +31,12 @@ struct x509_engine_cert_build {
 	struct x509_engine base;	/**< The base X.509 engine. */
 	struct ecc_engine *ecc;		/**< The ECC engine to use for certificate signing. */
 	struct hash_engine *hash;	/**< The hash engine to use digest calculation. */
+	size_t max_cert_length;		/**< The maximum certificate length supported. */
 };
 
 
 int x509_cert_build_init (struct x509_engine_cert_build *engine, struct ecc_engine *ecc,
-	struct hash_engine *hash);
+	struct hash_engine *hash, size_t max_cert_length);
 void x509_cert_build_release (struct x509_engine_cert_build *engine);
 
 
