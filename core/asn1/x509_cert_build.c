@@ -375,8 +375,9 @@ error:
  *
  * @return 0 if the certificate was signed successfully or an error code.
  */
-static int x509_cert_build_sign_certificate (DERBuilderContext *der, struct ecc_private_key *priv_key,
-	struct ecc_engine *ecc, struct hash_engine *hash, enum hash_type sig_hash, const int *sig_oid)
+static int x509_cert_build_sign_certificate (DERBuilderContext *der,
+	struct ecc_private_key *priv_key, struct ecc_engine *ecc, struct hash_engine *hash,
+	enum hash_type sig_hash, const int *sig_oid)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	uint8_t tbs_sig[ECC_DER_ECDSA_MAX_LENGTH];
@@ -399,7 +400,7 @@ static int x509_cert_build_sign_certificate (DERBuilderContext *der, struct ecc_
 		return status;
 	}
 
-	sig_len = ecc->sign (ecc, priv_key, digest, sizeof (digest), tbs_sig, sizeof (tbs_sig));
+	sig_len = ecc->sign (ecc, priv_key, digest, status, tbs_sig, sizeof (tbs_sig));
 	if (ROT_IS_ERROR (sig_len)) {
 		return sig_len;
 	}
@@ -494,8 +495,8 @@ int x509_cert_build_create_csr (struct x509_engine *engine, const uint8_t *priv_
 		goto err_free_key_der;
 	}
 
-	status = x509_cert_build_sign_certificate (&der, &ecc_priv_key, x509->ecc,  x509->hash,
-		sig_hash, sig_oid);
+	status = x509_cert_build_sign_certificate (&der, &ecc_priv_key, x509->ecc, x509->hash, sig_hash,
+		sig_oid);
 	if (status != 0) {
 		status = (status == -1) ? X509_ENGINE_CSR_FAILED : status;
 		goto err_free_key_der;
