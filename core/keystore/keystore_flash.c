@@ -104,7 +104,7 @@ static int keystore_flash_erase_all_keys (struct keystore *store)
  *
  * @return 0 if the key storage was successfully initialized or an error code.
  */
-int keystore_flash_init (struct keystore_flash *store, struct flash_store *flash)
+int keystore_flash_init (struct keystore_flash *store, const struct flash_store *flash)
 {
 	if ((store == NULL) || (flash == NULL)) {
 		return KEYSTORE_INVALID_ARGUMENT;

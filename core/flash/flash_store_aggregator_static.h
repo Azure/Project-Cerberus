@@ -20,6 +20,7 @@ int flash_store_aggregtor_get_max_data_length (const struct flash_store *flash_s
 int flash_store_aggregtor_get_flash_size (const struct flash_store *flash_store);
 int flash_store_aggregtor_get_num_blocks (const struct flash_store *flash_store);
 
+
 /**
  * Constant initializer for the flash store aggregator interface APIs.
  */
@@ -34,6 +35,7 @@ int flash_store_aggregtor_get_num_blocks (const struct flash_store *flash_store)
 		.get_flash_size = flash_store_aggregtor_get_flash_size, \
 		.get_num_blocks = flash_store_aggregtor_get_num_blocks \
 	}
+
 
 /**
  * Initialize a static instance of a flash store aggregator.

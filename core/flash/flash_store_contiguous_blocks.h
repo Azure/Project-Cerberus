@@ -55,6 +55,7 @@ struct flash_store_contiguous_blocks {
 	struct hash_engine *hash;							/**< Hash engine for integrity checking. */
 };
 
+
 int flash_store_contiguous_blocks_init_fixed_storage (struct flash_store_contiguous_blocks *store,
 	struct flash_store_contiguous_blocks_state *state, const struct flash *flash,
 	uint32_t base_addr, size_t block_count, size_t data_length, struct hash_engine *hash);

@@ -3698,7 +3698,8 @@ static void flash_store_contiguous_blocks_test_init_variable_storage_decreasing_
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 }
 
-static void flash_store_contiguous_blocks_test_init_variable_storage_decreasing_page_size_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_init_variable_storage_decreasing_page_size_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -3729,7 +3730,8 @@ static void flash_store_contiguous_blocks_test_init_variable_storage_decreasing_
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 }
 
-static void flash_store_contiguous_blocks_test_init_variable_storage_decreasing_min_write_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_init_variable_storage_decreasing_min_write_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -3768,30 +3770,28 @@ static void flash_store_contiguous_blocks_test_init_variable_storage_decreasing_
 static void flash_store_contiguous_blocks_test_static_init_fixed_storage_no_hash (CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage
-		(FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
 	int status;
 
 	TEST_START;
 
-	store.test = flash_store;
 	store.page = 0x100;
 	store.sector = 0x1000;
 	store.bytes = 0x100000;
 	store.min_write = 1;
 
-	CuAssertPtrNotNull (test, store.test.base.write);
-	CuAssertPtrNotNull (test, store.test.base.read);
-	CuAssertPtrNotNull (test, store.test.base.erase);
-	CuAssertPtrNotNull (test, store.test.base.erase_all);
-	CuAssertPtrNotNull (test, store.test.base.get_data_length);
-	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
-	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
-	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
-	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
+	CuAssertPtrNotNull (test, test_static.base.write);
+	CuAssertPtrNotNull (test, test_static.base.read);
+	CuAssertPtrNotNull (test, test_static.base.erase);
+	CuAssertPtrNotNull (test, test_static.base.erase_all);
+	CuAssertPtrNotNull (test, test_static.base.get_data_length);
+	CuAssertPtrNotNull (test, test_static.base.has_data_stored);
+	CuAssertPtrNotNull (test, test_static.base.get_max_data_length);
+	CuAssertPtrNotNull (test, test_static.base.get_flash_size);
+	CuAssertPtrNotNull (test, test_static.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_testing_init_dependencies (test, &store);
 
@@ -3814,50 +3814,48 @@ static void flash_store_contiguous_blocks_test_static_init_fixed_storage_no_hash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.get_max_data_length (&store.test.base);
+	status = test_static.base.get_max_data_length (&test_static.base);
 	CuAssertIntEquals (test, 256, status);
 
-	status = store.test.base.get_flash_size (&store.test.base);
+	status = test_static.base.get_flash_size (&test_static.base);
 	CuAssertIntEquals (test, 3 * store.sector, status);
 
-	status = store.test.base.get_num_blocks (&store.test.base);
+	status = test_static.base.get_num_blocks (&test_static.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_static_init_fixed_storage_with_hash (CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_fixed_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
 	int status;
 
 	TEST_START;
 
-	store.test = flash_store;
 	store.page = 0x100;
 	store.sector = 0x1000;
 	store.bytes = 0x100000;
 	store.min_write = 1;
 
-	CuAssertPtrNotNull (test, store.test.base.write);
-	CuAssertPtrNotNull (test, store.test.base.read);
-	CuAssertPtrNotNull (test, store.test.base.erase);
-	CuAssertPtrNotNull (test, store.test.base.erase_all);
-	CuAssertPtrNotNull (test, store.test.base.get_data_length);
-	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
-	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
-	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
-	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
+	CuAssertPtrNotNull (test, test_static.base.write);
+	CuAssertPtrNotNull (test, test_static.base.read);
+	CuAssertPtrNotNull (test, test_static.base.erase);
+	CuAssertPtrNotNull (test, test_static.base.erase_all);
+	CuAssertPtrNotNull (test, test_static.base.get_data_length);
+	CuAssertPtrNotNull (test, test_static.base.has_data_stored);
+	CuAssertPtrNotNull (test, test_static.base.get_max_data_length);
+	CuAssertPtrNotNull (test, test_static.base.get_flash_size);
+	CuAssertPtrNotNull (test, test_static.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_testing_init_dependencies (test, &store);
 
@@ -3880,50 +3878,49 @@ static void flash_store_contiguous_blocks_test_static_init_fixed_storage_with_ha
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.get_max_data_length (&store.test.base);
+	status = test_static.base.get_max_data_length (&test_static.base);
 	CuAssertIntEquals (test, 256, status);
 
-	status = store.test.base.get_flash_size (&store.test.base);
+	status = test_static.base.get_flash_size (&test_static.base);
 	CuAssertIntEquals (test, 3 * store.sector, status);
 
-	status = store.test.base.get_num_blocks (&store.test.base);
+	status = test_static.base.get_num_blocks (&test_static.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
-static void flash_store_contiguous_blocks_test_static_init_fixed_storage_decreasing_no_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_static_init_fixed_storage_decreasing_no_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
 	int status;
 
-	store.test = flash_store;
+	TEST_START;
+
 	store.page = 0x100;
 	store.sector = 0x1000;
 	store.bytes = 0x100000;
 	store.min_write = 1;
 
-	TEST_START;
-
-	CuAssertPtrNotNull (test, store.test.base.write);
-	CuAssertPtrNotNull (test, store.test.base.read);
-	CuAssertPtrNotNull (test, store.test.base.erase);
-	CuAssertPtrNotNull (test, store.test.base.erase_all);
-	CuAssertPtrNotNull (test, store.test.base.get_data_length);
-	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
-	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
-	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
-	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
+	CuAssertPtrNotNull (test, test_static.base.write);
+	CuAssertPtrNotNull (test, test_static.base.read);
+	CuAssertPtrNotNull (test, test_static.base.erase);
+	CuAssertPtrNotNull (test, test_static.base.erase_all);
+	CuAssertPtrNotNull (test, test_static.base.get_data_length);
+	CuAssertPtrNotNull (test, test_static.base.has_data_stored);
+	CuAssertPtrNotNull (test, test_static.base.get_max_data_length);
+	CuAssertPtrNotNull (test, test_static.base.get_flash_size);
+	CuAssertPtrNotNull (test, test_static.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_testing_init_dependencies (test, &store);
 
@@ -3946,50 +3943,49 @@ static void flash_store_contiguous_blocks_test_static_init_fixed_storage_decreas
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.get_max_data_length (&store.test.base);
+	status = test_static.base.get_max_data_length (&test_static.base);
 	CuAssertIntEquals (test, 256, status);
 
-	status = store.test.base.get_flash_size (&store.test.base);
+	status = test_static.base.get_flash_size (&test_static.base);
 	CuAssertIntEquals (test, 3 * store.sector, status);
 
-	status = store.test.base.get_num_blocks (&store.test.base);
+	status = test_static.base.get_num_blocks (&test_static.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
-static void flash_store_contiguous_blocks_test_static_init_fixed_storage_decreasing_with_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_static_init_fixed_storage_decreasing_with_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		&store.hash.base);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
 	int status;
 
-	store.test = flash_store;
+	TEST_START;
+
 	store.page = 0x100;
 	store.sector = 0x1000;
 	store.bytes = 0x100000;
 	store.min_write = 1;
 
-	TEST_START;
-
-	CuAssertPtrNotNull (test, store.test.base.write);
-	CuAssertPtrNotNull (test, store.test.base.read);
-	CuAssertPtrNotNull (test, store.test.base.erase);
-	CuAssertPtrNotNull (test, store.test.base.erase_all);
-	CuAssertPtrNotNull (test, store.test.base.get_data_length);
-	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
-	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
-	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
-	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
+	CuAssertPtrNotNull (test, test_static.base.write);
+	CuAssertPtrNotNull (test, test_static.base.read);
+	CuAssertPtrNotNull (test, test_static.base.erase);
+	CuAssertPtrNotNull (test, test_static.base.erase_all);
+	CuAssertPtrNotNull (test, test_static.base.get_data_length);
+	CuAssertPtrNotNull (test, test_static.base.has_data_stored);
+	CuAssertPtrNotNull (test, test_static.base.get_max_data_length);
+	CuAssertPtrNotNull (test, test_static.base.get_flash_size);
+	CuAssertPtrNotNull (test, test_static.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_testing_init_dependencies (test, &store);
 
@@ -4012,60 +4008,48 @@ static void flash_store_contiguous_blocks_test_static_init_fixed_storage_decreas
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, store.test.base.write);
-	CuAssertPtrNotNull (test, store.test.base.read);
-	CuAssertPtrNotNull (test, store.test.base.erase);
-	CuAssertPtrNotNull (test, store.test.base.erase_all);
-	CuAssertPtrNotNull (test, store.test.base.get_data_length);
-	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
-	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
-	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
-	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
-
-	status = store.test.base.get_max_data_length (&store.test.base);
+	status = test_static.base.get_max_data_length (&test_static.base);
 	CuAssertIntEquals (test, 256, status);
 
-	status = store.test.base.get_flash_size (&store.test.base);
+	status = test_static.base.get_flash_size (&test_static.base);
 	CuAssertIntEquals (test, 3 * store.sector, status);
 
-	status = store.test.base.get_num_blocks (&store.test.base);
+	status = test_static.base.get_num_blocks (&test_static.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_static_init_variable_storage_no_hash (CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
 	int status;
 
-	store.test = flash_store;
+	TEST_START;
+
 	store.page = 0x100;
 	store.sector = 0x1000;
 	store.bytes = 0x100000;
 	store.min_write = 1;
 
-	TEST_START;
-
-	CuAssertPtrNotNull (test, store.test.base.write);
-	CuAssertPtrNotNull (test, store.test.base.read);
-	CuAssertPtrNotNull (test, store.test.base.erase);
-	CuAssertPtrNotNull (test, store.test.base.erase_all);
-	CuAssertPtrNotNull (test, store.test.base.get_data_length);
-	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
-	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
-	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
-	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
+	CuAssertPtrNotNull (test, test_static.base.write);
+	CuAssertPtrNotNull (test, test_static.base.read);
+	CuAssertPtrNotNull (test, test_static.base.erase);
+	CuAssertPtrNotNull (test, test_static.base.erase_all);
+	CuAssertPtrNotNull (test, test_static.base.get_data_length);
+	CuAssertPtrNotNull (test, test_static.base.has_data_stored);
+	CuAssertPtrNotNull (test, test_static.base.get_max_data_length);
+	CuAssertPtrNotNull (test, test_static.base.get_flash_size);
+	CuAssertPtrNotNull (test, test_static.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_testing_init_dependencies (test, &store);
 
@@ -4088,51 +4072,48 @@ static void flash_store_contiguous_blocks_test_static_init_variable_storage_no_h
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
-
-	status = store.test.base.get_max_data_length (&store.test.base);
+	status = test_static.base.get_max_data_length (&test_static.base);
 	CuAssertIntEquals (test, store.sector - sizeof (struct flash_store_header), status);
 
-	status = store.test.base.get_flash_size (&store.test.base);
+	status = test_static.base.get_flash_size (&test_static.base);
 	CuAssertIntEquals (test, 3 * store.sector, status);
 
-	status = store.test.base.get_num_blocks (&store.test.base);
+	status = test_static.base.get_num_blocks (&test_static.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_static_init_variable_storage_with_hash (CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		&store.hash.base);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
 	int status;
 
-	store.test = flash_store;
+	TEST_START;
+
 	store.page = 0x100;
 	store.sector = 0x1000;
 	store.bytes = 0x100000;
 	store.min_write = 1;
 
-	TEST_START;
-
-	CuAssertPtrNotNull (test, store.test.base.write);
-	CuAssertPtrNotNull (test, store.test.base.read);
-	CuAssertPtrNotNull (test, store.test.base.erase);
-	CuAssertPtrNotNull (test, store.test.base.erase_all);
-	CuAssertPtrNotNull (test, store.test.base.get_data_length);
-	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
-	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
-	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
-	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
+	CuAssertPtrNotNull (test, test_static.base.write);
+	CuAssertPtrNotNull (test, test_static.base.read);
+	CuAssertPtrNotNull (test, test_static.base.erase);
+	CuAssertPtrNotNull (test, test_static.base.erase_all);
+	CuAssertPtrNotNull (test, test_static.base.get_data_length);
+	CuAssertPtrNotNull (test, test_static.base.has_data_stored);
+	CuAssertPtrNotNull (test, test_static.base.get_max_data_length);
+	CuAssertPtrNotNull (test, test_static.base.get_flash_size);
+	CuAssertPtrNotNull (test, test_static.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_testing_init_dependencies (test, &store);
 
@@ -4155,50 +4136,49 @@ static void flash_store_contiguous_blocks_test_static_init_variable_storage_with
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.get_max_data_length (&store.test.base);
+	status = test_static.base.get_max_data_length (&test_static.base);
 	CuAssertIntEquals (test, store.sector - sizeof (struct flash_store_header) - 32, status);
 
-	status = store.test.base.get_flash_size (&store.test.base);
+	status = test_static.base.get_flash_size (&test_static.base);
 	CuAssertIntEquals (test, 3 * store.sector, status);
 
-	status = store.test.base.get_num_blocks (&store.test.base);
+	status = test_static.base.get_num_blocks (&test_static.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
-static void flash_store_contiguous_blocks_test_static_init_variable_storage_decreasing_no_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_static_init_variable_storage_decreasing_no_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
 	int status;
 
-	store.test = flash_store;
+	TEST_START;
+
 	store.page = 0x100;
 	store.sector = 0x1000;
 	store.bytes = 0x100000;
 	store.min_write = 1;
 
-	TEST_START;
-
-	CuAssertPtrNotNull (test, store.test.base.write);
-	CuAssertPtrNotNull (test, store.test.base.read);
-	CuAssertPtrNotNull (test, store.test.base.erase);
-	CuAssertPtrNotNull (test, store.test.base.erase_all);
-	CuAssertPtrNotNull (test, store.test.base.get_data_length);
-	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
-	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
-	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
-	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
+	CuAssertPtrNotNull (test, test_static.base.write);
+	CuAssertPtrNotNull (test, test_static.base.read);
+	CuAssertPtrNotNull (test, test_static.base.erase);
+	CuAssertPtrNotNull (test, test_static.base.erase_all);
+	CuAssertPtrNotNull (test, test_static.base.get_data_length);
+	CuAssertPtrNotNull (test, test_static.base.has_data_stored);
+	CuAssertPtrNotNull (test, test_static.base.get_max_data_length);
+	CuAssertPtrNotNull (test, test_static.base.get_flash_size);
+	CuAssertPtrNotNull (test, test_static.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_testing_init_dependencies (test, &store);
 
@@ -4221,50 +4201,49 @@ static void flash_store_contiguous_blocks_test_static_init_variable_storage_decr
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.get_max_data_length (&store.test.base);
+	status = test_static.base.get_max_data_length (&test_static.base);
 	CuAssertIntEquals (test, store.sector - sizeof (struct flash_store_header), status);
 
-	status = store.test.base.get_flash_size (&store.test.base);
+	status = test_static.base.get_flash_size (&test_static.base);
 	CuAssertIntEquals (test, 3 * store.sector, status);
 
-	status = store.test.base.get_num_blocks (&store.test.base);
+	status = test_static.base.get_num_blocks (&test_static.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
-static void flash_store_contiguous_blocks_test_static_init_variable_storage_decreasing_with_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_static_init_variable_storage_decreasing_with_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		&store.hash.base);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
 	int status;
 
-	store.test = flash_store;
+	TEST_START;
+
 	store.page = 0x100;
 	store.sector = 0x1000;
 	store.bytes = 0x100000;
 	store.min_write = 1;
 
-	TEST_START;
-
-	CuAssertPtrNotNull (test, store.test.base.write);
-	CuAssertPtrNotNull (test, store.test.base.read);
-	CuAssertPtrNotNull (test, store.test.base.erase);
-	CuAssertPtrNotNull (test, store.test.base.erase_all);
-	CuAssertPtrNotNull (test, store.test.base.get_data_length);
-	CuAssertPtrNotNull (test, store.test.base.has_data_stored);
-	CuAssertPtrNotNull (test, store.test.base.get_max_data_length);
-	CuAssertPtrNotNull (test, store.test.base.get_flash_size);
-	CuAssertPtrNotNull (test, store.test.base.get_num_blocks);
+	CuAssertPtrNotNull (test, test_static.base.write);
+	CuAssertPtrNotNull (test, test_static.base.read);
+	CuAssertPtrNotNull (test, test_static.base.erase);
+	CuAssertPtrNotNull (test, test_static.base.erase_all);
+	CuAssertPtrNotNull (test, test_static.base.get_data_length);
+	CuAssertPtrNotNull (test, test_static.base.has_data_stored);
+	CuAssertPtrNotNull (test, test_static.base.get_max_data_length);
+	CuAssertPtrNotNull (test, test_static.base.get_flash_size);
+	CuAssertPtrNotNull (test, test_static.base.get_num_blocks);
 
 	flash_store_contiguous_blocks_testing_init_dependencies (test, &store);
 
@@ -4287,21 +4266,21 @@ static void flash_store_contiguous_blocks_test_static_init_variable_storage_decr
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.get_max_data_length (&store.test.base);
+	status = test_static.base.get_max_data_length (&test_static.base);
 	CuAssertIntEquals (test, store.sector - sizeof (struct flash_store_header) - 32, status);
 
-	status = store.test.base.get_flash_size (&store.test.base);
+	status = test_static.base.get_flash_size (&test_static.base);
 	CuAssertIntEquals (test, 3 * store.sector, status);
 
-	status = store.test.base.get_num_blocks (&store.test.base);
+	status = test_static.base.get_num_blocks (&test_static.base);
 	CuAssertIntEquals (test, 3, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_release_null (CuTest *test)
@@ -4444,7 +4423,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_last_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -4481,7 +4461,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_multi
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_multiple_sectors_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_multiple_sectors_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -4717,7 +4698,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_multi
 		data[i] = i;
 	}
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_fixed_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), NULL);
@@ -4748,6 +4730,45 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_multi
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t data[256];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.write (&test_static.base, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_write_fixed_storage_with_hash (CuTest *test)
@@ -5605,6 +5626,60 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_with_hash_mul
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
+static void flash_store_contiguous_blocks_test_write_fixed_storage_with_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
+	int status;
+	uint8_t data[256];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)),
+		MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (data), hash,
+		sizeof (hash));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.write (&test_static.base, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
 static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash (CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
@@ -5640,7 +5715,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -5675,7 +5751,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -5982,7 +6059,47 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t data[256];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.write (&test_static.base, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -6837,6 +6954,60 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_wi
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
+static void flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
+	int status;
+	uint8_t data[256];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)),
+		MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (data), hash,
+		sizeof (hash));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.write (&test_static.base, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
 static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash (CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
@@ -6880,7 +7051,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash (C
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -6923,7 +7095,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_la
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_max_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_max_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -6966,7 +7139,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_ma
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_old_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_old_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -7011,7 +7185,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_ol
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -7102,7 +7277,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_mu
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_extra_sector_for_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_extra_sector_for_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -7697,6 +7873,53 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_mu
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+	uint8_t data[256];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (header), data,
+		sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (header, sizeof (header)),
+		MOCK_ARG (sizeof (header)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, header, sizeof (header));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.write (&test_static.base, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_write_variable_storage_with_hash (CuTest *test)
@@ -8576,7 +8799,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_with_hash_
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -8638,7 +8862,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_with_hash_
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -8705,7 +8930,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_with_hash_
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -8784,7 +9010,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_with_hash_
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -8860,7 +9087,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_with_hash_
 	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
 	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -8917,7 +9145,70 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_with_hash_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_with_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+	uint8_t data[256];
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (header), data,
+		sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
+		MOCK_ARG (0x10000 + sizeof (header) + sizeof (data)),
+		MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)), MOCK_ARG (sizeof (hash)));
+	status |= flash_mock_expect_verify_flash (&store.flash,
+		0x10000 + sizeof (header) + sizeof (data), hash, sizeof (hash));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (header, sizeof (header)),
+		MOCK_ARG (sizeof (header)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, header, sizeof (header));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.write (&test_static.base, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -8960,7 +9251,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -9003,7 +9295,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_old_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_old_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -9293,7 +9586,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write, header, sizeof (header));
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
@@ -9335,7 +9629,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write, header, sizeof (header));
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
@@ -9377,7 +9672,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write, header, sizeof (header));
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
@@ -9423,7 +9719,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write, header, sizeof (header));
 	memcpy (&write[sizeof (header)], data, write_data_len);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
@@ -9474,7 +9771,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write, header, sizeof (header));
 	memcpy (&write[sizeof (header)], data, write_data_len);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
@@ -9525,7 +9823,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write, header, sizeof (header));
 	memcpy (&write[sizeof (header)], data, write_data_len);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
@@ -9578,7 +9877,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write, header, sizeof (header));
 	memcpy (&write[sizeof (header)], data, write_data_len);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
@@ -9629,7 +9929,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write, header, sizeof (header));
 	memcpy (&write[sizeof (header)], data, write_data_len);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
@@ -9680,7 +9981,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write, header, sizeof (header));
 	memcpy (&write[sizeof (header)], data, write_data_len);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
@@ -9729,7 +10031,55 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+	uint8_t data[256];
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (header), data,
+		sizeof (data));
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
+		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (header, sizeof (header)),
+		MOCK_ARG (sizeof (header)));
+	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, header, sizeof (header));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.write (&test_static.base, 0, data, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -9787,7 +10137,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash_old_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash_old_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -10050,7 +10401,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 	memcpy (&write[sizeof (header) + sizeof (data)], hash, sizeof (hash));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10102,7 +10454,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 	memcpy (&write[sizeof (header) + sizeof (data)], hash, sizeof (hash));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10154,7 +10507,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 	memcpy (&write[sizeof (header) + sizeof (data)], hash, sizeof (hash));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10213,7 +10567,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
 	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10276,7 +10631,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
 	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10339,7 +10695,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
 	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10400,7 +10757,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write, header, sizeof (header));
 	memcpy (&write[sizeof (header)], data, write_data_len);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10471,7 +10829,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, sizeof (hash));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10538,7 +10897,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10600,7 +10960,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10667,7 +11028,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10746,7 +11108,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10822,7 +11185,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	memcpy (write2, &data[write_data_len], sizeof (data) - write_data_len);
 	memcpy (&write2[sizeof (data) - write_data_len], hash, sizeof (hash));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
 		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -10879,372 +11243,14 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_static_fixed_storage_no_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t data[256];
-	size_t i;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
-		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.write (&store.test.base, 0, data, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_write_static_fixed_storage_with_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
-	int status;
-	uint8_t data[256];
-	size_t i;
-	uint8_t hash[] = {
-		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
-		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
-	};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
-
-	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
-		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
-		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)),
-		MOCK_ARG (sizeof (hash)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (data), hash,
-		sizeof (hash));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.write (&store.test.base, 0, data, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_write_static_fixed_storage_decreasing_no_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t data[256];
-	size_t i;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
-		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.write (&store.test.base, 0, data, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_write_static_fixed_storage_decreasing_with_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
-	int status;
-	uint8_t data[256];
-	size_t i;
-	uint8_t hash[] = {
-		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
-		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
-	};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
-
-	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
-		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, data, sizeof (data));
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
-		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)),
-		MOCK_ARG (sizeof (hash)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (data), hash,
-		sizeof (hash));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.write (&store.test.base, 0, data, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_write_static_variable_storage_no_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-	uint8_t data[256];
-	size_t i;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
-		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof (data)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (header), data,
-		sizeof (data));
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
-		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (header, sizeof (header)),
-		MOCK_ARG (sizeof (header)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, header, sizeof (header));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.write (&store.test.base, 0, data, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_write_static_variable_storage_with_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-	uint8_t data[256];
-	size_t i;
-	uint8_t hash[] = {
-		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
-		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
-	};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
-
-	status |= flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
-		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof (data)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (header), data,
-		sizeof (data));
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (hash),
-		MOCK_ARG (0x10000 + sizeof (header) + sizeof (data)),
-		MOCK_ARG_PTR_CONTAINS (hash, sizeof (hash)), MOCK_ARG (sizeof (hash)));
-	status |= flash_mock_expect_verify_flash (&store.flash,
-		0x10000 + sizeof (header) + sizeof (data), hash, sizeof (hash));
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
-		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (header, sizeof (header)),
-		MOCK_ARG (sizeof (header)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, header, sizeof (header));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.write (&store.test.base, 0, data, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_write_static_variable_storage_decreasing_no_hash (
+static void flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash_static_init (
 	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-	uint8_t data[256];
-	size_t i;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_expect_erase_flash_sector (&store.flash, 0x10000, 0x1000);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (data),
-		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_PTR_CONTAINS (data, sizeof (data)),
-		MOCK_ARG (sizeof (data)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000 + sizeof (header), data,
-		sizeof (data));
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.write, &store.flash, sizeof (header),
-		MOCK_ARG (0x10000), MOCK_ARG_PTR_CONTAINS (header, sizeof (header)),
-		MOCK_ARG (sizeof (header)));
-	status |= flash_mock_expect_verify_flash (&store.flash, 0x10000, header, sizeof (header));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.write (&store.test.base, 0, data, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_write_static_variable_storage_decreasing_with_hash (
-	CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
 	int status;
 	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
 	uint8_t data[256];
@@ -11256,15 +11262,13 @@ static void flash_store_contiguous_blocks_test_write_static_variable_storage_dec
 
 	TEST_START;
 
-	store.test = flash_store;
-
 	for (i = 0; i < sizeof (data); i++) {
 		data[i] = i;
 	}
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
@@ -11293,12 +11297,12 @@ static void flash_store_contiguous_blocks_test_write_static_variable_storage_dec
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.write (&store.test.base, 0, data, sizeof (data));
+	status = test_static.base.write (&test_static.base, 0, data, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_write_fixed_storage_null (CuTest *test)
@@ -11608,7 +11612,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_verify_hash_e
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_write_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_write_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -11631,7 +11636,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_wri
 	memcpy (write, data, page - extra);
 	memcpy (&write[page - extra], hash, extra);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_fixed_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -11658,7 +11664,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_wri
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_verify_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_verify_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -11681,7 +11688,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_ver
 	memcpy (write, data, page - extra);
 	memcpy (&write[page - extra], hash, extra);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_fixed_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -11709,7 +11717,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_ver
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_write_last_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_write_last_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -11732,7 +11741,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_wri
 	memcpy (write, data, page - extra);
 	memcpy (&write[page - extra], hash, extra);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_fixed_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -11763,7 +11773,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_wri
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_verify_last_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_verify_last_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -11786,7 +11797,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_ver
 	memcpy (write, data, page - extra);
 	memcpy (&write[page - extra], hash, extra);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_fixed_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -11819,7 +11831,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_ver
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_write_hash_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_write_hash_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -11842,7 +11855,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_wri
 	memcpy (write, data, page - extra);
 	memcpy (&write[page - extra], hash, extra);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_fixed_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -11880,7 +11894,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_wri
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_verify_hash_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_verify_hash_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -11903,7 +11918,8 @@ static void flash_store_contiguous_blocks_test_write_fixed_storage_min_write_ver
 	memcpy (write, data, page - extra);
 	memcpy (&write[page - extra], hash, extra);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_fixed_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -11996,7 +12012,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_invalid_id
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_too_large (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_too_large (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -12018,7 +12035,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_no_hash_to
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_with_hash_too_large (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_with_hash_too_large (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -12140,7 +12158,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_verify_err
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_write_header_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_write_header_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -12182,7 +12201,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_write_head
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_verify_header_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_verify_header_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -12226,7 +12246,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_verify_hea
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_write_old_header_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_write_old_header_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -12270,7 +12291,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_write_old_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_verify_old_header_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_verify_old_header_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -12349,7 +12371,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_hash_error
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_write_hash_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_write_hash_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -12399,7 +12422,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_write_hash
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_verify_hash_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_verify_hash_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -12473,7 +12497,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 		data[i] = i;
 	}
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -12522,7 +12547,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 		data[i] = i;
 	}
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -12552,7 +12578,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_single_page_write_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_single_page_write_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -12578,7 +12605,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -12639,7 +12667,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 	memcpy (&write[sizeof (header)], data, sizeof (data));
 	memcpy (&write[sizeof (header) + sizeof (data)], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -12696,7 +12725,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 		data[i] = i;
 	}
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -12744,7 +12774,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 		data[i] = i;
 	}
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -12799,7 +12830,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, extra - 4);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -12858,7 +12890,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, extra - 4);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -12920,7 +12953,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, extra - 4);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -12987,7 +13021,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, extra - 4);
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -13061,7 +13096,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -13139,7 +13175,8 @@ static void flash_store_contiguous_blocks_test_write_variable_storage_min_write_
 	memcpy (write2, &data[sizeof (data) - write2_data_len], write2_data_len);
 	memcpy (&write2[write2_data_len], hash, extra - sizeof (header));
 
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 0x100);
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000,
+		0x100);
 
 	status = flash_store_contiguous_blocks_init_variable_storage (&store.test, &store.state,
 		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
@@ -13268,7 +13305,8 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_last_b
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_large_buffer (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_large_buffer (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -13305,7 +13343,8 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_large_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -13343,7 +13382,8 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_multip
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_multiple_sectors_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_multiple_sectors_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -13379,6 +13419,46 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_multip
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_static_init (CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t data[256];
+	uint8_t out[sizeof (data)] = {0};
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (out)));
+	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.read (&test_static.base, 0, out, sizeof (out));
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array (data, out, status);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_read_fixed_storage_with_hash (CuTest *test)
@@ -13482,7 +13562,8 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_with_hash_mism
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_fixed_storage_with_hash_extra_sector_for_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_fixed_storage_with_hash_extra_sector_for_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -13585,6 +13666,60 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_with_hash_extr
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
+static void flash_store_contiguous_blocks_test_read_fixed_storage_with_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
+	int status;
+	uint8_t data[256];
+	uint8_t out[sizeof (data)] = {0};
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (out)));
+	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (hash)));
+	status |= mock_expect_output (&store.flash.mock, 1, hash, sizeof (hash), 2);
+
+	status |= mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.read (&test_static.base, 0, out, sizeof (out));
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array (data, out, status);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
 static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash (CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
@@ -13622,7 +13757,8 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -13659,7 +13795,8 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_large_buffer (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_large_buffer (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -13696,7 +13833,8 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -13773,7 +13911,49 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_with_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t data[256];
+	uint8_t out[sizeof (data)] = {0};
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (out)));
+	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.read (&test_static.base, 0, out, sizeof (out));
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array (data, out, status);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_with_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -13823,7 +14003,8 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_wit
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_with_hash_mismatch (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_with_hash_mismatch (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -13978,6 +14159,60 @@ static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_wit
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
+static void flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_with_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
+	int status;
+	uint8_t data[256];
+	uint8_t out[sizeof (data)] = {0};
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (out)));
+	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (hash)));
+	status |= mock_expect_output (&store.flash.mock, 1, hash, sizeof (hash), 2);
+
+	status |= mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.read (&test_static.base, 0, out, sizeof (out));
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array (data, out, status);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
 static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash (CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
@@ -14020,7 +14255,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash (Cu
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14062,7 +14298,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_las
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_max_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_max_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14104,7 +14341,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_max
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_min_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_min_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14146,7 +14384,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_min
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14233,7 +14472,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_mul
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_extra_sector_for_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_extra_sector_for_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14320,7 +14560,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_ext
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_longer_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_longer_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14362,7 +14603,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_lon
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_old_format (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_old_format (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14402,6 +14644,52 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_old
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_test_read_variable_storage_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+	uint8_t data[256];
+	uint8_t out[0x1000] = {0};
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.read (&test_static.base, 0, out, sizeof (out));
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array (data, out, status);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash (CuTest *test)
@@ -14460,7 +14748,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash (
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash_mismatch (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash_mismatch (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14517,7 +14806,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash_m
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash_max_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash_max_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14573,7 +14863,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash_m
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash_extra_sector_for_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash_extra_sector_for_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14688,7 +14979,68 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash_e
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_with_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+	uint8_t data[256];
+	uint8_t out[0x1000] = {0};
+	size_t i;
+	uint8_t hash[] = {
+		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
+		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
+	};
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000 + sizeof (header) + sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (hash)));
+	status |= mock_expect_output (&store.flash.mock, 1, hash, sizeof (hash), 2);
+
+	status |= mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.read (&test_static.base, 0, out, sizeof (out));
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array (data, out, status);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14705,8 +15057,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, sizeof (data), NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -14730,7 +15082,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14747,8 +15100,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, sizeof (data), NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -14791,8 +15144,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, sizeof (data), NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -14835,8 +15188,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, sizeof (data), NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -14879,8 +15232,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, sizeof (data), NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -14923,8 +15276,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, sizeof (data), NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -14948,7 +15301,54 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_with_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+	uint8_t data[256];
+	uint8_t out[0x1000] = {0};
+	size_t i;
+
+	TEST_START;
+
+	for (i = 0; i < sizeof (data); i++) {
+		data[i] = i;
+	}
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.read (&test_static.base, 0, out, sizeof (out));
+	CuAssertIntEquals (test, sizeof (data), status);
+
+	status = testing_validate_array (data, out, status);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_with_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -14969,8 +15369,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -15004,7 +15404,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_with_hash_mismatch (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_with_hash_mismatch (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -15029,8 +15430,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -15084,8 +15485,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -15142,8 +15543,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, sizeof (data), &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -15177,260 +15578,14 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_static_fixed_storage_no_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_decreasing_with_hash_static_init (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t data[256];
-	uint8_t out[sizeof (data)] = {0};
-	size_t i;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (out)));
-	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.read (&store.test.base, 0, out, sizeof (out));
-	CuAssertIntEquals (test, sizeof (data), status);
-
-	status = testing_validate_array (data, out, status);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_read_static_fixed_storage_with_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
-	int status;
-	uint8_t data[256];
-	uint8_t out[sizeof (data)] = {0};
-	size_t i;
-	uint8_t hash[] = {
-		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
-		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
-	};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (out)));
-	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (hash)));
-	status |= mock_expect_output (&store.flash.mock, 1, hash, sizeof (hash), 2);
-
-	status |= mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.read (&store.test.base, 0, out, sizeof (out));
-	CuAssertIntEquals (test, sizeof (data), status);
-
-	status = testing_validate_array (data, out, status);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_read_static_fixed_storage_decreasing_no_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t data[256];
-	uint8_t out[sizeof (data)] = {0};
-	size_t i;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (out)));
-	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.read (&store.test.base, 0, out, sizeof (out));
-	CuAssertIntEquals (test, sizeof (data), status);
-
-	status = testing_validate_array (data, out, status);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_read_static_fixed_storage_decreasing_with_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
-	int status;
-	uint8_t data[256];
-	uint8_t out[sizeof (data)] = {0};
-	size_t i;
-	uint8_t hash[] = {
-		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
-		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
-	};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (out)));
-	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000 + sizeof (data)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (hash)));
-	status |= mock_expect_output (&store.flash.mock, 1, hash, sizeof (hash), 2);
-
-	status |= mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.read (&store.test.base, 0, out, sizeof (out));
-	CuAssertIntEquals (test, sizeof (data), status);
-
-	status = testing_validate_array (data, out, status);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_read_static_variable_storage_no_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-	uint8_t data[256];
-	uint8_t out[0x1000] = {0};
-	size_t i;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
-	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.read (&store.test.base, 0, out, sizeof (out));
-	CuAssertIntEquals (test, sizeof (data), status);
-
-	status = testing_validate_array (data, out, status);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_read_static_variable_storage_with_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
 	int status;
 	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
 	uint8_t data[256];
@@ -15443,15 +15598,13 @@ static void flash_store_contiguous_blocks_test_read_static_variable_storage_with
 
 	TEST_START;
 
-	store.test = flash_store;
-
 	for (i = 0; i < sizeof (data); i++) {
 		data[i] = i;
 	}
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -15474,7 +15627,7 @@ static void flash_store_contiguous_blocks_test_read_static_variable_storage_with
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.read (&store.test.base, 0, out, sizeof (out));
+	status = test_static.base.read (&test_static.base, 0, out, sizeof (out));
 	CuAssertIntEquals (test, sizeof (data), status);
 
 	status = testing_validate_array (data, out, status);
@@ -15482,119 +15635,7 @@ static void flash_store_contiguous_blocks_test_read_static_variable_storage_with
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_read_static_variable_storage_decreasing_no_hash (
-	CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-	uint8_t data[256];
-	uint8_t out[0x1000] = {0};
-	size_t i;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
-	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.read (&store.test.base, 0, out, sizeof (out));
-	CuAssertIntEquals (test, sizeof (data), status);
-
-	status = testing_validate_array (data, out, status);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_read_static_variable_storage_decreasing_with_hash (
-	CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-	uint8_t data[256];
-	uint8_t out[0x1000] = {0};
-	size_t i;
-	uint8_t hash[] = {
-		0x88,0x69,0xde,0x57,0x9d,0xd0,0xe9,0x05,0xe0,0xa7,0x11,0x24,0x57,0x55,0x94,0xf5,
-		0x0a,0x03,0xd3,0xd9,0xcd,0xf1,0x6e,0x9a,0x3f,0x9d,0x6c,0x60,0xc0,0x32,0x4b,0x54
-	};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	for (i = 0; i < sizeof (data); i++) {
-		data[i] = i;
-	}
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, sizeof (data));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
-	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000 + sizeof (header)), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&store.flash.mock, 1, data, sizeof (data), 2);
-
-	status |= mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000 + sizeof (header) + sizeof (data)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (sizeof (hash)));
-	status |= mock_expect_output (&store.flash.mock, 1, hash, sizeof (hash), 2);
-
-	status |= mock_expect (&store.hash.mock, store.hash.base.calculate_sha256, &store.hash, 0,
-		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&store.hash.mock, 2, hash, sizeof (hash), 3);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.read (&store.test.base, 0, out, sizeof (out));
-	CuAssertIntEquals (test, sizeof (data), status);
-
-	status = testing_validate_array (data, out, status);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_read_fixed_storage_null (CuTest *test)
@@ -15859,7 +15900,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_small_buffe
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_read_header_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_read_header_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -15886,7 +15928,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_read_header
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_invalid_header_marker (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_invalid_header_marker (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -15944,7 +15987,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_short_heade
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_invalid_data_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_invalid_data_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -15973,7 +16017,8 @@ static void flash_store_contiguous_blocks_test_read_variable_storage_invalid_dat
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_read_variable_storage_old_format_invalid_data_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_read_variable_storage_old_format_invalid_data_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16144,7 +16189,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16169,7 +16213,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_last_block (C
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x12000, 0x1000);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16196,7 +16239,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_multiple_sect
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16207,7 +16249,8 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_multiple_sect
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_fixed_storage_multiple_sectors_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_fixed_storage_multiple_sectors_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16223,7 +16266,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_multiple_sect
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10400, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16234,7 +16276,8 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_multiple_sect
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_fixed_storage_extra_sector_for_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_fixed_storage_extra_sector_for_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16250,7 +16293,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_extra_sector_
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16261,7 +16303,8 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_extra_sector_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_fixed_storage_extra_sector_for_hash_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_fixed_storage_extra_sector_for_hash_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16277,7 +16320,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_extra_sector_
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10800, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16286,6 +16328,33 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_extra_sector_
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_test_erase_fixed_storage_static_init (CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.erase (&test_static.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing (CuTest *test)
@@ -16302,7 +16371,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing (C
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16313,7 +16381,8 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing (C
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16327,7 +16396,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_la
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0xe000, 0x1000);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16338,7 +16406,8 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_la
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16354,7 +16423,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_mu
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16382,7 +16450,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_mu
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0xfc00, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16393,7 +16460,8 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_mu
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_extra_sector_for_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_extra_sector_for_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16409,7 +16477,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_ex
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16437,7 +16504,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_ex
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0xf800, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16446,6 +16512,34 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_ex
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.erase (&test_static.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_erase_variable_storage (CuTest *test)
@@ -16462,7 +16556,6 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16487,7 +16580,6 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_last_block
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x12000, 0x1000);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16498,7 +16590,8 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_last_block
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_variable_storage_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_variable_storage_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16514,7 +16607,6 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_multiple_s
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16525,7 +16617,8 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_multiple_s
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_variable_storage_multiple_sectors_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_variable_storage_multiple_sectors_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16541,7 +16634,6 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_multiple_s
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10400, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16552,7 +16644,8 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_multiple_s
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sector_for_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sector_for_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16568,7 +16661,6 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sect
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16596,7 +16688,6 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sect
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10800, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16607,7 +16698,8 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sect
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sector_for_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sector_for_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16623,7 +16715,6 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sect
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16634,7 +16725,8 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sect
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sector_for_hash_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sector_for_hash_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16650,7 +16742,6 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sect
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10800, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16659,6 +16750,33 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_extra_sect
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_test_erase_variable_storage_static_init (CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.erase (&test_static.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing (CuTest *test)
@@ -16670,12 +16788,11 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16686,7 +16803,8 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16695,12 +16813,11 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0xe000, 0x1000);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16711,7 +16828,8 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16721,13 +16839,12 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16749,13 +16866,12 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0xfc00, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16777,13 +16893,12 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 512, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16805,13 +16920,12 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 512, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0xf800, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16822,7 +16936,8 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_extra_sector_for_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_extra_sector_for_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -16832,13 +16947,12 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -16860,13 +16974,12 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0xf800, sector * 2,
 		sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 2);
@@ -16877,127 +16990,32 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_static_fixed_storage (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store = flash_store_contiguous_blocks_static_init_fixed_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base, NULL);
-	int status;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.erase (&store.test.base, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_erase_static_fixed_storage_decreasing (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.erase (&store.test.base, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_erase_static_variable_storage (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.erase (&store.test.base, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_erase_static_variable_storage_decreasing (
+static void flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_static_init (
 	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
 	int status;
 
 	TEST_START;
 
-	store.test = flash_store;
-
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000);
-
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.erase (&store.test.base, 0);
+	status = test_static.base.erase (&test_static.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_erase_fixed_storage_null (CuTest *test)
@@ -17060,7 +17078,6 @@ static void flash_store_contiguous_blocks_test_erase_fixed_storage_erase_error (
 
 	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash,
 		FLASH_SECTOR_SIZE_FAILED, MOCK_ARG_NOT_NULL);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -17131,7 +17148,6 @@ static void flash_store_contiguous_blocks_test_erase_variable_storage_erase_erro
 
 	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash,
 		FLASH_SECTOR_SIZE_FAILED, MOCK_ARG_NOT_NULL);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase (&store.test.base, 0);
@@ -17156,7 +17172,6 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000 * 3);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17167,7 +17182,8 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage (CuTest *
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17183,7 +17199,6 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_multiple_
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000,
 		(sector * 2) * 3, sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17194,7 +17209,8 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_multiple_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_extra_sector_for_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_extra_sector_for_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17210,7 +17226,6 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_extra_sec
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000,
 		(sector * 2) * 3, sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17219,6 +17234,33 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_extra_sec
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_static_init (CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000 * 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.erase_all (&test_static.base);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasing (CuTest *test)
@@ -17235,7 +17277,6 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasin
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0xe000, 0x1000 * 3);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17246,7 +17287,8 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasin
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasing_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasing_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17262,7 +17304,6 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasin
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0xfc00,
 		(sector * 2) * 3, sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17273,7 +17314,8 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasin
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasing_extra_sector_for_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasing_extra_sector_for_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17289,7 +17331,6 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasin
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0xf800,
 		(sector * 2) * 3, sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17298,6 +17339,34 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasin
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasing_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0xe000, 0x1000 * 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.erase_all (&test_static.base);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_erase_all_variable_storage (CuTest *test)
@@ -17314,7 +17383,6 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000 * 3);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17325,7 +17393,8 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage (CuTes
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_all_variable_storage_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_all_variable_storage_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17341,7 +17410,6 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_multip
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000,
 		(sector * 2) * 3, sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17352,7 +17420,8 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_multip
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_all_variable_storage_extra_sector_for_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_all_variable_storage_extra_sector_for_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17368,7 +17437,6 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_extra_
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000,
 		(sector * 2) * 3, sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17379,7 +17447,8 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_extra_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_all_variable_storage_extra_sector_for_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_all_variable_storage_extra_sector_for_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17395,7 +17464,6 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_extra_
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0x10000,
 		(sector * 2) * 3, sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17404,6 +17472,33 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_extra_
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
 	flash_store_contiguous_blocks_release (&store.test);
+}
+
+static void flash_store_contiguous_blocks_test_erase_all_variable_storage_static_init (CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000 * 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.erase_all (&test_static.base);
+	CuAssertIntEquals (test, 0, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_erase_all_variable_storage_decreasing (CuTest *test)
@@ -17415,12 +17510,11 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_decrea
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0xe000, 0x1000 * 3);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17431,7 +17525,8 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_decrea
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_all_variable_storage_decreasing_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_erase_all_variable_storage_decreasing_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17441,13 +17536,12 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_decrea
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0xfc00,
 		(sector * 2) * 3, sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17469,13 +17563,12 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_decrea
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 512, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0xf800,
 		(sector * 2) * 3, sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17497,13 +17590,12 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_decrea
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify_ext (&store.flash, 0xf800,
 		(sector * 2) * 3, sector);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17514,130 +17606,32 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_decrea
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_erase_all_static_fixed_storage (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000 * 3);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.erase_all (&store.test.base);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_erase_all_static_fixed_storage_decreasing (
+static void flash_store_contiguous_blocks_test_erase_all_variable_storage_decreasing_static_init (
 	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0xe000, 0x1000 * 3);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.erase_all (&store.test.base);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_erase_all_static_variable_storage (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0x10000, 0x1000 * 3);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.erase_all (&store.test.base);
-	CuAssertIntEquals (test, 0, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_erase_all_static_variable_storage_decreasing (
-	CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
 	int status;
 
 	TEST_START;
 
-	store.test = flash_store;
-
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_mock_expect_erase_flash_sector_verify (&store.flash, 0xe000, 0x1000 * 3);
-
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.erase_all (&store.test.base);
+	status = test_static.base.erase_all (&test_static.base);
 	CuAssertIntEquals (test, 0, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_null (CuTest *test)
@@ -17676,7 +17670,6 @@ static void flash_store_contiguous_blocks_test_erase_all_fixed_storage_erase_err
 
 	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash,
 		FLASH_SECTOR_SIZE_FAILED, MOCK_ARG_NOT_NULL);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17723,7 +17716,6 @@ static void flash_store_contiguous_blocks_test_erase_all_variable_storage_erase_
 
 	status = mock_expect (&store.flash.mock, store.flash.base.get_sector_size, &store.flash,
 		FLASH_SECTOR_SIZE_FAILED, MOCK_ARG_NOT_NULL);
-
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.test.base.erase_all (&store.test.base);
@@ -17755,7 +17747,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_fixed_storage (Cu
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_fixed_storage_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_fixed_storage_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17777,7 +17770,33 @@ static void flash_store_contiguous_blocks_test_get_data_length_fixed_storage_mul
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_fixed_storage_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.get_data_length (&test_static.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17805,7 +17824,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17833,7 +17853,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_max_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_max_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -17981,7 +18002,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_longer_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_longer_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18009,7 +18031,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_old_format (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_old_format (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18037,7 +18060,40 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_with_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.get_data_length (&test_static.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_with_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18065,7 +18121,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_with_hash_max_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_with_hash_max_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18153,7 +18210,40 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_no_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_with_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.get_data_length (&test_static.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_no_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18163,8 +18253,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18192,8 +18282,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18221,8 +18311,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18251,8 +18341,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18281,8 +18371,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18311,8 +18401,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 512, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18341,8 +18431,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 512, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18359,7 +18449,40 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_with_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.get_data_length (&test_static.base, 0);
+	CuAssertIntEquals (test, 256, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_with_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18369,8 +18492,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18398,8 +18521,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18428,8 +18551,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18458,8 +18581,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18476,123 +18599,22 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-
-static void flash_store_contiguous_blocks_test_get_data_length_static_fixed_storage (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_fixed_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.get_data_length (&store.test.base, 0);
-	CuAssertIntEquals (test, 256, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_get_data_length_static_variable_storage_no_hash (
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_with_hash_static_init (
 	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
-	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.get_data_length (&store.test.base, 0);
-	CuAssertIntEquals (test, 256, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_get_data_length_static_variable_storage_with_hash (
-	CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
-	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.get_data_length (&store.test.base, 0);
-	CuAssertIntEquals (test, 256, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_get_data_length_static_variable_storage_decreasing_no_hash (
-	CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
 	int status;
 	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
 
 	TEST_START;
 
-	store.test = flash_store;
-
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -18601,47 +18623,12 @@ static void flash_store_contiguous_blocks_test_get_data_length_static_variable_s
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.get_data_length (&store.test.base, 0);
+	status = test_static.base.get_data_length (&test_static.base, 0);
 	CuAssertIntEquals (test, 256, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_get_data_length_static_variable_storage_decreasing_with_hash (
-	CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
-	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.get_data_length (&store.test.base, 0);
-	CuAssertIntEquals (test, 256, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_get_data_length_fixed_storage_null (CuTest *test)
@@ -18665,7 +18652,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_fixed_storage_nul
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_fixed_storage_invalid_id (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_fixed_storage_invalid_id (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18710,7 +18698,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_invalid_id (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_invalid_id (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18734,7 +18723,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_read_header_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_read_header_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18760,7 +18750,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_invalid_header_marker (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_invalid_header_marker (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18788,7 +18779,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_short_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_short_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18816,7 +18808,8 @@ static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_invalid_data_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_get_data_length_variable_storage_invalid_data_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18894,7 +18887,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_fixed_storage (Cu
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_multiple_sectors (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_multiple_sectors (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18916,7 +18910,33 @@ static void flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_mul
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_fixed_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.has_data_stored (&test_static.base, 0);
+	CuAssertIntEquals (test, 1, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18944,7 +18964,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_last_block (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_last_block (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -18972,7 +18993,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_max_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_max_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19120,7 +19142,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_longer_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_longer_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19148,7 +19171,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_old_format (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_old_format (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19176,7 +19200,40 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_with_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.has_data_stored (&test_static.base, 0);
+	CuAssertIntEquals (test, 1, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_with_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19204,7 +19261,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_with_hash_max_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_with_hash_max_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19292,7 +19350,40 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_no_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_with_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.has_data_stored (&test_static.base, 0);
+	CuAssertIntEquals (test, 1, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_no_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19331,8 +19422,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19360,8 +19451,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19390,8 +19481,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19420,8 +19511,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19450,8 +19541,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 512, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19480,8 +19571,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 512, NULL);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 512, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19498,7 +19589,40 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_with_hash (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_no_hash_static_init (
+	CuTest *test)
+{
+	struct flash_store_contiguous_blocks_testing store;
+	struct flash_store_contiguous_blocks test_static =
+		flash_store_contiguous_blocks_static_init_variable_storage (
+			FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, NULL);
+	int status;
+	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
+
+	TEST_START;
+
+	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
+
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
+		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
+	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base.has_data_stored (&test_static.base, 0);
+	CuAssertIntEquals (test, 1, status);
+
+	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
+
+	flash_store_contiguous_blocks_release (&test_static);
+}
+
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_with_hash (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19508,8 +19632,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19537,8 +19661,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 256, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 256, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19567,8 +19691,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19597,8 +19721,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, sector, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test, &store.state,
-		&store.flash.base, 0x10000, 3, 508, &store.hash.base);
+	status = flash_store_contiguous_blocks_init_variable_storage_decreasing (&store.test,
+		&store.state, &store.flash.base, 0x10000, 3, 508, &store.hash.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19615,152 +19739,22 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_static_fixed_storage (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store = flash_store_contiguous_blocks_static_init_fixed_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base, NULL);
-	int status;
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.has_data_stored (&store.test.base, 0);
-	CuAssertIntEquals (test, 1, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_has_data_stored_static_variable_storage_no_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
-	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.has_data_stored (&store.test.base, 0);
-	CuAssertIntEquals (test, 1, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_has_data_stored_static_variable_storage_with_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
-	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.has_data_stored (&store.test.base, 0);
-	CuAssertIntEquals (test, 1, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_has_data_stored_static_variable_storage_decreasing_no_hash (CuTest *test)
-{
-	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
-		flash_store_contiguous_blocks_static_init_variable_storage (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_NO_HASH_API_INIT, &store.state, base_addr, &store.flash.base,
-		NULL);
-	int status;
-	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
-
-	TEST_START;
-
-	store.test = flash_store;
-
-	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
-
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
-		MOCK_ARG (0x10000), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (header)));
-	status |= mock_expect_output (&store.flash.mock, 1, header, sizeof (header), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = store.test.base.has_data_stored (&store.test.base, 0);
-	CuAssertIntEquals (test, 1, status);
-
-	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
-
-	flash_store_contiguous_blocks_release (&store.test);
-}
-
-static void flash_store_contiguous_blocks_test_has_data_stored_static_variable_storage_decreasing_with_hash (
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_with_hash_static_init (
 	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
-	uint32_t base_addr = 0x10000;
-	struct flash_store_contiguous_blocks flash_store =
+	struct flash_store_contiguous_blocks test_static =
 		flash_store_contiguous_blocks_static_init_variable_storage_decreasing (
-		FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, base_addr,
-		&store.flash.base, &store.hash.base);
+			FLASH_STORE_CONTIGUOUS_BLOCKS_WITH_HASH_API_INIT, &store.state, 0x10000,
+			&store.flash.base, &store.hash.base);
 	int status;
 	uint8_t header[] = {0x04, 0xa5, 0x00, 0x01};
 
 	TEST_START;
 
-	store.test = flash_store;
-
 	flash_store_contiguous_blocks_testing_prepare_init (test, &store, 0x100, 0x1000, 0x100000, 1);
 
-	status = flash_store_contiguous_blocks_init_state (&store.test, 3, 256);
+	status = flash_store_contiguous_blocks_init_state (&test_static, 3, 256);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&store.flash.mock, store.flash.base.read, &store.flash, 0,
@@ -19769,12 +19763,12 @@ static void flash_store_contiguous_blocks_test_has_data_stored_static_variable_s
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = store.test.base.has_data_stored (&store.test.base, 0);
+	status = test_static.base.has_data_stored (&test_static.base, 0);
 	CuAssertIntEquals (test, 1, status);
 
 	flash_store_contiguous_blocks_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_release (&store.test);
+	flash_store_contiguous_blocks_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_null (CuTest *test)
@@ -19798,7 +19792,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_nul
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_invalid_id (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_invalid_id (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19843,7 +19838,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_invalid_id (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_invalid_id (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19867,7 +19863,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_read_header_error (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_read_header_error (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19893,7 +19890,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_invalid_header_marker (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_invalid_header_marker (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19921,7 +19919,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_short_header (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_short_header (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -19949,7 +19948,8 @@ static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_
 	flash_store_contiguous_blocks_release (&store.test);
 }
 
-static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_invalid_data_length (CuTest *test)
+static void flash_store_contiguous_blocks_test_has_data_stored_variable_storage_invalid_data_length (
+	CuTest *test)
 {
 	struct flash_store_contiguous_blocks_testing store;
 	int status;
@@ -20132,6 +20132,7 @@ TEST (flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_larger_than
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_multiple_pages_algined_min_write);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_multiple_pages_not_algined_min_write);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_multiple_store_min_write);
+TEST (flash_store_contiguous_blocks_test_write_fixed_storage_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_with_hash);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_with_hash_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_with_hash_extra_sector_for_hash_last_block);
@@ -20147,6 +20148,7 @@ TEST (flash_store_contiguous_blocks_test_write_fixed_storage_with_hash_hash_acro
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_with_hash_multiple_pages_hash_across_page_boundary_min_write);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_with_hash_multiple_store_min_write);
+TEST (flash_store_contiguous_blocks_test_write_fixed_storage_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_multiple_sectors);
@@ -20157,6 +20159,7 @@ TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_multiple_pages_aligned_min_write);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_multiple_pages_not_aligned_min_write);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_multiple_store_min_write);
+TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_hash);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_hash_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_hash_extra_sector_for_hash_last_block);
@@ -20172,6 +20175,7 @@ TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_has
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_min_write);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_hash_multiple_store_min_write);
+TEST (flash_store_contiguous_blocks_test_write_fixed_storage_decreasing_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_no_hash);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_no_hash_max_length);
@@ -20190,6 +20194,7 @@ TEST (flash_store_contiguous_blocks_test_write_variable_storage_no_hash_larger_t
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_no_hash_multiple_pages_aligned_min_write);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_no_hash_multiple_pages_not_aligned_min_write);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_no_hash_multiple_store_min_write);
+TEST (flash_store_contiguous_blocks_test_write_variable_storage_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_with_hash);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_with_hash_max_length);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_with_hash_old_header);
@@ -20209,6 +20214,7 @@ TEST (flash_store_contiguous_blocks_test_write_variable_storage_with_hash_hash_a
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_with_hash_multiple_pages_hash_across_page_boundary_min_write);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_with_hash_multiple_store_min_write);
+TEST (flash_store_contiguous_blocks_test_write_variable_storage_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_old_header);
@@ -20226,6 +20232,7 @@ TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_ha
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_multiple_pages_aligned_min_write);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_multiple_pages_not_aligned_min_write);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_multiple_store_min_write);
+TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash_old_header);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash_extra_sector_for_hash);
@@ -20244,14 +20251,7 @@ TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_min_write);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash_multiple_pages_hash_across_page_boundary_last_block_min_write);
 TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash_multiple_store_min_write);
-TEST (flash_store_contiguous_blocks_test_write_static_fixed_storage_no_hash);
-TEST (flash_store_contiguous_blocks_test_write_static_fixed_storage_with_hash);
-TEST (flash_store_contiguous_blocks_test_write_static_fixed_storage_decreasing_no_hash);
-TEST (flash_store_contiguous_blocks_test_write_static_fixed_storage_decreasing_with_hash);
-TEST (flash_store_contiguous_blocks_test_write_static_variable_storage_no_hash);
-TEST (flash_store_contiguous_blocks_test_write_static_variable_storage_with_hash);
-TEST (flash_store_contiguous_blocks_test_write_static_variable_storage_decreasing_no_hash);
-TEST (flash_store_contiguous_blocks_test_write_static_variable_storage_decreasing_with_hash);
+TEST (flash_store_contiguous_blocks_test_write_variable_storage_decreasing_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_null);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_invalid_id);
 TEST (flash_store_contiguous_blocks_test_write_fixed_storage_wrong_length);
@@ -20299,19 +20299,23 @@ TEST (flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_large_buffer);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_multiple_sectors);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_multiple_sectors_last_block);
+TEST (flash_store_contiguous_blocks_test_read_fixed_storage_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_with_hash);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_with_hash_mismatch);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_with_hash_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_with_hash_extra_sector_for_hash_last_block);
+TEST (flash_store_contiguous_blocks_test_read_fixed_storage_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_large_buffer);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_multiple_sectors);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_multiple_sectors_last_block);
+TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_with_hash);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_with_hash_mismatch);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_with_hash_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_with_hash_extra_sector_for_hash_last_block);
+TEST (flash_store_contiguous_blocks_test_read_fixed_storage_decreasing_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_no_hash);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_no_hash_max_length);
@@ -20322,29 +20326,25 @@ TEST (flash_store_contiguous_blocks_test_read_variable_storage_no_hash_extra_sec
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_no_hash_extra_sector_for_header_last_block);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_no_hash_longer_header);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_no_hash_old_format);
+TEST (flash_store_contiguous_blocks_test_read_variable_storage_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_with_hash);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_with_hash_mismatch);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_with_hash_max_length);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_with_hash_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_with_hash_extra_sector_for_hash_last_block);
+TEST (flash_store_contiguous_blocks_test_read_variable_storage_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash_multiple_sectors);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash_multiple_sectors_last_block);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash_extra_sector_for_header);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash_extra_sector_for_header_last_block);
+TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_with_hash);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_with_hash_mismatch);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_with_hash_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_with_hash_extra_sector_for_hash_last_block);
-TEST (flash_store_contiguous_blocks_test_read_static_fixed_storage_no_hash);
-TEST (flash_store_contiguous_blocks_test_read_static_fixed_storage_with_hash);
-TEST (flash_store_contiguous_blocks_test_read_static_fixed_storage_decreasing_no_hash);
-TEST (flash_store_contiguous_blocks_test_read_static_fixed_storage_decreasing_with_hash);
-TEST (flash_store_contiguous_blocks_test_read_static_variable_storage_no_hash);
-TEST (flash_store_contiguous_blocks_test_read_static_variable_storage_with_hash);
-TEST (flash_store_contiguous_blocks_test_read_static_variable_storage_decreasing_no_hash);
-TEST (flash_store_contiguous_blocks_test_read_static_variable_storage_decreasing_with_hash);
+TEST (flash_store_contiguous_blocks_test_read_variable_storage_decreasing_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_null);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_invalid_id);
 TEST (flash_store_contiguous_blocks_test_read_fixed_storage_small_buffer);
@@ -20368,12 +20368,14 @@ TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_multiple_sectors);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_multiple_sectors_last_block);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_extra_sector_for_hash_last_block);
+TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_static_init);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_last_block);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_multiple_sectors);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_multiple_sectors_last_block);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_extra_sector_for_hash_last_block);
+TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_decreasing_static_init);
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage);
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_last_block);
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_multiple_sectors);
@@ -20382,6 +20384,7 @@ TEST (flash_store_contiguous_blocks_test_erase_variable_storage_extra_sector_for
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_extra_sector_for_header_last_block);
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_extra_sector_for_hash_last_block);
+TEST (flash_store_contiguous_blocks_test_erase_variable_storage_static_init);
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_decreasing);
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_last_block);
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_multiple_sectors);
@@ -20390,10 +20393,7 @@ TEST (flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_extra
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_extra_sector_for_header_last_block);
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_extra_sector_for_hash_last_block);
-TEST (flash_store_contiguous_blocks_test_erase_static_fixed_storage);
-TEST (flash_store_contiguous_blocks_test_erase_static_fixed_storage_decreasing);
-TEST (flash_store_contiguous_blocks_test_erase_static_variable_storage);
-TEST (flash_store_contiguous_blocks_test_erase_static_variable_storage_decreasing);
+TEST (flash_store_contiguous_blocks_test_erase_variable_storage_decreasing_static_init);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_null);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_invalid_id);
 TEST (flash_store_contiguous_blocks_test_erase_fixed_storage_erase_error);
@@ -20403,27 +20403,28 @@ TEST (flash_store_contiguous_blocks_test_erase_variable_storage_erase_error);
 TEST (flash_store_contiguous_blocks_test_erase_all_fixed_storage);
 TEST (flash_store_contiguous_blocks_test_erase_all_fixed_storage_multiple_sectors);
 TEST (flash_store_contiguous_blocks_test_erase_all_fixed_storage_extra_sector_for_hash);
+TEST (flash_store_contiguous_blocks_test_erase_all_fixed_storage_static_init);
 TEST (flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasing);
 TEST (flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasing_multiple_sectors);
 TEST (flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasing_extra_sector_for_hash);
+TEST (flash_store_contiguous_blocks_test_erase_all_fixed_storage_decreasing_static_init);
 TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage);
 TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_multiple_sectors);
 TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_extra_sector_for_header);
 TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_extra_sector_for_hash);
+TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_static_init);
 TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_decreasing);
 TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_decreasing_multiple_sectors);
 TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_decreasing_extra_sector_for_header);
 TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_decreasing_extra_sector_for_hash);
-TEST (flash_store_contiguous_blocks_test_erase_all_static_fixed_storage);
-TEST (flash_store_contiguous_blocks_test_erase_all_static_fixed_storage_decreasing);
-TEST (flash_store_contiguous_blocks_test_erase_all_static_variable_storage);
-TEST (flash_store_contiguous_blocks_test_erase_all_static_variable_storage_decreasing);
+TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_decreasing_static_init);
 TEST (flash_store_contiguous_blocks_test_erase_all_fixed_storage_null);
 TEST (flash_store_contiguous_blocks_test_erase_all_fixed_storage_erase_error);
 TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_null);
 TEST (flash_store_contiguous_blocks_test_erase_all_variable_storage_erase_error);
 TEST (flash_store_contiguous_blocks_test_get_data_length_fixed_storage);
 TEST (flash_store_contiguous_blocks_test_get_data_length_fixed_storage_multiple_sectors);
+TEST (flash_store_contiguous_blocks_test_get_data_length_fixed_storage_static_init);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_max_length);
@@ -20433,10 +20434,12 @@ TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_has
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_extra_sector_for_header_last_block);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_longer_header);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_old_format);
+TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_with_hash);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_with_hash_max_length);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_with_hash_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_with_hash_extra_sector_for_hash_last_block);
+TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_no_hash);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_no_hash_max_length);
@@ -20444,15 +20447,12 @@ TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decrea
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_no_hash_multiple_sectors_last_block);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_no_hash_extra_sector_for_header);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_no_hash_extra_sector_for_header_last_block);
+TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_with_hash);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_with_hash_max_length);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_with_hash_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_with_hash_extra_sector_for_hash_last_block);
-TEST (flash_store_contiguous_blocks_test_get_data_length_static_fixed_storage);
-TEST (flash_store_contiguous_blocks_test_get_data_length_static_variable_storage_no_hash);
-TEST (flash_store_contiguous_blocks_test_get_data_length_static_variable_storage_with_hash);
-TEST (flash_store_contiguous_blocks_test_get_data_length_static_variable_storage_decreasing_no_hash);
-TEST (flash_store_contiguous_blocks_test_get_data_length_static_variable_storage_decreasing_with_hash);
+TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_decreasing_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_get_data_length_fixed_storage_null);
 TEST (flash_store_contiguous_blocks_test_get_data_length_fixed_storage_invalid_id);
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_null);
@@ -20464,6 +20464,7 @@ TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_invali
 TEST (flash_store_contiguous_blocks_test_get_data_length_variable_storage_old_format_invalid_data_length);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_fixed_storage);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_multiple_sectors);
+TEST (flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_static_init);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_max_length);
@@ -20473,10 +20474,12 @@ TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_has
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_extra_sector_for_header_last_block);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_longer_header);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_old_format);
+TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_with_hash);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_with_hash_max_length);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_with_hash_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_with_hash_extra_sector_for_hash_last_block);
+TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_no_hash);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_no_hash_last_block);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_no_hash_max_length);
@@ -20484,15 +20487,12 @@ TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decrea
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_no_hash_multiple_sectors_last_block);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_no_hash_extra_sector_for_header);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_no_hash_extra_sector_for_header_last_block);
+TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_no_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_with_hash);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_with_hash_max_length);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_with_hash_extra_sector_for_hash);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_with_hash_extra_sector_for_hash_last_block);
-TEST (flash_store_contiguous_blocks_test_has_data_stored_static_fixed_storage);
-TEST (flash_store_contiguous_blocks_test_has_data_stored_static_variable_storage_no_hash);
-TEST (flash_store_contiguous_blocks_test_has_data_stored_static_variable_storage_with_hash);
-TEST (flash_store_contiguous_blocks_test_has_data_stored_static_variable_storage_decreasing_no_hash);
-TEST (flash_store_contiguous_blocks_test_has_data_stored_static_variable_storage_decreasing_with_hash);
+TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_decreasing_with_hash_static_init);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_null);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_fixed_storage_invalid_id);
 TEST (flash_store_contiguous_blocks_test_has_data_stored_variable_storage_null);
