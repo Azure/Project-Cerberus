@@ -3151,7 +3151,7 @@ static void flash_store_contiguous_blocks_encrypted_test_static_init_fixed_stora
 
 	flash_store_contiguous_blocks_encrypted_testing_release_dependencies (test, &store);
 
-	flash_store_contiguous_blocks_encrypted_release (&store.test);
+	flash_store_contiguous_blocks_encrypted_release (&test_static);
 }
 
 static void flash_store_contiguous_blocks_encrypted_test_static_init_variable_storage (CuTest *test)

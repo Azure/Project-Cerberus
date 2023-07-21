@@ -150,7 +150,6 @@ static int x509_openssl_create_custom_extension (const struct x509_extension_bui
 {
 	struct x509_extension extension;
 	ASN1_OBJECT *ext_oid;
-	uint8_t *octet_string;
 	int status;
 
 	status = builder->build (builder, &extension);
@@ -169,18 +168,8 @@ static int x509_openssl_create_custom_extension (const struct x509_extension_bui
 		goto free_oid;
 	}
 
-	/* Data needs to be copied into a buffer owned by the openssl object. */
-	octet_string = platform_malloc (extension.data_length);
-	if (octet_string == NULL) {
-		status = X509_ENGINE_NO_MEMORY;
-		goto free_str;
-	}
-
-	memcpy (octet_string, extension.data, extension.data_length);
-
-	status = ASN1_OCTET_STRING_set (*ext_data, octet_string, extension.data_length);
+	status = ASN1_OCTET_STRING_set (*ext_data, extension.data, extension.data_length);
 	if (status == 0) {
-		platform_free (octet_string);
 		status = -ERR_get_error ();
 		goto free_str;
 	}
