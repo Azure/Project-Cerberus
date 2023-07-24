@@ -33,6 +33,12 @@ static void add_all_asn1_dme_tests (CuSuite *suite)
 	!defined TESTING_SKIP_DME_STRUCTURE_RAW_ECC_SUITE
 	TESTING_RUN_SUITE (dme_structure_raw_ecc);
 #endif
+#if (defined TESTING_RUN_DME_STRUCTURE_RAW_ECC_LE_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_DME_STRUCTURE_RAW_ECC_LE_SUITE
+	TESTING_RUN_SUITE (dme_structure_raw_ecc_le);
+#endif
 #if (defined TESTING_RUN_X509_EXTENSION_BUILDER_DME_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

@@ -89,6 +89,10 @@ int dme_structure_init_sha512_with_challenge (struct dme_structure *dme,
 	const uint8_t *dme_struct_data, size_t dme_struct_length, const uint8_t *dme_key_der,
 	size_t key_length, const uint8_t *signature_der, size_t sig_length, enum hash_type sig_hash);
 
+int dme_structure_init_le_ecc384_with_sha512_nonce_and_challenge (struct dme_structure *dme,
+	const uint8_t *dme_struct_data, size_t dme_struct_length, const uint8_t *dme_key_der,
+	size_t key_length, const uint8_t *signature_der, size_t sig_length, enum hash_type sig_hash);
+
 
 #define	DME_STRUCTURE_ERROR(code)		ROT_ERROR (ROT_MODULE_DME_STRUCTURE, code)
 
@@ -100,6 +104,7 @@ enum {
 	DME_STRUCTURE_NO_MEMORY = DME_STRUCTURE_ERROR (0x01),				/**< Memory allocation failed. */
 	DME_STRUCTURE_BAD_LENGTH = DME_STRUCTURE_ERROR (0x02),				/**< DME structure length is not correct. */
 	DME_STRUCTURE_UNSUPPORTED_SIGNATURE = DME_STRUCTURE_ERROR (0x03),	/**< The signature uses an unsupported digest. */
+	DME_STRUCTURE_UNSUPPORTED_KEY_LENGTH = DME_STRUCTURE_ERROR (0x04),	/**< The DME key length is not supported. */
 };
 
 

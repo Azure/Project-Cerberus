@@ -1396,6 +1396,248 @@ static void dme_structure_raw_ecc_test_init_sha512_with_challenge_unsupported_ke
 	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
 }
 
+static void dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc256 (
+	CuTest *test)
+{
+	struct dme_structure_raw_ecc dme;
+	int status;
+
+	TEST_START;
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_TYPE7_OID_LEN, dme.base.data_oid_length);
+	status = testing_validate_array (DME_STRUCTURE_TESTING_TYPE7_OID, dme.base.data_oid,
+		dme.base.data_oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, dme.base.data_length);
+	CuAssertPtrEquals (test, (void*) DME_STRUCTURE_TESTING_TYPE7_DATA, (void*) dme.base.data);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_OID_SIG_ECC_SHA256_LEN, dme.base.sig_oid_length);
+	status = testing_validate_array (DME_STRUCTURE_TESTING_OID_SIG_ECC_SHA256, dme.base.sig_oid,
+		dme.base.sig_oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_LEN,
+		dme.base.signature_length);
+	status = testing_validate_array (DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256,
+		dme.base.signature, dme.base.signature_length);
+
+	CuAssertIntEquals (test, ECC_PUBKEY2_DER_LEN, dme.base.key_length);
+	status = testing_validate_array (ECC_PUBKEY2_DER, dme.base.dme_pub_key, dme.base.key_length);
+
+	CuAssertPtrEquals (test, NULL, (void*) dme.base.device_oid);
+	CuAssertIntEquals (test, 0, dme.base.dev_oid_length);
+
+	CuAssertPtrEquals (test, NULL, (void*) dme.base.renewal_counter);
+	CuAssertIntEquals (test, 0, dme.base.counter_length);
+}
+
+static void dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc384 (
+	CuTest *test)
+{
+	struct dme_structure_raw_ecc dme;
+	int status;
+
+	TEST_START;
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC384_PUBKEY2,
+		&ECC384_PUBKEY2[ECC_KEY_LENGTH_384], ECC_KEY_LENGTH_384,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC384_SHA384_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC384_SHA384_RAW_S, HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_TYPE7_OID_LEN, dme.base.data_oid_length);
+	status = testing_validate_array (DME_STRUCTURE_TESTING_TYPE7_OID, dme.base.data_oid,
+		dme.base.data_oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, dme.base.data_length);
+	CuAssertPtrEquals (test, (void*) DME_STRUCTURE_TESTING_TYPE7_DATA, (void*) dme.base.data);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_OID_SIG_ECC_SHA384_LEN, dme.base.sig_oid_length);
+	status = testing_validate_array (DME_STRUCTURE_TESTING_OID_SIG_ECC_SHA384, dme.base.sig_oid,
+		dme.base.sig_oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_TYPE7_SIG_ECC384_SHA384_LEN,
+		dme.base.signature_length);
+	status = testing_validate_array (DME_STRUCTURE_TESTING_TYPE7_SIG_ECC384_SHA384,
+		dme.base.signature, dme.base.signature_length);
+
+	CuAssertIntEquals (test, ECC384_PUBKEY2_DER_LEN, dme.base.key_length);
+	status = testing_validate_array (ECC384_PUBKEY2_DER, dme.base.dme_pub_key, dme.base.key_length);
+
+	CuAssertPtrEquals (test, NULL, (void*) dme.base.device_oid);
+	CuAssertIntEquals (test, 0, dme.base.dev_oid_length);
+
+	CuAssertPtrEquals (test, NULL, (void*) dme.base.renewal_counter);
+	CuAssertIntEquals (test, 0, dme.base.counter_length);
+}
+
+static void dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc521 (
+	CuTest *test)
+{
+	struct dme_structure_raw_ecc dme;
+	int status;
+
+	TEST_START;
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC521_PUBKEY2,
+		&ECC521_PUBKEY2[ECC_KEY_LENGTH_521], ECC_KEY_LENGTH_521,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC521_SHA512_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC521_SHA512_RAW_S, HASH_TYPE_SHA512);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_TYPE7_OID_LEN, dme.base.data_oid_length);
+	status = testing_validate_array (DME_STRUCTURE_TESTING_TYPE7_OID, dme.base.data_oid,
+		dme.base.data_oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, dme.base.data_length);
+	CuAssertPtrEquals (test, (void*) DME_STRUCTURE_TESTING_TYPE7_DATA, (void*) dme.base.data);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_OID_SIG_ECC_SHA512_LEN, dme.base.sig_oid_length);
+	status = testing_validate_array (DME_STRUCTURE_TESTING_OID_SIG_ECC_SHA512, dme.base.sig_oid,
+		dme.base.sig_oid_length);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, DME_STRUCTURE_TESTING_TYPE7_SIG_ECC521_SHA512_LEN,
+		dme.base.signature_length);
+	status = testing_validate_array (DME_STRUCTURE_TESTING_TYPE7_SIG_ECC521_SHA512,
+		dme.base.signature, dme.base.signature_length);
+
+	CuAssertIntEquals (test, ECC521_PUBKEY2_DER_LEN, dme.base.key_length);
+	status = testing_validate_array (ECC521_PUBKEY2_DER, dme.base.dme_pub_key, dme.base.key_length);
+
+	CuAssertPtrEquals (test, NULL, (void*) dme.base.device_oid);
+	CuAssertIntEquals (test, 0, dme.base.dev_oid_length);
+
+	CuAssertPtrEquals (test, NULL, (void*) dme.base.renewal_counter);
+	CuAssertIntEquals (test, 0, dme.base.counter_length);
+}
+
+static void dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_null (
+	CuTest *test)
+{
+	struct dme_structure_raw_ecc dme;
+	int status;
+
+	TEST_START;
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (NULL,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		NULL, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, NULL,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2,
+		NULL, ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		NULL,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		NULL, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_INVALID_ARGUMENT, status);
+}
+
+static void dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_bad_structure_length (
+	CuTest *test)
+{
+	struct dme_structure_raw_ecc dme;
+	int status;
+
+	TEST_START;
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN - 1, ECC_PUBKEY2,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_BAD_LENGTH, status);
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN + 1, ECC_PUBKEY2,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, DME_STRUCTURE_BAD_LENGTH, status);
+}
+
+static void dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_unsupported_signature_hash (
+	CuTest *test)
+{
+	struct dme_structure_raw_ecc dme;
+	int status;
+
+	TEST_START;
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, HASH_TYPE_SHA1);
+	CuAssertIntEquals (test, DME_STRUCTURE_UNSUPPORTED_SIGNATURE, status);
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, (enum hash_type) 10);
+	CuAssertIntEquals (test, DME_STRUCTURE_UNSUPPORTED_SIGNATURE, status);
+}
+
+static void dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_unsupported_key_length (
+	CuTest *test)
+{
+	struct dme_structure_raw_ecc dme;
+	int status;
+
+	TEST_START;
+
+	status = dme_structure_raw_ecc_init_le_ecc384_with_sha512_nonce_and_challenge (&dme,
+		DME_STRUCTURE_TESTING_TYPE7_DATA, DME_STRUCTURE_TESTING_TYPE7_DATA_LEN, ECC_PUBKEY2,
+		&ECC_PUBKEY2[ECC_KEY_LENGTH_256], (224 / 8),
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_R,
+		DME_STRUCTURE_TESTING_TYPE7_SIG_ECC256_SHA256_RAW_S, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH, status);
+}
+
 
 TEST_SUITE_START (dme_structure_raw_ecc);
 
@@ -1441,5 +1683,12 @@ TEST (dme_structure_raw_ecc_test_init_sha512_with_challenge_null);
 TEST (dme_structure_raw_ecc_test_init_sha512_with_challenge_bad_structure_length);
 TEST (dme_structure_raw_ecc_test_init_sha512_with_challenge_unsupported_signature_hash);
 TEST (dme_structure_raw_ecc_test_init_sha512_with_challenge_unsupported_key_length);
+TEST (dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc256);
+TEST (dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc384);
+TEST (dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_dme_key_ecc521);
+TEST (dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_null);
+TEST (dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_bad_structure_length);
+TEST (dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_unsupported_signature_hash);
+TEST (dme_structure_raw_ecc_test_init_le_ecc384_with_sha512_nonce_and_challenge_unsupported_key_length);
 
 TEST_SUITE_END;
