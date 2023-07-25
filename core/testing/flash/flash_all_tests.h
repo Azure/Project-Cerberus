@@ -57,6 +57,12 @@ static void add_all_flash_tests (CuSuite *suite)
 	!defined TESTING_SKIP_FLASH_UTIL_SUITE
 	TESTING_RUN_SUITE (flash_util);
 #endif
+#if (defined TESTING_RUN_FLASH_VIRTUAL_RAM_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_FLASH_VIRTUAL_RAM_SUITE
+	TESTING_RUN_SUITE (flash_virtual_ram);
+#endif
 #if (defined TESTING_RUN_SPI_FLASH_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
