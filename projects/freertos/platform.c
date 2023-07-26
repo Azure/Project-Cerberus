@@ -220,7 +220,7 @@ int platform_semaphore_init (platform_semaphore *sem)
 
 	*sem = xSemaphoreCreateBinary ();
 	if (*sem == NULL) {
-		return PLATFORM_MUTEX_ERROR (PLATFORM_NO_MEMORY);
+		return PLATFORM_SEMAPHORE_ERROR (PLATFORM_NO_MEMORY);
 	}
 
 	return 0;

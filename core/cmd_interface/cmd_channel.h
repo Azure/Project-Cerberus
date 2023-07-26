@@ -97,6 +97,7 @@ struct cmd_channel {
 
 int cmd_channel_get_id (struct cmd_channel *channel);
 
+int cmd_channel_validate_packet_for_send (const struct cmd_packet *packet);
 int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_interface *mctp,
 	int ms_timeout);
 int cmd_channel_send_message (struct cmd_channel *channel, struct cmd_message *message);

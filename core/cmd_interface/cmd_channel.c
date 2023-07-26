@@ -69,6 +69,28 @@ int cmd_channel_get_id (struct cmd_channel *channel)
 }
 
 /**
+ * Validates the fields of a command packet being used for packet transmission.  This is a useful
+ * utility for command channel implementations to validate the provided packet parameter intended
+ * to be sent.
+ *
+ * @param packet The packet being used for transmission.
+ *
+ * @return 0 if the packet is valid, else an error code.
+ */
+int cmd_channel_validate_packet_for_send (const struct cmd_packet *packet)
+{
+	if (packet == NULL) {
+		return CMD_CHANNEL_INVALID_ARGUMENT;
+	}
+
+	if ((packet->pkt_size == 0) || (packet->pkt_size > sizeof (packet->data))) {
+		return CMD_CHANNEL_INVALID_PKT_SIZE;
+	}
+
+	return 0;
+}
+
+/**
  * Send a sequence of packets over a command channel.  Packets will be sequentially sent until all
  * packets have been successfully transmitted or there is an error sending a packet.  Sending cannot
  * be interrupted by a different sequence of packets.  This ensures no interleaving of different

@@ -134,6 +134,54 @@ static void cmd_channel_test_get_id_null (CuTest *test)
 	cmd_channel_mock_release (&channel);
 }
 
+static void cmd_channel_test_validate_packet_for_send_byte (CuTest *test)
+{
+	int status;
+	struct cmd_packet packet;
+
+	packet.pkt_size = 1;
+	status = cmd_channel_validate_packet_for_send (&packet);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_validate_packet_for_send_max (CuTest *test)
+{
+	int status;
+	struct cmd_packet packet;
+
+	packet.pkt_size = sizeof (packet.data);
+	status = cmd_channel_validate_packet_for_send (&packet);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_validate_packet_for_send_null (CuTest *test)
+{
+	int status;
+
+	status = cmd_channel_validate_packet_for_send (NULL);
+	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
+}
+
+static void cmd_channel_test_validate_packet_for_send_empty (CuTest *test)
+{
+	int status;
+	struct cmd_packet packet;
+
+	packet.pkt_size = 0;
+	status = cmd_channel_validate_packet_for_send (&packet);
+	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_PKT_SIZE, status);
+}
+
+static void cmd_channel_test_validate_packet_for_send_overflow (CuTest *test)
+{
+	int status;
+	struct cmd_packet packet;
+
+	packet.pkt_size = sizeof (packet.data) + 1;
+	status = cmd_channel_validate_packet_for_send (&packet);
+	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_PKT_SIZE, status);	
+}
+
 static void cmd_channel_test_receive_and_process_single_packet_response (CuTest *test)
 {
 	struct cmd_channel_testing channel;
@@ -3066,6 +3114,11 @@ TEST (cmd_channel_test_init_null);
 TEST (cmd_channel_test_release_null);
 TEST (cmd_channel_test_get_id);
 TEST (cmd_channel_test_get_id_null);
+TEST (cmd_channel_test_validate_packet_for_send_byte);
+TEST (cmd_channel_test_validate_packet_for_send_max);
+TEST (cmd_channel_test_validate_packet_for_send_null);
+TEST (cmd_channel_test_validate_packet_for_send_empty);
+TEST (cmd_channel_test_validate_packet_for_send_overflow);
 TEST (cmd_channel_test_receive_and_process_single_packet_response);
 TEST (cmd_channel_test_receive_and_process_multi_packet_response);
 TEST (cmd_channel_test_receive_and_process_max_response);
