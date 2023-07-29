@@ -813,6 +813,7 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, si
 	uint8_t *entry_ptr = NULL;
 	size_t entry_len = 0;
 	size_t entry_offset = 0;
+	uint32_t event_size;
 	int status = 0;
 
 	if ((pcr == NULL) || (buffer == NULL) || (total_len == NULL)) {
@@ -855,18 +856,21 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, si
 			offset = 0;
 		}
 
+		/* The entry event size is not word-aligned, so use a temp location that is aligned. */
 		status = pcr_get_measurement_data_internal (pcr, i_measurement, offset, buffer, length,
-			&entry.event_size);
+			&event_size);
 		if (ROT_IS_ERROR (status)) {
 			goto exit;
 		}
+
+		entry.event_size = event_size;
 
 		if (entry_ptr != NULL) {
 			memcpy (entry_ptr, ((uint8_t*) &entry) + entry_offset, entry_len);
 			entry_ptr = NULL;
 		}
 
-		*total_len += entry.event_size;
+		*total_len += event_size;
 		buffer += status;
 		length -= status;
 
@@ -875,7 +879,7 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, si
 			num_bytes += status;
 		}
 		else {
-			offset -= entry.event_size;
+			offset -= event_size;
 		}
 
 		i_measurement++;
