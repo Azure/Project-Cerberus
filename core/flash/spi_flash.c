@@ -1421,6 +1421,7 @@ int spi_flash_is_4byte_address_mode_on_reset (const struct spi_flash *flash)
 			break;
 
 		case FLASH_ID_MICRON:
+		case FLASH_ID_MICRON_X:
 			cmd = FLASH_CMD_RD_NV_CFG;
 			mask = MICRON_4BYTE_DEFAULT;
 			break;
@@ -1441,7 +1442,8 @@ int spi_flash_is_4byte_address_mode_on_reset (const struct spi_flash *flash)
 		}
 	}
 
-	return (vendor == FLASH_ID_MICRON) ? !(reg & mask) : !!(reg & mask);
+	return ((vendor == FLASH_ID_MICRON ) || (vendor == FLASH_ID_MICRON_X)) ?
+		!(reg & mask) : !!(reg & mask);
 }
 
 /**
@@ -1577,6 +1579,7 @@ int spi_flash_detect_4byte_address_mode (const struct spi_flash *flash)
 			break;
 
 		case FLASH_ID_MICRON:
+		case FLASH_ID_MICRON_X:
 			mask = MICRON_4BYTE_STATES;
 			cmd = FLASH_CMD_RDSR_FLAG;
 			break;

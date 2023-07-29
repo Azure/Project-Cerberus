@@ -691,7 +691,16 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 		switch (quad) {
 			case SPI_FLASH_SFDP_QER_RESERVED1:
 			case SPI_FLASH_SFDP_QER_RESERVED2:
-				return SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN;
+				if (table->sfdp->vendor == FLASH_ID_MICRON_X) {
+					/* The Micron Xcella flash device follows SFDP parameter version 1.6,
+					 * however incorrectly reports reserved value 7 for QER.
+					 * It does not support QUAD_1_1_4, QUAD_1_4_4 or QUAD_4_4_4. */
+					quad = SPI_FLASH_SFDP_QUAD_NO_QE_BIT;
+					break;
+				}
+				else {
+					return SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN;
+				}
 
 			case SPI_FLASH_SFDP_QER_NO_QUAD_ENABLE:
 				if (params->quad_enable & SPI_FLASH_SFDP_HOLD_RST_DISABLE) {
