@@ -214,7 +214,7 @@ static void config_reset_test_init (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -287,7 +287,7 @@ static void config_reset_test_init_no_state (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -348,7 +348,7 @@ static void config_reset_test_init_no_manifests (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 	int status;
 
@@ -403,7 +403,7 @@ static void config_reset_test_init_no_bypass_manifests (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -478,7 +478,7 @@ static void config_reset_test_init_no_default_manifests (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -553,7 +553,7 @@ static void config_reset_test_init_no_riot (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -628,7 +628,7 @@ static void config_reset_test_init_no_aux (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -696,7 +696,7 @@ static void config_reset_test_init_no_recovery (CuTest *test)
 	struct state_manager_mock state;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 	struct config_reset_testing_keys keys;
 	struct config_reset reset;
@@ -829,7 +829,7 @@ static void config_reset_test_init_no_intrusion (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 
 	TEST_START;
 
@@ -897,7 +897,7 @@ static void config_reset_test_init_null (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -988,7 +988,7 @@ static void config_reset_test_init_no_manifests_with_state (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -1049,7 +1049,7 @@ static void config_reset_test_restore_bypass (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -1141,7 +1141,7 @@ static void config_reset_test_restore_bypass_multiple (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -1245,7 +1245,7 @@ static void config_reset_test_restore_bypass_no_manifests (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -1309,7 +1309,7 @@ static void config_reset_test_restore_bypass_null (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -1391,7 +1391,7 @@ static void config_reset_test_restore_bypass_clear_error (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -1501,7 +1501,7 @@ static void config_reset_test_restore_defaults (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -1619,7 +1619,7 @@ static void config_reset_test_restore_defaults_multiple_bypass (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -1775,7 +1775,7 @@ static void config_reset_test_restore_defaults_multiple_default (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -1933,7 +1933,7 @@ static void config_reset_test_restore_defaults_multiple_components (CuTest *test
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -2085,7 +2085,7 @@ static void config_reset_test_restore_defaults_no_bypass_manifests (CuTest *test
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -2189,7 +2189,7 @@ static void config_reset_test_restore_defaults_no_default_manifests (CuTest *tes
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -2292,7 +2292,7 @@ static void config_reset_test_restore_defaults_no_component_manifests (CuTest *t
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -2388,7 +2388,7 @@ static void config_reset_test_restore_defaults_no_manifests (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 	int status;
 
@@ -2466,7 +2466,7 @@ static void config_reset_test_restore_defaults_no_state (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -2572,7 +2572,7 @@ static void config_reset_test_restore_defaults_no_riot (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -2679,7 +2679,7 @@ static void config_reset_test_restore_defaults_no_aux (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -2782,7 +2782,7 @@ static void config_reset_test_restore_defaults_no_recovery (CuTest *test)
 	struct state_manager_mock state;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 	struct config_reset_testing_keys keys;
 	struct config_reset reset;
@@ -2990,7 +2990,7 @@ static void config_reset_test_restore_defaults_no_intrusion (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 
 	TEST_START;
 
@@ -3109,7 +3109,7 @@ static void config_reset_test_restore_defaults_bypass_clear_error (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -3236,7 +3236,7 @@ static void config_reset_test_restore_defaults_default_clear_error (CuTest *test
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -3360,7 +3360,7 @@ static void config_reset_test_restore_defaults_components_clear_error (CuTest *t
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -3491,7 +3491,7 @@ static void config_reset_test_restore_defaults_riot_erase_error (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -3590,7 +3590,7 @@ static void config_reset_test_restore_defaults_aux_erase_error (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -3696,7 +3696,7 @@ static void config_reset_test_restore_defaults_recovery_in_use_error (CuTest *te
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -3805,7 +3805,7 @@ static void config_reset_test_restore_defaults_keystore_array_erase_error (CuTes
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -3917,7 +3917,7 @@ static void config_reset_test_restore_defaults_intrusion_error (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -4032,7 +4032,7 @@ static void config_reset_test_restore_platform_config (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -4124,7 +4124,7 @@ static void config_reset_test_restore_platform_config_multiple (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -4230,7 +4230,7 @@ static void config_reset_test_restore_platform_config_no_manifests (CuTest *test
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -4298,7 +4298,7 @@ static void config_reset_test_restore_platform_config_null (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -4380,7 +4380,7 @@ static void config_reset_test_restore_platform_config_clear_error (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -4490,7 +4490,7 @@ static void config_reset_test_reset_intrusion (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -4578,7 +4578,7 @@ static void config_reset_test_reset_intrusion_null (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -4656,7 +4656,7 @@ static void config_reset_test_reset_intrusion_null_intrusion (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 
 	TEST_START;
 
@@ -4727,7 +4727,7 @@ static void config_reset_test_reset_intrusion_reset_error (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -4811,7 +4811,7 @@ static void config_reset_test_clear_component_manifests (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -4904,7 +4904,7 @@ static void config_reset_test_clear_component_manifests_multiple (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -5011,7 +5011,7 @@ static void config_reset_test_clear_component_manifests_no_manifests (CuTest *te
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -5075,7 +5075,7 @@ static void config_reset_test_clear_component_manifests_null (CuTest *test)
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;
@@ -5157,7 +5157,7 @@ static void config_reset_test_clear_component_manifests_clear_error (CuTest *tes
 	struct recovery_image_manager_mock recovery;
 	struct keystore_mock keystore1;
 	struct keystore_mock keystore2;
-	struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
+	const struct keystore *keystore_array[] = {&keystore1.base, &keystore2.base};
 	struct intrusion_manager_mock intrusion;
 
 	TEST_START;

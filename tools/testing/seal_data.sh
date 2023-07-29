@@ -24,10 +24,25 @@ fi
 
 cert=$3
 key=`mktemp -p .`
-openssl x509 -inform DER -outform PEM -noout -pubkey -in $cert > $key
-if [ $? -ne 0 ]; then
-	rm -f $key
-	exit 1
+
+grep -q "BEGIN PUBLIC KEY" $cert
+if [ $? -eq 0 ]; then
+	# The cert is a raw public key.
+	cp $cert $key
+else
+	# The cert is an X.509 certificate.
+	grep -q "BEGIN CERTIFICATE" $cert
+	if [ $? -eq 0 ]; then
+		inform=PEM
+	else
+		inform=DER
+	fi
+
+	openssl x509 -inform $inform -outform PEM -noout -pubkey -in $cert > $key
+	if [ $? -ne 0 ]; then
+		rm -f $key
+		exit 1
+	fi
 fi
 
 if [ "$1" = "1" ]; then
@@ -39,6 +54,7 @@ if [ "$1" = "1" ]; then
 			exit 1
 		fi
 	else
+		echo "Using $privkey for sealing."
 		cp -f $4 $ecc
 		if [ $? -ne 0 ]; then
 			rm -f $key $ecc
@@ -73,9 +89,23 @@ else
 	ecc=''
 	seed=`mktemp -p .`
 	dd if=/dev/random bs=1 count=$SEED_LEN > $seed 2> /dev/null
-	
+
 	if [ "$2" = "2" ]; then
-		openssl pkeyutl -in $seed -encrypt -inkey $key -pubin -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha256 -out seed.bin
+		openssl pkeyutl -in $seed -encrypt -inkey $key -pubin -pkeyopt rsa_padding_mode:oaep \
+			-pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha256 -out seed.bin
+		if [ $? -ne 0 ]; then
+			rm -f $key $seed
+			exit 1
+		fi
+	elif [ "$2" = "1" ]; then
+		openssl pkeyutl -in $seed -encrypt -inkey $key -pubin -pkeyopt rsa_padding_mode:oaep \
+			-pkeyopt rsa_oaep_md:sha1 -pkeyopt rsa_mgf1_md:sha1 -out seed.bin
+		if [ $? -ne 0 ]; then
+			rm -f $key $seed
+			exit 1
+		fi
+	elif [ "$2" = "0" ]; then
+		openssl pkeyutl -in $seed -encrypt -inkey $key -pubin -out seed.bin
 		if [ $? -ne 0 ]; then
 			rm -f $key $seed
 			exit 1
@@ -106,7 +136,8 @@ label=`echo -n "signing key" | hexdump -ve '/1 "%02x"'`
 sign_nist="00000001${label}0000000100"
 
 sign_key=`mktemp -p .`
-echo -ne "$(echo -n $sign_nist | sed -e 's/../\\x&/g')" | openssl dgst -sha256 -mac hmac -macopt hexkey:$seed_hex -out $sign_key -binary
+echo -ne "$(echo -n $sign_nist | sed -e 's/../\\x&/g')" | openssl dgst -sha256 -mac hmac \
+	-macopt hexkey:$seed_hex -out $sign_key -binary
 if [ $? -ne 0 ]; then
 	rm -f $seed $sign_key
 	exit 1
@@ -164,5 +195,6 @@ label=`echo -n "encryption key" | hexdump -ve '/1 "%02x"'`
 enc_nist="00000001${label}0000000100"
 
 echo "Encryption Key:"
-echo -ne "$(echo -n $enc_nist | sed -e 's/../\\x&/g')"| openssl dgst -sha256 -mac hmac -macopt hexkey:$seed_hex
+echo -ne "$(echo -n $enc_nist | sed -e 's/../\\x&/g')" | openssl dgst -sha256 -mac hmac \
+	-macopt hexkey:$seed_hex
 rm -f $sign_key $seed $payload

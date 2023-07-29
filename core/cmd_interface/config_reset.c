@@ -36,7 +36,7 @@ int config_reset_init (struct config_reset *reset, const struct manifest_manager
 	const struct manifest_manager **component_manifests, size_t component_manifests_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
-	struct keystore **keystores, size_t keystore_count, struct intrusion_manager *intrusion)
+	const struct keystore **keystores, size_t keystore_count, struct intrusion_manager *intrusion)
 {
 	if ((reset == NULL) || (bypass_count && (bypass_config == NULL)) ||
 		(platform_count && (platform_config == NULL)) || (state_count && (state == NULL)) ||

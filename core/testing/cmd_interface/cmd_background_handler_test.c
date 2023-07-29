@@ -49,7 +49,7 @@ struct cmd_background_handler_testing {
 	const struct manifest_manager *config[1];			/**< List of config manifests. */
 	const struct manifest_manager *components[1];		/**< List of component manifests. */
 	struct state_manager *state_list[1];				/**< List of state managers. */
-	struct keystore *keystores[1];						/**< List of keystores. */
+	const struct keystore *keystores[1];				/**< List of keystores. */
 	struct config_reset_testing_keys keys;				/**< RIoT and aux keys. */
 	struct config_reset reset;							/**< Configuration reset manager. */
 	struct attestation_responder_mock attestation;		/**< Mock for attestation requests. */

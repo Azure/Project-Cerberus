@@ -23,7 +23,7 @@ struct keystore {
 	 *
 	 * @return 0 if the key was successfully stored or an error code.
 	 */
-	int (*save_key) (struct keystore *store, int id, const uint8_t *key, size_t length);
+	int (*save_key) (const struct keystore *store, int id, const uint8_t *key, size_t length);
 
 	/**
 	 * Load key information.
@@ -36,7 +36,7 @@ struct keystore {
 	 *
 	 * @return 0 if the key was successfully loaded or an error code.
 	 */
-	int (*load_key) (struct keystore *store, int id, uint8_t **key, size_t *length);
+	int (*load_key) (const struct keystore *store, int id, uint8_t **key, size_t *length);
 
 	/**
 	 * Erase key information from storage.
@@ -46,7 +46,7 @@ struct keystore {
 	 *
 	 * @return 0 if the key was successfully erased or an error code.
 	 */
-	int (*erase_key) (struct keystore *store, int id);
+	int (*erase_key) (const struct keystore *store, int id);
 
 	/**
 	 * Erase all keys from storage.
@@ -55,7 +55,7 @@ struct keystore {
 	 *
 	 * @return 0 if the keys were successfully erased or an error code.
 	 */
-	int (*erase_all_keys) (struct keystore *store);
+	int (*erase_all_keys) (const struct keystore *store);
 };
 
 

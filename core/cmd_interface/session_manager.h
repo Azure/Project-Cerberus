@@ -175,7 +175,7 @@ struct session_manager {
 	size_t num_pairing_eids;							/**< Total number of supported devices for pairing mode */
 	const uint8_t *pairing_eids;						/**< List of supported devices for pairing mode */
 	bool sessions_table_preallocated;					/**< Flag indicating if session tables were provided by caller */
-	struct keystore *store;								/**< Keystore used to persist pairing keys */
+	const struct keystore *store;						/**< Keystore used to persist pairing keys */
 };
 
 
@@ -183,7 +183,7 @@ struct session_manager {
 int session_manager_init (struct session_manager *session, struct aes_engine *aes,
 	struct hash_engine *hash, struct riot_key_manager *riot,
 	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
-	size_t num_pairing_eids, struct keystore *store);
+	size_t num_pairing_eids, const struct keystore *store);
 void session_manager_release (struct session_manager *session);
 
 int session_manager_add_session (struct session_manager *session, uint8_t eid,

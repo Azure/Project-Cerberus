@@ -184,8 +184,9 @@ static int riot_key_manager_store_certificate (struct riot_key_manager *riot, in
  *
  * @return 0 if the manager was successfully initialized or an error code.
  */
-static int riot_key_manager_init_certs (struct riot_key_manager *riot, struct keystore *keystore,
-	const struct riot_keys *keys, struct x509_engine *x509, bool static_keys)
+static int riot_key_manager_init_certs (struct riot_key_manager *riot,
+	const struct keystore *keystore, const struct riot_keys *keys, struct x509_engine *x509,
+	bool static_keys)
 {
 	int status;
 
@@ -233,7 +234,7 @@ static int riot_key_manager_init_certs (struct riot_key_manager *riot, struct ke
  *
  * @return 0 if the manager was successfully initialized or an error code.
  */
-int riot_key_manager_init (struct riot_key_manager *riot, struct keystore *keystore,
+int riot_key_manager_init (struct riot_key_manager *riot, const struct keystore *keystore,
 	const struct riot_keys *keys, struct x509_engine *x509)
 {
 	return riot_key_manager_init_certs (riot, keystore, keys, x509, false);
@@ -252,7 +253,7 @@ int riot_key_manager_init (struct riot_key_manager *riot, struct keystore *keyst
  *
  * @return 0 if the manager was successfully initialized or an error code.
  */
-int riot_key_manager_init_static (struct riot_key_manager *riot, struct keystore *keystore,
+int riot_key_manager_init_static (struct riot_key_manager *riot, const struct keystore *keystore,
 	const struct riot_keys *keys, struct x509_engine *x509)
 {
 	return riot_key_manager_init_certs (riot, keystore, keys, x509, true);

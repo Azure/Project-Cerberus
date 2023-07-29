@@ -54,7 +54,7 @@ struct config_reset {
 	struct riot_key_manager *riot;							/**< Manager for RIoT keys. */
 	struct aux_attestation *aux;							/**< Manager for attestation keys. */
 	struct recovery_image_manager *recovery;				/**< Manager for host recovery images. */
-	struct keystore **keystores;							/**< Array of keystores to clear keys of. */
+	const struct keystore **keystores;						/**< Array of keystores to clear keys of. */
 	size_t keystore_count;									/**< Number of keystores in the keystores array. */
 	struct intrusion_manager *intrusion;					/**< Intrusion manager to reset intrusion. */
 };
@@ -65,7 +65,7 @@ int config_reset_init (struct config_reset *reset, const struct manifest_manager
 	const struct manifest_manager **component_manifests, size_t component_manifests_count,
 	struct state_manager **state, size_t state_count, struct riot_key_manager *riot,
 	struct aux_attestation *aux, struct recovery_image_manager *recovery,
-	struct keystore **keystores, size_t keystore_count, struct intrusion_manager *intrusion);
+	const struct keystore **keystores, size_t keystore_count, struct intrusion_manager *intrusion);
 void config_reset_release (struct config_reset *reset);
 
 int config_reset_restore_bypass (struct config_reset *reset);

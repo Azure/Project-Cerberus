@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT license.
+
 BUILD := build/
 BIN := $(BUILD)ocp_recovery
 INC_DIR := ../../core/

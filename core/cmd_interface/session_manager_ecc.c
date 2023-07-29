@@ -228,9 +228,9 @@ free_device_key:
  * @return Initialization status, 0 if success or an error code.
  */
 int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_engine *aes,
-	struct ecc_engine *ecc, struct hash_engine *hash, struct riot_key_manager *riot, 
-	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids, 
-	size_t num_pairing_eids, struct keystore *store)
+	struct ecc_engine *ecc, struct hash_engine *hash, struct riot_key_manager *riot,
+	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
+	size_t num_pairing_eids, const struct keystore *store)
 {
 	int status;
 

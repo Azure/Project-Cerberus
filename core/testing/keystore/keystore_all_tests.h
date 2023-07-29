@@ -27,6 +27,12 @@ static void add_all_keystore_tests (CuSuite *suite)
 	!defined TESTING_SKIP_KEYSTORE_FLASH_SUITE
 	TESTING_RUN_SUITE (keystore_flash);
 #endif
+#if (defined TESTING_RUN_KEYSTORE_NULL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_KEYSTORE_NULL_SUITE
+	TESTING_RUN_SUITE (keystore_null);
+#endif
 }
 
 

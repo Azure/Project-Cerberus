@@ -7,6 +7,7 @@
 #include "platform_api.h"
 #include "testing.h"
 #include "keystore/keystore_flash.h"
+#include "keystore/keystore_flash_static.h"
 #include "flash/flash_store.h"
 #include "flash/flash_store_contiguous_blocks_encrypted.h"
 #include "flash/spi_flash.h"
@@ -43,6 +44,7 @@ static void keystore_flash_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, store.base.save_key);
 	CuAssertPtrNotNull (test, store.base.load_key);
 	CuAssertPtrNotNull (test, store.base.erase_key);
+	CuAssertPtrNotNull (test, store.base.erase_all_keys);
 
 	status = flash_store_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -69,6 +71,28 @@ static void keystore_flash_test_init_null (CuTest *test)
 
 	status = flash_store_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
+}
+
+static void keystore_flash_test_static_init (CuTest *test)
+{
+	struct flash_store_mock flash;
+	struct keystore_flash store = keystore_flash_static_init (&flash.base);
+	int status;
+
+	TEST_START;
+
+	status = flash_store_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, store.base.save_key);
+	CuAssertPtrNotNull (test, store.base.load_key);
+	CuAssertPtrNotNull (test, store.base.erase_key);
+	CuAssertPtrNotNull (test, store.base.erase_all_keys);
+
+	status = flash_store_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	keystore_flash_release (&store);
 }
 
 static void keystore_flash_test_release_null (CuTest *test)
@@ -126,6 +150,31 @@ static void keystore_flash_test_save_key_not_first_key (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = store.base.save_key (&store.base, 3, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	keystore_flash_release (&store);
+}
+
+static void keystore_flash_test_save_key_static_init (CuTest *test)
+{
+	struct flash_store_mock flash;
+	struct keystore_flash store = keystore_flash_static_init (&flash.base);
+	int status;
+
+	TEST_START;
+
+	status = flash_store_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.write, &flash, 0, MOCK_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN),
+		MOCK_ARG (RSA_PRIVKEY_DER_LEN));
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.base.save_key (&store.base, 0, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_store_mock_validate_and_release (&flash);
@@ -448,6 +497,44 @@ static void keystore_flash_test_load_key_backwards_compatibility_encrypted (CuTe
 	flash_store_contiguous_blocks_encrypted_release (&flash);
 }
 
+static void keystore_flash_test_load_key_static_init (CuTest *test)
+{
+	struct flash_store_mock flash;
+	struct keystore_flash store = keystore_flash_static_init (&flash.base);
+	int status;
+	uint8_t *key = NULL;
+	size_t key_len;
+
+	TEST_START;
+
+	status = flash_store_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.get_data_length, &flash, RSA_PRIVKEY_DER_LEN,
+		MOCK_ARG (0));
+
+	status |= mock_expect (&flash.mock, flash.base.read, &flash, RSA_PRIVKEY_DER_LEN, MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (RSA_PRIVKEY_DER_LEN));
+	status |= mock_expect_output (&flash.mock, 1, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.base.load_key (&store.base, 0, &key, &key_len);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, key);
+	CuAssertIntEquals (test, RSA_PRIVKEY_DER_LEN, key_len);
+
+	status = testing_validate_array (RSA_PRIVKEY_DER, key, key_len);
+	CuAssertIntEquals (test, 0, status);
+
+	platform_free (key);
+
+	status = flash_store_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	keystore_flash_release (&store);
+}
+
 static void keystore_flash_test_load_key_null (CuTest *test)
 {
 	struct flash_store_mock flash;
@@ -704,6 +791,29 @@ static void keystore_flash_test_erase_key_not_first_key (CuTest *test)
 	keystore_flash_release (&store);
 }
 
+static void keystore_flash_test_erase_key_static_init (CuTest *test)
+{
+	struct flash_store_mock flash;
+	struct keystore_flash store = keystore_flash_static_init (&flash.base);
+	int status;
+
+	TEST_START;
+
+	status = flash_store_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.erase, &flash, 0, MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.base.erase_key (&store.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	keystore_flash_release (&store);
+}
+
 static void keystore_flash_test_erase_key_null (CuTest *test)
 {
 	struct flash_store_mock flash;
@@ -780,6 +890,29 @@ static void keystore_flash_test_erase_all_keys (CuTest *test)
 	keystore_flash_release (&store);
 }
 
+static void keystore_flash_test_erase_all_keys_static_init (CuTest *test)
+{
+	struct flash_store_mock flash;
+	struct keystore_flash store = keystore_flash_static_init (&flash.base);
+	int status;
+
+	TEST_START;
+
+	status = flash_store_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.erase_all, &flash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = store.base.erase_all_keys (&store.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_store_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	keystore_flash_release (&store);
+}
+
 static void keystore_flash_test_erase_all_keys_null (CuTest *test)
 {
 	struct flash_store_mock flash;
@@ -834,15 +967,18 @@ TEST_SUITE_START (keystore_flash);
 
 TEST (keystore_flash_test_init);
 TEST (keystore_flash_test_init_null);
+TEST (keystore_flash_test_static_init);
 TEST (keystore_flash_test_release_null);
 TEST (keystore_flash_test_save_key);
 TEST (keystore_flash_test_save_key_not_first_key);
+TEST (keystore_flash_test_save_key_static_init);
 TEST (keystore_flash_test_save_key_null);
 TEST (keystore_flash_test_save_key_write_error);
 TEST (keystore_flash_test_load_key);
 TEST (keystore_flash_test_load_key_not_first_key);
 TEST (keystore_flash_test_load_key_backwards_compatibility);
 TEST (keystore_flash_test_load_key_backwards_compatibility_encrypted);
+TEST (keystore_flash_test_load_key_static_init);
 TEST (keystore_flash_test_load_key_null);
 TEST (keystore_flash_test_load_key_bad_key);
 TEST (keystore_flash_test_load_key_no_key);
@@ -851,9 +987,11 @@ TEST (keystore_flash_test_load_key_read_length_error);
 TEST (keystore_flash_test_load_key_read_key_error);
 TEST (keystore_flash_test_erase_key);
 TEST (keystore_flash_test_erase_key_not_first_key);
+TEST (keystore_flash_test_erase_key_static_init);
 TEST (keystore_flash_test_erase_key_null);
 TEST (keystore_flash_test_erase_key_erase_error);
 TEST (keystore_flash_test_erase_all_keys);
+TEST (keystore_flash_test_erase_all_keys_static_init);
 TEST (keystore_flash_test_erase_all_keys_null);
 TEST (keystore_flash_test_erase_all_keys_erase_error);
 

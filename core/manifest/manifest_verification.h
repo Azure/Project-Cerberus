@@ -96,7 +96,7 @@ struct manifest_verification {
 	const struct manifest_verification_key *default_key;	/**< Default key for verification. */
 	const struct signature_verification *manifest_verify;	/**< Handler for signature verification of keys and manifests. */
 	struct hash_engine *hash;								/**< Hash engine for manifest validation. */
-	struct keystore *keystore;								/**< Storage for the verification key. */
+	const struct keystore *keystore;						/**< Storage for the verification key. */
 	int key_id;												/**< ID of the key in the keystore. */
 };
 
@@ -105,7 +105,7 @@ int manifest_verification_init (struct manifest_verification *verification,
 	struct manifest_verification_state *state, struct hash_engine *hash,
 	const struct signature_verification *sig_verify, const uint8_t *root_key,
 	size_t root_key_length, const struct manifest_verification_key *manifest_key,
-	struct keystore *manifest_keystore, int key_id);
+	const struct keystore *manifest_keystore, int key_id);
 int manifest_verification_init_state (const struct manifest_verification *verification,
 	const uint8_t *root_key, size_t root_key_length);
 void manifest_verification_release (const struct manifest_verification *verification);

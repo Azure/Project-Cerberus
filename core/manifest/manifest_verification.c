@@ -230,7 +230,7 @@ int manifest_verification_init (struct manifest_verification *verification,
 	struct manifest_verification_state *state, struct hash_engine *hash,
 	const struct signature_verification *sig_verify, const uint8_t *root_key,
 	size_t root_key_length, const struct manifest_verification_key *manifest_key,
-	struct keystore *manifest_keystore, int key_id)
+	const struct keystore *manifest_keystore, int key_id)
 {
 	if (verification == NULL) {
 		return MANIFEST_VERIFICATION_INVALID_ARGUMENT;
