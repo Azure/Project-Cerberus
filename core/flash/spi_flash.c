@@ -1442,7 +1442,7 @@ int spi_flash_is_4byte_address_mode_on_reset (const struct spi_flash *flash)
 		}
 	}
 
-	return ((vendor == FLASH_ID_MICRON ) || (vendor == FLASH_ID_MICRON_X)) ?
+	return ((vendor == FLASH_ID_MICRON) || (vendor == FLASH_ID_MICRON_X)) ?
 		!(reg & mask) : !!(reg & mask);
 }
 
