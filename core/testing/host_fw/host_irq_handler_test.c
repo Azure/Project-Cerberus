@@ -5,28 +5,14 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "host_fw/host_irq_handler.h"
-#include "testing/mock/host_fw/bmc_recovery_mock.h"
-#include "testing/mock/host_fw/host_irq_control_mock.h"
-#include "testing/mock/host_fw/host_processor_mock.h"
-#include "testing/engines/hash_testing_engine.h"
-#include "testing/engines/rsa_testing_engine.h"
+#include "host_irq_handler_testing.h"
+#include "host_fw/host_logging.h"
+#include "testing/logging/debug_log_testing.h"
+#include "logging/debug_log.h"
 
 
 TEST_SUITE_LABEL ("host_irq_handler");
 
-
-/**
- * Dependencies for testing.
- */
-struct host_irq_handler_testing {
-	HASH_TESTING_ENGINE hash;				/**< Hash engine to use for reset validation. */
-	RSA_TESTING_ENGINE rsa;					/**< RSA engine to use for reset validation. */
-	struct host_processor_mock host;		/**< Mock for host processor. */
-	struct bmc_recovery_mock recovery;		/**< Mock for BMC watchdog boot recovery. */
-	struct host_irq_control_mock irq;		/**< Mock for host IRQ controller. */
-	struct host_irq_handler test;			/**< Host interrupt handler under test. */
-};
 
 /**
  * Initialize testing dependencies.
@@ -34,8 +20,8 @@ struct host_irq_handler_testing {
  * @param test The testing framework.
  * @param host The testing components to initialize.
  */
-static void host_irq_handler_testing_init_dependencies (CuTest *test,
-    struct host_irq_handler_testing *host)
+void host_irq_handler_testing_init_dependencies (CuTest *test,
+	struct host_irq_handler_testing *host)
 {
 	int status;
 
@@ -52,6 +38,9 @@ static void host_irq_handler_testing_init_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_irq_control_mock_init (&host->irq);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_init (&host->logger);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -103,6 +92,7 @@ void host_irq_handler_testing_release_dependencies (CuTest *test,
 	status = host_processor_mock_validate_and_release (&host->host);
 	status |= bmc_recovery_mock_validate_and_release (&host->recovery);
 	status |= host_irq_control_mock_validate_and_release (&host->irq);
+	status |= logging_mock_validate_and_release (&host->logger);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -132,21 +122,17 @@ void host_irq_handler_testing_validate_and_release (CuTest *test,
 static void host_irq_handler_test_init (CuTest *test)
 {
 	struct host_irq_handler_testing handler;
-	int status;
 
 	TEST_START;
 
-	host_irq_handler_testing_init_dependencies (test, &handler);
-
-	status = host_irq_handler_init (&handler.test, &handler.host.base, &handler.hash.base,
-		&handler.rsa.base, &handler.recovery.base);
-	CuAssertIntEquals (test, 0, status);
+	host_irq_handler_testing_init (test, &handler);
 
 	CuAssertPtrNotNull (test, handler.test.power_on);
 	CuAssertPtrNotNull (test, handler.test.enter_reset);
 	CuAssertPtrNotNull (test, handler.test.exit_reset);
 	CuAssertPtrNotNull (test, handler.test.assert_cs0);
 	CuAssertPtrNotNull (test, handler.test.assert_cs1);
+	CuAssertPtrNotNull (test, handler.test.force_recovery);
 
 	host_irq_handler_testing_validate_and_release (test, &handler);
 }
@@ -154,15 +140,10 @@ static void host_irq_handler_test_init (CuTest *test)
 static void host_irq_handler_test_init_no_recovery (CuTest *test)
 {
 	struct host_irq_handler_testing handler;
-	int status;
 
 	TEST_START;
 
-	host_irq_handler_testing_init_dependencies (test, &handler);
-
-	status = host_irq_handler_init (&handler.test, &handler.host.base, &handler.hash.base,
-		&handler.rsa.base, NULL);
-	CuAssertIntEquals (test, 0, status);
+	host_irq_handler_testing_init_no_recovery (test, &handler);
 
 	host_irq_handler_testing_validate_and_release (test, &handler);
 }
@@ -213,6 +194,7 @@ static void host_irq_handler_test_init_with_irq_ctrl (CuTest *test)
 	CuAssertPtrNotNull (test, handler.test.exit_reset);
 	CuAssertPtrNotNull (test, handler.test.assert_cs0);
 	CuAssertPtrNotNull (test, handler.test.assert_cs1);
+	CuAssertPtrNotNull (test, handler.test.force_recovery);
 
 	host_irq_handler_testing_validate_and_release (test, &handler);
 }
@@ -290,6 +272,7 @@ static void host_irq_handler_test_init_enable_exit_reset (CuTest *test)
 	CuAssertPtrNotNull (test, handler.test.exit_reset);
 	CuAssertPtrNotNull (test, handler.test.assert_cs0);
 	CuAssertPtrNotNull (test, handler.test.assert_cs1);
+	CuAssertPtrNotNull (test, handler.test.force_recovery);
 
 	host_irq_handler_testing_validate_and_release (test, &handler);
 }
@@ -1461,6 +1444,122 @@ static void host_irq_handler_test_set_host_null (CuTest *test)
 	host_irq_handler_testing_validate_and_release (test, &handler);
 }
 
+static void host_irq_handler_test_force_recovery (CuTest *test)
+{
+	struct host_irq_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	host_irq_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.host.mock, handler.host.base.apply_recovery_image,
+		&handler.host, 0, MOCK_ARG (true));
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.force_recovery (&handler.test);
+	CuAssertIntEquals (test, 0, status);
+
+	host_irq_handler_testing_validate_and_release (test, &handler);
+}
+
+static void host_irq_handler_test_force_recovery_img_failed (CuTest *test)
+{
+	struct host_irq_handler_testing handler;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_HOST_FW,
+		.msg_index = HOST_LOGGING_RECOVERY_RETRIES,
+		.arg1 = 1,
+		.arg2 = 4
+	};
+	int status;
+
+	TEST_START;
+
+	host_irq_handler_testing_init (test, &handler);
+
+	host_processor_set_port (&handler.host.base, 1);
+
+	status = mock_expect (&handler.host.mock, handler.host.base.apply_recovery_image,
+		&handler.host, HOST_PROCESSOR_RECOVERY_IMG_FAILED, MOCK_ARG (true));
+	status |= mock_expect (&handler.host.mock, handler.host.base.apply_recovery_image,
+		&handler.host, HOST_PROCESSOR_RECOVERY_IMG_FAILED, MOCK_ARG (true));
+	status |= mock_expect (&handler.host.mock, handler.host.base.apply_recovery_image,
+		&handler.host, HOST_PROCESSOR_RECOVERY_IMG_FAILED, MOCK_ARG (true));
+
+	status |= mock_expect (&handler.host.mock, handler.host.base.apply_recovery_image,
+		&handler.host, 0, MOCK_ARG (true));
+	status |= mock_expect (&handler.logger.mock, handler.logger.base.create_entry, &handler.logger,
+		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &handler.logger.base;
+
+	status = handler.test.force_recovery (&handler.test);
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = NULL;
+
+	host_irq_handler_testing_validate_and_release (test, &handler);
+}
+
+static void host_irq_handler_test_force_recovery_unsupported (CuTest *test)
+{
+	struct host_irq_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	host_irq_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.host.mock, handler.host.base.apply_recovery_image,
+		&handler.host, HOST_PROCESSOR_RECOVERY_UNSUPPORTED, MOCK_ARG (true));
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.force_recovery (&handler.test);
+	CuAssertIntEquals (test, HOST_PROCESSOR_RECOVERY_UNSUPPORTED, status);
+
+	host_irq_handler_testing_validate_and_release (test, &handler);
+}
+
+static void host_irq_handler_test_force_recovery_no_image (CuTest *test)
+{
+	struct host_irq_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	host_irq_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.host.mock, handler.host.base.apply_recovery_image,
+		&handler.host, HOST_PROCESSOR_NO_RECOVERY_IMAGE, MOCK_ARG (true));
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.force_recovery (&handler.test);
+	CuAssertIntEquals (test, HOST_PROCESSOR_NO_RECOVERY_IMAGE, status);
+
+	host_irq_handler_testing_validate_and_release (test, &handler);
+}
+
+static void host_irq_handler_test_force_recovery_null (CuTest *test)
+{
+	struct host_irq_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	host_irq_handler_testing_init (test, &handler);
+
+	status = handler.test.force_recovery (NULL);
+	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
+
+	host_irq_handler_testing_validate_and_release (test, &handler);
+}
+
 
 TEST_SUITE_START (host_irq_handler);
 
@@ -1518,5 +1617,10 @@ TEST (host_irq_handler_test_power_on_bypass_mode_retry_error);
 TEST (host_irq_handler_test_power_on_null);
 TEST (host_irq_handler_test_set_host);
 TEST (host_irq_handler_test_set_host_null);
+TEST (host_irq_handler_test_force_recovery);
+TEST (host_irq_handler_test_force_recovery_img_failed);
+TEST (host_irq_handler_test_force_recovery_unsupported);
+TEST (host_irq_handler_test_force_recovery_no_image);
+TEST (host_irq_handler_test_force_recovery_null);
 
 TEST_SUITE_END;

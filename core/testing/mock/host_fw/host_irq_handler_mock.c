@@ -64,6 +64,17 @@ static int host_irq_handler_mock_assert_cs1 (const struct host_irq_handler *hand
 	MOCK_RETURN_NO_ARGS (&mock->mock, host_irq_handler_mock_assert_cs1, handler);
 }
 
+static int host_irq_handler_mock_force_recovery (const struct host_irq_handler *handler)
+{
+	struct host_irq_handler_mock *mock = (struct host_irq_handler_mock*) handler;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, host_irq_handler_mock_force_recovery, handler);
+}
+
 static int host_irq_handler_mock_func_arg_count (void *func)
 {
 	if (func == host_irq_handler_mock_power_on) {
@@ -89,6 +100,9 @@ static const char* host_irq_handler_mock_func_name_map (void *func)
 	}
 	else if (func == host_irq_handler_mock_assert_cs1) {
 		return "assert_cs1";
+	}
+	else if (func == host_irq_handler_mock_force_recovery) {
+		return "force_recovery";
 	}
 	else {
 		return "unknown";
@@ -139,6 +153,7 @@ int host_irq_handler_mock_init (struct host_irq_handler_mock *mock)
 	mock->base.exit_reset = host_irq_handler_mock_exit_reset;
 	mock->base.assert_cs0 = host_irq_handler_mock_assert_cs0;
 	mock->base.assert_cs1 = host_irq_handler_mock_assert_cs1;
+	mock->base.force_recovery = host_irq_handler_mock_force_recovery;
 
 	mock->mock.func_arg_count = host_irq_handler_mock_func_arg_count;
 	mock->mock.func_name_map = host_irq_handler_mock_func_name_map;

@@ -62,6 +62,15 @@ struct host_irq_handler {
 	 */
 	int (*assert_cs1) (const struct host_irq_handler *handler);
 
+	/**
+	 * Handler to apply recovery image for forced host recovery.
+	 *
+	 * @param handler The handler context.
+	 *
+	 * @return 0 if host recovery was successful. Otherwise, the recovery error code.
+	*/
+	int (*force_recovery) (const struct host_irq_handler *handler);
+
 	struct host_processor *host;				/**< The host generating the IRQs. */
 	struct bmc_recovery *recovery;				/**< The recovery manager for BMC watchdog failover. */
 	struct hash_engine *hash;					/**< Hash engine to use for reset validation. */

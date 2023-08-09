@@ -52,7 +52,7 @@ int host_irq_handler_power_on (const struct host_irq_handler *handler, bool allo
 			(status != HOST_PROCESSOR_NO_RECOVERY_IMAGE)) {
 			/* Since we attempted to put on the recovery image but failed, the RO flash is assumed
 			 * to be trashed.  If we have any chance of booting, it will be with the RW flash.  Only
-			 * switch the flash once.*/
+			 * switch the flash once. */
 			status = handler->host->bypass_mode (handler->host, true);
 			flash_switched = true;
 		}
@@ -115,6 +115,35 @@ int host_irq_handler_assert_cs1 (const struct host_irq_handler *handler)
 	return status;
 }
 
+static int host_irq_handler_force_recovery (const struct host_irq_handler *handler)
+{
+	int status;
+	uint32_t retries = 0;
+
+	if (handler == NULL) {
+		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
+	}
+
+	do {
+		retries++;
+		status = handler->host->apply_recovery_image (handler->host, true);
+		if ((status == HOST_PROCESSOR_RECOVERY_UNSUPPORTED) ||
+			(status == HOST_PROCESSOR_NO_RECOVERY_IMAGE)) {
+			return status;
+		}
+		/* Retry indefinitely on an unknown error since if the first attempt fails to write to flash
+		 * it's possible Cerberus would have erased flash and partially written the recovery image
+		 * to flash and so the system couldn't boot until the recovery attempt succeeds. */
+	} while (status != 0);
+
+	if (retries > 1) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
+			HOST_LOGGING_RECOVERY_RETRIES, handler->host->port, retries);
+	}
+
+	return status;
+}
+
 /**
  * Internal function to initialize the common components of a host interrupt handler.
  *
@@ -143,6 +172,7 @@ static int host_irq_handler_init_internal (struct host_irq_handler *handler,
 	handler->exit_reset = host_irq_handler_exit_reset;
 	handler->assert_cs0 = host_irq_handler_assert_cs0;
 	handler->assert_cs1 = host_irq_handler_assert_cs1;
+	handler->force_recovery = host_irq_handler_force_recovery;
 
 	handler->host = host;
 	handler->hash = hash;
