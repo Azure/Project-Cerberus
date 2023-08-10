@@ -42,8 +42,15 @@ int event_task_freertos_init (struct event_task_freertos *task,
 int event_task_freertos_init_state (const struct event_task_freertos *task);
 void event_task_freertos_release (const struct event_task_freertos *task);
 
+#if configSUPPORT_DYNAMIC_ALLOCATION == 1
 int event_task_freertos_start (const struct event_task_freertos *task, uint16_t stack_words,
 	const char *task_name, int priority);
+#endif
+
+#if configSUPPORT_STATIC_ALLOCATION == 1
+int event_task_freertos_start_static (const struct event_task_freertos *task, StaticTask_t *context,
+	StackType_t *stack, uint32_t stack_words, const char *task_name, int priority);
+#endif
 
 
 #endif /* EVENT_TASK_FREERTOS_H_ */

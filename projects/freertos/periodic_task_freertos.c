@@ -99,9 +99,10 @@ static void periodic_task_freertos_loop (struct periodic_task_freertos *task)
 	}
 }
 
+#if configSUPPORT_DYNAMIC_ALLOCATION == 1
 /**
- * Allocate and start running the periodic handler task. No handlers will be called until the task
- * has been started.
+ * Allocate and start running the periodic handler task using dynamic allocation of task resources.
+ * No handlers will be called until the task has been started.
  *
  * @param task The periodic task to start.
  * @param stack_words The size of the task stack.  The stack size is measured in words.
@@ -129,3 +130,37 @@ int periodic_task_freertos_start (const struct periodic_task_freertos *task, uin
 
 	return 0;
 }
+#endif
+
+#if configSUPPORT_STATIC_ALLOCATION == 1
+/**
+ * Initialize and start running the periodic handler task using static allocation of task resources.
+ * No handlers will be called until the task has been started.
+ *
+ * @param task The periodic task to start.
+ * @param context The statically allocated FreeRTOS context for the task.
+ * @param stack A buffer to use for the task's stack.
+ * @param stack_words The number of words in the stack buffer.
+ * @param task_name An identifying name to assign to the task.  The maximum length is determined by
+ * the FreeRTOS configuration for the platform.
+ * @param priority The priority to assign to this task.
+ *
+ * @return 0 if the task was started or an error code.
+ */
+int periodic_task_freertos_start_static (const struct periodic_task_freertos *task,
+	StaticTask_t *context, StackType_t *stack, uint32_t stack_words, const char *task_name,
+	int priority)
+{
+	if (task == NULL) {
+		return PERIODIC_TASK_INVALID_ARGUMENT;
+	}
+
+	task->state->task = xTaskCreateStatic ((TaskFunction_t) periodic_task_freertos_loop, task_name,
+		stack_words, (void*) task, priority, stack, context);
+	if (task->state->task == NULL) {
+		return PERIODIC_TASK_INVALID_ARGUMENT;
+	}
+
+	return 0;
+}
+#endif

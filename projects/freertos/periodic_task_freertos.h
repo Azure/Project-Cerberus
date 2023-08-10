@@ -6,6 +6,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "FreeRTOS.h"
+#include "task.h"
 #include "system/periodic_task.h"
 
 
@@ -33,8 +35,16 @@ int periodic_task_freertos_init (struct periodic_task_freertos *task,
 int periodic_task_freertos_init_state (const struct periodic_task_freertos *task);
 void periodic_task_freertos_release (const struct periodic_task_freertos *task);
 
+#if configSUPPORT_DYNAMIC_ALLOCATION == 1
 int periodic_task_freertos_start (const struct periodic_task_freertos *task, uint16_t stack_words,
 	const char *task_name, int priority);
+#endif
+
+#if configSUPPORT_STATIC_ALLOCATION == 1
+int periodic_task_freertos_start_static (const struct periodic_task_freertos *task,
+	StaticTask_t *context, StackType_t *stack, uint32_t stack_words, const char *task_name,
+	int priority);
+#endif
 
 
 #endif /* PERIODIC_TASK_FREERTOS_H_ */
