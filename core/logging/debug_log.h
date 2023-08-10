@@ -52,6 +52,7 @@ enum debug_log_component {
 	DEBUG_LOG_COMPONENT_INTRUSION,				/**< Log entry for chassis intrusion. */
 	DEBUG_LOG_COMPONENT_ATTESTATION,			/**< Log entry for attestation operations. */
 	DEBUG_LOG_COMPONENT_SPDM,					/**< Log entry for SPDM stack. */
+	DEBUG_LOG_COMPONENT_CRASH_DUMP,				/**< Log entry for exception or crash diagnostics. */
 	DEBUG_LOG_COMPONENT_DEVICE_SPECIFIC = 0xf0,	/**< Base component ID for device-specific messages. */
 	/* Component IDs 0xf0 - 0xff are reserved for device-specific logging. */
 };
