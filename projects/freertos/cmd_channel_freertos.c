@@ -61,3 +61,50 @@ int cmd_channel_freertos_send_packet (QueueHandle_t tx_queue, struct cmd_packet 
 
 	return 0;
 }
+
+/**
+ * Receive a command packet from a communication channel.
+ * This is an implementation of the receive_packet() function for
+ * the struct cmd_channel and uses the global I2CRequestQueue.
+ *
+ * @param channel The channel to receive a packet from.
+ * @param packet Output for the packet data being received.
+ * @param ms_timeout The amount of time to wait for a received packet, in milliseconds.  A
+ * negative value will wait forever, and a value of 0 will return immediately.
+ *
+ * @return 0 if a packet was successfully received or an error code.
+ */
+static int cmd_channel_receive_packet (struct cmd_channel *channel,
+	struct cmd_packet *packet, int ms_timeout)
+{
+	return cmd_channel_freertos_receive_packet(I2CRequestQueue, packet,
+		ms_timeout);
+}
+
+/**
+ * Send a command packet over a communication channel.
+ * This is an implementation of the send_packet() function for
+ * the struct cmd_channel and uses the global I2CResponseQueue.
+ *
+ * @param channel The channel to send a packet on.
+ * @param packet The packet to send.
+ *
+ * @return 0 if the the packet was successfully sent or an error code.
+ */
+static int cmd_channel_send_packet (struct cmd_channel *channel,
+	struct cmd_packet *packet)
+{
+	return cmd_channel_freertos_send_packet(I2CResponseQueue, packet, 0);
+}
+
+/**
+ * Set the default receive_packet and send_packet function hooks.
+ * These use the global I2CRequestQueue and I2CResponseQueue.
+ *
+ * @param channel The channel to initialise.
+ */
+void cmd_channel_packet_default_init (struct cmd_channel *channel)
+{
+	channel->receive_packet = cmd_channel_receive_packet;
+	channel->send_packet = cmd_channel_send_packet;
+}
