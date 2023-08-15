@@ -56,6 +56,34 @@ enum {
 
 
 /**
+ * Check if a flash transaction sends data bytes to flash.
+ *
+ * @param xfer Pointer to the transaction to query.
+ *
+ * @return true for transactions that send data.
+ */
+#define	flash_xfer_is_tx(xfer)					(!!((xfer)->flags & FLASH_FLAG_DATA_TX))
+
+/**
+ * Check if a flash transaction uses 4 bytes to send the flash address.
+ *
+ * @param xfer Pointer to the transaction to query.
+ *
+ * @return true for transactions that use a 4 byte address.
+ */
+#define	flash_xfer_uses_4byte_address(xfer)		(!!((xfer)->flags & FLASH_FLAG_4BYTE_ADDRESS))
+
+/**
+ * Check if a flash transaction does not send any address bytes.
+ *
+ * @param xfer Pointer to the transaction to query.
+ *
+ * @return true for transactions that don't send a flash address.
+ */
+#define	flash_xfer_has_no_address(xfer)			(!!((xfer)->flags & FLASH_FLAG_NO_ADDRESS))
+
+
+/**
  * Initialize a generic flash transaction.
  */
 #define	FLASH_XFER_INIT(xfer, opcode, addr, dummy, mode, buffer, len, flgs) \
@@ -85,13 +113,15 @@ enum {
  * Initialize a flash transaction that reads a register without needing an address.
  */
 #define	FLASH_XFER_INIT_READ_REG(xfer, cmd, data, len, flags) \
-	FLASH_XFER_INIT (xfer, cmd, 0, 0, 0, data, len, (((flags) | FLASH_FLAG_NO_ADDRESS) & ~(FLASH_FLAG_DATA_TX)))
+	FLASH_XFER_INIT (xfer, cmd, 0, 0, 0, data, len, \
+		(((flags) | FLASH_FLAG_NO_ADDRESS) & ~(FLASH_FLAG_DATA_TX)))
 
 /**
  * Initialize a flash transaction that writes a register without needing an address.
  */
 #define FLASH_XFER_INIT_WRITE_REG(xfer, cmd, data, len, flags) \
-	FLASH_XFER_INIT (xfer, cmd, 0, 0, 0, data, len, ((flags) | FLASH_FLAG_NO_ADDRESS | FLASH_FLAG_DATA_TX))
+	FLASH_XFER_INIT (xfer, cmd, 0, 0, 0, data, len, \
+		((flags) | FLASH_FLAG_NO_ADDRESS | FLASH_FLAG_DATA_TX))
 
 /**
  * Initialize a flash transaction that only sends an command code.
@@ -113,10 +143,12 @@ enum {
 	FLASH_CAP_DUAL_2_2_2 = 0x01,		/**< Supports full DPI (2-2-2) mode. */
 	FLASH_CAP_DUAL_1_2_2 = 0x02,		/**< Supports Dual address and data (1-2-2) mode. */
 	FLASH_CAP_DUAL_1_1_2 = 0x04,		/**< Supports Dual data (1-1-2) mode. */
+	FLASH_CAP_DUAL_RX_ONLY = 0x08,		/**< Only supports Dual operations for read commands. */
 
 	FLASH_CAP_QUAD_4_4_4 = 0x10,		/**< Supports full QPI (4-4-4) mode. */
 	FLASH_CAP_QUAD_1_4_4 = 0x20,		/**< Supports Quad address and data (1-4-4) mode. */
 	FLASH_CAP_QUAD_1_1_4 = 0x40,		/**< Supports Quad data (1-1-4) mode. */
+	FLASH_CAP_QUAD_RX_ONLY = 0x80,		/**< Only supports Quad operations for read commands. */
 
 	FLASH_CAP_3BYTE_ADDR = 0x100,		/**< Commands can be sent with 3-byte addresses. */
 	FLASH_CAP_4BYTE_ADDR = 0x200,		/**< Commands can be sent with 4-byte addresses. */
