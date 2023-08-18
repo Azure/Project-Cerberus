@@ -115,7 +115,7 @@ int host_irq_handler_assert_cs1 (const struct host_irq_handler *handler)
 	return status;
 }
 
-static int host_irq_handler_force_recovery (const struct host_irq_handler *handler)
+int host_irq_handler_force_recovery (const struct host_irq_handler *handler)
 {
 	int status;
 	uint32_t retries = 0;
@@ -254,6 +254,31 @@ int host_irq_handler_init_enable_exit_reset (struct host_irq_handler *handler,
 	}
 
 	return handler->control->enable_exit_reset (control, true);
+}
+
+/**
+ * Configure host interrupts.
+ *
+ * @param handler The handler instance to initialize.
+ * 
+ * @return 0 if the host interrupts ware successfully configured or an error code.
+ */
+int host_irq_handler_config_interrupts (const struct host_irq_handler *handler)
+{
+	if ((handler == NULL) || (handler->host == NULL) || (handler->hash == NULL) ||
+		(handler->rsa == NULL)) {
+		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
+	}
+
+	if (!handler->notify_exit_reset) {
+		return 0;
+	}
+
+	if (handler->control == NULL) {
+		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
+	}
+
+	return handler->control->enable_exit_reset (handler->control, true);
 }
 
 /**
