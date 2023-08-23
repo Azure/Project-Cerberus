@@ -57,6 +57,12 @@ static void add_all_firmware_tests (CuSuite *suite)
 	!defined TESTING_SKIP_FIRMWARE_UPDATE_HANDLER_SUITE
 	TESTING_RUN_SUITE (firmware_update_handler);
 #endif
+#if (defined TESTING_RUN_FIRMWARE_UPDATE_HANDLER_NO_REVOCATION_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_FIRMWARE_UPDATE_HANDLER_NO_REVOCATION_SUITE
+	TESTING_RUN_SUITE (firmware_update_handler_no_revocation);
+#endif
 #if (defined TESTING_RUN_FIRMWARE_UPDATE_HANDLER_REVOKE_AFTER_RESET_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
