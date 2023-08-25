@@ -377,7 +377,7 @@ static void firmware_update_handler_no_revocation_test_static_init (CuTest *test
 	CuAssertPtrEquals (test, firmware_update_handler_write_staging,
 		test_static.base.base_ctrl.write_staging);
 
-	CuAssertPtrNotNull (test, handler.test.base.base_event.prepare);
+	CuAssertPtrNotNull (test, test_static.base.base_event.prepare);
 	CuAssertPtrNotNull (test, test_static.base.base_event.execute);
 
 	status = firmware_update_handler_init_state (&test_static.base, false);
@@ -445,7 +445,7 @@ static void firmware_update_handler_no_revocation_test_static_init_keep_recovery
 	CuAssertPtrEquals (test, firmware_update_handler_write_staging,
 		test_static.base.base_ctrl.write_staging);
 
-	CuAssertPtrNotNull (test, handler.test.base.base_event.prepare);
+	CuAssertPtrNotNull (test, test_static.base.base_event.prepare);
 	CuAssertPtrNotNull (test, test_static.base.base_event.execute);
 
 	status = firmware_update_handler_init_state (&test_static.base, false);
