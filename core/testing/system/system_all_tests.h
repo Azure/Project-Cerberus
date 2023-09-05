@@ -33,6 +33,30 @@ static void add_all_system_tests (CuSuite *suite)
 	!defined TESTING_SKIP_PERIODIC_TASK_SUITE
 	TESTING_RUN_SUITE (periodic_task);
 #endif
+#if (defined TESTING_RUN_SECURITY_MANAGER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SECURITY_MANAGER_SUITE
+	TESTING_RUN_SUITE (security_manager);
+#endif
+#if (defined TESTING_RUN_SECURITY_MANAGER_NO_UNLOCK_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SECURITY_MANAGER_NO_UNLOCK_SUITE
+	TESTING_RUN_SUITE (security_manager_no_unlock);
+#endif
+#if (defined TESTING_RUN_SECURITY_POLICY_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SECURITY_POLICY_SUITE
+	TESTING_RUN_SUITE (security_policy);
+#endif
+#if (defined TESTING_RUN_SECURITY_POLICY_ENFORCING_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SECURITY_POLICY_ENFORCING_SUITE
+	TESTING_RUN_SUITE (security_policy_enforcing);
+#endif
 #if (defined TESTING_RUN_SYSTEM_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

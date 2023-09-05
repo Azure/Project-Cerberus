@@ -125,6 +125,9 @@ enum {
 	ROT_MODULE_DME_EXTENSION = 0x0071,					/**< Extension handler for DME extensions. */
 	ROT_MODULE_DME_STRUCTURE = 0x0072,					/**< Parsing and management of the DME structure. */
 	ROT_MODULE_HOST_FIRMWARE_IMAGE = 0x0073,			/**< Interface to Host firmware image operations. */
+	ROT_MODULE_SECURE_DEVICE_UNLOCK = 0x0074,			/**< Handler for device unlock requests. */
+	ROT_MODULE_SECURITY_MANAGER = 0x0075,				/**< Manager for the device security configuration. */
+	ROT_MODULE_SECURITY_POLICY = 0x0076,				/**< The device security policy. */
 };
 
 
