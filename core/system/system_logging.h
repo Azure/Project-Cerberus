@@ -27,4 +27,5 @@ enum {
 	SYSTEM_LOGGING_POLICY_ANTI_ROLLBACK,	/**< Security policy check for anti-rollback. */
 };
 
+
 #endif /* SYSTEM_LOGGING_H_ */
