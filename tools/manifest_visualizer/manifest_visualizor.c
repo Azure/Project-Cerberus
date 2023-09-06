@@ -891,9 +891,12 @@ int32_t visualize_cfm_measurement (uint8_t *start, const char* prefix, int entry
 
 			printf ("%s\n\t\t\t}\n", prefix);
 		}
+		printf ("%s\n\t\t}\n", prefix);
 
-		allowable_digest += sizeof (struct cfm_allowable_digest_element) +
-			(allowable_digest->digest_count * hash_len);
+		allowable_digest = (struct cfm_allowable_digest_element*) ((char*) allowable_digest +
+			sizeof (struct cfm_allowable_digest_element) +
+			(allowable_digest->digest_count * hash_len));
+
 	}
 
 	printf ("%s\t]\n", prefix);
