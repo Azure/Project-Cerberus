@@ -128,6 +128,7 @@ enum {
 	ROT_MODULE_SECURE_DEVICE_UNLOCK = 0x0074,			/**< Handler for device unlock requests. */
 	ROT_MODULE_SECURITY_MANAGER = 0x0075,				/**< Manager for the device security configuration. */
 	ROT_MODULE_SECURITY_POLICY = 0x0076,				/**< The device security policy. */
+	ROT_MODULE_AUTH_TOKEN = 0x0077,						/**< Authorization token handler. */
 };
 
 

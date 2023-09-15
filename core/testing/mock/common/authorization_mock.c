@@ -57,7 +57,7 @@ static const char* authorization_mock_arg_name_map (void *func, int arg)
 }
 
 /**
- * Initialize a mock for clearing configuration files.
+ * Initialize a mock for authorizing operations.
  *
  * @param mock The mock to initialize.
  *
@@ -90,7 +90,7 @@ int authorization_mock_init (struct authorization_mock *mock)
 }
 
 /**
- * Release a mock configuration reset instance.
+ * Release a mock authorization instance.
  *
  * @param mock The mock to release.
  */
