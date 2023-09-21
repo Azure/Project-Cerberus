@@ -6,7 +6,6 @@
 
 #include "testing.h"
 #include "host_fw/host_irq_handler.h"
-#include "host_fw/host_irq_handler_static.h"
 #include "testing/mock/host_fw/bmc_recovery_mock.h"
 #include "testing/mock/host_fw/host_irq_control_mock.h"
 #include "testing/mock/host_fw/host_processor_mock.h"

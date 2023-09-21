@@ -23,6 +23,8 @@ int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handle
 	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_control *control,
 	const struct host_irq_control *irq);
+int host_irq_handler_auth_check_config_interrupts (const struct host_irq_handler *handler,
+	const struct host_control *control);
 void host_irq_handler_auth_check_release (const struct host_irq_handler_auth_check *handler);
 
 

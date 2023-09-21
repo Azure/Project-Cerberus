@@ -7,7 +7,7 @@
 #include "host_irq_handler_auth_check.h"
 
 
-static void host_irq_handler_auth_check_exit_reset (const struct host_irq_handler *handler)
+void host_irq_handler_auth_check_exit_reset (const struct host_irq_handler *handler)
 {
 	const struct host_irq_handler_auth_check *check =
 		(const struct host_irq_handler_auth_check*) handler;
@@ -61,6 +61,24 @@ int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handle
 	handler->control = control;
 
 	return 0;
+}
+
+/**
+ * Configure host interrupts.
+ *
+ * @param handler The handler instance to initialize.
+ * @param control The host control instance.
+ * 
+ * @return 0 if the host interrupts ware successfully configured or an error code.
+ */
+int host_irq_handler_auth_check_config_interrupts (const struct host_irq_handler *handler,
+	const struct host_control *control)
+{
+	if (control == NULL) {
+		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
+	}
+
+	return host_irq_handler_config_interrupts (handler);
 }
 
 /**

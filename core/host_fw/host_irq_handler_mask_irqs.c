@@ -7,7 +7,7 @@
 #include "host_irq_handler_mask_irqs.h"
 
 
-static int host_irq_handler_mask_irqs_enter_reset (const struct host_irq_handler *handler)
+int host_irq_handler_mask_irqs_enter_reset (const struct host_irq_handler *handler)
 {
 	const struct host_irq_handler_mask_irqs *irq = (const struct host_irq_handler_mask_irqs*) handler;
 	int status;
@@ -23,7 +23,7 @@ static int host_irq_handler_mask_irqs_enter_reset (const struct host_irq_handler
 	return status;
 }
 
-static int host_irq_handler_mask_irqs_assert_cs1 (const struct host_irq_handler *handler)
+int host_irq_handler_mask_irqs_assert_cs1 (const struct host_irq_handler *handler)
 {
 	const struct host_irq_handler_mask_irqs *irq = (const struct host_irq_handler_mask_irqs*) handler;
 	int status = 0;
@@ -109,6 +109,22 @@ int host_irq_handler_mask_irqs_init_enable_exit_reset (struct host_irq_handler_m
 	handler->base.assert_cs1 = host_irq_handler_mask_irqs_assert_cs1;
 
 	return 0;
+}
+
+/**
+ * Configure host interrupts.
+ *
+ * @param handler The handler instance to initialize.
+ * 
+ * @return 0 if the host interrupts ware successfully configured or an error code.
+ */
+int host_irq_handler_mask_irqs_config_interrupts (const struct host_irq_handler *handler)
+{
+	if ((handler == NULL) || (handler->control == NULL)) {
+		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
+	}
+
+	return host_irq_handler_config_interrupts (handler);
 }
 
 /**
