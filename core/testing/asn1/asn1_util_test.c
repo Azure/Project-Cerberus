@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include "testing.h"
+#include "asn1/asn1_oid.h"
 #include "asn1/asn1_util.h"
 #include "testing/asn1/x509_testing.h"
 #include "testing/crypto/ecc_testing.h"
@@ -621,6 +622,283 @@ static void asn1_decode_integer_test_not_integer_tag (CuTest *test)
 	CuAssertIntEquals (test, ASN1_UTIL_UNEXPECTED_TAG, status);
 }
 
+static void asn1_encode_base128_oid_test (CuTest *test)
+{
+	uint8_t expected[ASN1_OID_ECDSA_WITH_SHA256_LENGTH + 2];
+	uint8_t der[sizeof (expected)];
+	int der_length;
+	int status;
+
+	TEST_START;
+
+	expected[0] = 0x06;
+	expected[1] = ASN1_OID_ECDSA_WITH_SHA256_LENGTH;
+	memcpy (&expected[2], ASN1_OID_ECDSA_WITH_SHA256, ASN1_OID_ECDSA_WITH_SHA256_LENGTH);
+
+	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256,
+		ASN1_OID_ECDSA_WITH_SHA256_LENGTH, der, sizeof (der));
+	CuAssertIntEquals (test, sizeof (expected), der_length);
+
+	status = testing_validate_array (expected, der, der_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_encode_base128_oid_test_longer_value (CuTest *test)
+{
+	uint8_t expected[X509_EKU_OID_LEN + 2];
+	uint8_t der[sizeof (expected)];
+	int der_length;
+	int status;
+
+	TEST_START;
+
+	expected[0] = 0x06;
+	expected[1] = X509_EKU_OID_LEN;
+	memcpy (&expected[2], X509_EKU_OID, X509_EKU_OID_LEN);
+
+	der_length = asn1_encode_base128_oid (X509_EKU_OID, X509_EKU_OID_LEN, der, sizeof (der));
+	CuAssertIntEquals (test, sizeof (expected), der_length);
+
+	status = testing_validate_array (expected, der, der_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_encode_base128_oid_test_null (CuTest *test)
+{
+	uint8_t der[ASN1_OID_ECDSA_WITH_SHA256_LENGTH + 2];
+	int der_length;
+
+	TEST_START;
+
+	der_length = asn1_encode_base128_oid (NULL,
+		ASN1_OID_ECDSA_WITH_SHA256_LENGTH, der, sizeof (der));
+	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, der_length);
+
+	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256,
+		0, der, sizeof (der));
+	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, der_length);
+
+	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256,
+		ASN1_OID_ECDSA_WITH_SHA256_LENGTH, NULL, sizeof (der));
+	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, der_length);
+}
+
+static void asn1_encode_base128_oid_test_buffer_less_than_min (CuTest *test)
+{
+	uint8_t der[ASN1_OID_ECDSA_WITH_SHA256_LENGTH + 2];
+	int der_length;
+
+	TEST_START;
+
+	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256,
+		ASN1_OID_ECDSA_WITH_SHA256_LENGTH, der, 0);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, der_length);
+
+	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256,
+		ASN1_OID_ECDSA_WITH_SHA256_LENGTH, der, 1);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, der_length);
+
+	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256,
+		ASN1_OID_ECDSA_WITH_SHA256_LENGTH, der, 2);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, der_length);
+}
+
+static void asn1_encode_base128_oid_test_buffer_too_small (CuTest *test)
+{
+	uint8_t der[ASN1_OID_ECDSA_WITH_SHA256_LENGTH + 2];
+	int der_length;
+
+	TEST_START;
+
+	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256,
+		ASN1_OID_ECDSA_WITH_SHA256_LENGTH, der, sizeof (der) - 1);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, der_length);
+}
+
+static void asn1_encode_base128_oid_test_oid_too_long (CuTest *test)
+{
+	uint8_t der[128 + 3];
+	int der_length;
+
+	TEST_START;
+
+	der_length = asn1_encode_base128_oid (ASN1_OID_ECDSA_WITH_SHA256, 128, der, sizeof (der));
+	CuAssertIntEquals (test, ASN1_UTIL_OUT_OF_RANGE, der_length);
+}
+
+static void asn1_decode_base128_oid_test (CuTest *test)
+{
+	const uint8_t *oid = NULL;
+	size_t oid_length;
+	uint8_t der[ASN1_OID_ECDSA_WITH_SHA256_LENGTH + 2];
+	int status;
+
+	TEST_START;
+
+	der[0] = 0x06;
+	der[1] = ASN1_OID_ECDSA_WITH_SHA256_LENGTH;
+	memcpy (&der[2], ASN1_OID_ECDSA_WITH_SHA256, ASN1_OID_ECDSA_WITH_SHA256_LENGTH);
+
+	status = asn1_decode_base128_oid (der, sizeof (der), &oid, &oid_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, oid);
+	CuAssertIntEquals (test, ASN1_OID_ECDSA_WITH_SHA256_LENGTH, oid_length);
+
+	status = testing_validate_array (ASN1_OID_ECDSA_WITH_SHA256, oid, oid_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_decode_base128_oid_test_longer_value (CuTest *test)
+{
+	const uint8_t *oid = NULL;
+	size_t oid_length;
+	uint8_t der[X509_EKU_OID_LEN + 2];
+	int status;
+
+	TEST_START;
+
+	der[0] = 0x06;
+	der[1] = X509_EKU_OID_LEN;
+	memcpy (&der[2], X509_EKU_OID, X509_EKU_OID_LEN);
+
+	status = asn1_decode_base128_oid (der, sizeof (der), &oid, &oid_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, oid);
+	CuAssertIntEquals (test, X509_EKU_OID_LEN, oid_length);
+
+	status = testing_validate_array (X509_EKU_OID, oid, oid_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_decode_base128_oid_test_multiple_byte_header (CuTest *test)
+{
+	const uint8_t *oid = NULL;
+	size_t oid_length;
+	uint8_t der[128 + 3];
+	uint8_t expected[128];
+	int status;
+
+	TEST_START;
+
+	memset (der, 1, sizeof (der));
+	memset (expected, 1, sizeof (expected));
+
+	der[0] = 0x06;
+	der[1] = 0x81;
+	der[2] = 128;
+	memcpy (&der[3], ASN1_OID_ECDSA_WITH_SHA256, ASN1_OID_ECDSA_WITH_SHA256_LENGTH);
+	memcpy (expected, ASN1_OID_ECDSA_WITH_SHA256, ASN1_OID_ECDSA_WITH_SHA256_LENGTH);
+
+	status = asn1_decode_base128_oid (der, sizeof (der), &oid, &oid_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, oid);
+	CuAssertIntEquals (test, 128, oid_length);
+
+	status = testing_validate_array (expected, oid, oid_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_decode_base128_oid_test_extra_bytes (CuTest *test)
+{
+	const uint8_t *oid = NULL;
+	size_t oid_length;
+	uint8_t der[ASN1_OID_ECDSA_WITH_SHA256_LENGTH + 2 + 10];
+	int status;
+
+	TEST_START;
+
+	memset (der, 0x55, sizeof (der));
+
+	der[0] = 0x06;
+	der[1] = ASN1_OID_ECDSA_WITH_SHA256_LENGTH;
+	memcpy (&der[2], ASN1_OID_ECDSA_WITH_SHA256, ASN1_OID_ECDSA_WITH_SHA256_LENGTH);
+
+	status = asn1_decode_base128_oid (der, sizeof (der), &oid, &oid_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, oid);
+	CuAssertIntEquals (test, ASN1_OID_ECDSA_WITH_SHA256_LENGTH, oid_length);
+
+	status = testing_validate_array (ASN1_OID_ECDSA_WITH_SHA256, oid, oid_length);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void asn1_decode_base128_oid_test_null (CuTest *test)
+{
+	const uint8_t *oid = NULL;
+	size_t oid_length;
+	uint8_t der[ASN1_OID_ECDSA_WITH_SHA256_LENGTH + 2];
+	int status;
+
+	TEST_START;
+
+	der[0] = 0x06;
+	der[1] = ASN1_OID_ECDSA_WITH_SHA256_LENGTH;
+	memcpy (&der[2], ASN1_OID_ECDSA_WITH_SHA256, ASN1_OID_ECDSA_WITH_SHA256_LENGTH);
+
+	status = asn1_decode_base128_oid (NULL, sizeof (der), &oid, &oid_length);
+	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, status);
+
+	status = asn1_decode_base128_oid (der, sizeof (der), NULL, &oid_length);
+	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, status);
+
+	status = asn1_decode_base128_oid (der, sizeof (der), &oid, NULL);
+	CuAssertIntEquals (test, ASN1_UTIL_INVALID_ARGUMENT, status);
+}
+
+static void asn1_decode_base128_oid_test_buffer_less_than_min (CuTest *test)
+{
+	const uint8_t *oid = NULL;
+	size_t oid_length;
+	uint8_t der[ASN1_OID_ECDSA_WITH_SHA256_LENGTH + 2];
+	int status;
+
+	TEST_START;
+
+	der[0] = 0x06;
+	der[1] = ASN1_OID_ECDSA_WITH_SHA256_LENGTH;
+	memcpy (&der[2], ASN1_OID_ECDSA_WITH_SHA256, ASN1_OID_ECDSA_WITH_SHA256_LENGTH);
+
+	status = asn1_decode_base128_oid (der, 0, &oid, &oid_length);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, status);
+
+	status = asn1_decode_base128_oid (der, 1, &oid, &oid_length);
+	CuAssertIntEquals (test, ASN1_UTIL_NOT_VALID, status);
+}
+
+static void asn1_decode_base128_oid_test_buffer_too_small (CuTest *test)
+{
+	const uint8_t *oid = NULL;
+	size_t oid_length;
+	uint8_t der[ASN1_OID_ECDSA_WITH_SHA256_LENGTH + 2];
+	int status;
+
+	TEST_START;
+
+	der[0] = 0x06;
+	der[1] = ASN1_OID_ECDSA_WITH_SHA256_LENGTH;
+	memcpy (&der[2], ASN1_OID_ECDSA_WITH_SHA256, ASN1_OID_ECDSA_WITH_SHA256_LENGTH);
+
+	status = asn1_decode_base128_oid (der, sizeof (der) - 1, &oid, &oid_length);
+	CuAssertIntEquals (test, ASN1_UTIL_SMALL_DER_BUFFER, status);
+}
+
+static void asn1_decode_base128_oid_test_not_object_identifier_tag (CuTest *test)
+{
+	const uint8_t *oid = NULL;
+	size_t oid_length;
+	uint8_t der[ASN1_OID_ECDSA_WITH_SHA256_LENGTH + 2];
+	int status;
+
+	TEST_START;
+
+	der[0] = 0x05;
+	der[1] = ASN1_OID_ECDSA_WITH_SHA256_LENGTH;
+	memcpy (&der[2], ASN1_OID_ECDSA_WITH_SHA256, ASN1_OID_ECDSA_WITH_SHA256_LENGTH);
+
+	status = asn1_decode_base128_oid (der, sizeof (der), &oid, &oid_length);
+	CuAssertIntEquals (test, ASN1_UTIL_UNEXPECTED_TAG, status);
+}
+
 
 TEST_SUITE_START (asn1_util);
 
@@ -669,5 +947,19 @@ TEST (asn1_decode_integer_test_value_out_of_range);
 TEST (asn1_decode_integer_test_value_out_of_range_multiple_bytes);
 TEST (asn1_decode_integer_test_negative_value);
 TEST (asn1_decode_integer_test_not_integer_tag);
+TEST (asn1_encode_base128_oid_test);
+TEST (asn1_encode_base128_oid_test_longer_value);
+TEST (asn1_encode_base128_oid_test_null);
+TEST (asn1_encode_base128_oid_test_buffer_less_than_min);
+TEST (asn1_encode_base128_oid_test_buffer_too_small);
+TEST (asn1_encode_base128_oid_test_oid_too_long);
+TEST (asn1_decode_base128_oid_test);
+TEST (asn1_decode_base128_oid_test_longer_value);
+TEST (asn1_decode_base128_oid_test_multiple_byte_header);
+TEST (asn1_decode_base128_oid_test_extra_bytes);
+TEST (asn1_decode_base128_oid_test_null);
+TEST (asn1_decode_base128_oid_test_buffer_less_than_min);
+TEST (asn1_decode_base128_oid_test_buffer_too_small);
+TEST (asn1_decode_base128_oid_test_not_object_identifier_tag);
 
 TEST_SUITE_END;

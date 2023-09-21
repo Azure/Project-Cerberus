@@ -15,6 +15,10 @@ size_t asn1_get_der_encoded_length (const uint8_t *der, size_t max_length);
 int asn1_encode_integer (uint64_t value, uint8_t *der, size_t length);
 int asn1_decode_integer (const uint8_t *der, size_t length, uint64_t *value);
 
+int asn1_encode_base128_oid (const uint8_t *oid, size_t oid_length, uint8_t *der, size_t length);
+int asn1_decode_base128_oid (const uint8_t *der, size_t length, const uint8_t **oid,
+	size_t *oid_length);
+
 
 #define	ASN1_UTIL_ERROR(code)			ROT_ERROR (ROT_MODULE_ASN1_UTIL, code)
 
