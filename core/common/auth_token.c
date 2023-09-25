@@ -87,7 +87,7 @@ release_riot:
 }
 
 int auth_token_verify_data (const struct auth_token *auth, const uint8_t *authorized, size_t length,
-	size_t aad_length, enum hash_type sig_hash)
+	size_t token_offset, size_t aad_length, enum hash_type sig_hash)
 {
 	size_t auth_length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
@@ -98,15 +98,18 @@ int auth_token_verify_data (const struct auth_token *auth, const uint8_t *author
 		return AUTH_TOKEN_INVALID_ARGUMENT;
 	}
 
-	auth_length = auth->state->token_length + aad_length;
+	auth_length = token_offset + auth->state->token_length + aad_length;
 
 	/* No need to check the provided data if any precondition is not met:
 	 * - There must be an active token.
 	 * - The signed data needs to contain the token, so it must be longer than the token itself.
 	 * - If there is any AAD included, the data must be longer than the combined length of the token
 	 *   and the AAD.
+	 * - If the token exists at an offset in the authorized data, the data must be long enough to
+	 *   account for this offset.
 	 * - The active token must not be expired. */
-	if ((auth->state->token_length != 0) && (length > auth_length)) {
+	if ((auth->state->token_length != 0) && (auth->state->token_length < length) &&
+		(token_offset < length) && (aad_length < length) && (length > auth_length)) {
 		if (auth->validity_time != 0) {
 			status = platform_has_timeout_expired (&auth->state->expiration);
 			if (status == 1) {
@@ -119,7 +122,9 @@ int auth_token_verify_data (const struct auth_token *auth, const uint8_t *author
 
 		/* Before spending time on signature verification, ensure the authorization token in the
 		 * data is correct. */
-		if (buffer_compare (authorized, auth->buffer, auth->state->token_length) != 0) {
+		status = buffer_compare (&authorized[token_offset], auth->buffer,
+			auth->state->token_length);
+		if (status != 0) {
 			return AUTH_TOKEN_NOT_VALID;
 		}
 

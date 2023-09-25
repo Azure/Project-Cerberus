@@ -2123,6 +2123,7 @@ static void auth_token_test_new_token_sign_error (CuTest *test)
 static void auth_token_test_verify_data (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -2130,8 +2131,8 @@ static void auth_token_test_verify_data (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2163,7 +2164,7 @@ static void auth_token_test_verify_data (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2173,6 +2174,7 @@ static void auth_token_test_verify_data (CuTest *test)
 static void auth_token_test_verify_data_sha384 (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -2180,8 +2182,8 @@ static void auth_token_test_verify_data_sha384 (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P384_ECDSA_MAX_LENGTH + aad_length +
-		ECC384_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P384_ECDSA_MAX_LENGTH +
+		aad_length + ECC384_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2213,7 +2215,7 @@ static void auth_token_test_verify_data_sha384 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC384_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA384);
+		token_offset, aad_length, HASH_TYPE_SHA384);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2224,6 +2226,7 @@ static void auth_token_test_verify_data_sha384 (CuTest *test)
 static void auth_token_test_verify_data_sha512 (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -2231,8 +2234,8 @@ static void auth_token_test_verify_data_sha512 (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P521_ECDSA_MAX_LENGTH + aad_length +
-		ECC521_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P521_ECDSA_MAX_LENGTH +
+		aad_length + ECC521_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2264,7 +2267,7 @@ static void auth_token_test_verify_data_sha512 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC521_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA512);
+		token_offset, aad_length, HASH_TYPE_SHA512);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2274,6 +2277,7 @@ static void auth_token_test_verify_data_sha512 (CuTest *test)
 static void auth_token_test_verify_data_longer_nonce (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 64;
 	const size_t aad_length = 0;
@@ -2281,8 +2285,8 @@ static void auth_token_test_verify_data_longer_nonce (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2314,7 +2318,7 @@ static void auth_token_test_verify_data_longer_nonce (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2323,6 +2327,7 @@ static void auth_token_test_verify_data_longer_nonce (CuTest *test)
 static void auth_token_test_verify_data_context_data (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = HASH_TESTING_FULL_BLOCK_1024_LEN;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -2330,8 +2335,8 @@ static void auth_token_test_verify_data_context_data (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2363,7 +2368,7 @@ static void auth_token_test_verify_data_context_data (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2372,6 +2377,7 @@ static void auth_token_test_verify_data_context_data (CuTest *test)
 static void auth_token_test_verify_data_additional_authenticated_data (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = ECC521_PRIVKEY_DER_LEN;
@@ -2379,8 +2385,8 @@ static void auth_token_test_verify_data_additional_authenticated_data (CuTest *t
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2415,7 +2421,113 @@ static void auth_token_test_verify_data_additional_authenticated_data (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, 0, status);
+
+	auth_token_testing_release (test, &auth, &auth.test);
+}
+
+static void auth_token_test_verify_data_token_offset (CuTest *test)
+{
+	struct auth_token_testing auth;
+	const size_t token_offset = 10;
+	const size_t data_length = 0;
+	const size_t nonce_length = 32;
+	const size_t aad_length = 0;
+	int status;
+	const uint8_t *token;
+	size_t length;
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
+
+	TEST_START;
+
+	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
+
+	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, token);
+
+	/* Sign the token.  Verification is mocked, so the actual signature doesn't matter. */
+	memcpy (token_signed, ECC384_PUBKEY, token_offset);
+	memcpy (&token_signed[token_offset], token, length);
+	length += token_offset;
+	memcpy (&token_signed[length], ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN);
+
+	status = auth.hash.base.calculate_sha256 (&auth.hash.base, token_signed, length, digest,
+		sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.verify_signature,
+		&auth.authority, 0, MOCK_ARG_PTR_CONTAINS (digest, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
+		MOCK_ARG (ECC_SIG_TEST2_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
+		token_offset, aad_length, HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, 0, status);
+
+	auth_token_testing_release (test, &auth, &auth.test);
+}
+
+static void auth_token_test_verify_data_context_data_aad_and_token_offset (CuTest *test)
+{
+	struct auth_token_testing auth;
+	const size_t token_offset = 10;
+	const size_t data_length = HASH_TESTING_FULL_BLOCK_1024_LEN;
+	const size_t nonce_length = 32;
+	const size_t aad_length = ECC521_PRIVKEY_DER_LEN;
+	int status;
+	const uint8_t *token;
+	size_t length;
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
+
+	TEST_START;
+
+	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
+
+	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_1024, &token, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, token);
+
+	/* Sign the token.  Verification is mocked, so the actual signature doesn't matter. */
+	memcpy (token_signed, ECC384_PUBKEY, token_offset);
+	memcpy (&token_signed[token_offset], token, length);
+	length += token_offset;
+	memcpy (&token_signed[length], ECC521_PRIVKEY_DER, aad_length);
+	length += aad_length;
+	memcpy (&token_signed[length], ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN);
+
+	status = auth.hash.base.calculate_sha256 (&auth.hash.base, token_signed, length, digest,
+		sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR_CONTAINS (ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.verify_signature,
+		&auth.authority, 0, MOCK_ARG_PTR_CONTAINS (digest, SHA256_HASH_LENGTH),
+		MOCK_ARG (SHA256_HASH_LENGTH),
+		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
+		MOCK_ARG (ECC_SIG_TEST2_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2424,6 +2536,7 @@ static void auth_token_test_verify_data_additional_authenticated_data (CuTest *t
 static void auth_token_test_verify_data_not_expired (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -2431,8 +2544,8 @@ static void auth_token_test_verify_data_not_expired (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2466,7 +2579,7 @@ static void auth_token_test_verify_data_not_expired (CuTest *test)
 	platform_msleep (500);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2475,6 +2588,7 @@ static void auth_token_test_verify_data_not_expired (CuTest *test)
 static void auth_token_test_verify_data_same_token_twice (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -2482,8 +2596,8 @@ static void auth_token_test_verify_data_same_token_twice (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2515,7 +2629,7 @@ static void auth_token_test_verify_data_same_token_twice (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Verify the token again. */
@@ -2532,7 +2646,7 @@ static void auth_token_test_verify_data_same_token_twice (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2541,6 +2655,7 @@ static void auth_token_test_verify_data_same_token_twice (CuTest *test)
 static void auth_token_test_verify_data_with_buffer (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -2548,8 +2663,8 @@ static void auth_token_test_verify_data_with_buffer (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2581,7 +2696,7 @@ static void auth_token_test_verify_data_with_buffer (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2590,6 +2705,7 @@ static void auth_token_test_verify_data_with_buffer (CuTest *test)
 static void auth_token_test_verify_data_static_init (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -2603,8 +2719,8 @@ static void auth_token_test_verify_data_static_init (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2639,7 +2755,7 @@ static void auth_token_test_verify_data_static_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.verify_data (&test_static, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &test_static);
@@ -2648,6 +2764,7 @@ static void auth_token_test_verify_data_static_init (CuTest *test)
 static void auth_token_test_verify_data_dynamic_buffer_static_init (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -2660,8 +2777,8 @@ static void auth_token_test_verify_data_dynamic_buffer_static_init (CuTest *test
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2696,7 +2813,7 @@ static void auth_token_test_verify_data_dynamic_buffer_static_init (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.verify_data (&test_static, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
 	auth_token_testing_release (test, &auth, &test_static);
@@ -2705,10 +2822,12 @@ static void auth_token_test_verify_data_dynamic_buffer_static_init (CuTest *test
 static void auth_token_test_verify_data_null (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	int status;
-	uint8_t token_signed[data_length + nonce_length + ECC_SIG_TEST_LEN + ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_SIG_TEST_LEN +
+		ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2721,11 +2840,11 @@ static void auth_token_test_verify_data_null (CuTest *test)
 	memcpy (&token_signed[auth.nonce_length + ECC_SIG_TEST_LEN], ECC_SIGNATURE_TEST2,
 		ECC_SIG_TEST2_LEN);
 
-	status = auth.test.verify_data (NULL, token_signed, sizeof (token_signed), 0,
+	status = auth.test.verify_data (NULL, token_signed, sizeof (token_signed), token_offset, 0,
 		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
 
-	status = auth.test.verify_data (&auth.test, NULL, sizeof (token_signed), 0,
+	status = auth.test.verify_data (&auth.test, NULL, sizeof (token_signed), token_offset, 0,
 		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
 
@@ -2735,10 +2854,12 @@ static void auth_token_test_verify_data_null (CuTest *test)
 static void auth_token_test_verify_data_no_active_token (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	int status;
-	uint8_t token_signed[data_length + nonce_length + ECC_SIG_TEST_LEN + ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_SIG_TEST_LEN +
+		ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2751,8 +2872,8 @@ static void auth_token_test_verify_data_no_active_token (CuTest *test)
 	memcpy (&token_signed[auth.nonce_length + ECC_SIG_TEST_LEN], ECC_SIGNATURE_TEST2,
 		ECC_SIG_TEST2_LEN);
 
-	status = auth.test.verify_data (&auth.test, token_signed, sizeof (token_signed), 0,
-		HASH_TYPE_SHA256);
+	status = auth.test.verify_data (&auth.test, token_signed, sizeof (token_signed), token_offset,
+		0, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2761,14 +2882,15 @@ static void auth_token_test_verify_data_no_active_token (CuTest *test)
 static void auth_token_test_verify_data_no_signature (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2781,7 +2903,8 @@ static void auth_token_test_verify_data_no_signature (CuTest *test)
 
 	/* Verify the token without any authorizing signature. */
 	memcpy (token_signed, token, length);
-	status = auth.test.verify_data (&auth.test, token_signed, length, aad_length, HASH_TYPE_SHA256);
+	status = auth.test.verify_data (&auth.test, token_signed, length, token_offset, aad_length,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2790,14 +2913,15 @@ static void auth_token_test_verify_data_no_signature (CuTest *test)
 static void auth_token_test_verify_data_no_signature_with_aad (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = ECC521_PRIVKEY_DER_LEN;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2813,7 +2937,8 @@ static void auth_token_test_verify_data_no_signature_with_aad (CuTest *test)
 	memcpy (&token_signed[length], ECC521_PRIVKEY_DER, aad_length);
 	length += aad_length;
 
-	status = auth.test.verify_data (&auth.test, token_signed, length, aad_length, HASH_TYPE_SHA256);
+	status = auth.test.verify_data (&auth.test, token_signed, length, token_offset, aad_length,
+		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2822,14 +2947,15 @@ static void auth_token_test_verify_data_no_signature_with_aad (CuTest *test)
 static void auth_token_test_verify_data_short_token (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2842,7 +2968,7 @@ static void auth_token_test_verify_data_short_token (CuTest *test)
 
 	/* Length is less than the token data. */
 	memcpy (token_signed, token, length);
-	status = auth.test.verify_data (&auth.test, token_signed, length - 1, aad_length,
+	status = auth.test.verify_data (&auth.test, token_signed, length - 1, token_offset, aad_length,
 		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
@@ -2852,14 +2978,15 @@ static void auth_token_test_verify_data_short_token (CuTest *test)
 static void auth_token_test_verify_data_short_aad (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = ECC521_PRIVKEY_DER_LEN;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2875,7 +3002,75 @@ static void auth_token_test_verify_data_short_aad (CuTest *test)
 	memcpy (&token_signed[length], ECC521_PRIVKEY_DER, aad_length);
 	length += aad_length;
 
-	status = auth.test.verify_data (&auth.test, token_signed, length - 1, aad_length,
+	status = auth.test.verify_data (&auth.test, token_signed, length - 1, token_offset, aad_length,
+		HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
+
+	auth_token_testing_release (test, &auth, &auth.test);
+}
+
+static void auth_token_test_verify_data_short_token_offset (CuTest *test)
+{
+	struct auth_token_testing auth;
+	const size_t token_offset = 10;
+	const size_t data_length = 0;
+	const size_t nonce_length = 32;
+	const size_t aad_length = 0;
+	int status;
+	const uint8_t *token;
+	size_t length;
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
+
+	TEST_START;
+
+	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
+
+	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, token);
+
+	/* Length is less than the token plus the offset. */
+	memcpy (&token_signed[token_offset], token, length);
+	length += token_offset;
+
+	status = auth.test.verify_data (&auth.test, token_signed, length - 1, token_offset, aad_length,
+		HASH_TYPE_SHA256);
+	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
+
+	auth_token_testing_release (test, &auth, &auth.test);
+}
+
+static void auth_token_test_verify_data_overflow_token_offset (CuTest *test)
+{
+	struct auth_token_testing auth;
+	const size_t token_offset = 10;
+	const size_t data_length = 0;
+	const size_t nonce_length = 32;
+	const size_t aad_length = 0;
+	int status;
+	const uint8_t *token;
+	size_t length;
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
+
+	TEST_START;
+
+	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
+
+	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, token);
+
+	/* Length is less than the token plus the offset. */
+	memcpy (&token_signed[token_offset], token, length);
+	length += token_offset;
+	memcpy (&token_signed[length], ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN);
+	length += ECC_SIG_TEST2_LEN;
+
+	status = auth.test.verify_data (&auth.test, token_signed, length, length, aad_length,
 		HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
@@ -2885,6 +3080,7 @@ static void auth_token_test_verify_data_short_aad (CuTest *test)
 static void auth_token_test_verify_data_bad_signature (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -2892,8 +3088,8 @@ static void auth_token_test_verify_data_bad_signature (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2925,7 +3121,7 @@ static void auth_token_test_verify_data_bad_signature (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2934,14 +3130,15 @@ static void auth_token_test_verify_data_bad_signature (CuTest *test)
 static void auth_token_test_verify_data_signed_wrong_token (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2958,7 +3155,7 @@ static void auth_token_test_verify_data_signed_wrong_token (CuTest *test)
 	token_signed[8] ^= 0x55;	// Change the token data.
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2967,14 +3164,15 @@ static void auth_token_test_verify_data_signed_wrong_token (CuTest *test)
 static void auth_token_test_verify_data_expired_token (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -2992,7 +3190,7 @@ static void auth_token_test_verify_data_expired_token (CuTest *test)
 	platform_msleep (150);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3001,14 +3199,15 @@ static void auth_token_test_verify_data_expired_token (CuTest *test)
 static void auth_token_test_verify_data_expired_token_with_buffer (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3026,7 +3225,7 @@ static void auth_token_test_verify_data_expired_token_with_buffer (CuTest *test)
 	platform_msleep (150);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3035,6 +3234,7 @@ static void auth_token_test_verify_data_expired_token_with_buffer (CuTest *test)
 static void auth_token_test_verify_data_expired_token_static_init (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -3047,8 +3247,8 @@ static void auth_token_test_verify_data_expired_token_static_init (CuTest *test)
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3069,7 +3269,7 @@ static void auth_token_test_verify_data_expired_token_static_init (CuTest *test)
 	platform_msleep (250);
 
 	status = test_static.verify_data (&test_static, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &test_static);
@@ -3078,6 +3278,7 @@ static void auth_token_test_verify_data_expired_token_static_init (CuTest *test)
 static void auth_token_test_verify_data_expired_token_dynamic_buffer_static_init (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -3089,8 +3290,8 @@ static void auth_token_test_verify_data_expired_token_dynamic_buffer_static_init
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3111,7 +3312,7 @@ static void auth_token_test_verify_data_expired_token_dynamic_buffer_static_init
 	platform_msleep (250);
 
 	status = test_static.verify_data (&test_static, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &test_static);
@@ -3120,14 +3321,15 @@ static void auth_token_test_verify_data_expired_token_dynamic_buffer_static_init
 static void auth_token_test_verify_data_after_new_token (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3149,7 +3351,7 @@ static void auth_token_test_verify_data_after_new_token (CuTest *test)
 
 	/* Verify with the old token. */
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3158,14 +3360,15 @@ static void auth_token_test_verify_data_after_new_token (CuTest *test)
 static void auth_token_test_verify_data_after_new_token_rng_error (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3202,7 +3405,7 @@ static void auth_token_test_verify_data_after_new_token_rng_error (CuTest *test)
 
 	/* Verify with the old token. */
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3211,14 +3414,15 @@ static void auth_token_test_verify_data_after_new_token_rng_error (CuTest *test)
 static void auth_token_test_verify_data_after_new_token_hash_error (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3257,7 +3461,7 @@ static void auth_token_test_verify_data_after_new_token_hash_error (CuTest *test
 
 	/* Verify with the old token. */
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3266,14 +3470,15 @@ static void auth_token_test_verify_data_after_new_token_hash_error (CuTest *test
 static void auth_token_test_verify_data_after_new_token_key_error (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3341,7 +3546,7 @@ static void auth_token_test_verify_data_after_new_token_key_error (CuTest *test)
 
 	/* Verify with the old token. */
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3350,14 +3555,15 @@ static void auth_token_test_verify_data_after_new_token_key_error (CuTest *test)
 static void auth_token_test_verify_data_after_new_token_sign_error (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3434,7 +3640,7 @@ static void auth_token_test_verify_data_after_new_token_sign_error (CuTest *test
 
 	/* Verify with the old token. */
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3443,14 +3649,15 @@ static void auth_token_test_verify_data_after_new_token_sign_error (CuTest *test
 static void auth_token_test_verify_data_hash_error (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3483,7 +3690,7 @@ static void auth_token_test_verify_data_hash_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3492,14 +3699,15 @@ static void auth_token_test_verify_data_hash_error (CuTest *test)
 static void auth_token_test_verify_data_set_key_error (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3521,7 +3729,7 @@ static void auth_token_test_verify_data_set_key_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, SIG_VERIFICATION_SET_KEY_FAILED, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3530,6 +3738,7 @@ static void auth_token_test_verify_data_set_key_error (CuTest *test)
 static void auth_token_test_verify_data_verify_error (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -3537,8 +3746,8 @@ static void auth_token_test_verify_data_verify_error (CuTest *test)
 	const uint8_t *token;
 	size_t length;
 	uint8_t digest[HASH_MAX_HASH_LEN];
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3570,7 +3779,7 @@ static void auth_token_test_verify_data_verify_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, SIG_VERIFICATION_VERIFY_SIG_FAILED, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3595,14 +3804,15 @@ static void auth_token_test_invalidate_no_active_token (CuTest *test)
 static void auth_token_test_invalidate_with_active_token (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3621,7 +3831,7 @@ static void auth_token_test_invalidate_with_active_token (CuTest *test)
 	memcpy (&token_signed[length], ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3630,14 +3840,15 @@ static void auth_token_test_invalidate_with_active_token (CuTest *test)
 static void auth_token_test_invalidate_with_buffer (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3656,7 +3867,7 @@ static void auth_token_test_invalidate_with_buffer (CuTest *test)
 	memcpy (&token_signed[length], ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -3665,6 +3876,7 @@ static void auth_token_test_invalidate_with_buffer (CuTest *test)
 static void auth_token_test_invalidate_static_init (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -3677,8 +3889,8 @@ static void auth_token_test_invalidate_static_init (CuTest *test)
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3700,7 +3912,7 @@ static void auth_token_test_invalidate_static_init (CuTest *test)
 	memcpy (&token_signed[length], ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN);
 
 	status = test_static.verify_data (&test_static, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &test_static);
@@ -3709,6 +3921,7 @@ static void auth_token_test_invalidate_static_init (CuTest *test)
 static void auth_token_test_invalidate_dynamic_buffer_static_init (CuTest *test)
 {
 	struct auth_token_testing auth;
+	const size_t token_offset = 0;
 	const size_t data_length = 0;
 	const size_t nonce_length = 32;
 	const size_t aad_length = 0;
@@ -3720,8 +3933,8 @@ static void auth_token_test_invalidate_dynamic_buffer_static_init (CuTest *test)
 	int status;
 	const uint8_t *token;
 	size_t length;
-	uint8_t token_signed[data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH + aad_length +
-		ECC_SIG_TEST2_LEN];
+	uint8_t token_signed[token_offset + data_length + nonce_length + ECC_DER_P256_ECDSA_MAX_LENGTH +
+		aad_length + ECC_SIG_TEST2_LEN];
 
 	TEST_START;
 
@@ -3743,7 +3956,7 @@ static void auth_token_test_invalidate_dynamic_buffer_static_init (CuTest *test)
 	memcpy (&token_signed[length], ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN);
 
 	status = test_static.verify_data (&test_static, token_signed, length + ECC_SIG_TEST2_LEN,
-		aad_length, HASH_TYPE_SHA256);
+		token_offset, aad_length, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
 	auth_token_testing_release (test, &auth, &test_static);
@@ -3839,6 +4052,8 @@ TEST (auth_token_test_verify_data_sha512);
 TEST (auth_token_test_verify_data_longer_nonce);
 TEST (auth_token_test_verify_data_context_data);
 TEST (auth_token_test_verify_data_additional_authenticated_data);
+TEST (auth_token_test_verify_data_token_offset);
+TEST (auth_token_test_verify_data_context_data_aad_and_token_offset);
 TEST (auth_token_test_verify_data_not_expired);
 TEST (auth_token_test_verify_data_same_token_twice);
 TEST (auth_token_test_verify_data_with_buffer);
@@ -3850,6 +4065,8 @@ TEST (auth_token_test_verify_data_no_signature);
 TEST (auth_token_test_verify_data_no_signature_with_aad);
 TEST (auth_token_test_verify_data_short_token);
 TEST (auth_token_test_verify_data_short_aad);
+TEST (auth_token_test_verify_data_short_token_offset);
+TEST (auth_token_test_verify_data_overflow_token_offset);
 TEST (auth_token_test_verify_data_bad_signature);
 TEST (auth_token_test_verify_data_signed_wrong_token);
 TEST (auth_token_test_verify_data_expired_token);

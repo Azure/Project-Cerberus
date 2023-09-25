@@ -21,7 +21,7 @@ static int auth_token_mock_new_token (const struct auth_token *auth, const uint8
 }
 
 static int auth_token_mock_verify_data (const struct auth_token *auth, const uint8_t *authorized,
-	size_t length, size_t aad_length, enum hash_type sig_hash)
+	size_t length, size_t token_offset, size_t aad_length, enum hash_type sig_hash)
 {
 	struct auth_token_mock *mock = (struct auth_token_mock*) auth;
 
@@ -30,7 +30,8 @@ static int auth_token_mock_verify_data (const struct auth_token *auth, const uin
 	}
 
 	MOCK_RETURN (&mock->mock, auth_token_mock_verify_data, auth, MOCK_ARG_PTR_CALL (authorized),
-		MOCK_ARG_CALL (length), MOCK_ARG_CALL (aad_length), MOCK_ARG_CALL (sig_hash));
+		MOCK_ARG_CALL (length), MOCK_ARG_CALL (token_offset), MOCK_ARG_CALL (aad_length),
+		MOCK_ARG_CALL (sig_hash));
 }
 
 static int auth_token_mock_invalidate (const struct auth_token *auth)
@@ -47,7 +48,7 @@ static int auth_token_mock_invalidate (const struct auth_token *auth)
 static int auth_token_mock_func_arg_count (void *func)
 {
 	if (func == auth_token_mock_verify_data) {
-		return 4;
+		return 5;
 	}
 	else if (func == auth_token_mock_new_token) {
 		return 3;
@@ -96,9 +97,12 @@ static const char* auth_token_mock_arg_name_map (void *func, int arg)
 				return "length";
 
 			case 2:
-				return "aad_length";
+				return "token_offset";
 
 			case 3:
+				return "aad_length";
+
+			case 4:
 				return "sig_hash";
 		}
 	}

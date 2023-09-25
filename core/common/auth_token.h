@@ -52,6 +52,9 @@ struct auth_token {
 	 * @param authorized The authorized data that should be checked for validity.  This must begin
 	 * with the authorization token.
 	 * @param length Total length of the authorized data, including signature.
+	 * @param token_offset Offset within the authorized data where the authorization token starts.
+	 * Data before this offset is included as part of the signature, but is not considered part of
+	 * the AAD.
 	 * @param aad_length Length of any Additional Authenticated Data present in the data.  This is
 	 * data that is appended to the token before signing by the authorizing entity for use by the
 	 * device.
@@ -61,7 +64,7 @@ struct auth_token {
 	 * verification check, AUTH_TOKEN_NOT_VALID will be returned.
 	 */
 	int (*verify_data) (const struct auth_token *auth, const uint8_t *authorized, size_t length,
-		size_t aad_length, enum hash_type sig_hash);
+		size_t token_offset, size_t aad_length, enum hash_type sig_hash);
 
 	/**
 	 * Invalidate any active authorization token.  Any future checks against this token will fail.
