@@ -222,7 +222,7 @@ static int attestation_requester_verify_pmr (const struct attestation_requester 
 	status = active_cfm->get_component_pmr_digest (active_cfm, component_id, pmr_id, &pmr_digest);
 	if (status == 0) {
 		status = attestation_requester_verify_digest_in_allowable_list (attestation,
-			&pmr_digest.digests, NULL, attestation->state->txn.measurement_hash_type);
+			&pmr_digest.digests, NULL, attestation->state->txn.transcript_hash_type);
 
 		active_cfm->free_component_pmr_digest (active_cfm, &pmr_digest);
 	}
@@ -876,8 +876,6 @@ static int attestation_requester_spdm_challenge_rsp_post_processing (
 		(struct spdm_challenge_response*) attestation->state->txn.msg_buffer;
 	size_t transcript_hash_len =
 		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
-	size_t measurement_hash_len =
-		hash_get_hash_length (attestation->state->txn.measurement_hash_type);
 	int status;
 
 	if (rsp->slot_num != attestation->state->txn.slot_num) {
@@ -904,12 +902,12 @@ static int attestation_requester_spdm_challenge_rsp_post_processing (
 	}
 
 	if (attestation->state->txn.msg_buffer_len <=
-			spdm_get_challenge_resp_length (rsp, transcript_hash_len, measurement_hash_len)) {
+			spdm_get_challenge_resp_length (rsp, transcript_hash_len, transcript_hash_len)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN,
 			(device_eid << 8) | SPDM_RESPONSE_CHALLENGE,
 			(((uint16_t) (spdm_get_challenge_resp_length (rsp, transcript_hash_len,
-				measurement_hash_len))) << 16) |
+				transcript_hash_len))) << 16) |
 			((uint16_t) attestation->state->txn.msg_buffer_len));
 
 		return ATTESTATION_BAD_LENGTH;
@@ -991,8 +989,6 @@ static int attestation_requester_send_spdm_request_and_get_response (
 		(struct spdm_get_measurements_response*) attestation->state->txn.msg_buffer;
 	size_t transcript_hash_len =
 		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
-	size_t measurement_hash_len =
-		hash_get_hash_length (attestation->state->txn.measurement_hash_type);
 	size_t rsp_to_hash_len;
 	int status;
 
@@ -1045,7 +1041,7 @@ static int attestation_requester_send_spdm_request_and_get_response (
 				dest_eid);
 
 			rsp_to_hash_len = spdm_get_challenge_resp_length (challenge_rsp, transcript_hash_len,
-				measurement_hash_len);
+				transcript_hash_len);
 
 			break;
 
@@ -2560,15 +2556,13 @@ static int attestation_requester_spdm_process_challenge_response (
 		(struct spdm_challenge_response*) attestation->state->txn.msg_buffer;
 	size_t transcript_hash_len =
 		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
-	size_t measurement_hash_len =
-		hash_get_hash_length (attestation->state->txn.measurement_hash_type);
 	int status;
 
 	status = attestation_requester_verify_signature (attestation, attestation->secondary_hash,
 		device_eid,
-		spdm_get_challenge_resp_signature (rsp, transcript_hash_len, measurement_hash_len),
+		spdm_get_challenge_resp_signature (rsp, transcript_hash_len, transcript_hash_len),
 		spdm_get_challenge_resp_signature_length (rsp, transcript_hash_len,
-			attestation->state->txn.msg_buffer_len, measurement_hash_len),
+			attestation->state->txn.msg_buffer_len, transcript_hash_len),
 		SPDM_CHALLENGE_SIGNATURE_CONTEXT_STR);
 	if (status != 0) {
 		return status;
@@ -2577,8 +2571,8 @@ static int attestation_requester_spdm_process_challenge_response (
 	// msg_buffer is sized to hold maximum response lengths
 	memmove (attestation->state->txn.msg_buffer,
 		spdm_get_challenge_resp_measurement_summary_hash (rsp, transcript_hash_len),
-		measurement_hash_len);
-	attestation->state->txn.msg_buffer_len = measurement_hash_len;
+		transcript_hash_len);
+	attestation->state->txn.msg_buffer_len = transcript_hash_len;
 
 	return 0;
 }
