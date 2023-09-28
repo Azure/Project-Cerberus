@@ -626,6 +626,9 @@ static int cfm_flash_populate_allowable_digests (struct cfm_flash *cfm_flash,
 		if (status < (int) (digests_len)) {
 			return CFM_MALFORMED_MEASUREMENT_ENTRY;
 		}
+
+		// Advance to start of cfm_allowable_digest_element
+		offset += digests_len;
 	}
 
 	return 0;
