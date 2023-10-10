@@ -29,12 +29,20 @@
 
 int common_math_get_num_bits_set (uint8_t byte);
 int common_math_get_num_bits_set_before_index (uint8_t byte, uint8_t index);
+int common_math_get_num_bits_set_in_array (const uint8_t *bytes, size_t length);
+
+int common_math_get_num_contiguous_bits_set (uint8_t byte);
+int common_math_get_num_contiguous_bits_set_in_array (const uint8_t *bytes, size_t length);
 
 int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_rollover);
 
-int common_math_is_bit_set_in_array (uint8_t *bytes, size_t length, size_t bit);
+int common_math_is_bit_set_in_array (const uint8_t *bytes, size_t length, size_t bit);
 int common_math_set_bit_in_array (uint8_t *bytes, size_t length, size_t bit);
 int common_math_clear_bit_in_array (uint8_t *bytes, size_t length, size_t bit);
+
+int common_math_set_next_bit_in_array (uint8_t *bytes, size_t length);
+int common_math_set_next_bit_in_array_even_count (uint8_t *bytes, size_t length);
+int common_math_set_next_bit_in_array_odd_count (uint8_t *bytes, size_t length);
 
 
 #define	COMMON_MATH_ERROR(code)				ROT_ERROR (ROT_MODULE_COMMON_MATH, code)
