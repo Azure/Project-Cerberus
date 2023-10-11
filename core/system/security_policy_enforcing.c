@@ -38,6 +38,17 @@ int security_policy_enforcing_enforce_anti_rollback (const struct security_polic
 	return 1;
 }
 
+int security_policy_enforcing_check_unlock_persistence (const struct security_policy *policy,
+	const uint8_t *unlock, size_t length)
+{
+	if ((policy == NULL) || (unlock == NULL)) {
+		return SECURITY_POLICY_INVALID_ARGUMENT;
+	}
+
+	/* Always return the same value as the is_persistent check. */
+	return 0;
+}
+
 int security_policy_enforcing_parse_unlock_policy (const struct security_policy *policy,
 	const uint8_t *unlock, size_t length)
 {
@@ -67,6 +78,7 @@ int security_policy_enforcing_init (struct security_policy_enforcing *policy)
 	policy->base.is_persistent = security_policy_enforcing_is_persistent;
 	policy->base.enforce_firmware_signing = security_policy_enforcing_enforce_firmware_signing;
 	policy->base.enforce_anti_rollback = security_policy_enforcing_enforce_anti_rollback;
+	policy->base.check_unlock_persistence = security_policy_enforcing_check_unlock_persistence;
 	policy->base.parse_unlock_policy = security_policy_enforcing_parse_unlock_policy;
 
 	return 0;

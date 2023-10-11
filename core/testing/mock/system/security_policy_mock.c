@@ -40,6 +40,19 @@ static int security_policy_mock_enforce_anti_rollback (const struct security_pol
 	MOCK_RETURN_NO_ARGS (&mock->mock, security_policy_mock_enforce_anti_rollback, policy);
 }
 
+static int security_policy_mock_check_unlock_persistence (const struct security_policy *policy,
+	const uint8_t *unlock, size_t length)
+{
+	struct security_policy_mock *mock = (struct security_policy_mock*) policy;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, security_policy_mock_check_unlock_persistence, policy,
+		MOCK_ARG_PTR_CALL (unlock), MOCK_ARG_CALL (length));
+}
+
 static int security_policy_mock_parse_unlock_policy (const struct security_policy *policy,
 	const uint8_t *unlock, size_t length)
 {
@@ -55,7 +68,8 @@ static int security_policy_mock_parse_unlock_policy (const struct security_polic
 
 static int security_policy_mock_func_arg_count (void *func)
 {
-	if (func == security_policy_mock_parse_unlock_policy) {
+	if ((func == security_policy_mock_check_unlock_persistence) ||
+		(func == security_policy_mock_parse_unlock_policy)) {
 		return 2;
 	}
 	else {
@@ -74,6 +88,9 @@ static const char* security_policy_mock_func_name_map (void *func)
 	else if (func == security_policy_mock_enforce_anti_rollback) {
 		return "enforce_anti_rollback";
 	}
+	else if (func == security_policy_mock_check_unlock_persistence) {
+		return "check_unlock_persistence";
+	}
 	else if (func == security_policy_mock_parse_unlock_policy) {
 		return "parse_unlock_policy";
 	}
@@ -84,7 +101,16 @@ static const char* security_policy_mock_func_name_map (void *func)
 
 static const char* security_policy_mock_arg_name_map (void *func, int arg)
 {
-	if (func == security_policy_mock_parse_unlock_policy) {
+	if (func == security_policy_mock_check_unlock_persistence) {
+		switch (arg) {
+			case 0:
+				return "unlock";
+
+			case 1:
+				return "length";
+		}
+	}
+	else if (func == security_policy_mock_parse_unlock_policy) {
 		switch (arg) {
 			case 0:
 				return "unlock";
@@ -124,6 +150,7 @@ int security_policy_mock_init (struct security_policy_mock *mock)
 	mock->base.is_persistent = security_policy_mock_is_persistent;
 	mock->base.enforce_firmware_signing = security_policy_mock_enforce_firmware_signing;
 	mock->base.enforce_anti_rollback = security_policy_mock_enforce_anti_rollback;
+	mock->base.check_unlock_persistence = security_policy_mock_check_unlock_persistence;
 	mock->base.parse_unlock_policy = security_policy_mock_parse_unlock_policy;
 
 	mock->mock.func_arg_count = security_policy_mock_func_arg_count;

@@ -131,6 +131,13 @@ enum {
 	SECURITY_MANAGER_GET_POLICY_FAILED = SECURITY_MANAGER_ERROR (0x08),		/**< Failed to get the active security policy. */
 	SECURITY_MANAGER_UNSUPPORTED = SECURITY_MANAGER_ERROR (0x09),			/**< The operation is not supported by the manager. */
 	SECURITY_MANAGER_SMALL_COUNTER_BUFFER = SECURITY_MANAGER_ERROR (0x0a),	/**< Unlock counter buffer is too small. */
+	SECURITY_MANAGER_UNALIGNED_ADDRESS = SECURITY_MANAGER_ERROR (0x0b),		/**< An address does not meet alignment requirements. */
+	SECURITY_MANAGER_UNALIGNED_BUFFER = SECURITY_MANAGER_ERROR (0x0c),		/**< A buffer length does not meet alignment requirements. */
+	SECURITY_MANAGER_SMALL_NONCE_BUFFER = SECURITY_MANAGER_ERROR (0x0d),	/**< A buffer for nonce management is too small. */
+	SECURITY_MANAGER_BAD_UNLOCK_POLICY = SECURITY_MANAGER_ERROR (0x0e),		/**< A stored unlock policy failed verification. */
+	SECURITY_MANAGER_BAD_DEVICE_STATE = SECURITY_MANAGER_ERROR (0x0f),		/**< The device state is not compatible with the operation. */
+	SECURITY_MANAGER_COUNTER_MISMATCH = SECURITY_MANAGER_ERROR (0x10),		/**< The unlock counter is not the expected value. */
+	SECURITY_MANAGER_NONCE_MISMATCH = SECURITY_MANAGER_ERROR (0x11),		/**< The policy nonce is not the expected value. */
 };
 
 

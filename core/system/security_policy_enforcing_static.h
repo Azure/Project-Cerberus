@@ -11,6 +11,8 @@
 int security_policy_enforcing_is_persistent (const struct security_policy *policy);
 int security_policy_enforcing_enforce_firmware_signing (const struct security_policy *policy);
 int security_policy_enforcing_enforce_anti_rollback (const struct security_policy *policy);
+int security_policy_enforcing_check_unlock_persistence (const struct security_policy *policy,
+	const uint8_t *unlock, size_t length);
 int security_policy_enforcing_parse_unlock_policy (const struct security_policy *policy,
 	const uint8_t *unlock, size_t length);
 
@@ -22,6 +24,7 @@ int security_policy_enforcing_parse_unlock_policy (const struct security_policy 
 		.is_persistent = security_policy_enforcing_is_persistent, \
 		.enforce_firmware_signing = security_policy_enforcing_enforce_firmware_signing, \
 		.enforce_anti_rollback = security_policy_enforcing_enforce_anti_rollback, \
+		.check_unlock_persistence = security_policy_enforcing_check_unlock_persistence, \
 		.parse_unlock_policy = security_policy_enforcing_parse_unlock_policy, \
 	}
 

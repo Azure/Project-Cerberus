@@ -17,6 +17,8 @@ enum {
 	SYSTEM_LOGGING_POLICY_CHECK_FAIL,		/**< Failed to query the device security policy. */
 	SYSTEM_LOGGING_GET_POLICY_FAIL,			/**< Failed to query for the active security policy. */
 	SYSTEM_LOGGING_UNDETERMINED_UNLOCK,		/**< An error prevented detection or application of any possible unlock policy. */
+	SYSTEM_LOGGING_DEVICE_UNLOCKED,			/**< An unlock policy has been applied to the device. */
+	SYSTEM_LOGGING_LOCK_STATE_FAIL,			/**< An error occurred attempting to make the lock state consistent. */
 };
 
 /**
@@ -25,6 +27,14 @@ enum {
 enum {
 	SYSTEM_LOGGING_POLICY_FW_SIGNING,		/**< Security policy check for firmware signing. */
 	SYSTEM_LOGGING_POLICY_ANTI_ROLLBACK,	/**< Security policy check for anti-rollback. */
+};
+
+/**
+ * Identifiers for types of unlock policies that can be applied.
+ */
+enum {
+	SYSTEM_LOGGING_UNLOCK_PERSISTENT,		/**< Identifier for a persistent unlock policy. */
+	SYSTEM_LOGGING_UNLOCK_ONE_TIME,			/**< Identifier for a one-time unlock policy. */
 };
 
 

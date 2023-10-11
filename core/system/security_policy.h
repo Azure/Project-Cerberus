@@ -49,6 +49,21 @@ struct security_policy {
 	int (*enforce_anti_rollback) (const struct security_policy *policy);
 
 	/**
+	 * Indicate if an unlock policy would survive a reset of the device if applied.  This check is
+	 * exclusively done against the specified unlock policy data.  It does not change the active
+	 * security policy in any way, and the active security policy does not affect the result of this
+	 * check.
+	 *
+	 * @param policy The policy handler to use for checking the unlock policy.
+	 * @param unlock The unlock policy to check for persistence.
+	 * @param length Length of the unlock policy data.
+	 *
+	 * @return 1 if the unlock policy is persistent, 0 if not, or an error code.
+	 */
+	int (*check_unlock_persistence) (const struct security_policy *policy, const uint8_t *unlock,
+		size_t length);
+
+	/**
 	 * Parse an authenticated unlock policy and apply it as the current security policy.
 	 *
 	 * No validation or security checks are done against the unlock policy, aside from possibly

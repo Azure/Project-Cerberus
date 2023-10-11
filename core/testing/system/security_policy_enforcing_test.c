@@ -29,6 +29,7 @@ static void security_policy_enforcing_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, policy.base.is_persistent);
 	CuAssertPtrNotNull (test, policy.base.enforce_firmware_signing);
 	CuAssertPtrNotNull (test, policy.base.enforce_anti_rollback);
+	CuAssertPtrNotNull (test, policy.base.check_unlock_persistence);
 	CuAssertPtrNotNull (test, policy.base.parse_unlock_policy);
 
 	security_policy_enforcing_release (&policy);
@@ -53,6 +54,7 @@ static void security_policy_enforcing_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, policy.base.is_persistent);
 	CuAssertPtrNotNull (test, policy.base.enforce_firmware_signing);
 	CuAssertPtrNotNull (test, policy.base.enforce_anti_rollback);
+	CuAssertPtrNotNull (test, policy.base.check_unlock_persistence);
 	CuAssertPtrNotNull (test, policy.base.parse_unlock_policy);
 
 	security_policy_enforcing_release (&policy);
@@ -251,6 +253,57 @@ static void security_policy_enforcing_test_parse_unlock_policy_null (CuTest *tes
 	security_policy_enforcing_release (&policy);
 }
 
+static void security_policy_enforcing_test_check_unlock_persistence (CuTest *test)
+{
+	struct security_policy_enforcing policy;
+	uint8_t unlock[4];
+	int status;
+
+	TEST_START;
+
+	status = security_policy_enforcing_init (&policy);
+	CuAssertIntEquals (test, 0, status);
+
+	status = policy.base.check_unlock_persistence (&policy.base, unlock, sizeof (unlock));
+	CuAssertIntEquals (test, 0, status);
+
+	security_policy_enforcing_release (&policy);
+}
+
+static void security_policy_enforcing_test_check_unlock_persistence_static_init (CuTest *test)
+{
+	struct security_policy_enforcing policy = security_policy_enforcing_static_init;
+	uint8_t unlock[4];
+	int status;
+
+	TEST_START;
+
+	status = policy.base.check_unlock_persistence (&policy.base, unlock, sizeof (unlock));
+	CuAssertIntEquals (test, 0, status);
+
+	security_policy_enforcing_release (&policy);
+}
+
+static void security_policy_enforcing_test_check_unlock_persistence_null (CuTest *test)
+{
+	struct security_policy_enforcing policy;
+	uint8_t unlock[4];
+	int status;
+
+	TEST_START;
+
+	status = security_policy_enforcing_init (&policy);
+	CuAssertIntEquals (test, 0, status);
+
+	status = policy.base.check_unlock_persistence (NULL, unlock, sizeof (unlock));
+	CuAssertIntEquals (test, SECURITY_POLICY_INVALID_ARGUMENT, status);
+
+	status = policy.base.check_unlock_persistence (&policy.base, NULL, sizeof (unlock));
+	CuAssertIntEquals (test, SECURITY_POLICY_INVALID_ARGUMENT, status);
+
+	security_policy_enforcing_release (&policy);
+}
+
 
 TEST_SUITE_START (security_policy_enforcing);
 
@@ -270,5 +323,8 @@ TEST (security_policy_enforcing_test_enforce_anti_rollback_null);
 TEST (security_policy_enforcing_test_parse_unlock_policy);
 TEST (security_policy_enforcing_test_parse_unlock_policy_static_init);
 TEST (security_policy_enforcing_test_parse_unlock_policy_null);
+TEST (security_policy_enforcing_test_check_unlock_persistence);
+TEST (security_policy_enforcing_test_check_unlock_persistence_static_init);
+TEST (security_policy_enforcing_test_check_unlock_persistence_null);
 
 TEST_SUITE_END;
