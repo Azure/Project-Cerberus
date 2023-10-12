@@ -5,14 +5,14 @@
 # Usage:
 #  tools/spdm_measurements_to_cfm.py <input_filename> <output_filename> <filetype>
 #  Optional Params:
-#  -s <slot_num> -r <rootca_digest> -a <hash_alg>
+#  -s <slot_num> -r <rootca_digest> -b <base_hash_alg> -m <meas_hash_alg>
 #  Debug Param(Provides debug logs):
 #  -d
 #  E.g.
 #  spdm_measurements_to_cfm.py spdm_measurement.rim cfm_component.xml RIM
 #  spdm_measurements_to_cfm.py spdm_measurement.corim cfm_component.xml CORIM
-#  spdm_measurements_to_cfm.py spdm_measurement.rim cfm_component.xml RIM -s 0 -r <sha384 hash> -a SHA384
-#  spdm_measurements_to_cfm.py spdm_measurement.corim -o cfm_component.xml CORIM -s 0 -r <sha384 hash> -a SHA384
+#  spdm_measurements_to_cfm.py spdm_measurement.rim cfm_component.xml RIM -s 0 -r <sha384 hash> -b SHA384 -m SHA384
+#  spdm_measurements_to_cfm.py spdm_measurement.corim -o cfm_component.xml CORIM -s 0 -r <sha384 hash> -b SHA384 -m SHA384
 
 import os
 import sys
@@ -30,7 +30,8 @@ smc_output_filename="cfm_component.xml"
 smc_filetype="RIM"
 smc_slot_num="0"
 smc_rootca_digest="4A284657C5509147DA86D2C82DFF98360182EFAA26D3DCFA7AE485F4DC61B3BCB3A854AFC9A6A58F4DAEC35B2594FF0E"
-smc_hash_alg="SHA384"
+smc_base_hash_alg="SHA384"
+smc_meas_hash_alg="SHA384"
 smc_debug=False
 
 #filetypes
@@ -168,7 +169,8 @@ class Rim_Data:
         self.output_filename = output_filename
         self.slot_num = config.slot_num
         self.rootca_digest = config.rootca_digest
-        self.hash_alg = config.hash_alg
+        self.base_hash_alg = config.base_hash_alg
+        self.meas_hash_alg = config.meas_hash_alg
         self.model = ""
         self.measurements = []
 
@@ -204,7 +206,8 @@ class Rim_Data:
         print ("Model=", self.model)
         print ("Slot Num=", self.slot_num)
         print ("RootCA Digest=", self.rootca_digest)
-        print ("Hash Alg=", self.hash_alg)
+        print ("Base Hash Alg=", self.base_hash_alg)
+        print ("Meas Hash Alg=", self.meas_hash_alg)
         if (smc_debug == True):
             print ("Measurements:=")
             for measurement in self.measurements:
@@ -253,7 +256,8 @@ class Corim_Data:
         self.output_filename = output_filename
         self.slot_num = config.slot_num
         self.rootca_digest = config.rootca_digest
-        self.hash_alg = config.hash_alg
+        self.base_hash_alg = config.base_hash_alg
+        self.meas_hash_alg = config.meas_hash_alg
         self.measurements = []
 
     def execute_command(self, cmd_str):
@@ -351,7 +355,8 @@ class Corim_Data:
         print ("Model=", self.model)
         print ("Slot Num=", self.slot_num)
         print ("RootCA Digest=", self.rootca_digest)
-        print ("Hash Alg=", self.hash_alg)
+        print ("Base Hash Alg=", self.base_hash_alg)
+        print ("Meas Hash Alg=", self.meas_hash_alg)
         if (smc_debug == True):
             print ("Measurements:=")
             for measurement in self.measurements:
@@ -360,23 +365,26 @@ class Corim_Data:
 
 
 class SPDM_Measurement_Config:
-    def __init__(self, slot_num, rootca_digest, hash_alg):
+    def __init__(self, slot_num, rootca_digest, base_hash_alg, meas_hash_alg):
         """
         Represents SPDM measurement configuration
 
         :param slot_num: Slot number
         :param rootca_digest: RootCA digest
-        :param: hash_alg: Hash Algorithm
+        :param: base_hash_alg: Base Hash Algorithm
+        :param: meas_hash_alg: Meas Hash Algorithm
         """
         self.slot_num = slot_num
         self.rootca_digest = rootca_digest
-        self.hash_alg = hash_alg
+        self.base_hash_alg = base_hash_alg
+        self.meas_hash_alg = meas_hash_alg
 
     def __str__(self):
         """
         Returns the string format of the object.
         """
-        return f'slot_num = {self.slot_num}, rootca_digest = {self.rootca_digest}, hash_alg = {self.hash_alg}'
+        return f'slot_num = {self.slot_num}, rootca_digest = {self.rootca_digest},' \
+            'base_hash_alg = {self.base_hash_alg}, meas_hash_alg = self.meas_hash_alg}'
 
 class SPDM_Measurement_Data():
     def __init__(self, input_filename, output_filename, filetype, config):
@@ -469,8 +477,8 @@ class SPDM_Measurement_Data():
         root.set(CONFIG_STR_TYPE, data.model)
         root.set(CONFIG_STR_ATTESTATION_PROTOCOL, CONFIG_VALUE_ATTESTATION_PROTOCOL_SPDM)
         root.set(CONFIG_STR_SLOT_NUM, data.slot_num)
-        root.set(CONFIG_STR_TRANSCRIPT_HASH_TYPE, data.hash_alg)
-        root.set(CONFIG_STR_MEASUREMENT_HASH_TYPE, data.hash_alg)
+        root.set(CONFIG_STR_TRANSCRIPT_HASH_TYPE, data.base_hash_alg)
+        root.set(CONFIG_STR_MEASUREMENT_HASH_TYPE, data.meas_hash_alg)
 
         self.add_cfm_root_ca_digest(root, data)
 
@@ -544,13 +552,14 @@ def cmd_validate_input_args(input_filename, output_filename, filetype):
         return -1
     return 0
 
-def cmd_validate_optional_input_args(slot_num, rootca_digest, hash_alg):
+def cmd_validate_optional_input_args(slot_num, rootca_digest, base_hash_alg, meas_hash_alg):
     """
     Validates the optional input arguments.
 
     :param slot_num: Slot Number
     :param rootca_digest: RootCA Digest
-    :param hash_alg: Hash Algorithm
+    :param base_hash_alg: Base Hash Algorithm
+    :param meas_hash_alg: Meas Hash Algorithm
 
     :return 0 on success and -1 on failure
     """
@@ -558,7 +567,9 @@ def cmd_validate_optional_input_args(slot_num, rootca_digest, hash_alg):
         return -1
     if rootca_digest == None:
         return -1
-    if hash_alg == None:
+    if base_hash_alg == None:
+        return -1
+    if meas_hash_alg == None:
         return -1
     return 0
 
@@ -573,7 +584,7 @@ def cmd_usage(cmd_str):
     print ("Usage:")
     print("tools/spdm_measurements_to_cfm.py <input_filename> <output_filename> <filetype>")
     print("Optional Params:")
-    print("-s <slot_num> -r <rootca_digest> -a <hash_alg>")
+    print("-s <slot_num> -r <rootca_digest> -b <base_hash_alg> -m <meas_hash_algo>")
     print("Debug Param(Provides debug logs):")
     print("-d")
     print("E.g.")
@@ -593,7 +604,8 @@ if __name__ == "__main__":
     #optional args
     parser.add_argument('-s', '--slot_num', help = 'SPDM Slot Number')
     parser.add_argument('-r', '--rootca_digest', help = 'RootCA Ceritificate Digest')
-    parser.add_argument('-a', '--hash_alg', help = 'Hash Algorithm Supported')
+    parser.add_argument('-b', '--base_hash_alg', help = 'Base Hash Algorithm Supported')
+    parser.add_argument('-m', '--meas_hash_alg', help = 'Meas Hash Algorithm Supported')
     parser.add_argument('-d', '--debug', action="store_true", help = 'Enable debuggging')
 
     args = parser.parse_args()
@@ -607,8 +619,10 @@ if __name__ == "__main__":
         smc_slot_num = args.slot_num
     if args.rootca_digest:
         smc_rootca_digest = args.rootca_digest
-    if args.hash_alg:
-        smc_hash_alg = args.hash_alg
+    if args.base_hash_alg:
+        smc_base_hash_alg = args.base_hash_alg
+    if args.meas_hash_alg:
+        smc_meas_hash_alg = args.meas_hash_alg
     if args.debug:
         smc_debug = True
 
@@ -619,14 +633,16 @@ if __name__ == "__main__":
     print("Input Args: input_filename=", smc_input_filename, "output_filename=", smc_output_filename,
             "smc_filetype=", smc_filetype)
 
-    if (cmd_validate_optional_input_args(smc_slot_num, smc_rootca_digest, smc_hash_alg) != 0):
+    if (cmd_validate_optional_input_args(smc_slot_num, smc_rootca_digest, smc_base_hash_alg,
+            smc_meas_hash_alg) != 0):
         cmd_usage("Error: Invalid Optional Args")
         exit()
 
     print("Optional Input Args: smc_slot_num=", smc_slot_num, "smc_rootca_digest=", smc_rootca_digest,
-            "smc_hash_alg=", smc_hash_alg)
+            "smc_base_hash_alg=", smc_base_hash_alg, "smc_meas_hash_alg=", smc_meas_hash_alg)
 
-    config = SPDM_Measurement_Config(smc_slot_num, smc_rootca_digest, smc_hash_alg)
+    config = SPDM_Measurement_Config(smc_slot_num, smc_rootca_digest, smc_base_hash_alg,
+            smc_meas_hash_alg)
     data = SPDM_Measurement_Data(smc_input_filename, smc_output_filename, smc_filetype, config)
 
     data.convert_to_cfm()
