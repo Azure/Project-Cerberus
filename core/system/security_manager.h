@@ -138,6 +138,7 @@ enum {
 	SECURITY_MANAGER_BAD_DEVICE_STATE = SECURITY_MANAGER_ERROR (0x0f),		/**< The device state is not compatible with the operation. */
 	SECURITY_MANAGER_COUNTER_MISMATCH = SECURITY_MANAGER_ERROR (0x10),		/**< The unlock counter is not the expected value. */
 	SECURITY_MANAGER_NONCE_MISMATCH = SECURITY_MANAGER_ERROR (0x11),		/**< The policy nonce is not the expected value. */
+	SECURITY_MANAGER_INVALID_COUNTER_VALUE = SECURITY_MANAGER_ERROR (0x12),	/**< The unlock counter is not a valid value. */
 };
 
 
