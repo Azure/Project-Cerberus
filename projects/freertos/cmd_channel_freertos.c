@@ -44,7 +44,7 @@ int cmd_channel_freertos_receive_packet (QueueHandle_t rx_queue, struct cmd_pack
  *
  * @return 0 if the packet was successfully queued or an error code.
  */
-int cmd_channel_freertos_send_packet (QueueHandle_t tx_queue, struct cmd_packet *packet,
+int cmd_channel_freertos_send_packet (QueueHandle_t tx_queue, const struct cmd_packet *packet,
 	int ms_timeout)
 {
 	TickType_t timeout = (ms_timeout < 0) ? portMAX_DELAY : pdMS_TO_TICKS (ms_timeout);
