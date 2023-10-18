@@ -4,7 +4,7 @@
 #ifndef CMD_CHANNEL_MOCK_H_
 #define CMD_CHANNEL_MOCK_H_
 
-#include "cmd_interface/cmd_channel.h"
+#include "cmd_interface/cmd_channel_static.h"
 #include "mock.h"
 
 
@@ -12,8 +12,9 @@
  * A mock for a command communication channel.
  */
 struct cmd_channel_mock {
-	struct cmd_channel base;		/**< The base channel instance. */
-	struct mock mock;				/**< The base mock interface. */
+	struct cmd_channel base;			/**< The base channel instance. */
+	struct cmd_channel_state state;		/**< Variable context for the command channel. */
+	struct mock mock;					/**< The base mock interface. */
 };
 
 

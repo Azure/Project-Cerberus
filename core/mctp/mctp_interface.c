@@ -538,7 +538,7 @@ void mctp_interface_reset_message_processing (struct mctp_interface *mctp)
  *
  * @return 0 if the request was transmitted successfully or an error code.
  */
-int mctp_interface_issue_request (struct mctp_interface *mctp, struct cmd_channel *channel,
+int mctp_interface_issue_request (struct mctp_interface *mctp, const struct cmd_channel *channel,
 	uint8_t dest_addr, uint8_t dest_eid, uint8_t *request, size_t length, uint8_t *msg_buffer,
 	size_t max_length, uint32_t timeout_ms)
 {
@@ -650,7 +650,8 @@ unlock:
  *
  * @return 0 if the request was transmitted successfully or an error code.
  */
-int mctp_interface_send_discovery_notify (struct mctp_interface *mctp, struct cmd_channel *channel)
+int mctp_interface_send_discovery_notify (struct mctp_interface *mctp,
+	const struct cmd_channel *channel)
 {
 	uint8_t request[MCTP_BASE_PROTOCOL_MIN_MESSAGE_LEN];
 	int bridge_eid;

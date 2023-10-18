@@ -51,8 +51,15 @@ struct cmd_message {
 	uint8_t dest_addr;					/**< The destination address for the message. */
 };
 
-
 struct mctp_interface;
+
+/**
+ * Variable state context for the command channel interface
+ */
+struct cmd_channel_state {
+	platform_mutex lock;		/**< Synchronization for message transmission. */
+	bool overflow;				/**< Flag if the channel is in an overflow condition. */
+};
 
 /**
  * Defines the interface for a communication channel to send and receive command packets.
@@ -73,7 +80,7 @@ struct cmd_channel {
 	 *
 	 * @return 0 if a packet was successfully received or an error code.
 	 */
-	int (*receive_packet) (struct cmd_channel *channel, struct cmd_packet *packet, int ms_timeout);
+	int (*receive_packet) (const struct cmd_channel *channel, struct cmd_packet *packet, int ms_timeout);
 
 	/**
 	 * Send a command packet over a communication channel.
@@ -87,24 +94,25 @@ struct cmd_channel {
 	 *
 	 * @return 0 if the the packet was successfully sent or an error code.
 	 */
-	int (*send_packet) (struct cmd_channel *channel, struct cmd_packet *packet);
+	int (*send_packet) (const struct cmd_channel *channel, const struct cmd_packet *packet);
 
-	int id;					/**< ID for the command channel. */
-	bool overflow;			/**< Flag if the channel is in an overflow condition. */
-	platform_mutex lock;	/**< Synchronization for message transmission. */
+	struct cmd_channel_state *state;		/**< Variable context for the command channel. */
+	int id;									/**< ID for the command channel. */
 };
 
 
-int cmd_channel_get_id (struct cmd_channel *channel);
+int cmd_channel_get_id (const struct cmd_channel *channel);
 
 int cmd_channel_validate_packet_for_send (const struct cmd_packet *packet);
-int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_interface *mctp,
+int cmd_channel_receive_and_process (const struct cmd_channel *channel, struct mctp_interface *mctp,
 	int ms_timeout);
-int cmd_channel_send_message (struct cmd_channel *channel, struct cmd_message *message);
+int cmd_channel_send_message (const struct cmd_channel *channel,
+	const struct cmd_message *message);
 
 /* Internal functions for use by derived types. */
-int cmd_channel_init (struct cmd_channel *channel, int id);
-void cmd_channel_release (struct cmd_channel *channel);
+int cmd_channel_init (struct cmd_channel *channel, struct cmd_channel_state *state, int id);
+int cmd_channel_init_state (const struct cmd_channel *channel);
+void cmd_channel_release (const struct cmd_channel *channel);
 
 
 #define	CMD_CHANNEL_ERROR(code)		ROT_ERROR (ROT_MODULE_CMD_CHANNEL, code)

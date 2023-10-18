@@ -62,11 +62,12 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 void mctp_interface_reset_message_processing (struct mctp_interface *mctp);
 
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-int mctp_interface_issue_request (struct mctp_interface *mctp, struct cmd_channel *channel,
+int mctp_interface_issue_request (struct mctp_interface *mctp, const struct cmd_channel *channel,
 	uint8_t dest_addr, uint8_t dest_eid, uint8_t *request, size_t length, uint8_t *msg_buffer,
 	size_t max_buffer, uint32_t timeout_ms);
 
-int mctp_interface_send_discovery_notify (struct mctp_interface *mctp, struct cmd_channel *channel);
+int mctp_interface_send_discovery_notify (struct mctp_interface *mctp,
+	const struct cmd_channel *channel);
 #endif
 
 #endif /* MCTP_INTERFACE_H_ */

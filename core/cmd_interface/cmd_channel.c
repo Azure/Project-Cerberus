@@ -15,28 +15,37 @@
  * Initialize the base channel components.
  *
  * @param channel The channel to initialize.
+ * @param state A pointer to the variable state context.
  * @param id An ID to associate with this command channel.
  *
  * @return 0 if the channel was successfully initialized or an error code.
  */
-int cmd_channel_init (struct cmd_channel *channel, int id)
+int cmd_channel_init (struct cmd_channel *channel, struct cmd_channel_state *state, int id)
 {
-	int status;
-
-	if (channel == NULL) {
+	if ((channel == NULL) || (state == NULL)) {
 		return CMD_CHANNEL_INVALID_ARGUMENT;
 	}
 
-	memset (channel, 0, sizeof (struct cmd_channel));
-
-	status = platform_mutex_init (&channel->lock);
-	if (status != 0) {
-		return status;
-	}
-
+	channel->state = state;
 	channel->id = id;
 
-	return 0;
+	return cmd_channel_init_state (channel);
+}
+
+/**
+ * Initializes the variable command state of a command channel instance.
+ *
+ * @param channel A command channel instance.
+ *
+ * @return 0 if successful, else an error code.
+ */
+int cmd_channel_init_state (const struct cmd_channel *channel)
+{
+	if ((channel == NULL) || (channel->state == NULL)) {
+		return CMD_CHANNEL_INVALID_ARGUMENT;
+	}
+
+	return platform_mutex_init (&channel->state->lock);
 }
 
 /**
@@ -44,10 +53,10 @@ int cmd_channel_init (struct cmd_channel *channel, int id)
  *
  * @param channel The channel to release.
  */
-void cmd_channel_release (struct cmd_channel *channel)
+void cmd_channel_release (const struct cmd_channel *channel)
 {
 	if (channel) {
-		platform_mutex_free (&channel->lock);
+		platform_mutex_free (&channel->state->lock);
 	}
 }
 
@@ -58,14 +67,13 @@ void cmd_channel_release (struct cmd_channel *channel)
  *
  * @return The ID assigned to the channel or an error code.  Use ROT_IS_ERROR to check for errors.
  */
-int cmd_channel_get_id (struct cmd_channel *channel)
+int cmd_channel_get_id (const struct cmd_channel *channel)
 {
-	if (channel) {
-		return channel->id;
-	}
-	else {
+	if (channel == NULL) {
 		return CMD_CHANNEL_INVALID_ARGUMENT;
 	}
+
+	return channel->id;
 }
 
 /**
@@ -101,18 +109,18 @@ int cmd_channel_validate_packet_for_send (const struct cmd_packet *packet)
  * @param packet A packet buffer to use for sending the packets.  Once access to the channel is
  * granted, the timeout on this packet will be checked to see if it should still be sent.
  *
- * @return 0 if all packets were successfully sent or an error code.  If no packets were sent due to
- * the packet timeout value, CMD_CHANNEL_PKT_EXPIRED will be returned.
+ * @return 0 if all packets were successfully sent or an error code.  If no packets were sent due
+ * to the packet timeout value, CMD_CHANNEL_PKT_EXPIRED will be returned.
  */
-static int cmd_channel_send_packets (struct cmd_channel *channel, struct cmd_message *message,
-	struct cmd_packet *packet)
+static int cmd_channel_send_packets (const struct cmd_channel *channel,
+	const struct cmd_message *message, struct cmd_packet *packet)
 {
 	uint8_t *pkt_pos;
 	size_t msg_len;
 	size_t pkt_len;
 	int status = 0;
 
-	platform_mutex_lock (&channel->lock);
+	platform_mutex_lock (&channel->state->lock);
 
 	if (!packet->timeout_valid || !platform_has_timeout_expired (&packet->pkt_timeout)) {
 		pkt_pos = message->data;
@@ -137,7 +145,8 @@ static int cmd_channel_send_packets (struct cmd_channel *channel, struct cmd_mes
 		status = CMD_CHANNEL_PKT_EXPIRED;
 	}
 
-	platform_mutex_unlock (&channel->lock);
+	platform_mutex_unlock (&channel->state->lock);
+
 	return status;
 }
 /**
@@ -150,8 +159,8 @@ static int cmd_channel_send_packets (struct cmd_channel *channel, struct cmd_mes
  *
  * @return 0 if a packet was processed successfully or an error code.
  */
-int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_interface *mctp,
-	int ms_timeout)
+int cmd_channel_receive_and_process (const struct cmd_channel *channel,
+	struct mctp_interface *mctp, int ms_timeout)
 {
 	struct cmd_packet packet;
 	struct cmd_message *message;
@@ -174,15 +183,15 @@ int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_in
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 			CMD_LOGGING_PACKET_OVERFLOW, channel->id, 0);
 
-		channel->overflow = true;
+		channel->state->overflow = true;
 		mctp_interface_reset_message_processing (mctp);
 		return CMD_CHANNEL_PKT_OVERFLOW;
 	}
-	else if (channel->overflow) {
+	else if (channel->state->overflow) {
 		/* We need to throw away the next "good" packet after detecting overflow.  It will be the
 		 * remaining bytes from the transaction that triggered the overflow condition, so it doesn't
 		 * actually represent valid data. */
-		channel->overflow = false;
+		channel->state->overflow = false;
 		return 0;
 	}
 
@@ -233,7 +242,7 @@ int cmd_channel_receive_and_process (struct cmd_channel *channel, struct mctp_in
  *
  * @return 0 if the message was successfully sent or an error code.
  */
-int cmd_channel_send_message (struct cmd_channel *channel, struct cmd_message *message)
+int cmd_channel_send_message (const struct cmd_channel *channel, const struct cmd_message *message)
 {
 	struct cmd_packet packet;
 

@@ -6,6 +6,7 @@
 #include <string.h>
 #include "testing.h"
 #include "platform_api.h"
+#include "common/unused.h"
 #include "mctp/mctp_interface.h"
 #include "crypto/checksum.h"
 #include "testing/mock/cmd_interface/cmd_channel_mock.h"
@@ -25,6 +26,26 @@ struct cmd_channel_testing {
 	struct device_manager device_mgr;				/**< Device manager. */
 	struct mctp_interface mctp;						/**< MCTP interface instance */
 };
+
+
+static int cmd_channel_testing_empty_receive_packet (const struct cmd_channel *channel,
+	struct cmd_packet *packet, int ms_timeout)
+{
+	UNUSED (channel);
+	UNUSED (packet);
+	UNUSED (ms_timeout);
+
+	return CMD_CHANNEL_RX_FAILED;
+}
+
+static int cmd_channel_testing_empty_send_packet (const struct cmd_channel *channel,
+	const struct cmd_packet *packet)
+{
+	UNUSED (channel);
+	UNUSED (packet);
+
+	return CMD_CHANNEL_TX_FAILED;
+}
 
 /**
  * Helper function to setup the command channel to use a mock interfaces
@@ -88,10 +109,48 @@ static void complete_mock_cmd_channel_test (CuTest *test, struct cmd_channel_tes
 static void cmd_channel_test_init_null (CuTest *test)
 {
 	int status;
+	struct cmd_channel_state state;
+	struct cmd_channel channel;
 
 	TEST_START;
 
-	status = cmd_channel_init (NULL, 0);
+	status = cmd_channel_init (NULL, &state, 0);
+	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
+
+	status = cmd_channel_init (&channel, NULL, 0);
+	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
+}
+
+static void cmd_channel_test_init_static (CuTest *test)
+{
+	int status;
+	struct cmd_channel_state state;
+	const struct cmd_channel channel = cmd_channel_static_init (&state,
+		cmd_channel_testing_empty_receive_packet, cmd_channel_testing_empty_send_packet, 0);
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, channel.receive_packet);
+	CuAssertPtrNotNull (test, channel.send_packet);
+
+	status = cmd_channel_init_state (&channel);
+	CuAssertIntEquals (test, 0, status);
+
+	cmd_channel_release (&channel);
+}
+
+static void cmd_channel_test_init_static_null (CuTest *test)
+{
+	int status;
+	const struct cmd_channel channel = cmd_channel_static_init (NULL,
+		cmd_channel_testing_empty_receive_packet, cmd_channel_testing_empty_send_packet, 0);
+
+	TEST_START;
+
+	status = cmd_channel_init_state (NULL);
+	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
+
+	status = cmd_channel_init_state (&channel);
 	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
 }
 
@@ -118,20 +177,32 @@ static void cmd_channel_test_get_id (CuTest *test)
 	cmd_channel_mock_release (&channel);
 }
 
-static void cmd_channel_test_get_id_null (CuTest *test)
+static void cmd_channel_test_get_id_static (CuTest *test)
 {
-	struct cmd_channel_mock channel;
+	struct cmd_channel_state state;
+	const struct cmd_channel channel = cmd_channel_static_init (&state,
+		cmd_channel_testing_empty_receive_packet, cmd_channel_testing_empty_send_packet, 20);
 	int status;
 
 	TEST_START;
 
-	status = cmd_channel_mock_init (&channel, 10);
+	status = cmd_channel_init_state (&channel);
 	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_get_id (&channel);
+	CuAssertIntEquals (test, 20, status);
+
+	cmd_channel_release (&channel);
+}
+
+static void cmd_channel_test_get_id_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
 
 	status = cmd_channel_get_id (NULL);
 	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
-
-	cmd_channel_mock_release (&channel);
 }
 
 static void cmd_channel_test_validate_packet_for_send_byte (CuTest *test)
@@ -3111,8 +3182,11 @@ static void cmd_channel_test_send_message_multiple_packets_send_failure (CuTest 
 TEST_SUITE_START (cmd_channel);
 
 TEST (cmd_channel_test_init_null);
+TEST (cmd_channel_test_init_static);
+TEST (cmd_channel_test_init_static_null);
 TEST (cmd_channel_test_release_null);
 TEST (cmd_channel_test_get_id);
+TEST (cmd_channel_test_get_id_static);
 TEST (cmd_channel_test_get_id_null);
 TEST (cmd_channel_test_validate_packet_for_send_byte);
 TEST (cmd_channel_test_validate_packet_for_send_max);

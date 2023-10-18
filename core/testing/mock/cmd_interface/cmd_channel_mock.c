@@ -9,8 +9,8 @@
 #include "testing.h"
 
 
-static int cmd_channel_mock_receive_packet (struct cmd_channel *channel, struct cmd_packet *packet,
-	int ms_timeout)
+static int cmd_channel_mock_receive_packet (const struct cmd_channel *channel,
+	struct cmd_packet *packet, int ms_timeout)
 {
 	struct cmd_channel_mock *mock = (struct cmd_channel_mock*) channel;
 
@@ -22,7 +22,8 @@ static int cmd_channel_mock_receive_packet (struct cmd_channel *channel, struct 
 		MOCK_ARG_CALL (ms_timeout));
 }
 
-static int cmd_channel_mock_send_packet (struct cmd_channel *channel, struct cmd_packet *packet)
+static int cmd_channel_mock_send_packet (const struct cmd_channel *channel,
+	const struct cmd_packet *packet)
 {
 	struct cmd_channel_mock *mock = (struct cmd_channel_mock*) channel;
 
@@ -97,7 +98,7 @@ int cmd_channel_mock_init (struct cmd_channel_mock *mock, int id)
 
 	memset (mock, 0, sizeof (struct cmd_channel_mock));
 
-	status = cmd_channel_init (&mock->base, id);
+	status = cmd_channel_init (&mock->base, &mock->state, id);
 	if (status != 0) {
 		return status;
 	}
@@ -129,6 +130,7 @@ void cmd_channel_mock_release (struct cmd_channel_mock *mock)
 {
 	if (mock) {
 		mock_release (&mock->mock);
+		cmd_channel_release (&mock->base);
 	}
 }
 

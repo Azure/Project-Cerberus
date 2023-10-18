@@ -1529,7 +1529,7 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
  */
 int attestation_requester_init (struct attestation_requester *attestation,
 	struct attestation_requester_state *state, struct mctp_interface *mctp,
-	struct cmd_channel *channel, struct hash_engine *primary_hash,
+	const struct cmd_channel *channel, struct hash_engine *primary_hash,
 	struct hash_engine *secondary_hash, struct ecc_engine *ecc, struct rsa_engine *rsa,
 	struct x509_engine *x509, struct rng_engine *rng, struct riot_key_manager *riot,
 	struct device_manager *device_mgr, struct cfm_manager *cfm_manager)
