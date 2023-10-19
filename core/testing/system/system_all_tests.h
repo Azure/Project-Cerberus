@@ -21,6 +21,12 @@ static void add_all_system_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
+#if (defined TESTING_RUN_DEBUG_UNLOCK_TOKEN_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_DEBUG_UNLOCK_TOKEN_SUITE
+	TESTING_RUN_SUITE (debug_unlock_token);
+#endif
 #if (defined TESTING_RUN_EVENT_TASK_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
