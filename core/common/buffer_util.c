@@ -192,3 +192,89 @@ void buffer_zeroize (void *buffer, size_t length)
 		memset_ptr (buffer, 0, length);
 	}
 }
+
+/* TODO: stub out unaligned_copy for platforms that allow unaligned access. */
+
+/**
+ * Copies a 16 bit value between 2 assumed unaligned addresses.
+ *
+ * This does not do any validation on the parameters.
+ *
+ * @param dst A pointer to copy the value to.
+ * @param src The address pointer to read from.
+ */
+void buffer_unaligned_copy16 (uint16_t *dst, const uint16_t *src)
+{
+	memcpy (dst, src, sizeof (*dst));
+}
+
+/**
+ * Copies a 32 bit value between 2 assumed unaligned addresses.
+ *
+ * This does not do any validation on the parameters.
+ *
+ * @param dst The address pointer to read from.
+ * @param src A pointer to copy the value to.
+ */
+void buffer_unaligned_copy32 (uint32_t *dst, const uint32_t *src)
+{
+	memcpy (dst, src, sizeof (*dst));
+}
+
+/**
+ * Reads a 16 bit value from an assumed unaligned address.
+ *
+ * This does not do any validation on the parameters.
+ *
+ * @param buffer The address pointer to read from.
+ */
+uint16_t buffer_unaligned_read16 (const uint16_t *buffer)
+{
+	uint16_t value;
+
+	buffer_unaligned_copy16 (&value, buffer);
+
+	return value;
+}
+
+/**
+ * Reads a 32 bit value from an assumed unaligned address.
+ *
+ * This does not do any validation on the parameters.
+ *
+ * @param buffer The address pointer to read from.
+ */
+uint32_t buffer_unaligned_read32 (const uint32_t *buffer)
+{
+	uint32_t value;
+
+	buffer_unaligned_copy32 (&value, buffer);
+
+	return value;
+}
+
+/**
+ * Writes a 16 bit value to an assumed unaligned address.
+ *
+ * This does not do any validation on the parameters.
+ *
+ * @param buffer The address pointer to write to.
+ * @param value The value to write.
+ */
+void buffer_unaligned_write16 (uint16_t *buffer, uint16_t value)
+{
+	buffer_unaligned_copy16 (buffer, &value);
+}
+
+/**
+ * Writes a 32 bit value to an assumed unaligned address.
+ *
+ * This does not do any validation on the parameters.
+ *
+ * @param buffer The address pointer to write to.
+ * @param value The value to write.
+ */
+void buffer_unaligned_write32 (uint32_t *buffer, uint32_t value)
+{
+	buffer_unaligned_copy32 (buffer, &value);
+}
