@@ -33,16 +33,20 @@ struct auth_token {
 	 *
 	 * @param auth The token handler to use for token generation.
 	 * @param data Optional context-specific data to add to the token.  The length of this data will
-	 * be specified during initialization of the token handler.  If data is expected, this must be
-	 * provided.  Otherwise, this argument is ignored and can be null.
+	 * be specified during initialization of the token handler.  If no data is provided, the context
+	 * data in the token will be padded with zeros.
+	 * @param data_length Length of the optional context-specific data provided for the token.  This
+	 * must not be more than the additional length supported by the token.  If this length is
+	 * smaller than what the token expects, the remaining length with be padded with zeros.  If the
+	 * data buffer is null, this argument is ignored.
 	 * @param token Output for the generated authorization token.  The memory for this token is
 	 * owned by the token manager and must not be freed or otherwise changed by the caller.
 	 * @param length Output for the length of the generated token.
 	 *
 	 * @return 0 if the authorization token was generated successfully or an error code.
 	 */
-	int (*new_token) (const struct auth_token *auth, const uint8_t *data, const uint8_t **token,
-		size_t *length);
+	int (*new_token) (const struct auth_token *auth, const uint8_t *data, size_t data_length,
+		const uint8_t **token, size_t *length);
 
 	/**
 	 * Check if data is authorized for use by the device.  Properly authorized data contains the
@@ -123,6 +127,7 @@ enum {
 	AUTH_TOKEN_NOT_VALID = AUTH_TOKEN_ERROR (0x05),			/**< A token is not valid for the device. */
 	AUTH_TOKEN_SMALL_BUFFER = AUTH_TOKEN_ERROR (0x06),		/**< The token buffer is not large enough. */
 	AUTH_TOKEN_WRONG_SIG_LENGTH = AUTH_TOKEN_ERROR (0x07),	/**< The configured signature length does not match the token key. */
+	AUTH_TOKEN_DATA_TOO_LONG = AUTH_TOKEN_ERROR (0x08),		/**< Too much context data was provided for the token. */
 };
 
 #endif /* AUTH_TOKEN_H_ */

@@ -9,8 +9,8 @@
 #include "testing.h"
 
 
-extern const uint8_t DEBUG_UNLOCK_TOKEN_TESTING_UEID[16];
-extern const size_t DEBUG_UNLOCK_TOKEN_TESTING_UEID_LEN;
+extern const uint8_t DEBUG_UNLOCK_TOKEN_TESTING_UUID[16];
+extern const size_t DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN;
 
 extern const uint8_t DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED[];
 extern const uint8_t DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED[];
@@ -28,7 +28,7 @@ extern const size_t DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN;
 
 
 void debug_unlock_token_testing_build_token (const uint8_t *oid, size_t oid_len,
-	const uint8_t *ueid, const uint8_t *counter, size_t counter_len, const uint8_t *nonce,
+	const uint8_t *uuid, const uint8_t *counter, size_t counter_len, const uint8_t *nonce,
 	const uint8_t *signature, size_t sig_len, uint8_t *token);
 size_t debug_unlock_token_testing_build_authorized_data (const uint8_t *token, size_t token_len,
 	const uint8_t *policy, size_t policy_len, const uint8_t *signature, size_t sig_len,

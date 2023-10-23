@@ -8,8 +8,8 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int auth_token_new_token (const struct auth_token *auth, const uint8_t *data, const uint8_t **token,
-	size_t *length);
+int auth_token_new_token (const struct auth_token *auth, const uint8_t *data, size_t data_length,
+	const uint8_t **token, size_t *length);
 int auth_token_verify_data (const struct auth_token *auth, const uint8_t *authorized, size_t length,
 	size_t token_offset, size_t aad_length, enum hash_type sig_hash);
 int auth_token_invalidate (const struct auth_token *auth);

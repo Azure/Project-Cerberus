@@ -1118,7 +1118,7 @@ static void auth_token_test_new_token (CuTest *test)
 	auth_token_testing_init (test, &auth, 0, 32, ECC_KEY_LENGTH_256, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1146,7 +1146,7 @@ static void auth_token_test_new_token_with_buffer (CuTest *test)
 	auth_token_testing_init_with_buffer (test, &auth, 0, 32, ECC_KEY_LENGTH_256, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, auth.buffer, (void*) token);
 
@@ -1185,7 +1185,7 @@ static void auth_token_test_new_token_static_init (CuTest *test)
 	status = auth_token_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, buffer, (void*) token);
 
@@ -1223,7 +1223,7 @@ static void auth_token_test_new_token_dynamic_buffer_static_init (CuTest *test)
 	status = auth_token_init_dynamic_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1252,7 +1252,7 @@ static void auth_token_test_new_token_sha384 (CuTest *test)
 	auth_token_testing_init (test, &auth, 0, 32, ECC_KEY_LENGTH_384, ECC384_PUBKEY_DER,
 		ECC384_PUBKEY_DER_LEN, HASH_TYPE_SHA384, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1280,7 +1280,7 @@ static void auth_token_test_new_token_sha384_with_buffer (CuTest *test)
 	auth_token_testing_init_with_buffer (test, &auth, 0, 32, ECC_KEY_LENGTH_384, ECC384_PUBKEY_DER,
 		ECC384_PUBKEY_DER_LEN, HASH_TYPE_SHA384, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, auth.buffer, (void*) token);
 
@@ -1319,7 +1319,7 @@ static void auth_token_test_new_token_sha384_static_init (CuTest *test)
 	status = auth_token_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, buffer, (void*) token);
 
@@ -1357,7 +1357,7 @@ static void auth_token_test_new_token_sha384_dynamic_buffer_static_init (CuTest 
 	status = auth_token_init_dynamic_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1387,7 +1387,7 @@ static void auth_token_test_new_token_sha512 (CuTest *test)
 	auth_token_testing_init (test, &auth, 0, 32, ECC_KEY_LENGTH_521, ECC521_PUBKEY_DER,
 		ECC521_PUBKEY_DER_LEN, HASH_TYPE_SHA512, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1415,7 +1415,7 @@ static void auth_token_test_new_token_sha512_with_buffer (CuTest *test)
 	auth_token_testing_init_with_buffer (test, &auth, 0, 32, ECC_KEY_LENGTH_521, ECC521_PUBKEY_DER,
 		ECC521_PUBKEY_DER_LEN, HASH_TYPE_SHA512, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, auth.buffer, (void*) token);
 
@@ -1454,7 +1454,7 @@ static void auth_token_test_new_token_sha512_static_init (CuTest *test)
 	status = auth_token_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, buffer, (void*) token);
 
@@ -1492,7 +1492,7 @@ static void auth_token_test_new_token_sha512_dynamic_buffer_static_init (CuTest 
 	status = auth_token_init_dynamic_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1521,7 +1521,7 @@ static void auth_token_test_new_token_longer_nonce (CuTest *test)
 	auth_token_testing_init (test, &auth, 0, 64, ECC_KEY_LENGTH_256, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1549,7 +1549,7 @@ static void auth_token_test_new_token_longer_nonce_with_buffer (CuTest *test)
 	auth_token_testing_init_with_buffer (test, &auth, 0, 64, ECC_KEY_LENGTH_256, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, auth.buffer, (void*) token);
 
@@ -1588,7 +1588,7 @@ static void auth_token_test_new_token_longer_nonce_static_init (CuTest *test)
 	status = auth_token_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, buffer, (void*) token);
 
@@ -1626,7 +1626,7 @@ static void auth_token_test_new_token_longer_nonce_dynamic_buffer_static_init (C
 	status = auth_token_init_dynamic_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1654,11 +1654,82 @@ static void auth_token_test_new_token_context_data (CuTest *test)
 	auth_token_testing_init (test, &auth, HASH_TESTING_FULL_BLOCK_512_LEN, 32, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_512, &token, &length);
+	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
 	status = testing_validate_array (HASH_TESTING_FULL_BLOCK_512, token, auth.data_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = auth.hash.base.calculate_sha256 (&auth.hash.base, token,
+		auth.data_length + auth.nonce_length, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = auth.ecc.base.verify (&auth.ecc.base, &auth.token_key, digest, SHA256_HASH_LENGTH,
+		&token[auth.sig_offset], length - auth.sig_offset);
+	CuAssertIntEquals (test, 0, status);
+
+	auth_token_testing_release (test, &auth, &auth.test);
+}
+
+static void auth_token_test_new_token_context_data_pad_short_data (CuTest *test)
+{
+	struct auth_token_testing auth;
+	int status;
+	const uint8_t *token;
+	size_t length;
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	uint8_t expected[HASH_TESTING_FULL_BLOCK_512_LEN];
+
+	TEST_START;
+
+	memset (expected, 0, sizeof (expected));
+	memcpy (expected, HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN - 16);
+
+	auth_token_testing_init (test, &auth, HASH_TESTING_FULL_BLOCK_512_LEN, 32, ECC_KEY_LENGTH_256,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
+
+	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN - 16, &token, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, token);
+
+	status = testing_validate_array (expected, token, auth.data_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = auth.hash.base.calculate_sha256 (&auth.hash.base, token,
+		auth.data_length + auth.nonce_length, digest, sizeof (digest));
+	CuAssertIntEquals (test, 0, status);
+
+	status = auth.ecc.base.verify (&auth.ecc.base, &auth.token_key, digest, SHA256_HASH_LENGTH,
+		&token[auth.sig_offset], length - auth.sig_offset);
+	CuAssertIntEquals (test, 0, status);
+
+	auth_token_testing_release (test, &auth, &auth.test);
+}
+
+static void auth_token_test_new_token_context_data_no_data (CuTest *test)
+{
+	struct auth_token_testing auth;
+	int status;
+	const uint8_t *token;
+	size_t length;
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	uint8_t expected[HASH_TESTING_FULL_BLOCK_512_LEN];
+
+	TEST_START;
+
+	memset (expected, 0, sizeof (expected));
+
+	auth_token_testing_init (test, &auth, HASH_TESTING_FULL_BLOCK_512_LEN, 32, ECC_KEY_LENGTH_256,
+		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
+
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, token);
+
+	status = testing_validate_array (expected, token, auth.data_length);
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.hash.base.calculate_sha256 (&auth.hash.base, token,
@@ -1685,7 +1756,8 @@ static void auth_token_test_new_token_context_data_with_buffer (CuTest *test)
 	auth_token_testing_init_with_buffer (test, &auth, HASH_TESTING_FULL_BLOCK_512_LEN, 32,
 		ECC_KEY_LENGTH_256, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_512, &token, &length);
+	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, auth.buffer, (void*) token);
 
@@ -1727,7 +1799,8 @@ static void auth_token_test_new_token_context_data_static_init (CuTest *test)
 	status = auth_token_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, HASH_TESTING_FULL_BLOCK_512, &token, &length);
+	status = test_static.new_token (&test_static, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, buffer, (void*) token);
 
@@ -1768,7 +1841,8 @@ static void auth_token_test_new_token_context_data_dynamic_buffer_static_init (C
 	status = auth_token_init_dynamic_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, HASH_TESTING_FULL_BLOCK_512, &token, &length);
+	status = test_static.new_token (&test_static, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1799,7 +1873,7 @@ static void auth_token_test_new_token_with_expiration (CuTest *test)
 	auth_token_testing_init (test, &auth, 0, 32, ECC_KEY_LENGTH_256, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 100);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1827,7 +1901,7 @@ static void auth_token_test_new_token_with_expiration_with_buffer (CuTest *test)
 	auth_token_testing_init_with_buffer (test, &auth, 0, 32, ECC_KEY_LENGTH_256, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 500);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, auth.buffer, (void*) token);
 
@@ -1866,7 +1940,7 @@ static void auth_token_test_new_token_with_expiration_static_init (CuTest *test)
 	status = auth_token_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, buffer, (void*) token);
 
@@ -1904,7 +1978,7 @@ static void auth_token_test_new_token_with_expiration_dynamic_buffer_static_init
 	status = auth_token_init_dynamic_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -1931,19 +2005,19 @@ static void auth_token_test_new_token_null (CuTest *test)
 	auth_token_testing_init (test, &auth, 0, 32, ECC_KEY_LENGTH_256, ECC_PUBKEY_DER,
 		ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (NULL, NULL, &token, &length);
+	status = auth.test.new_token (NULL, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
 
-	status = auth.test.new_token (&auth.test, NULL, NULL, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, NULL, &length);
 	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, NULL);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, NULL);
 	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
 }
 
-static void auth_token_test_new_token_context_data_null (CuTest *test)
+static void auth_token_test_new_token_context_data_too_much_data (CuTest *test)
 {
 	struct auth_token_testing auth;
 	int status;
@@ -1955,17 +2029,9 @@ static void auth_token_test_new_token_context_data_null (CuTest *test)
 	auth_token_testing_init (test, &auth, HASH_TESTING_FULL_BLOCK_512_LEN, 32, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (NULL, HASH_TESTING_FULL_BLOCK_512, &token, &length);
-	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
-
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
-	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
-
-	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_512, NULL, &length);
-	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
-
-	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_512, &token, NULL);
-	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
+	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN + 1, &token, &length);
+	CuAssertIntEquals (test, AUTH_TOKEN_DATA_TOO_LONG, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
 }
@@ -1990,7 +2056,7 @@ static void auth_token_test_new_token_rng_error (CuTest *test)
 		&auth.rng_mock, RNG_ENGINE_RANDOM_FAILED, MOCK_ARG (auth.nonce_length), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, RNG_ENGINE_RANDOM_FAILED, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2017,7 +2083,7 @@ static void auth_token_test_new_token_hash_error (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2061,7 +2127,7 @@ static void auth_token_test_new_token_key_error (CuTest *test)
 		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, ECC_ENGINE_KEY_PAIR_FAILED, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2114,7 +2180,7 @@ static void auth_token_test_new_token_sign_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, ECC_ENGINE_SIGN_FAILED, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
@@ -2139,7 +2205,7 @@ static void auth_token_test_verify_data (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2190,7 +2256,7 @@ static void auth_token_test_verify_data_sha384 (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_384,
 		ECC384_PUBKEY_DER, ECC384_PUBKEY_DER_LEN, HASH_TYPE_SHA384, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2242,7 +2308,7 @@ static void auth_token_test_verify_data_sha512 (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_521,
 		ECC521_PUBKEY_DER, ECC521_PUBKEY_DER_LEN, HASH_TYPE_SHA512, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2293,7 +2359,7 @@ static void auth_token_test_verify_data_longer_nonce (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2343,7 +2409,8 @@ static void auth_token_test_verify_data_context_data (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_1024, &token, &length);
+	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_1024, data_length, &token,
+		&length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2393,7 +2460,7 @@ static void auth_token_test_verify_data_additional_authenticated_data (CuTest *t
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2446,7 +2513,7 @@ static void auth_token_test_verify_data_token_offset (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2498,7 +2565,8 @@ static void auth_token_test_verify_data_context_data_aad_and_token_offset (CuTes
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_1024, &token, &length);
+	status = auth.test.new_token (&auth.test, HASH_TESTING_FULL_BLOCK_1024, data_length, &token,
+		&length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2552,7 +2620,7 @@ static void auth_token_test_verify_data_not_expired (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 5000);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2604,7 +2672,7 @@ static void auth_token_test_verify_data_same_token_twice (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2671,7 +2739,7 @@ static void auth_token_test_verify_data_with_buffer (CuTest *test)
 	auth_token_testing_init_with_buffer (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, auth.buffer, (void*) token);
 
@@ -2730,7 +2798,7 @@ static void auth_token_test_verify_data_static_init (CuTest *test)
 	status = auth_token_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, buffer, (void*) token);
 
@@ -2788,7 +2856,7 @@ static void auth_token_test_verify_data_dynamic_buffer_static_init (CuTest *test
 	status = auth_token_init_dynamic_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2897,7 +2965,7 @@ static void auth_token_test_verify_data_no_signature (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2928,7 +2996,7 @@ static void auth_token_test_verify_data_no_signature_with_aad (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2962,7 +3030,7 @@ static void auth_token_test_verify_data_short_token (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -2993,7 +3061,7 @@ static void auth_token_test_verify_data_short_aad (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3027,7 +3095,7 @@ static void auth_token_test_verify_data_short_token_offset (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3060,7 +3128,7 @@ static void auth_token_test_verify_data_overflow_token_offset (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3096,7 +3164,7 @@ static void auth_token_test_verify_data_bad_signature (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3145,7 +3213,7 @@ static void auth_token_test_verify_data_signed_wrong_token (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3179,7 +3247,7 @@ static void auth_token_test_verify_data_expired_token (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 100);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3214,7 +3282,7 @@ static void auth_token_test_verify_data_expired_token_with_buffer (CuTest *test)
 	auth_token_testing_init_with_buffer (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 100);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3258,7 +3326,7 @@ static void auth_token_test_verify_data_expired_token_static_init (CuTest *test)
 	status = auth_token_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrEquals (test, buffer, (void*) token);
 
@@ -3301,7 +3369,7 @@ static void auth_token_test_verify_data_expired_token_dynamic_buffer_static_init
 	status = auth_token_init_dynamic_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3337,7 +3405,7 @@ static void auth_token_test_verify_data_after_new_token (CuTest *test)
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
 	/* Generate the first token. */
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3346,7 +3414,7 @@ static void auth_token_test_verify_data_after_new_token (CuTest *test)
 	memcpy (&token_signed[length], ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN);
 
 	/* Get a new token.*/
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Verify with the old token. */
@@ -3387,7 +3455,7 @@ static void auth_token_test_verify_data_after_new_token_rng_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3400,7 +3468,7 @@ static void auth_token_test_verify_data_after_new_token_rng_error (CuTest *test)
 		&auth.rng_mock, RNG_ENGINE_RANDOM_FAILED, MOCK_ARG (nonce_length), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, RNG_ENGINE_RANDOM_FAILED, status);
 
 	/* Verify with the old token. */
@@ -3442,7 +3510,7 @@ static void auth_token_test_verify_data_after_new_token_hash_error (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3456,7 +3524,7 @@ static void auth_token_test_verify_data_after_new_token_hash_error (CuTest *test
 		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
 
 	/* Verify with the old token. */
@@ -3523,7 +3591,7 @@ static void auth_token_test_verify_data_after_new_token_key_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3541,7 +3609,7 @@ static void auth_token_test_verify_data_after_new_token_key_error (CuTest *test)
 		MOCK_ARG (RIOT_CORE_ALIAS_KEY_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL));
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, ECC_ENGINE_KEY_PAIR_FAILED, status);
 
 	/* Verify with the old token. */
@@ -3608,7 +3676,7 @@ static void auth_token_test_verify_data_after_new_token_sign_error (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3635,7 +3703,7 @@ static void auth_token_test_verify_data_after_new_token_sign_error (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, ECC_ENGINE_SIGN_FAILED, status);
 
 	/* Verify with the old token. */
@@ -3676,7 +3744,7 @@ static void auth_token_test_verify_data_hash_error (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3714,7 +3782,7 @@ static void auth_token_test_verify_data_set_key_error (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3754,7 +3822,7 @@ static void auth_token_test_verify_data_verify_error (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3819,7 +3887,7 @@ static void auth_token_test_invalidate_with_active_token (CuTest *test)
 	auth_token_testing_init (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3855,7 +3923,7 @@ static void auth_token_test_invalidate_with_buffer (CuTest *test)
 	auth_token_testing_init_with_buffer (test, &auth, data_length, nonce_length, ECC_KEY_LENGTH_256,
 		ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, HASH_TYPE_SHA256, 0);
 
-	status = auth.test.new_token (&auth.test, NULL, &token, &length);
+	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3900,7 +3968,7 @@ static void auth_token_test_invalidate_static_init (CuTest *test)
 	status = auth_token_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -3944,7 +4012,7 @@ static void auth_token_test_invalidate_dynamic_buffer_static_init (CuTest *test)
 	status = auth_token_init_dynamic_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.new_token (&test_static, NULL, &token, &length);
+	status = test_static.new_token (&test_static, NULL, 0, &token, &length);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, token);
 
@@ -4029,6 +4097,8 @@ TEST (auth_token_test_new_token_longer_nonce_with_buffer);
 TEST (auth_token_test_new_token_longer_nonce_static_init);
 TEST (auth_token_test_new_token_longer_nonce_dynamic_buffer_static_init);
 TEST (auth_token_test_new_token_context_data);
+TEST (auth_token_test_new_token_context_data_pad_short_data);
+TEST (auth_token_test_new_token_context_data_no_data);
 TEST (auth_token_test_new_token_context_data_with_buffer);
 TEST (auth_token_test_new_token_context_data_static_init);
 TEST (auth_token_test_new_token_context_data_dynamic_buffer_static_init);
@@ -4037,7 +4107,7 @@ TEST (auth_token_test_new_token_with_expiration_with_buffer);
 TEST (auth_token_test_new_token_with_expiration_static_init);
 TEST (auth_token_test_new_token_with_expiration_dynamic_buffer_static_init);
 TEST (auth_token_test_new_token_null);
-TEST (auth_token_test_new_token_context_data_null);
+TEST (auth_token_test_new_token_context_data_too_much_data);
 TEST (auth_token_test_new_token_rng_error);
 TEST (auth_token_test_new_token_hash_error);
 TEST (auth_token_test_new_token_key_error);

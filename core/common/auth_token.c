@@ -8,8 +8,8 @@
 #include "buffer_util.h"
 
 
-int auth_token_new_token (const struct auth_token *auth, const uint8_t *data, const uint8_t **token,
-	size_t *length)
+int auth_token_new_token (const struct auth_token *auth, const uint8_t *data, size_t data_length,
+	const uint8_t **token, size_t *length)
 {
 	const struct riot_keys *keys;
 	struct ecc_private_key token_key;
@@ -23,8 +23,8 @@ int auth_token_new_token (const struct auth_token *auth, const uint8_t *data, co
 		return AUTH_TOKEN_INVALID_ARGUMENT;
 	}
 
-	if ((auth->data_length != 0) && (data == NULL)) {
-		return AUTH_TOKEN_INVALID_ARGUMENT;
+	if ((data != NULL) && (data_length > auth->data_length)) {
+		return AUTH_TOKEN_DATA_TOO_LONG;
 	}
 
 	/* Invalidate any existing token. */
@@ -32,7 +32,11 @@ int auth_token_new_token (const struct auth_token *auth, const uint8_t *data, co
 
 	/* Apply the context-specific data to the token. */
 	if (auth->data_length != 0) {
-		memcpy (auth->buffer, data, auth->data_length);
+		memset (auth->buffer, 0, auth->data_length);
+
+		if (data != NULL) {
+			memcpy (auth->buffer, data, data_length);
+		}
 	}
 
 	/* Generate a nonce for the token. */

@@ -87,7 +87,7 @@ struct cmd_device {
 enum {
 	CMD_DEVICE_INVALID_ARGUMENT = CMD_DEVICE_ERROR (0x00),			/**< Input parameter is null or not valid. */
 	CMD_DEVICE_NO_MEMORY = CMD_DEVICE_ERROR (0x01),					/**< Memory allocation failed. */
-	CMD_DEVICE_UUID_BUFFER_TOO_SMALL = CMD_DEVICE_ERROR (0x02),		/**< A buffer for the uuid output data was too small. */
+	CMD_DEVICE_UUID_BUFFER_TOO_SMALL = CMD_DEVICE_ERROR (0x02),		/**< A buffer for the UUID output data was too small. */
 	CMD_DEVICE_RESET_FAILED = CMD_DEVICE_ERROR (0x03),				/**< Failed to trigger a device reset. */
 	CMD_DEVICE_INVALID_COUNTER = CMD_DEVICE_ERROR (0x04),			/**< Invalid counter type. */
 	CMD_DEVICE_HEAP_FAILED = CMD_DEVICE_ERROR (0x05),				/**< Failed to get heap statistics. */

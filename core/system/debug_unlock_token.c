@@ -134,7 +134,7 @@ static int debug_unlock_token_parse_authorized_data_and_token (const uint8_t *au
 	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->format_version,
 		sizeof (*parsed->format_version));
 	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->ueid,
-		DEBUG_UNLOCK_TOKEN_UEID_LENGTH);
+		DEBUG_UNLOCK_TOKEN_UUID_LENGTH);
 	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->counter_length,
 		sizeof (*parsed->counter_length));
 	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->counter,
@@ -153,32 +153,32 @@ static int debug_unlock_token_parse_authorized_data_and_token (const uint8_t *au
  * @param token The unlock token handler to initialize.
  * @param auth Authorization token manager to use for unlock tokens.  This must have been
  * initialized to require additional token data of DEBUG_UNLOCK_TOKEN_SIZEOF_EXTRA_DATA bytes.
+ * @param uuid Interface for retrieving the device UUID.
  * @param oid The OID indicating the type of device generating the tokens.  This must be a base128
  * encoded value.
  * @param oid_length Length of the device type OID.
  * @param counter_length Length of the anti-replay unlock counter that will be present in the
  * tokens.
- * @param ueid UEID for the device.  This will always be 16 bytes.
  * @param auth_hash Hash algorithm to use for signature verification of authorized unlock data.
  *
  * @return 0 if the unlock token handler was initialized successfully or an error code.
  */
 int debug_unlock_token_init (struct debug_unlock_token *token, const struct auth_token *auth,
-	const uint8_t *oid, size_t oid_length, size_t counter_length, const uint32_t *ueid,
+	const struct cmd_device *uuid, const uint8_t *oid, size_t oid_length, size_t counter_length,
 	enum hash_type auth_hash)
 {
-	if ((token == NULL) || (auth == NULL) || (oid == NULL) || (oid_length == 0) ||
-		(counter_length == 0) || (ueid == NULL)) {
+	if ((token == NULL) || (auth == NULL) || (uuid == NULL) || (oid == NULL) || (oid_length == 0) ||
+		(counter_length == 0)) {
 		return DEBUG_UNLOCK_TOKEN_INVALID_ARGUMENT;
 	}
 
 	memset (token, 0, sizeof (struct debug_unlock_token));
 
 	token->auth = auth;
+	token->uuid = uuid;
 	token->oid = oid;
 	token->oid_length = oid_length;
 	token->counter_length = counter_length;
-	token->ueid = ueid;
 	token->data_length = DEBUG_UNLOCK_TOKEN_SIZEOF_EXTRA_DATA (oid_length, counter_length);
 	token->auth_hash = auth_hash;
 
@@ -218,6 +218,8 @@ size_t debug_unlock_token_get_counter_length (const struct debug_unlock_token *t
  * @param token The unlock token handler to use for token generation.
  * @param unlock_counter The value of the anti-replay unlock counter to include in the token.  The
  * length of this counter is constant and specified during initialization of the token handler.
+ * @param counter_length Length of the unlock counter data.  This must match the counter length
+ * specified during initialization of the token handler.
  * @param data Output buffer for the token data.
  * @param length Length of the token buffer.
  *
@@ -225,7 +227,7 @@ size_t debug_unlock_token_get_counter_length (const struct debug_unlock_token *t
  * status.
  */
 int debug_unlock_token_generate (const struct debug_unlock_token *token,
-	const uint8_t *unlock_counter, uint8_t *data, size_t length)
+	const uint8_t *unlock_counter, size_t counter_length, uint8_t *data, size_t length)
 {
 	uint8_t *pos;
 	const uint8_t *unlock_token;
@@ -234,6 +236,10 @@ int debug_unlock_token_generate (const struct debug_unlock_token *token,
 
 	if ((token == NULL) || (unlock_counter == NULL) || (data == NULL)) {
 		return DEBUG_UNLOCK_TOKEN_INVALID_ARGUMENT;
+	}
+
+	if (counter_length != token->counter_length) {
+		return DEBUG_UNLOCK_TOKEN_INVALID_COUNTER;
 	}
 
 	/* If the output buffer isn't large enough for the extra context for the token, throw an error
@@ -259,14 +265,22 @@ int debug_unlock_token_generate (const struct debug_unlock_token *token,
 	*((uint16_t*) pos) = DEBUG_UNLOCK_TOKEN_FORMAT;
 	pos += sizeof (uint16_t);
 
-	memcpy (pos, token->ueid, DEBUG_UNLOCK_TOKEN_UEID_LENGTH);
-	pos += DEBUG_UNLOCK_TOKEN_UEID_LENGTH;
+	/* The UUID size in the token is fixed, regardless of how much data is provided by the device.
+	 * Pad zeros for devices that have smaller UUID values. */
+	memset (pos, 0, DEBUG_UNLOCK_TOKEN_UUID_LENGTH);
+	status = token->uuid->get_uuid (token->uuid, pos, DEBUG_UNLOCK_TOKEN_UUID_LENGTH);
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	pos += DEBUG_UNLOCK_TOKEN_UUID_LENGTH;
 
 	*pos++ = token->counter_length;
 	memcpy (pos, unlock_counter, token->counter_length);
 
 	/* Generate a new unlock token with the token context. */
-	status = token->auth->new_token (token->auth, data, &unlock_token, &token_length);
+	status = token->auth->new_token (token->auth, data, token->data_length, &unlock_token,
+		&token_length);
 	if (status != 0) {
 		return status;
 	}

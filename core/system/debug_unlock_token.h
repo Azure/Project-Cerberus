@@ -7,13 +7,14 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
+#include "cmd_interface/cmd_device.h"
 #include "common/auth_token.h"
 
 
 /**
- * Length of the UEID field in the unlock token.
+ * Length of the UUID field in the unlock token.
  */
-#define	DEBUG_UNLOCK_TOKEN_UEID_LENGTH		16
+#define	DEBUG_UNLOCK_TOKEN_UUID_LENGTH		16
 
 /**
  * Length of the nonce field of the unlock token.
@@ -30,7 +31,7 @@
  * @param counter_length Length of the unlock counter that will be in the token.
  */
 #define	DEBUG_UNLOCK_TOKEN_SIZEOF_EXTRA_DATA(oid_length, counter_length)	\
-	(2 + oid_length + sizeof (uint16_t) + DEBUG_UNLOCK_TOKEN_UEID_LENGTH + sizeof (uint8_t) + \
+	(2 + oid_length + sizeof (uint16_t) + DEBUG_UNLOCK_TOKEN_UUID_LENGTH + sizeof (uint8_t) + \
 		counter_length)
 
 
@@ -39,24 +40,24 @@
  */
 struct debug_unlock_token {
 	const struct auth_token *auth;	/**< Manager for authorization tokens. */
+	const struct cmd_device *uuid;	/**< Interface to retrieve the device UUID. */
 	const uint8_t *oid;				/**< OID for the device type. */
 	size_t oid_length;				/**< Length of the device type OID. */
 	size_t counter_length;			/**< Length of the unlock counter. */
-	const uint32_t *ueid;			/**< Buffer containing the device UEID. */
 	size_t data_length;				/**< Total length of the device context data in the token. */
 	enum hash_type auth_hash;		/**< Hash algorithm for data authentication. */
 };
 
 
 int debug_unlock_token_init (struct debug_unlock_token *token, const struct auth_token *auth,
-	const uint8_t *oid, size_t oid_length, size_t counter_length, const uint32_t *ueid,
+	const struct cmd_device *uuid, const uint8_t *oid, size_t oid_length, size_t counter_length,
 	enum hash_type auth_hash);
 void debug_unlock_token_release (const struct debug_unlock_token *token);
 
 size_t debug_unlock_token_get_counter_length (const struct debug_unlock_token *token);
 
 int debug_unlock_token_generate (const struct debug_unlock_token *token,
-	const uint8_t *unlock_counter, uint8_t *data, size_t length);
+	const uint8_t *unlock_counter, size_t counter_length, uint8_t *data, size_t length);
 int debug_unlock_token_authenicate (const struct debug_unlock_token *token, const uint8_t *data,
 	size_t length);
 int debug_unlock_token_invalidate (const struct debug_unlock_token *token);
@@ -80,6 +81,7 @@ enum {
 	DEBUG_UNLOCK_TOKEN_NO_MEMORY = DEBUG_UNLOCK_TOKEN_ERROR (0x01),			/**< Memory allocation failed. */
 	DEBUG_UNLOCK_TOKEN_BAD_AUTH_DATA = DEBUG_UNLOCK_TOKEN_ERROR (0x02),		/**< Authorized data cannot be parsed. */
 	DEBUG_UNLOCK_TOKEN_SMALL_BUFFER = DEBUG_UNLOCK_TOKEN_ERROR (0x03),		/**< Output token buffer is not large enough. */
+	DEBUG_UNLOCK_TOKEN_INVALID_COUNTER = DEBUG_UNLOCK_TOKEN_ERROR (0x04),	/**< The counter value is not valid for the token. */
 };
 
 
