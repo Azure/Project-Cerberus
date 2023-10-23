@@ -38,7 +38,8 @@ struct security_manager {
 	 * device resets, the device state may be altered before then.
 	 *
 	 * @param manager The security manager to use for unlocking the device.
-	 * @param policy The authenticated unlock policy to apply.
+	 * @param policy The authenticated unlock policy to apply.  This will be the entire
+	 * authorized unlock policy data, including the unlock token used to authorize the policy.
 	 * @param length Length of the unlock policy data.
 	 *
 	 * @param 0 if the device was unlocked successfully or an error code.

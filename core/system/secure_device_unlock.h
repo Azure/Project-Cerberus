@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
+#include "system/debug_unlock_token.h"
+#include "system/security_manager.h"
 
 
 /**
@@ -50,7 +52,15 @@ struct secure_device_unlock {
 	 * @param 0 if the unlock policy has been cleared successfully or an error code.
 	 */
 	int (*clear_unlock_policy) (const struct secure_device_unlock *unlock);
+
+	const struct debug_unlock_token *token;		/**< Token handler for authenticating unlock operations. */
+	const struct security_manager *manager;		/**< Security manager for executing unlock operations. */
 };
+
+
+int secure_device_unlock_init (struct secure_device_unlock *unlock,
+	const struct debug_unlock_token *token, const struct security_manager *manager);
+void secure_device_unlock_release (const struct secure_device_unlock *unlock);
 
 
 #define	SECURE_DEVICE_UNLOCK_ERROR(code)		ROT_ERROR (ROT_MODULE_SECURE_DEVICE_UNLOCK, code)
@@ -64,6 +74,8 @@ enum {
 	SECURE_DEVICE_UNLOCK_GET_TOKEN_FAILED = SECURE_DEVICE_UNLOCK_ERROR (0x02),		/**< Failed to get an unlock token. */
 	SECURE_DEVICE_UNLOCK_APPLY_POLICY_FAILED = SECURE_DEVICE_UNLOCK_ERROR (0x03),	/**< Failed to apply an unlock policy. */
 	SECURE_DEVICE_UNLOCK_CLEAR_POLICY_FAILED = SECURE_DEVICE_UNLOCK_ERROR (0x04),	/**< Failed to clear an unlock policy. */
+	SECURE_DEVICE_UNLOCK_NOT_LOCKED = SECURE_DEVICE_UNLOCK_ERROR (0x05),			/**< Attempt to unlock an unlocked device. */
+	SECURE_DEVICE_UNLOCK_COUNTER_EXHAUSTED = SECURE_DEVICE_UNLOCK_ERROR (0x06),		/**< The device unlock counter has reached the max value. */
 };
 
 

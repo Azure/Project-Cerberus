@@ -50,6 +50,14 @@ const uint8_t DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED[] = {
 	0xff,0xff,0x3f,0x00,0x00,0x00,0x00,0x00
 };
 
+/**
+ * An unlock counter value for use in test tokens.  The counter represents the unlocked value
+ * corresponding to DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED.
+ */
+const uint8_t DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED_UNLOCKED[] = {
+	0xff,0xff,0x7f,0x00,0x00,0x00,0x00,0x00
+};
+
 const size_t DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN =
 	sizeof (DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED);
 
@@ -256,6 +264,44 @@ size_t debug_unlock_token_testing_build_authorized_data (const uint8_t *token, s
 }
 
 /**
+ * Allocate memory and build an unlock token.  The unlock counter can be specified, but the rest of
+ * token data will be statically defined using the following:
+ * - RIOT_CORE_DEVICE_ID_OID
+ * - DEBUG_UNLOCK_TOKEN_TESTING_UUID
+ * - DEBUG_UNLOCK_TOKEN_TESTING_NONCE
+ * - ECC384_SIGNATURE_TEST (for token signature)
+ *
+ * @param test The test framework.
+ * @param counter The unlock counter to use in the token.
+ * @param counter_len Length of the unlock counter.
+ * @param token Output for the dynamically allocated unlock token.  This must be freed by the
+ * caller.
+ * @param length Output for the length of the unlock token.
+ * @param context_length Optional output for the length of the unlock context data in the token.
+ */
+void debug_unlock_token_testing_allocate_token (CuTest *test, const uint8_t *counter,
+	size_t counter_len, uint8_t **token, size_t *length, size_t *context_length)
+{
+	size_t token_context = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + counter_len;
+	size_t token_length = token_context + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+		ECC384_SIG_TEST_LEN;
+
+	*token = platform_malloc (token_length);
+	CuAssertPtrNotNull (test, token);
+
+	debug_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
+		DEBUG_UNLOCK_TOKEN_TESTING_UUID, counter, counter_len, DEBUG_UNLOCK_TOKEN_TESTING_NONCE,
+		ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN, *token);
+
+	*length = token_length;
+
+	if (context_length) {
+		*context_length = token_context;
+	}
+}
+
+/**
  * Allocate memory and build authorized unlock data.  The unlock counter can be specified, but the
  * rest of the unlock data will be statically defined using the following:
  * - RIOT_CORE_DEVICE_ID_OID
@@ -281,19 +327,14 @@ void debug_unlock_token_testing_allocate_authorized_data (CuTest *test, const ui
 	size_t counter_len, size_t extra_space, uint8_t **auth_data, size_t *length,
 	size_t *token_offset, size_t *policy_offset)
 {
-	size_t token_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
-		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + counter_len +
-		DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN + ECC384_SIG_TEST_LEN;
-	size_t auth_data_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
+	size_t auth_data_length = 2 + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
 	uint8_t *token;
+	size_t token_length;
 
-	token = platform_malloc (token_length);
-	CuAssertPtrNotNull (test, token);
-
-	debug_unlock_token_testing_build_token (RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
-		DEBUG_UNLOCK_TOKEN_TESTING_UUID, counter, counter_len, DEBUG_UNLOCK_TOKEN_TESTING_NONCE,
-		ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN, token);
+	debug_unlock_token_testing_allocate_token (test, counter, counter_len, &token, &token_length,
+		NULL);
+	auth_data_length += token_length;
 
 	*auth_data = platform_malloc (auth_data_length + extra_space);
 	CuAssertPtrNotNull (test, *auth_data);
@@ -472,9 +513,9 @@ static void debug_unlock_token_test_get_counter_length_null (CuTest *test)
 static void debug_unlock_token_test_generate (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	uint8_t token_data[token_length];
 	const uint8_t *token_data_ptr = token_data;
@@ -499,7 +540,7 @@ static void debug_unlock_token_test_generate (CuTest *test)
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
 
 	status |= mock_expect (&token.auth.mock, token.auth.base.new_token, &token.auth, 0,
-		MOCK_ARG_PTR_CONTAINS (token_data, hsp_data_length), MOCK_ARG (hsp_data_length),
+		MOCK_ARG_PTR_CONTAINS (token_data, context_length), MOCK_ARG (context_length),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&token.auth.mock, 2, &token_data_ptr, sizeof (token_data_ptr),
 		-1);
@@ -521,9 +562,9 @@ static void debug_unlock_token_test_generate_longer_oid (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
 	uint8_t oid[RIOT_CORE_DEVICE_ID_OID_LEN + 4];
-	const size_t hsp_data_length = 2 + sizeof (oid) + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 +
+	const size_t context_length = 2 + sizeof (oid) + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 +
 		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	uint8_t token_data[token_length];
 	const uint8_t *token_data_ptr = token_data;
@@ -553,7 +594,7 @@ static void debug_unlock_token_test_generate_longer_oid (CuTest *test)
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
 
 	status |= mock_expect (&token.auth.mock, token.auth.base.new_token, &token.auth, 0,
-		MOCK_ARG_PTR_CONTAINS (token_data, hsp_data_length), MOCK_ARG (hsp_data_length),
+		MOCK_ARG_PTR_CONTAINS (token_data, context_length), MOCK_ARG (context_length),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&token.auth.mock, 2, &token_data_ptr, sizeof (token_data_ptr),
 		-1);
@@ -574,9 +615,9 @@ static void debug_unlock_token_test_generate_longer_oid (CuTest *test)
 static void debug_unlock_token_test_generate_longer_counter (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	uint8_t token_data[token_length];
 	const uint8_t *token_data_ptr = token_data;
@@ -601,7 +642,7 @@ static void debug_unlock_token_test_generate_longer_counter (CuTest *test)
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
 
 	status |= mock_expect (&token.auth.mock, token.auth.base.new_token, &token.auth, 0,
-		MOCK_ARG_PTR_CONTAINS (token_data, hsp_data_length), MOCK_ARG (hsp_data_length),
+		MOCK_ARG_PTR_CONTAINS (token_data, context_length), MOCK_ARG (context_length),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&token.auth.mock, 2, &token_data_ptr, sizeof (token_data_ptr),
 		-1);
@@ -622,9 +663,9 @@ static void debug_unlock_token_test_generate_longer_counter (CuTest *test)
 static void debug_unlock_token_test_generate_short_uuid (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	uint8_t token_data[token_length];
 	const uint8_t *token_data_ptr = token_data;
@@ -651,7 +692,7 @@ static void debug_unlock_token_test_generate_short_uuid (CuTest *test)
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_PADDED_LEN, 1);
 
 	status |= mock_expect (&token.auth.mock, token.auth.base.new_token, &token.auth, 0,
-		MOCK_ARG_PTR_CONTAINS (token_data, hsp_data_length), MOCK_ARG (hsp_data_length),
+		MOCK_ARG_PTR_CONTAINS (token_data, context_length), MOCK_ARG (context_length),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&token.auth.mock, 2, &token_data_ptr, sizeof (token_data_ptr),
 		-1);
@@ -675,9 +716,9 @@ static void debug_unlock_token_test_generate_static_init (CuTest *test)
 	struct debug_unlock_token test_static = debug_unlock_token_static_init (&token.auth.base,
 		&token.uuid.base, RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
 		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, HASH_TYPE_SHA256);
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	uint8_t token_data[token_length];
 	const uint8_t *token_data_ptr = token_data;
@@ -700,7 +741,7 @@ static void debug_unlock_token_test_generate_static_init (CuTest *test)
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
 
 	status |= mock_expect (&token.auth.mock, token.auth.base.new_token, &token.auth, 0,
-		MOCK_ARG_PTR_CONTAINS (token_data, hsp_data_length), MOCK_ARG (hsp_data_length),
+		MOCK_ARG_PTR_CONTAINS (token_data, context_length), MOCK_ARG (context_length),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&token.auth.mock, 2, &token_data_ptr, sizeof (token_data_ptr),
 		-1);
@@ -721,9 +762,9 @@ static void debug_unlock_token_test_generate_static_init (CuTest *test)
 static void debug_unlock_token_test_generate_null (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	int status;
 	uint8_t out[token_length * 2];
@@ -752,9 +793,9 @@ static void debug_unlock_token_test_generate_null (CuTest *test)
 static void debug_unlock_token_test_generate_small_counter (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	int status;
 	uint8_t out[token_length * 2];
@@ -766,7 +807,7 @@ static void debug_unlock_token_test_generate_small_counter (CuTest *test)
 		HASH_TYPE_SHA256);
 
 	status = debug_unlock_token_generate (&token.test, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN - 1, out, hsp_data_length);
+		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN - 1, out, context_length);
 	CuAssertIntEquals (test, DEBUG_UNLOCK_TOKEN_INVALID_COUNTER, status);
 
 	debug_unlock_token_testing_release (test, &token, &token.test);
@@ -775,9 +816,9 @@ static void debug_unlock_token_test_generate_small_counter (CuTest *test)
 static void debug_unlock_token_test_generate_large_counter (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	int status;
 	uint8_t out[token_length * 2];
@@ -789,18 +830,18 @@ static void debug_unlock_token_test_generate_large_counter (CuTest *test)
 		HASH_TYPE_SHA256);
 
 	status = debug_unlock_token_generate (&token.test, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN + 1, out, hsp_data_length);
+		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN + 1, out, context_length);
 	CuAssertIntEquals (test, DEBUG_UNLOCK_TOKEN_INVALID_COUNTER, status);
 
 	debug_unlock_token_testing_release (test, &token, &token.test);
 }
 
-static void debug_unlock_token_test_generate_small_buffer_less_than_hsp_data (CuTest *test)
+static void debug_unlock_token_test_generate_small_buffer_less_than_context_data (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	int status;
 	uint8_t out[token_length * 2];
@@ -812,7 +853,7 @@ static void debug_unlock_token_test_generate_small_buffer_less_than_hsp_data (Cu
 		HASH_TYPE_SHA256);
 
 	status = debug_unlock_token_generate (&token.test, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, out, hsp_data_length - 1);
+		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, out, context_length - 1);
 	CuAssertIntEquals (test, DEBUG_UNLOCK_TOKEN_SMALL_BUFFER, status);
 
 	debug_unlock_token_testing_release (test, &token, &token.test);
@@ -821,9 +862,9 @@ static void debug_unlock_token_test_generate_small_buffer_less_than_hsp_data (Cu
 static void debug_unlock_token_test_generate_small_buffer_less_than_token_data (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	uint8_t token_data[token_length];
 	const uint8_t *token_data_ptr = token_data;
@@ -848,7 +889,7 @@ static void debug_unlock_token_test_generate_small_buffer_less_than_token_data (
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
 
 	status |= mock_expect (&token.auth.mock, token.auth.base.new_token, &token.auth, 0,
-		MOCK_ARG_PTR_CONTAINS (token_data, hsp_data_length), MOCK_ARG (hsp_data_length),
+		MOCK_ARG_PTR_CONTAINS (token_data, context_length), MOCK_ARG (context_length),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&token.auth.mock, 2, &token_data_ptr, sizeof (token_data_ptr),
 		-1);
@@ -867,9 +908,9 @@ static void debug_unlock_token_test_generate_oid_too_long (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
 	uint8_t oid[128];
-	const size_t hsp_data_length = 2 + sizeof (oid) + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 +
+	const size_t context_length = 2 + sizeof (oid) + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 +
 		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	int status;
 	uint8_t out[token_length * 2];
@@ -889,9 +930,9 @@ static void debug_unlock_token_test_generate_oid_too_long (CuTest *test)
 static void debug_unlock_token_test_generate_uuid_error (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	uint8_t token_data[token_length];
 	int status;
@@ -924,9 +965,9 @@ static void debug_unlock_token_test_generate_uuid_error (CuTest *test)
 static void debug_unlock_token_test_generate_token_error (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	uint8_t token_data[token_length];
 	int status;
@@ -950,8 +991,8 @@ static void debug_unlock_token_test_generate_token_error (CuTest *test)
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
 
 	status |= mock_expect (&token.auth.mock, token.auth.base.new_token, &token.auth,
-		AUTH_TOKEN_BUILD_FAILED, MOCK_ARG_PTR_CONTAINS (token_data, hsp_data_length),
-		MOCK_ARG (hsp_data_length), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		AUTH_TOKEN_BUILD_FAILED, MOCK_ARG_PTR_CONTAINS (token_data, context_length),
+		MOCK_ARG (context_length), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -965,9 +1006,9 @@ static void debug_unlock_token_test_generate_token_error (CuTest *test)
 static void debug_unlock_token_test_authenticate (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -1006,9 +1047,9 @@ static void debug_unlock_token_test_authenticate (CuTest *test)
 static void debug_unlock_token_test_authenticate_sha384 (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -1047,9 +1088,9 @@ static void debug_unlock_token_test_authenticate_sha384 (CuTest *test)
 static void debug_unlock_token_test_authenticate_longer_policy (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t policy_length = DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN + 10;
 	const size_t auth_length = 2 + token_length + 2 + policy_length + ECC384_SIG_TEST2_LEN;
@@ -1095,9 +1136,9 @@ static void debug_unlock_token_test_authenticate_static_init (CuTest *test)
 	struct debug_unlock_token test_static = debug_unlock_token_static_init (&token.auth.base,
 		&token.uuid.base, RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
 		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, HASH_TYPE_SHA256);
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -1137,9 +1178,9 @@ static void debug_unlock_token_test_authenticate_static_init_sha384 (CuTest *tes
 	struct debug_unlock_token test_static = debug_unlock_token_static_init (&token.auth.base,
 		&token.uuid.base, RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN,
 		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, HASH_TYPE_SHA384);
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -1176,9 +1217,9 @@ static void debug_unlock_token_test_authenticate_static_init_sha384 (CuTest *tes
 static void debug_unlock_token_test_authenticate_null (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -1213,9 +1254,9 @@ static void debug_unlock_token_test_authenticate_null (CuTest *test)
 static void debug_unlock_token_test_authenticate_short_data_no_token_length (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -1250,9 +1291,9 @@ static void debug_unlock_token_test_authenticate_short_data_no_token_length (CuT
 static void debug_unlock_token_test_authenticate_short_data_token (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -1284,9 +1325,9 @@ static void debug_unlock_token_test_authenticate_short_data_token (CuTest *test)
 static void debug_unlock_token_test_authenticate_short_data_policy_length (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -1318,9 +1359,9 @@ static void debug_unlock_token_test_authenticate_short_data_policy_length (CuTes
 static void debug_unlock_token_test_authenticate_short_data_policy (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -1353,9 +1394,9 @@ static void debug_unlock_token_test_authenticate_short_data_policy (CuTest *test
 static void debug_unlock_token_test_authenticate_verify_error (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -1395,9 +1436,9 @@ static void debug_unlock_token_test_authenticate_verify_error (CuTest *test)
 static void debug_unlock_token_test_authenticate_token_not_valid (CuTest *test)
 {
 	struct debug_unlock_token_testing token;
-	const size_t hsp_data_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
+	const size_t context_length = 2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 +
 		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 + DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
-	const size_t token_length = hsp_data_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
+	const size_t token_length = context_length + DEBUG_UNLOCK_TOKEN_TESTING_NONCE_LEN +
 		ECC384_SIG_TEST_LEN;
 	const size_t auth_length = 2 + token_length + 2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN +
 		ECC384_SIG_TEST2_LEN;
@@ -2714,7 +2755,7 @@ TEST (debug_unlock_token_test_generate_static_init);
 TEST (debug_unlock_token_test_generate_null);
 TEST (debug_unlock_token_test_generate_small_counter);
 TEST (debug_unlock_token_test_generate_large_counter);
-TEST (debug_unlock_token_test_generate_small_buffer_less_than_hsp_data);
+TEST (debug_unlock_token_test_generate_small_buffer_less_than_context_data);
 TEST (debug_unlock_token_test_generate_small_buffer_less_than_token_data);
 TEST (debug_unlock_token_test_generate_oid_too_long);
 TEST (debug_unlock_token_test_generate_uuid_error);

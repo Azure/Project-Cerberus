@@ -19,6 +19,7 @@ enum {
 	SYSTEM_LOGGING_UNDETERMINED_UNLOCK,		/**< An error prevented detection or application of any possible unlock policy. */
 	SYSTEM_LOGGING_DEVICE_UNLOCKED,			/**< An unlock policy has been applied to the device. */
 	SYSTEM_LOGGING_LOCK_STATE_FAIL,			/**< An error occurred attempting to make the lock state consistent. */
+	SYSTEM_LOGGING_TOKEN_INVALIDATE_FAIL,	/**< Failed to invalidate a consumed unlock token. */
 };
 
 /**

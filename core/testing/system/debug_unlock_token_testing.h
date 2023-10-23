@@ -14,6 +14,7 @@ extern const size_t DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN;
 
 extern const uint8_t DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED[];
 extern const uint8_t DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED[];
+extern const uint8_t DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED_UNLOCKED[];
 extern const size_t DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN;
 
 extern const uint8_t DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED[];
@@ -34,6 +35,8 @@ size_t debug_unlock_token_testing_build_authorized_data (const uint8_t *token, s
 	const uint8_t *policy, size_t policy_len, const uint8_t *signature, size_t sig_len,
 	uint8_t *auth_data);
 
+void debug_unlock_token_testing_allocate_token (CuTest *test, const uint8_t *counter,
+	size_t counter_len, uint8_t **token, size_t *length, size_t *context_length);
 void debug_unlock_token_testing_allocate_authorized_data (CuTest *test, const uint8_t *counter,
 	size_t counter_len, size_t extra_space, uint8_t **auth_data, size_t *length,
 	size_t *token_offset, size_t *policy_offset);

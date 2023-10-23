@@ -91,6 +91,8 @@ enum {
 	CMD_DEVICE_RESET_FAILED = CMD_DEVICE_ERROR (0x03),				/**< Failed to trigger a device reset. */
 	CMD_DEVICE_INVALID_COUNTER = CMD_DEVICE_ERROR (0x04),			/**< Invalid counter type. */
 	CMD_DEVICE_HEAP_FAILED = CMD_DEVICE_ERROR (0x05),				/**< Failed to get heap statistics. */
+	CMD_DEVICE_UUID_FAILED = CMD_DEVICE_ERROR (0x06),				/**< Failed to retrieve the device UUID. */
+	CMD_DEVICE_RESET_COUNTER_FAILED = CMD_DEVICE_ERROR (0x07),		/**< Failed to retrieve the reset counter. */
 };
 
 
