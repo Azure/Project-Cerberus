@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
-#include "system/debug_unlock_token.h"
+#include "system/device_unlock_token.h"
 #include "system/security_manager.h"
 
 
@@ -53,13 +53,13 @@ struct secure_device_unlock {
 	 */
 	int (*clear_unlock_policy) (const struct secure_device_unlock *unlock);
 
-	const struct debug_unlock_token *token;		/**< Token handler for authenticating unlock operations. */
+	const struct device_unlock_token *token;	/**< Token handler for authenticating unlock operations. */
 	const struct security_manager *manager;		/**< Security manager for executing unlock operations. */
 };
 
 
 int secure_device_unlock_init (struct secure_device_unlock *unlock,
-	const struct debug_unlock_token *token, const struct security_manager *manager);
+	const struct device_unlock_token *token, const struct security_manager *manager);
 void secure_device_unlock_release (const struct secure_device_unlock *unlock);
 
 

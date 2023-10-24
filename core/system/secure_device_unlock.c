@@ -22,7 +22,7 @@ int secure_device_unlock_get_unlock_token (const struct secure_device_unlock *un
 	}
 
 	/* Get the current unlock counter value from the device. */
-	counter_length = debug_unlock_token_get_counter_length (unlock->token);
+	counter_length = device_unlock_token_get_counter_length (unlock->token);
 	counter = platform_malloc (counter_length);
 	if (counter == NULL) {
 		return SECURE_DEVICE_UNLOCK_NO_MEMORY;
@@ -48,7 +48,7 @@ int secure_device_unlock_get_unlock_token (const struct secure_device_unlock *un
 		goto exit;
 	}
 
-	status = debug_unlock_token_generate (unlock->token, counter, counter_length, token, length);
+	status = device_unlock_token_generate (unlock->token, counter, counter_length, token, length);
 
 exit:
 	platform_free (counter);
@@ -64,7 +64,7 @@ int secure_device_unlock_apply_unlock_policy (const struct secure_device_unlock 
 		return SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT;
 	}
 
-	status = debug_unlock_token_authenicate (unlock->token, policy, length);
+	status = device_unlock_token_authenicate (unlock->token, policy, length);
 	if (status != 0) {
 		return status;
 	}
@@ -74,7 +74,7 @@ int secure_device_unlock_apply_unlock_policy (const struct secure_device_unlock 
 		return status;
 	}
 
-	status = debug_unlock_token_invalidate (unlock->token);
+	status = device_unlock_token_invalidate (unlock->token);
 	if (status != 0) {
 		/* The device has already been unlocked, so the operation shouldn't report a failure when
 		 * the unlock token couldn't be invalidated.  Just log the error.  The token will naturally
@@ -96,7 +96,7 @@ int secure_device_unlock_clear_unlock_policy (const struct secure_device_unlock 
 
 	/* Since the device state is being updated, invalidate any active unlock token.  Once there is
 	 * no longer an active unlock token, put the device into a locked state. */
-	status = debug_unlock_token_invalidate (unlock->token);
+	status = device_unlock_token_invalidate (unlock->token);
 	if (status != 0) {
 		return status;
 	}
@@ -114,7 +114,7 @@ int secure_device_unlock_clear_unlock_policy (const struct secure_device_unlock 
  * @return 0 if the unlock handler was initialized successfully or an error code.
  */
 int secure_device_unlock_init (struct secure_device_unlock *unlock,
-	const struct debug_unlock_token *token, const struct security_manager *manager)
+	const struct device_unlock_token *token, const struct security_manager *manager)
 {
 	if ((unlock == NULL) || (token == NULL) || (manager == NULL)) {
 		return SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT;

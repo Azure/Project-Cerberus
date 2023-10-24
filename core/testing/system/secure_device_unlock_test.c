@@ -14,7 +14,7 @@
 #include "testing/mock/system/security_manager_mock.h"
 #include "testing/logging/debug_log_testing.h"
 #include "testing/riot/riot_core_testing.h"
-#include "testing/system/debug_unlock_token_testing.h"
+#include "testing/system/device_unlock_token_testing.h"
 
 
 TEST_SUITE_LABEL ("secure_device_unlock");
@@ -43,7 +43,7 @@ const size_t SECURE_DEVICE_UNLOCK_TESTING_COUNTER_EXHAUSTED_LEN =
 struct secure_device_unlock_testing {
 	struct auth_token_mock auth;			/**< Mock for the authorization token. */
 	struct cmd_device_mock uuid;			/**< Mock for the device UUID interface. */
-	struct debug_unlock_token token;		/**< Unlock token handler for testing. */
+	struct device_unlock_token token;		/**< Unlock token handler for testing. */
 	struct security_manager_mock manager;	/**< Mock for the security manager. */
 	struct logging_mock log;				/**< Mock for the debug log. */
 	struct secure_device_unlock test;		/**< Unlock handler being tested. */
@@ -74,7 +74,7 @@ static void secure_device_unlock_testing_init_dependencies (CuTest *test,
 	status = logging_mock_init (&unlock->log);
 	CuAssertIntEquals (test, 0, status);
 
-	status = debug_unlock_token_init (&unlock->token, &unlock->auth.base, &unlock->uuid.base,
+	status = device_unlock_token_init (&unlock->token, &unlock->auth.base, &unlock->uuid.base,
 		RIOT_CORE_DEVICE_ID_OID, RIOT_CORE_DEVICE_ID_OID_LEN, counter_len, HASH_TYPE_SHA256);
 	CuAssertIntEquals (test, 0, status);
 
@@ -94,7 +94,7 @@ static void secure_device_unlock_testing_release_dependencies (CuTest *test,
 
 	debug_log = NULL;
 
-	debug_unlock_token_release (&unlock->token);
+	device_unlock_token_release (&unlock->token);
 
 	status = auth_token_mock_validate_and_release (&unlock->auth);
 	status |= cmd_device_mock_validate_and_release (&unlock->uuid);
@@ -149,7 +149,7 @@ static void secure_device_unlock_test_init (CuTest *test)
 	TEST_START;
 
 	secure_device_unlock_testing_init_dependencies (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	status = secure_device_unlock_init (&unlock.test, &unlock.token, &unlock.manager.base);
 	CuAssertIntEquals (test, 0, status);
@@ -169,7 +169,7 @@ static void secure_device_unlock_test_init_null (CuTest *test)
 	TEST_START;
 
 	secure_device_unlock_testing_init_dependencies (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	status = secure_device_unlock_init (NULL, &unlock.token, &unlock.manager.base);
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
@@ -196,7 +196,7 @@ static void secure_device_unlock_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, test_static.clear_unlock_policy);
 
 	secure_device_unlock_testing_init_dependencies (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	secure_device_unlock_testing_release (test, &unlock, &test_static);
 }
@@ -219,28 +219,28 @@ static void secure_device_unlock_test_get_unlock_token (CuTest *test)
 
 	TEST_START;
 
-	debug_unlock_token_testing_allocate_token (test,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, &token, &token_length, &context_length);
+	device_unlock_token_testing_allocate_token (test,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_UNLOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, &token, &token_length, &context_length);
 	CuAssertTrue (test, (token_length < sizeof (out)));
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
 	status = mock_expect (&unlock.manager.mock, unlock.manager.base.get_unlock_counter,
-		&unlock.manager, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN));
+		&unlock.manager, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN));
 	status |= mock_expect_output (&unlock.manager.mock, 0,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN,
 		1);
 
 	/* Build the unlock token. */
 	status |= mock_expect (&unlock.uuid.mock, unlock.uuid.base.get_uuid, &unlock.uuid,
-		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN));
-	status |= mock_expect_output (&unlock.uuid.mock, 0, DEBUG_UNLOCK_TOKEN_TESTING_UUID,
-		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&unlock.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
 
 	status |= mock_expect (&unlock.auth.mock, unlock.auth.base.new_token, &unlock.auth, 0,
 		MOCK_ARG_PTR_CONTAINS (token, context_length), MOCK_ARG (context_length), MOCK_ARG_NOT_NULL,
@@ -272,28 +272,28 @@ static void secure_device_unlock_test_get_unlock_token_different_counter (CuTest
 
 	TEST_START;
 
-	debug_unlock_token_testing_allocate_token (test,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, &token, &token_length, &context_length);
+	device_unlock_token_testing_allocate_token (test,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED_UNLOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, &token, &token_length, &context_length);
 	CuAssertTrue (test, (token_length < sizeof (out)));
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Get the current unlock counter. */
 	status = mock_expect (&unlock.manager.mock, unlock.manager.base.get_unlock_counter,
-		&unlock.manager, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN));
+		&unlock.manager, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN));
 	status |= mock_expect_output (&unlock.manager.mock, 0,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 1);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 1);
 
 	/* Build the unlock token. */
 	status |= mock_expect (&unlock.uuid.mock, unlock.uuid.base.get_uuid, &unlock.uuid,
-		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN));
-	status |= mock_expect_output (&unlock.uuid.mock, 0, DEBUG_UNLOCK_TOKEN_TESTING_UUID,
-		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&unlock.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
 
 	status |= mock_expect (&unlock.auth.mock, unlock.auth.base.new_token, &unlock.auth, 0,
 		MOCK_ARG_PTR_CONTAINS (token, context_length), MOCK_ARG (context_length), MOCK_ARG_NOT_NULL,
@@ -327,28 +327,28 @@ static void secure_device_unlock_test_get_unlock_token_static_init (CuTest *test
 
 	TEST_START;
 
-	debug_unlock_token_testing_allocate_token (test,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, &token, &token_length, &context_length);
+	device_unlock_token_testing_allocate_token (test,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_UNLOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, &token, &token_length, &context_length);
 	CuAssertTrue (test, (token_length < sizeof (out)));
 
 	secure_device_unlock_testing_init_dependencies (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
 	status = mock_expect (&unlock.manager.mock, unlock.manager.base.get_unlock_counter,
-		&unlock.manager, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN));
+		&unlock.manager, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN));
 	status |= mock_expect_output (&unlock.manager.mock, 0,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN,
 		1);
 
 	/* Build the unlock token. */
 	status |= mock_expect (&unlock.uuid.mock, unlock.uuid.base.get_uuid, &unlock.uuid,
-		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN));
-	status |= mock_expect_output (&unlock.uuid.mock, 0, DEBUG_UNLOCK_TOKEN_TESTING_UUID,
-		DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
+	status |= mock_expect_output (&unlock.uuid.mock, 0, DEVICE_UNLOCK_TOKEN_TESTING_UUID,
+		DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN, 1);
 
 	status |= mock_expect (&unlock.auth.mock, unlock.auth.base.new_token, &unlock.auth, 0,
 		MOCK_ARG_PTR_CONTAINS (token, context_length), MOCK_ARG (context_length), MOCK_ARG_NOT_NULL,
@@ -378,7 +378,7 @@ static void secure_device_unlock_test_get_unlock_token_null (CuTest *test)
 	TEST_START;
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	status = unlock.test.get_unlock_token (NULL, out, sizeof (out));
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
@@ -398,12 +398,12 @@ static void secure_device_unlock_test_get_unlock_token_counter_error (CuTest *te
 	TEST_START;
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
 	status = mock_expect (&unlock.manager.mock, unlock.manager.base.get_unlock_counter,
 		&unlock.manager, SECURITY_MANAGER_GET_COUNTER_FAILED, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN));
+		MOCK_ARG_AT_LEAST (DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -422,15 +422,15 @@ static void secure_device_unlock_test_get_unlock_token_unlocked (CuTest *test)
 	TEST_START;
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
 	status = mock_expect (&unlock.manager.mock, unlock.manager.base.get_unlock_counter,
-		&unlock.manager, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN));
+		&unlock.manager, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN));
 	status |= mock_expect_output (&unlock.manager.mock, 0,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, 1);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_UNLOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -476,19 +476,19 @@ static void secure_device_unlock_test_get_unlock_token_generate_error (CuTest *t
 	TEST_START;
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
 	status = mock_expect (&unlock.manager.mock, unlock.manager.base.get_unlock_counter,
-		&unlock.manager, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN));
+		&unlock.manager, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN));
 	status |= mock_expect_output (&unlock.manager.mock, 0,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN,
 		1);
 
 	/* Build the unlock token. */
 	status |= mock_expect (&unlock.uuid.mock, unlock.uuid.base.get_uuid, &unlock.uuid,
-		CMD_DEVICE_UUID_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (DEBUG_UNLOCK_TOKEN_TESTING_UUID_LEN));
+		CMD_DEVICE_UUID_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -507,20 +507,20 @@ static void secure_device_unlock_test_get_unlock_token_mismatch_counter_lengths 
 	TEST_START;
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
 	status = mock_expect (&unlock.manager.mock, unlock.manager.base.get_unlock_counter,
-		&unlock.manager, DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN));
+		&unlock.manager, DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN));
 	status |= mock_expect_output (&unlock.manager.mock, 0,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 1);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = unlock.test.get_unlock_token (&unlock.test, out, sizeof (out));
-	CuAssertIntEquals (test, DEBUG_UNLOCK_TOKEN_INVALID_COUNTER, status);
+	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_COUNTER, status);
 
 	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
 }
@@ -535,18 +535,18 @@ static void secure_device_unlock_test_apply_unlock_policy (CuTest *test)
 
 	TEST_START;
 
-	debug_unlock_token_testing_allocate_authorized_data (test,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
+	device_unlock_token_testing_allocate_authorized_data (test,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Authenticate the unlock policy. */
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.verify_data, &unlock.auth, 0,
 		MOCK_ARG_PTR_CONTAINS (unlock_policy, unlock_length), MOCK_ARG (unlock_length),
-		MOCK_ARG (token_offset), MOCK_ARG (2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN),
+		MOCK_ARG (token_offset), MOCK_ARG (2 + DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN),
 		MOCK_ARG (HASH_TYPE_SHA256));
 
 	/* Apply the unlock policy. */
@@ -578,18 +578,18 @@ static void secure_device_unlock_test_apply_unlock_policy_static_init (CuTest *t
 
 	TEST_START;
 
-	debug_unlock_token_testing_allocate_authorized_data (test,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
+	device_unlock_token_testing_allocate_authorized_data (test,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
 	secure_device_unlock_testing_init_dependencies (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Authenticate the unlock policy. */
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.verify_data, &unlock.auth, 0,
 		MOCK_ARG_PTR_CONTAINS (unlock_policy, unlock_length), MOCK_ARG (unlock_length),
-		MOCK_ARG (token_offset), MOCK_ARG (2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN),
+		MOCK_ARG (token_offset), MOCK_ARG (2 + DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN),
 		MOCK_ARG (HASH_TYPE_SHA256));
 
 	/* Apply the unlock policy. */
@@ -619,13 +619,13 @@ static void secure_device_unlock_test_apply_unlock_policy_null (CuTest *test)
 
 	TEST_START;
 
-	debug_unlock_token_testing_allocate_authorized_data (test,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
+	device_unlock_token_testing_allocate_authorized_data (test,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	status = unlock.test.apply_unlock_policy (NULL, unlock_policy, unlock_length);
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
@@ -648,19 +648,19 @@ static void secure_device_unlock_test_apply_unlock_policy_authenticate_error (Cu
 
 	TEST_START;
 
-	debug_unlock_token_testing_allocate_authorized_data (test,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
+	device_unlock_token_testing_allocate_authorized_data (test,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Authenticate the unlock policy. */
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.verify_data, &unlock.auth,
 		AUTH_TOKEN_NOT_VALID, MOCK_ARG_PTR_CONTAINS (unlock_policy, unlock_length),
 		MOCK_ARG (unlock_length), MOCK_ARG (token_offset),
-		MOCK_ARG (2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN), MOCK_ARG (HASH_TYPE_SHA256));
+		MOCK_ARG (2 + DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN), MOCK_ARG (HASH_TYPE_SHA256));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -682,18 +682,18 @@ static void secure_device_unlock_test_apply_unlock_policy_unlock_error (CuTest *
 
 	TEST_START;
 
-	debug_unlock_token_testing_allocate_authorized_data (test,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
+	device_unlock_token_testing_allocate_authorized_data (test,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Authenticate the unlock policy. */
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.verify_data, &unlock.auth, 0,
 		MOCK_ARG_PTR_CONTAINS (unlock_policy, unlock_length), MOCK_ARG (unlock_length),
-		MOCK_ARG (token_offset), MOCK_ARG (2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN),
+		MOCK_ARG (token_offset), MOCK_ARG (2 + DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN),
 		MOCK_ARG (HASH_TYPE_SHA256));
 
 	/* Apply the unlock policy. */
@@ -729,18 +729,18 @@ static void secure_device_unlock_test_apply_unlock_policy_invalidate_error (CuTe
 
 	TEST_START;
 
-	debug_unlock_token_testing_allocate_authorized_data (test,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
+	device_unlock_token_testing_allocate_authorized_data (test,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED,
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Authenticate the unlock policy. */
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.verify_data, &unlock.auth, 0,
 		MOCK_ARG_PTR_CONTAINS (unlock_policy, unlock_length), MOCK_ARG (unlock_length),
-		MOCK_ARG (token_offset), MOCK_ARG (2 + DEBUG_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN),
+		MOCK_ARG (token_offset), MOCK_ARG (2 + DEVICE_UNLOCK_TOKEN_TESTING_UNLOCK_POLICY_LEN),
 		MOCK_ARG (HASH_TYPE_SHA256));
 
 	/* Apply the unlock policy. */
@@ -773,7 +773,7 @@ static void secure_device_unlock_test_clear_unlock_policy (CuTest *test)
 	TEST_START;
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.invalidate, &unlock.auth, 0);
 	status |= mock_expect (&unlock.manager.mock, unlock.manager.base.lock_device, &unlock.manager,
@@ -797,7 +797,7 @@ static void secure_device_unlock_test_clear_unlock_policy_static_init (CuTest *t
 	TEST_START;
 
 	secure_device_unlock_testing_init_dependencies (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.invalidate, &unlock.auth, 0);
 	status |= mock_expect (&unlock.manager.mock, unlock.manager.base.lock_device, &unlock.manager,
@@ -819,7 +819,7 @@ static void secure_device_unlock_test_clear_unlock_policy_null (CuTest *test)
 	TEST_START;
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	status = unlock.test.clear_unlock_policy (NULL);
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
@@ -835,7 +835,7 @@ static void secure_device_unlock_test_clear_unlock_policy_invalidate_error (CuTe
 	TEST_START;
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.invalidate, &unlock.auth,
 		AUTH_TOKEN_INVALIDATE_FAILED);
@@ -856,7 +856,7 @@ static void secure_device_unlock_test_clear_unlock_policy_lock_error (CuTest *te
 	TEST_START;
 
 	secure_device_unlock_testing_init (test, &unlock,
-		DEBUG_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
+		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.invalidate, &unlock.auth, 0);
 	status |= mock_expect (&unlock.manager.mock, unlock.manager.base.lock_device, &unlock.manager,

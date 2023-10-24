@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "debug_unlock_token.h"
+#include "device_unlock_token.h"
 #include "platform_api.h"
 #include "asn1/asn1_util.h"
 #include "common/unused.h"
@@ -16,7 +16,7 @@
  * - <var>:         token data
  *   - <var>:       OID
  *   - uint16_t:    format version
- *   - uint8_t[16]: UEID
+ *   - uint8_t[16]: UUID
  *   - uint8_t:     counter length
  *   - <var>:       counter
  *   - uint8_t[32]: nonce
@@ -27,12 +27,12 @@
  *
  * This provides pointers to the fields in this variable length structure.
  */
-struct debug_unlock_token_auth_data {
+struct device_unlock_token_auth_data {
 	const uint16_t *token_length;			/**< The unlock token data length. */
 	const uint8_t *token_data;				/**< The unlock token data. */
 	const uint8_t *oid;						/**< The device type OID in the unlock token. */
 	const uint16_t *format_version;			/**< Version identifier for the token. */
-	const uint8_t *ueid;					/**< UEID for the device that generated the token. */
+	const uint8_t *uuid;					/**< UUID for the device that generated the token. */
 	const uint8_t *counter_length;			/**< Length of the unlock counter. */
 	const uint8_t *counter;					/**< Unlock counter value in the token. */
 	const uint8_t *nonce;					/**< Token nonce. */
@@ -45,7 +45,7 @@ struct debug_unlock_token_auth_data {
 /**
  * Version number for the unlock token format.
  */
-#define	DEBUG_UNLOCK_TOKEN_FORMAT			1
+#define	DEVICE_UNLOCK_TOKEN_FORMAT			1
 
 
 /**
@@ -58,9 +58,9 @@ struct debug_unlock_token_auth_data {
  * @param field_length Length of the field in the authorized data.  The offset will be updated by
  * this amount after the field has been saved.
  */
-#define	debug_unlock_token_parse_auth_data_field(data, length, offset, field, field_length) \
+#define	device_unlock_token_parse_auth_data_field(data, length, offset, field, field_length) \
 	if (length < (offset + (field_length))) { \
-		return DEBUG_UNLOCK_TOKEN_BAD_AUTH_DATA; \
+		return DEVICE_UNLOCK_TOKEN_BAD_AUTH_DATA; \
 	} \
 	\
 	field = (void*) &data[offset]; \
@@ -77,19 +77,19 @@ struct debug_unlock_token_auth_data {
  *
  * @return 0 if the data was parsed successfully or an error code.
  */
-static int debug_unlock_token_parse_authorized_data (const uint8_t *auth_data, size_t length,
-	struct debug_unlock_token_auth_data *parsed)
+static int device_unlock_token_parse_authorized_data (const uint8_t *auth_data, size_t length,
+	struct device_unlock_token_auth_data *parsed)
 {
 	size_t offset = 0;
 
-	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->token_length,
+	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->token_length,
 		sizeof (*parsed->token_length));
-	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->token_data,
+	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->token_data,
 		*parsed->token_length);
 
-	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->policy_length,
+	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->policy_length,
 		sizeof (*parsed->policy_length));
-	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->policy_data,
+	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->policy_data,
 		*parsed->policy_length);
 
 	// parsed->data_signature = &auth_data[offset];
@@ -108,15 +108,15 @@ static int debug_unlock_token_parse_authorized_data (const uint8_t *auth_data, s
  *
  * @return 0 if the data was parsed successfully or an error code.
  */
-static int debug_unlock_token_parse_authorized_data_and_token (const uint8_t *auth_data,
-	size_t length, struct debug_unlock_token_auth_data *parsed)
+static int device_unlock_token_parse_authorized_data_and_token (const uint8_t *auth_data,
+	size_t length, struct device_unlock_token_auth_data *parsed)
 {
 	size_t offset = 0;
 	int oid_length;
 	int status;
 
 	/* Parse the authorized data container. */
-	status = debug_unlock_token_parse_authorized_data (auth_data, length, parsed);
+	status = device_unlock_token_parse_authorized_data (auth_data, length, parsed);
 	if (status != 0) {
 		return status;
 	}
@@ -127,20 +127,20 @@ static int debug_unlock_token_parse_authorized_data_and_token (const uint8_t *au
 
 	oid_length = asn1_get_der_item_len (&auth_data[offset], length - offset);
 	if ((oid_length == ASN1_UTIL_NOT_VALID) || (length < (size_t) oid_length)) {
-		return DEBUG_UNLOCK_TOKEN_BAD_AUTH_DATA;
+		return DEVICE_UNLOCK_TOKEN_BAD_AUTH_DATA;
 	}
 
-	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->oid, oid_length);
-	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->format_version,
+	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->oid, oid_length);
+	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->format_version,
 		sizeof (*parsed->format_version));
-	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->ueid,
-		DEBUG_UNLOCK_TOKEN_UUID_LENGTH);
-	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->counter_length,
+	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->uuid,
+		DEVICE_UNLOCK_TOKEN_UUID_LENGTH);
+	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->counter_length,
 		sizeof (*parsed->counter_length));
-	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->counter,
+	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->counter,
 		*parsed->counter_length);
-	debug_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->nonce,
-		DEBUG_UNLOCK_TOKEN_NONCE_LENGTH);
+	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->nonce,
+		DEVICE_UNLOCK_TOKEN_NONCE_LENGTH);
 
 	// parsed->token_signature = &auth_data[offset];
 
@@ -148,11 +148,11 @@ static int debug_unlock_token_parse_authorized_data_and_token (const uint8_t *au
 }
 
 /**
- * Initialize a handler for debug unlock tokens.
+ * Initialize a handler for device unlock tokens.
  *
  * @param token The unlock token handler to initialize.
  * @param auth Authorization token manager to use for unlock tokens.  This must have been
- * initialized to require additional token data of DEBUG_UNLOCK_TOKEN_SIZEOF_EXTRA_DATA bytes.
+ * initialized to require additional token data of DEVICE_UNLOCK_TOKEN_SIZEOF_EXTRA_DATA bytes.
  * @param uuid Interface for retrieving the device UUID.
  * @param oid The OID indicating the type of device generating the tokens.  This must be a base128
  * encoded value.
@@ -163,34 +163,34 @@ static int debug_unlock_token_parse_authorized_data_and_token (const uint8_t *au
  *
  * @return 0 if the unlock token handler was initialized successfully or an error code.
  */
-int debug_unlock_token_init (struct debug_unlock_token *token, const struct auth_token *auth,
+int device_unlock_token_init (struct device_unlock_token *token, const struct auth_token *auth,
 	const struct cmd_device *uuid, const uint8_t *oid, size_t oid_length, size_t counter_length,
 	enum hash_type auth_hash)
 {
 	if ((token == NULL) || (auth == NULL) || (uuid == NULL) || (oid == NULL) || (oid_length == 0) ||
 		(counter_length == 0)) {
-		return DEBUG_UNLOCK_TOKEN_INVALID_ARGUMENT;
+		return DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT;
 	}
 
-	memset (token, 0, sizeof (struct debug_unlock_token));
+	memset (token, 0, sizeof (struct device_unlock_token));
 
 	token->auth = auth;
 	token->uuid = uuid;
 	token->oid = oid;
 	token->oid_length = oid_length;
 	token->counter_length = counter_length;
-	token->data_length = DEBUG_UNLOCK_TOKEN_SIZEOF_EXTRA_DATA (oid_length, counter_length);
+	token->data_length = DEVICE_UNLOCK_TOKEN_SIZEOF_EXTRA_DATA (oid_length, counter_length);
 	token->auth_hash = auth_hash;
 
 	return 0;
 }
 
 /**
- * Release the resources used for debug unlock token handling.
+ * Release the resources used for device unlock token handling.
  *
  * @param token The unlock token handler to release.
  */
-void debug_unlock_token_release (const struct debug_unlock_token *token)
+void device_unlock_token_release (const struct device_unlock_token *token)
 {
 	UNUSED (token);
 }
@@ -202,7 +202,7 @@ void debug_unlock_token_release (const struct debug_unlock_token *token)
  *
  * @return Length of the unlock counter data.  This will be 0 if the token handler is null.
  */
-size_t debug_unlock_token_get_counter_length (const struct debug_unlock_token *token)
+size_t device_unlock_token_get_counter_length (const struct device_unlock_token *token)
 {
 	if (token == NULL) {
 		return 0;
@@ -212,7 +212,7 @@ size_t debug_unlock_token_get_counter_length (const struct debug_unlock_token *t
 }
 
 /**
- * Generate a new debug unlock token.  There can only be one valid unlock token at a time, so this
+ * Generate a new device unlock token.  There can only be one valid unlock token at a time, so this
  * operation will invalidate any previously generated token.
  *
  * @param token The unlock token handler to use for token generation.
@@ -226,7 +226,7 @@ size_t debug_unlock_token_get_counter_length (const struct debug_unlock_token *t
  * @return Length of the generated unlock token or an error code.  Use ROT_IS_ERROR to check the
  * status.
  */
-int debug_unlock_token_generate (const struct debug_unlock_token *token,
+int device_unlock_token_generate (const struct device_unlock_token *token,
 	const uint8_t *unlock_counter, size_t counter_length, uint8_t *data, size_t length)
 {
 	uint8_t *pos;
@@ -235,24 +235,24 @@ int debug_unlock_token_generate (const struct debug_unlock_token *token,
 	int status;
 
 	if ((token == NULL) || (unlock_counter == NULL) || (data == NULL)) {
-		return DEBUG_UNLOCK_TOKEN_INVALID_ARGUMENT;
+		return DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT;
 	}
 
 	if (counter_length != token->counter_length) {
-		return DEBUG_UNLOCK_TOKEN_INVALID_COUNTER;
+		return DEVICE_UNLOCK_TOKEN_INVALID_COUNTER;
 	}
 
 	/* If the output buffer isn't large enough for the extra context for the token, throw an error
 	 * without doing anything else.  This ensures a new token is not generated unnecessarily and
 	 * that the output buffer can be used to build the token context. */
 	if (length < token->data_length) {
-		return DEBUG_UNLOCK_TOKEN_SMALL_BUFFER;
+		return DEVICE_UNLOCK_TOKEN_SMALL_BUFFER;
 	}
 
 	/* Use the user-provided buffer as a temp location for building the token context data.
  	 * - <var>:       OID
  	 * - uint16_t:    format version
- 	 * - uint8_t[16]: UEID
+ 	 * - uint8_t[16]: UUID
  	 * - uint8_t:     counter length
  	 * - <var>:       counter */
 	status = asn1_encode_base128_oid (token->oid, token->oid_length, data, token->data_length);
@@ -262,18 +262,18 @@ int debug_unlock_token_generate (const struct debug_unlock_token *token,
 
 	pos = &data[status];
 
-	*((uint16_t*) pos) = DEBUG_UNLOCK_TOKEN_FORMAT;
+	*((uint16_t*) pos) = DEVICE_UNLOCK_TOKEN_FORMAT;
 	pos += sizeof (uint16_t);
 
 	/* The UUID size in the token is fixed, regardless of how much data is provided by the device.
 	 * Pad zeros for devices that have smaller UUID values. */
-	memset (pos, 0, DEBUG_UNLOCK_TOKEN_UUID_LENGTH);
-	status = token->uuid->get_uuid (token->uuid, pos, DEBUG_UNLOCK_TOKEN_UUID_LENGTH);
+	memset (pos, 0, DEVICE_UNLOCK_TOKEN_UUID_LENGTH);
+	status = token->uuid->get_uuid (token->uuid, pos, DEVICE_UNLOCK_TOKEN_UUID_LENGTH);
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
 
-	pos += DEBUG_UNLOCK_TOKEN_UUID_LENGTH;
+	pos += DEVICE_UNLOCK_TOKEN_UUID_LENGTH;
 
 	*pos++ = token->counter_length;
 	memcpy (pos, unlock_counter, token->counter_length);
@@ -287,7 +287,7 @@ int debug_unlock_token_generate (const struct debug_unlock_token *token,
 
 	/* Before copying the final token data, be sure the buffer is large enough. */
 	if (length < token_length) {
-		return DEBUG_UNLOCK_TOKEN_SMALL_BUFFER;
+		return DEVICE_UNLOCK_TOKEN_SMALL_BUFFER;
 	}
 
 	memcpy (data, unlock_token, token_length);
@@ -304,17 +304,17 @@ int debug_unlock_token_generate (const struct debug_unlock_token *token,
  *
  * @return 0 if the unlock data was authenticated successfully or an error code.
  */
-int debug_unlock_token_authenicate (const struct debug_unlock_token *token, const uint8_t *data,
+int device_unlock_token_authenicate (const struct device_unlock_token *token, const uint8_t *data,
 	size_t length)
 {
-	struct debug_unlock_token_auth_data parsed;
+	struct device_unlock_token_auth_data parsed;
 	int status;
 
 	if ((token == NULL) || (data == NULL)) {
-		return DEBUG_UNLOCK_TOKEN_INVALID_ARGUMENT;
+		return DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT;
 	}
 
-	status = debug_unlock_token_parse_authorized_data (data, length, &parsed);
+	status = device_unlock_token_parse_authorized_data (data, length, &parsed);
 	if (status != 0) {
 		return status;
 	}
@@ -331,17 +331,17 @@ int debug_unlock_token_authenicate (const struct debug_unlock_token *token, cons
  *
  * @return 0 if the unlock token was invalidated successfully or an error code.
  */
-int debug_unlock_token_invalidate (const struct debug_unlock_token *token)
+int device_unlock_token_invalidate (const struct device_unlock_token *token)
 {
 	if (token == NULL) {
-		return DEBUG_UNLOCK_TOKEN_INVALID_ARGUMENT;
+		return DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT;
 	}
 
 	return token->auth->invalidate (token->auth);
 }
 
 /**
- * Parse an authorized debug unlock token and extract the unlock counter value.
+ * Parse an authorized device unlock token and extract the unlock counter value.
  *
  * @param auth_data The authorized unlock data to parse.  This does not support raw, unauthorized
  * tokens.
@@ -352,17 +352,17 @@ int debug_unlock_token_invalidate (const struct debug_unlock_token *token)
  *
  * @return 0 if the unlock counter was extracted successfully or an error code.
  */
-int debug_unlock_token_get_unlock_counter (const uint8_t *auth_data, size_t length,
+int device_unlock_token_get_unlock_counter (const uint8_t *auth_data, size_t length,
 	const uint8_t **counter, size_t *counter_length)
 {
-	struct debug_unlock_token_auth_data parsed;
+	struct device_unlock_token_auth_data parsed;
 	int status;
 
 	if ((auth_data == NULL) || (counter == NULL) || (counter_length == NULL)) {
-		return DEBUG_UNLOCK_TOKEN_INVALID_ARGUMENT;
+		return DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT;
 	}
 
-	status = debug_unlock_token_parse_authorized_data_and_token (auth_data, length, &parsed);
+	status = device_unlock_token_parse_authorized_data_and_token (auth_data, length, &parsed);
 	if (status != 0) {
 		return status;
 	}
@@ -374,7 +374,7 @@ int debug_unlock_token_get_unlock_counter (const uint8_t *auth_data, size_t leng
 }
 
 /**
- * Parse an authorized debug unlock token and extract the nonce.
+ * Parse an authorized device unlock token and extract the nonce.
  *
  * @param auth_data The authorized unlock data to parse.  This does not support raw, unauthorized
  * tokens.
@@ -385,29 +385,29 @@ int debug_unlock_token_get_unlock_counter (const uint8_t *auth_data, size_t leng
  *
  * @return 0 if the nonce was extracted successfully or an error code.
  */
-int debug_unlock_token_get_nonce (const uint8_t *auth_data, size_t length, const uint8_t **nonce,
+int device_unlock_token_get_nonce (const uint8_t *auth_data, size_t length, const uint8_t **nonce,
 	size_t *nonce_length)
 {
-	struct debug_unlock_token_auth_data parsed;
+	struct device_unlock_token_auth_data parsed;
 	int status;
 
 	if ((auth_data == NULL) || (nonce == NULL) || (nonce_length == NULL)) {
-		return DEBUG_UNLOCK_TOKEN_INVALID_ARGUMENT;
+		return DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT;
 	}
 
-	status = debug_unlock_token_parse_authorized_data_and_token (auth_data, length, &parsed);
+	status = device_unlock_token_parse_authorized_data_and_token (auth_data, length, &parsed);
 	if (status != 0) {
 		return status;
 	}
 
 	*nonce = parsed.nonce;
-	*nonce_length = DEBUG_UNLOCK_TOKEN_NONCE_LENGTH;
+	*nonce_length = DEVICE_UNLOCK_TOKEN_NONCE_LENGTH;
 
 	return 0;
 }
 
 /**
- * Parse authorized debug unlock data and extract the unlock policy.
+ * Parse authorized device unlock data and extract the unlock policy.
  *
  * @param auth_data The authorized unlock data to parse.
  * @param length Length of the authorized unlock data.
@@ -417,17 +417,17 @@ int debug_unlock_token_get_nonce (const uint8_t *auth_data, size_t length, const
  *
  * @return 0 if the unlock policy was extracted successfully or an error code.
  */
-int debug_unlock_token_get_unlock_policy (const uint8_t *auth_data, size_t length,
+int device_unlock_token_get_unlock_policy (const uint8_t *auth_data, size_t length,
 	const uint8_t **policy, size_t *policy_length)
 {
-	struct debug_unlock_token_auth_data parsed;
+	struct device_unlock_token_auth_data parsed;
 	int status;
 
 	if ((auth_data == NULL) || (policy == NULL) || (policy_length == NULL)) {
-		return DEBUG_UNLOCK_TOKEN_INVALID_ARGUMENT;
+		return DEVICE_UNLOCK_TOKEN_INVALID_ARGUMENT;
 	}
 
-	status = debug_unlock_token_parse_authorized_data (auth_data, length, &parsed);
+	status = device_unlock_token_parse_authorized_data (auth_data, length, &parsed);
 	if (status != 0) {
 		return status;
 	}
