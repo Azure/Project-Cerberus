@@ -155,6 +155,25 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform_no_pc
 void cerberus_protocol_master_commands_testing_process_get_pcd_id_platform_fail (CuTest *test,
 	struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
 
+void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids (CuTest *test,
+	struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_nonzero_offset (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_limited_response (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_no_pcd_manager (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_no_active_pcd (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_fail_id (CuTest *test,
+	struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_fail (CuTest *test,
+	struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_invalid_len (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_invalid_offset (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+
 void cerberus_protocol_master_commands_testing_process_pcd_update_init (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pcd);
 void cerberus_protocol_master_commands_testing_process_pcd_update_init_no_pcd_manager (CuTest *test,

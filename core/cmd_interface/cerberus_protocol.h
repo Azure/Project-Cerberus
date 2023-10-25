@@ -83,7 +83,8 @@ enum {
 	CERBERUS_PROTOCOL_RESET_COUNTER,							/**< Reset counter */
 	CERBERUS_PROTOCOL_UNSEAL_MESSAGE = 0x89,					/**< Start unsealing message */
 	CERBERUS_PROTOCOL_UNSEAL_MESSAGE_RESULT,					/**< Get unsealing result*/
-	CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS = 0x8D,	/**< Get CFM supported component IDs */
+	CERBERUS_PROTOCOL_GET_PCD_SUPPORTED_COMPONENT_IDS = 0x8C,	/**< Get PCD supported component IDs */
+	CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,			/**< Get CFM supported component IDs */
 	CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS,					/**< Get extended update status */
 
 	/* Special diagnostic commands to query for device health or other debug information. */

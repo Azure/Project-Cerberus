@@ -717,6 +717,73 @@ int cerberus_protocol_get_pcd_id (const struct pcd_manager *pcd_mgr,
 }
 
 /**
+ * Process PCD component IDs request
+ *
+ * @param pcd_mgr PCD manager instance to utilize
+ * @param request PCD component IDs request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_pcd_component_ids (const struct pcd_manager *pcd_mgr,
+	struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_get_pcd_component_ids *rq =
+		(struct cerberus_protocol_get_pcd_component_ids*) request->data;
+	struct cerberus_protocol_get_pcd_component_ids_response *rsp =
+		(struct cerberus_protocol_get_pcd_component_ids_response*) request->data;
+	struct pcd *curr_pcd = NULL;
+	uint32_t offset;
+	size_t length;
+	int status = 0;
+
+	if (request->length != sizeof (struct cerberus_protocol_get_pcd_component_ids)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if (pcd_mgr == NULL) {
+		rsp->valid = 0;
+		rsp->version = 0;
+		request->length = cerberus_protocol_get_pcd_component_ids_response_length (0);
+		return status;
+	}
+
+	curr_pcd = pcd_mgr->get_active_pcd (pcd_mgr);
+
+	if (curr_pcd != NULL) {
+		offset = rq->offset;
+		rsp->valid = 1;
+
+		status = curr_pcd->base.get_id (&curr_pcd->base, &rsp->version);
+		if (status != 0) {
+			goto exit;
+		}
+
+		length = CERBERUS_PROTOCOL_MAX_PCD_COMPONENT_IDS (request);
+
+		status = curr_pcd->buffer_supported_components (curr_pcd, offset, length,
+			cerberus_protocol_pcd_component_ids (rsp));
+		if (ROT_IS_ERROR (status)) {
+			goto exit;
+		}
+
+		request->length = cerberus_protocol_get_pcd_component_ids_response_length (status);
+
+		status = 0;
+	}
+	else {
+		rsp->valid = 0;
+		rsp->version = 0;
+
+		request->length = cerberus_protocol_get_pcd_component_ids_response_length (0);
+	}
+
+exit:
+	cerberus_protocol_free_pcd (pcd_mgr, curr_pcd);
+
+	return status;
+}
+
+/**
  * Process a FW update status request
  *
  * @param control Firmware update control instance to query

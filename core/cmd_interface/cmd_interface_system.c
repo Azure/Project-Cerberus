@@ -134,6 +134,10 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 			status = cerberus_protocol_pcd_update_complete (interface->pcd, request);
 			break;
 
+		case CERBERUS_PROTOCOL_GET_PCD_SUPPORTED_COMPONENT_IDS:
+			status = cerberus_protocol_get_pcd_component_ids (interface->pcd_manager, request);
+			break;
+
 		case CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS:
 			status = cerberus_protocol_get_cfm_component_ids (interface->cfm_manager, request);
 			break;

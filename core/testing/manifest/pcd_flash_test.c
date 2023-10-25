@@ -8,6 +8,7 @@
 #include "manifest/pcd/pcd_flash.h"
 #include "manifest/pcd/pcd_format.h"
 #include "cmd_interface/device_manager.h"
+#include "common/array_size.h"
 #include "flash/flash.h"
 #include "testing/mock/crypto/signature_verification_mock.h"
 #include "testing/engines/hash_testing_engine.h"
@@ -1851,6 +1852,7 @@ static void pcd_flash_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, pcd.test.base.base.get_signature);
 	CuAssertPtrNotNull (test, pcd.test.base.base.is_empty);
 
+	CuAssertPtrNotNull (test, pcd.test.base.buffer_supported_components);
 	CuAssertPtrNotNull (test, pcd.test.base.get_next_mctp_bridge_component);
 	CuAssertPtrNotNull (test, pcd.test.base.get_rot_info);
 	CuAssertPtrNotNull (test, pcd.test.base.get_port_info);
@@ -3350,6 +3352,337 @@ static void pcd_flash_test_get_power_controller_info_power_controller_read_error
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_buffer_supported_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint8_t components[4096];
+	size_t components_len = sizeof (components);
+	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
+	size_t component_len = sizeof (supported_component[0]);
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,
+		(uint8_t*) components);
+
+	CuAssertIntEquals (test, sizeof (supported_component), status);
+	CuAssertIntEquals (test, supported_component[0].component_id, *(uint32_t*) components);
+	CuAssertIntEquals (test, supported_component[1].component_id,
+		*(uint32_t*) (components + component_len));
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_offset_nonzero (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint8_t components[4096];
+	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
+	size_t component_len = sizeof (supported_component[0]);
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, component_len,
+		(uint8_t*) components);
+
+	CuAssertIntEquals (test, component_len, status);
+	CuAssertIntEquals (test, supported_component[0].component_id, *(uint32_t*) components);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, component_len, component_len,
+		(uint8_t*) components);
+
+	CuAssertIntEquals (test, component_len, status);
+	CuAssertIntEquals (test, supported_component[1].component_id, *(uint32_t*) components);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_offset_too_large (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint8_t components[4096];
+	size_t components_len = sizeof (components);
+	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base,
+		sizeof (supported_component), components_len, (uint8_t*) components);
+
+	CuAssertIntEquals (test, 0, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_offset_not_word_aligned (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint8_t components[4096];
+	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
+	size_t component_len = sizeof (supported_component[0]);
+	size_t offset = component_len - 2; // offset inside of the component
+	int status;
+
+	TEST_START;
+
+	components[0] = 1;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, offset,
+		component_len - offset, (uint8_t*) &components[offset]);
+
+	CuAssertIntEquals (test, component_len - offset, status);
+	CuAssertIntEquals (test, supported_component[0].component_id, components[0]);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_smaller_length (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint8_t components[4096];
+	struct pcd_supported_component supported_component[4] = {{1, 2}, {2, 1}, {3, 2}, {4, 1}};
+	size_t component_len = sizeof (supported_component[0]);
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, component_len,
+		(uint8_t*) components);
+
+	CuAssertIntEquals (test, sizeof (supported_component[0]), status);
+	CuAssertIntEquals (test, supported_component[0].component_id, *(uint32_t*) components);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_null (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint32_t components[2];
+	size_t components_len = sizeof (components);
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	status = pcd.test.base.buffer_supported_components (NULL, 0, components_len,
+		(uint8_t*) components);
+	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len, NULL);
+	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, 0,
+		(uint8_t*) components);
+	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_verify_never_run (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint32_t components[2];
+	size_t components_len = sizeof (components);
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,
+		(uint8_t*) components);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_rot_element_read_fail (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint32_t components[2];
+	size_t components_len = sizeof (components);
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,
+		(uint8_t*) components);
+	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_malformed_component_device (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint8_t components[4096];
+	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
+	size_t component_len = sizeof (supported_component[0]);
+	int status;
+	struct manifest_toc_entry bad_entry;
+	uint8_t bad_data[3];
+
+	TEST_START;
+
+	bad_entry.type_id = PCD_COMPONENT_MCTP_BRIDGE;
+	bad_entry.parent = 0xff;
+	bad_entry.format = 2;
+	bad_entry.hash_id = PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash;
+	bad_entry.offset = PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset;
+	bad_entry.length = sizeof (bad_data);
+
+	memset (bad_data, 0x55, sizeof (bad_data));
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, true, 0);
+
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+
+	manifest_flash_v2_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset, bad_entry.length,
+		bad_entry.length, 0, &bad_entry, NULL);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, component_len,
+		(uint8_t*) components);
+	CuAssertIntEquals (test, PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
 static void pcd_flash_test_is_empty (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
@@ -3474,6 +3807,15 @@ TEST (pcd_flash_test_get_power_controller_info_null);
 TEST (pcd_flash_test_get_power_controller_info_verify_never_run);
 TEST (pcd_flash_test_get_power_controller_info_no_power_controller);
 TEST (pcd_flash_test_get_power_controller_info_power_controller_read_error);
+TEST (pcd_flash_test_buffer_supported_components);
+TEST (pcd_flash_test_buffer_supported_components_offset_nonzero);
+TEST (pcd_flash_test_buffer_supported_components_offset_too_large);
+TEST (pcd_flash_test_buffer_supported_components_offset_not_word_aligned);
+TEST (pcd_flash_test_buffer_supported_components_smaller_length);
+TEST (pcd_flash_test_buffer_supported_components_null);
+TEST (pcd_flash_test_buffer_supported_components_verify_never_run);
+TEST (pcd_flash_test_buffer_supported_components_rot_element_read_fail);
+TEST (pcd_flash_test_buffer_supported_components_malformed_component_device);
 TEST (pcd_flash_test_is_empty);
 TEST (pcd_flash_test_is_empty_empty_manifest);
 TEST (pcd_flash_test_is_empty_null);

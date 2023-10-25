@@ -133,11 +133,42 @@ struct pcd_mctp_bridge_components_info {
 	uint8_t components_count;									/**< Number of identical components this element describes. */
 };
 
+#pragma pack(push, 1)
+/**
+ * Details for a single component type supported by a PCD.
+ */
+struct pcd_supported_component {
+	uint32_t component_id;										/**< Unique identifier for component type supported by PCD. */
+	uint8_t component_count;									/**< Number of identical components this element describes. */
+
+};
+#pragma pack(pop)
+
 /**
  * The API for interfacing with a PCD file.
  */
 struct pcd {
 	struct manifest base;											/**< Manifest interface */
+
+
+	/**
+	 * Get list of supported component IDs from PCD.
+	 *
+	 * @param pcd The PCD to query.
+	 * @param offset The byte offset within the overall list of supported component IDs that should
+	 * 	be returned.
+	 * @param length The maximum length of component ID information that should be returned, in
+	 * 	bytes.
+	 * @param component_ids Output buffer for the list of supported component IDs. This information
+	 * will be stored as a list of {@link struct pcd_supported_component} entries. However, depending
+	 * on offset and length parameters, it may not contain complete entries at the beginning or end
+	 * of the list.
+	 *
+	 * @return The number of bytes written to the output buffer or an error code.  Use ROT_IS_ERROR
+	 * to check the return value.
+	 */
+	int (*buffer_supported_components) (struct pcd *pcd, size_t offset, size_t length,
+		uint8_t *pcd_component_ids);
 
 	/**
 	 * Get next MCTP bridge component from PCD.

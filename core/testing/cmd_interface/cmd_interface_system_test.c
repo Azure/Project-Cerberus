@@ -5468,6 +5468,123 @@ static void cmd_interface_system_test_process_get_pcd_platform_id_fail (CuTest *
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_get_pcd_component_ids (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_pcd_component_ids (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_pcd_component_ids_nonzero_offset (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_nonzero_offset (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_pcd_component_ids_limited_response (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_cfm_component_ids_limited_response (test,
+		&cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_pcd_component_ids_no_pcd_manager (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, false, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_no_pcd_manager (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_pcd_component_ids_no_active_pcd (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_no_active_pcd (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_pcd_component_ids_fail_id (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_fail_id (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_pcd_component_ids_fail (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_fail (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_pcd_component_ids_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_invalid_len (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_pcd_component_ids_invalid_offset (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_invalid_offset (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_pcd_update_init (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -8482,6 +8599,15 @@ TEST (cmd_interface_system_test_process_get_pcd_platform_id);
 TEST (cmd_interface_system_test_process_get_pcd_platform_id_no_pcd);
 TEST (cmd_interface_system_test_process_get_pcd_platform_id_no_pcd_manager);
 TEST (cmd_interface_system_test_process_get_pcd_platform_id_fail);
+TEST (cmd_interface_system_test_process_get_pcd_component_ids);
+TEST (cmd_interface_system_test_process_get_pcd_component_ids_nonzero_offset);
+TEST (cmd_interface_system_test_process_get_pcd_component_ids_limited_response);
+TEST (cmd_interface_system_test_process_get_pcd_component_ids_no_pcd_manager);
+TEST (cmd_interface_system_test_process_get_pcd_component_ids_no_active_pcd);
+TEST (cmd_interface_system_test_process_get_pcd_component_ids_fail_id);
+TEST (cmd_interface_system_test_process_get_pcd_component_ids_fail);
+TEST (cmd_interface_system_test_process_get_pcd_component_ids_invalid_len);
+TEST (cmd_interface_system_test_process_get_pcd_component_ids_invalid_offset);
 TEST (cmd_interface_system_test_process_pcd_update_init);
 TEST (cmd_interface_system_test_process_pcd_update_init_no_pcd_manager);
 TEST (cmd_interface_system_test_process_pcd_update_init_invalid_len);

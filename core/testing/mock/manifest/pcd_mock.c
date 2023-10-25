@@ -91,6 +91,19 @@ static int pcd_mock_is_empty (struct manifest *pcd)
 	MOCK_RETURN_NO_ARGS (&mock->mock, pcd_mock_is_empty, pcd);
 }
 
+static int pcd_mock_buffer_supported_components (struct pcd *pcd, size_t offset, size_t length,
+	uint8_t *components)
+{
+	struct pcd_mock *mock = (struct pcd_mock*) pcd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, pcd_mock_buffer_supported_components, pcd, MOCK_ARG_CALL (offset),
+		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (components));
+}
+
 static int pcd_mock_get_next_mctp_bridge_component (struct pcd *pcd,
 	struct pcd_mctp_bridge_components_info *component, bool first)
 {
@@ -144,7 +157,7 @@ static int pcd_mock_func_arg_count (void *func)
 	if (func == pcd_mock_verify) {
 		return 4;
 	}
-	else if (func == pcd_mock_get_hash) {
+	else if ((func == pcd_mock_get_hash) || (func == pcd_mock_buffer_supported_components)) {
 		return 3;
 	}
 	else if ((func == pcd_mock_get_platform_id) || (func == pcd_mock_get_signature) ||
@@ -182,6 +195,9 @@ static const char* pcd_mock_func_name_map (void *func)
 	}
 	else if (func == pcd_mock_is_empty) {
 		return "is_empty";
+	}
+	else if (func == pcd_mock_buffer_supported_components) {
+		return "buffer_supported_components";
 	}
 	else if (func == pcd_mock_get_next_mctp_bridge_component) {
 		return "get_next_mctp_bridge_component";
@@ -268,6 +284,18 @@ static const char* pcd_mock_arg_name_map (void *func, int arg)
 				return "first";
 		}
 	}
+	else if (func == pcd_mock_buffer_supported_components) {
+		switch (arg) {
+			case 0:
+				return "components";
+
+			case 1:
+				return "components_len";
+
+			case 2:
+				return "offset";
+		}
+	}
 	else if (func == pcd_mock_get_rot_info) {
 		switch (arg) {
 			case 0:
@@ -325,6 +353,7 @@ int pcd_mock_init (struct pcd_mock *mock)
 	mock->base.base.get_signature = pcd_mock_get_signature;
 	mock->base.base.is_empty = pcd_mock_is_empty;
 
+	mock->base.buffer_supported_components = pcd_mock_buffer_supported_components;
 	mock->base.get_next_mctp_bridge_component = pcd_mock_get_next_mctp_bridge_component;
 	mock->base.get_rot_info = pcd_mock_get_rot_info;
 	mock->base.get_port_info = pcd_mock_get_port_info;

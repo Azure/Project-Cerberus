@@ -247,6 +247,47 @@ struct cerberus_protocol_update_status_response {
 };
 
 /**
+ * Cerberus protocol get platform configuration data component IDs request format
+ */
+struct cerberus_protocol_get_pcd_component_ids {
+	struct cerberus_protocol_header header;			/**< Message header */
+	uint32_t offset;								/**< Offset in the total list of PCD components */
+};
+
+/**
+ * Cerberus protocol get platform configuration data component IDs response format
+ */
+struct cerberus_protocol_get_pcd_component_ids_response {
+	struct cerberus_protocol_header header;			/**< Message header */
+	uint8_t valid;									/**< Indication if the PCD is valid */
+	uint32_t version;								/**< PCD version identifier */
+};
+
+/**
+ * Get the buffer containing the retrieved component IDs
+ *
+ * @param resp The commmand response structure containing the message.
+ */
+#define	cerberus_protocol_pcd_component_ids(resp)	(((uint8_t*) resp) + sizeof (*resp))
+
+/**
+ * Get the total message length for a get PCD component IDs response message.
+ *
+ * @param len Length of the component data.
+ */
+#define	cerberus_protocol_get_pcd_component_ids_response_length(len)	\
+	(len + sizeof (struct cerberus_protocol_get_pcd_component_ids_response))
+
+/**
+ * Maximum amount of component ID data that can be returned in a single request
+ *
+ * @param req The command request structure containing the message.
+ */
+#define	CERBERUS_PROTOCOL_MAX_PCD_COMPONENT_IDS(req)	\
+	((req)->max_response - sizeof (struct cerberus_protocol_get_pcd_component_ids_response))
+
+
+/**
  * Cerberus protocol get extended update status request format
  */
 struct cerberus_protocol_extended_update_status {
@@ -321,6 +362,8 @@ int cerberus_protocol_pcd_update_complete (const struct manifest_cmd_interface *
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_pcd_id (const struct pcd_manager *pcd_mgr,
+	struct cmd_interface_msg *request);
+int cerberus_protocol_get_pcd_component_ids (const struct pcd_manager *pcd_mgr,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_fw_update_status (const struct firmware_update_control *control,

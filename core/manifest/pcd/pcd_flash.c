@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "platform_api.h"
+#include "common/buffer_util.h"
 #include "pcd_flash.h"
 #include "pcd_format.h"
 #include "flash/flash_util.h"
@@ -326,6 +327,49 @@ static int pcd_flash_get_next_mctp_bridge_component (struct pcd *pcd,
 	return 0;
 }
 
+static int pcd_flash_buffer_supported_components (struct pcd *pcd, size_t offset, size_t length,
+	uint8_t *pcd_component_ids)
+{
+	struct pcd_flash *pcd_flash = (struct pcd_flash*) pcd;
+	struct pcd_rot_info rot_info;
+	struct pcd_mctp_bridge_components_info component;
+	struct pcd_supported_component supported_component;
+	size_t i_components = 0;
+	size_t component_len = 0;
+	int status;
+
+	if ((pcd_flash == NULL) || (pcd_component_ids == NULL) || (length == 0)) {
+		return PCD_INVALID_ARGUMENT;
+	}
+
+	if (!pcd_flash->base_flash.manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	status = pcd_flash_get_rot_info (pcd, &rot_info);
+	if (status != 0) {
+		return status;
+	}
+
+	while ((i_components < rot_info.components_count) && (length > 0)) {
+		status = pcd_flash_get_next_mctp_bridge_component (pcd, &component,
+			(i_components == 0));
+		if (status != 0) {
+			return status;
+		}
+
+		supported_component.component_id = component.component_id;
+		supported_component.component_count = component.components_count;
+
+		component_len += buffer_copy ((uint8_t*) &supported_component, sizeof (supported_component),
+			&offset, &length, &pcd_component_ids[component_len]);
+
+		i_components++;
+	}
+
+	return component_len;
+}
+
 /**
  * Initialize the interface to a PCD residing in flash memory.
  *
@@ -368,6 +412,7 @@ int pcd_flash_init (struct pcd_flash *pcd, const struct flash *flash, struct has
 	pcd->base.base.get_signature = pcd_flash_get_signature;
 	pcd->base.base.is_empty = pcd_flash_is_empty;
 
+	pcd->base.buffer_supported_components = pcd_flash_buffer_supported_components;
 	pcd->base.get_next_mctp_bridge_component = pcd_flash_get_next_mctp_bridge_component;
 	pcd->base.get_port_info = pcd_flash_get_port_info;
 	pcd->base.get_rot_info = pcd_flash_get_rot_info;
