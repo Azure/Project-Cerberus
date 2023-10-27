@@ -30,9 +30,20 @@ void crash_dump_arm_save (struct crash_dump_arm_stack_frame *frame, uint32_t xps
 }
 
 /**
- * Print crash dump details to the console.
+ * Print minimal crash dump details to the console.
  */
-void crash_dump_arm_print ()
+void crash_dump_arm_print_min ()
+{
+	platform_printf ("CRASH DUMP (0x%x):" NEWLINE, crash);
+	platform_printf ("frame: 0x%x" NEWLINE, crash->stack_ptr);
+	platform_printf ("\t  lr: 0x%x" NEWLINE, crash->frame.lr);
+	platform_printf ("\t  pc: 0x%x" NEWLINE, crash->frame.return_address);
+}
+
+/**
+ * Print full crash dump details to the console.
+ */
+void crash_dump_arm_print_full ()
 {
 	platform_printf ("CRASH DUMP (0x%x):" NEWLINE, crash);
 	platform_printf (" xpsr: 0x%x" NEWLINE, crash->handler_xpsr);

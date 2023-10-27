@@ -88,6 +88,7 @@ static const char* firmware_update_mock_arg_name_map (void *func, int arg)
  * @param flash The device and address mapping for firmware images.
  * @param context The application context API.
  * @param fw The platform handler for firmware images.
+ * @param security The manager for the device security policy.
  * @param hash The hash engine to use during updates.
  * @param allowed_revision The lowest image ID that will be allowed for firmware updates.
  *
@@ -95,8 +96,8 @@ static const char* firmware_update_mock_arg_name_map (void *func, int arg)
  */
 int firmware_update_mock_init (struct firmware_update_mock *mock,
 	struct firmware_update_state *state, const struct firmware_flash_map *flash,
-	struct app_context *context, struct firmware_image *fw, struct hash_engine *hash,
-	int allowed_revision)
+	const struct app_context *context, const struct firmware_image *fw,
+	const struct security_manager *security, struct hash_engine *hash, int allowed_revision)
 {
 	int status;
 
@@ -106,7 +107,8 @@ int firmware_update_mock_init (struct firmware_update_mock *mock,
 
 	memset (mock, 0, sizeof (struct firmware_update_mock));
 
-	status = firmware_update_init (&mock->base, state, flash, context, fw, hash, allowed_revision);
+	status = firmware_update_init (&mock->base, state, flash, context, fw, security, hash,
+		allowed_revision);
 	if (status != 0) {
 		return status;
 	}

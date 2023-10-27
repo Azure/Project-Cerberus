@@ -19,6 +19,7 @@
  * @param flash The device and address mapping for firmware images.
  * @param context The application context API.
  * @param fw The platform handler for firmware images.
+ * @param security The manager for the device security policy.
  * @param hash The hash engine to use during updates.
  * @param allowed_revision The lowest image ID that will be allowed for firmware updates.
  *
@@ -26,7 +27,8 @@
  */
 int firmware_update_init (struct firmware_update *updater, struct firmware_update_state *state,
 	const struct firmware_flash_map *flash, const struct app_context *context,
-	const struct firmware_image *fw, struct hash_engine *hash, int allowed_revision)
+	const struct firmware_image *fw, const struct security_manager *security,
+	struct hash_engine *hash, int allowed_revision)
 {
 	if (updater == NULL) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
@@ -37,6 +39,7 @@ int firmware_update_init (struct firmware_update *updater, struct firmware_updat
 	updater->state = state;
 	updater->flash = flash;
 	updater->fw = fw;
+	updater->security = security;
 	updater->context = context;
 	updater->hash = hash;
 
@@ -56,6 +59,7 @@ int firmware_update_init (struct firmware_update *updater, struct firmware_updat
  * @param flash The device and address mapping for firmware images.
  * @param context The application context API.
  * @param fw The platform handler for firmware images.
+ * @param security The manager for the device security policy.
  * @param hash The hash engine to use during updates.
  * @param allowed_revision The lowest image ID that will be allowed for firmware updates.
  *
@@ -63,12 +67,13 @@ int firmware_update_init (struct firmware_update *updater, struct firmware_updat
  */
 int firmware_update_init_no_firmware_header (struct firmware_update *updater,
 	struct firmware_update_state *state, const struct firmware_flash_map *flash,
-	const struct app_context *context, const struct firmware_image *fw, struct hash_engine *hash,
-	int allowed_revision)
+	const struct app_context *context, const struct firmware_image *fw,
+	const struct security_manager *security, struct hash_engine *hash, int allowed_revision)
 {
 	int status;
 
-	status = firmware_update_init (updater, state, flash, context, fw, hash, allowed_revision);
+	status = firmware_update_init (updater, state, flash, context, fw, security, hash,
+		allowed_revision);
 	if (status == 0) {
 		updater->no_fw_header = true;
 	}
@@ -92,7 +97,8 @@ int firmware_update_init_state (const struct firmware_update *updater, int allow
 	int status;
 
 	if ((updater == NULL) || (updater->state == NULL) || (updater->flash == NULL) ||
-		(updater->context == NULL) || (updater->fw == NULL) || (updater->hash == NULL)) {
+		(updater->context == NULL) || (updater->fw == NULL) || (updater->security == NULL) ||
+		(updater->hash == NULL)) {
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
@@ -280,6 +286,7 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 
 	if (recovery_rev) {
 		const struct firmware_header *header = NULL;
+		const struct security_policy *policy;
 		int img_revision;
 
 		header = updater->fw->get_firmware_header (updater->fw);
@@ -291,9 +298,13 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 			}
 
 			if (check_rollback) {
-				if (img_revision < updater->state->min_rev) {
-					firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
-					return FIRMWARE_UPDATE_REJECTED_ROLLBACK;
+				policy = security_manager_get_security_policy (updater->security);
+
+				if (security_policy_enforce_anti_rollback (policy)) {
+					if (img_revision < updater->state->min_rev) {
+						firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
+						return FIRMWARE_UPDATE_REJECTED_ROLLBACK;
+					}
 				}
 			}
 

@@ -109,7 +109,8 @@ extern struct crash_dump_arm *crash;
 	)
 
 void crash_dump_arm_save (struct crash_dump_arm_stack_frame *frame, uint32_t xpsr);
-void crash_dump_arm_print (void);
+void crash_dump_arm_print_min (void);
+void crash_dump_arm_print_full (void);
 void crash_dump_arm_log (void);
 
 

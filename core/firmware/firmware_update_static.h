@@ -26,13 +26,16 @@
  * @param flash_ptr The device and address mapping for firmware images.
  * @param context_ptr The application context API.
  * @param fw_ptr The platform handler for firmware images.
+ * @param security_ptr The manager for the device security policy.
  * @param hash_ptr The hash engine to use during updates.
  */
-#define	firmware_update_static_init(state_ptr, flash_ptr, context_ptr, fw_ptr, hash_ptr)	{ \
+#define	firmware_update_static_init(state_ptr, flash_ptr, context_ptr, fw_ptr, security_ptr, \
+	hash_ptr)	{ \
 		.internal = FIRMWARE_UPDATE_INTERNAL_API_INIT, \
 		.state = state_ptr, \
 		.flash = flash_ptr, \
 		.fw = fw_ptr, \
+		.security = security_ptr, \
 		.hash = hash_ptr, \
 		.context = context_ptr, \
 		.no_fw_header = false \
@@ -53,14 +56,16 @@
  * @param flash_ptr The device and address mapping for firmware images.
  * @param context_ptr The application context API.
  * @param fw_ptr The platform handler for firmware images.
+ * @param security_ptr The manager for the device security policy.
  * @param hash_ptr The hash engine to use during updates.
  */
 #define	firmware_update_static_init_no_firmware_header(state_ptr, flash_ptr, context_ptr, fw_ptr, \
-	hash_ptr)	{ \
+	security_ptr, hash_ptr)	{ \
 		.internal = FIRMWARE_UPDATE_INTERNAL_API_INIT, \
 		.state = state_ptr, \
 		.flash = flash_ptr, \
 		.fw = fw_ptr, \
+		.security = security_ptr, \
 		.hash = hash_ptr, \
 		.context = context_ptr, \
 		.no_fw_header = true \

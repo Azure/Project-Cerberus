@@ -19,7 +19,7 @@
 /**
  * Length of the nonce field of the unlock token.
  */
-#define	DEVICE_UNLOCK_TOKEN_NONCE_LENGTH		32
+#define	DEVICE_UNLOCK_TOKEN_NONCE_LENGTH	32
 
 /**
  * Determine the size of the additional token data being added to the unlock token.

@@ -15,6 +15,8 @@
 #include "testing/mock/firmware/key_manifest_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/system/event_task_mock.h"
+#include "testing/mock/system/security_manager_mock.h"
+#include "testing/mock/system/security_policy_mock.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/firmware/firmware_update_testing.h"
 #include "testing/logging/debug_log_testing.h"
@@ -27,21 +29,24 @@ TEST_SUITE_LABEL ("firmware_update_handler_no_revocation");
  * Dependencies for testing.
  */
 struct firmware_update_handler_no_revocation_testing {
-	HASH_TESTING_ENGINE hash;									/**< Hash engine for API arguments. */
-	struct firmware_image_mock fw;								/**< Mock for the FW image updater.handler. */
-	struct app_context_mock app;								/**< Mock for the application context. */
-	struct key_manifest_mock manifest;							/**< Mock for the key updater.manifest. */
-	struct firmware_header header;								/**< Header on the firmware image. */
-	struct flash_mock flash;									/**< Mock for the updater.flash device. */
-	struct logging_mock log;									/**< Mock for debug logging. */
-	struct firmware_flash_map map;								/**< Map of firmware images on updater.flash. */
-	struct firmware_update_state update_state;					/**< Context for the firmware updater. */
-	struct firmware_update updater;								/**< Firmware updater for testing. */
-	struct event_task_mock task;								/**< Mock for the updater task. */
-	struct event_task_context context;							/**< Event context for event processing. */
-	struct event_task_context *context_ptr;						/**< Pointer to the event context. */
-	struct firmware_update_handler_state state;					/**< Context for the update handler. */
-	struct firmware_update_handler_no_revocation test;			/**< Update handler under test. */
+	HASH_TESTING_ENGINE hash;								/**< Hash engine for API arguments. */
+	struct firmware_image_mock fw;							/**< Mock for the FW image updater.handler. */
+	struct app_context_mock app;							/**< Mock for the application context. */
+	struct key_manifest_mock manifest;						/**< Mock for the key updater.manifest. */
+	struct security_manager_mock security;					/**< Mock for the device security manager. */
+	struct security_policy_mock policy;						/**< Mock for the device security policy. */
+	struct security_policy *policy_ptr;						/**< Pointer to the security policy. */
+	struct firmware_header header;							/**< Header on the firmware image. */
+	struct flash_mock flash;								/**< Mock for the updater.flash device. */
+	struct logging_mock log;								/**< Mock for debug logging. */
+	struct firmware_flash_map map;							/**< Map of firmware images on updater.flash. */
+	struct firmware_update_state update_state;				/**< Context for the firmware updater. */
+	struct firmware_update updater;							/**< Firmware updater for testing. */
+	struct event_task_mock task;							/**< Mock for the updater task. */
+	struct event_task_context context;						/**< Event context for event processing. */
+	struct event_task_context *context_ptr;					/**< Pointer to the event context. */
+	struct firmware_update_handler_state state;				/**< Context for the update handler. */
+	struct firmware_update_handler_no_revocation test;		/**< Update handler under test. */
 };
 
 
@@ -71,6 +76,14 @@ static void firmware_update_handler_no_revocation_testing_init_dependencies (CuT
 
 	status = key_manifest_mock_init (&handler->manifest);
 	CuAssertIntEquals (test, 0, status);
+
+	status = security_manager_mock_init (&handler->security);
+	CuAssertIntEquals (test, 0, status);
+
+	status = security_policy_mock_init (&handler->policy);
+	CuAssertIntEquals (test, 0, status);
+
+	handler->policy_ptr = &handler->policy.base;
 
 	status = flash_mock_init (&handler->flash);
 	CuAssertIntEquals (test, 0, status);
@@ -106,7 +119,8 @@ static void firmware_update_handler_no_revocation_testing_init_dependencies (CuT
 	debug_log = &handler->log.base;
 
 	status = firmware_update_init (&handler->updater, &handler->update_state, &handler->map,
-		&handler->app.base, &handler->fw.base, &handler->hash.base, allowed);
+		&handler->app.base, &handler->fw.base, &handler->security.base, &handler->hash.base,
+		allowed);
 	CuAssertIntEquals (test, 0, status);
 
 	if (recovery >= 0) {
@@ -202,6 +216,8 @@ static void firmware_update_handler_no_revocation_testing_release_dependencies (
 	status = flash_mock_validate_and_release (&handler->flash);
 	status |= firmware_image_mock_validate_and_release (&handler->fw);
 	status |= app_context_mock_validate_and_release (&handler->app);
+	status |= security_policy_mock_validate_and_release (&handler->policy);
+	status |= security_manager_mock_validate_and_release (&handler->security);
 	status |= key_manifest_mock_validate_and_release (&handler->manifest);
 	status |= logging_mock_validate_and_release (&handler->log);
 	status |= event_task_mock_validate_and_release (&handler->task);
@@ -721,6 +737,14 @@ static void firmware_update_handler_no_revocation_test_execute_run_update (CuTes
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
 		MOCK_RETURN_PTR (&handler.header));
 
+	status |= mock_expect (&handler.security.mock,
+		handler.security.base.internal.get_security_policy, &handler.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.security.mock, 0, &handler.policy_ptr,
+		sizeof (handler.policy_ptr), -1);
+	status |= mock_expect (&handler.policy.mock, handler.policy.base.enforce_anti_rollback,
+		&handler.policy, 1);
+
 	/* Lock for state update: UPDATE_STATUS_SAVING_STATE */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
@@ -896,6 +920,14 @@ static void firmware_update_handler_no_revocation_test_execute_run_update_keep_r
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
 		MOCK_RETURN_PTR (&handler.header));
 
+	status |= mock_expect (&handler.security.mock,
+		handler.security.base.internal.get_security_policy, &handler.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.security.mock, 0, &handler.policy_ptr,
+		sizeof (handler.policy_ptr), -1);
+	status |= mock_expect (&handler.policy.mock, handler.policy.base.enforce_anti_rollback,
+		&handler.policy, 1);
+
 	/* Lock for state update: UPDATE_STATUS_SAVING_STATE */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
@@ -1000,6 +1032,14 @@ static void firmware_update_handler_no_revocation_test_execute_run_update_static
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
 		MOCK_RETURN_PTR (&handler.header));
 
+	status |= mock_expect (&handler.security.mock,
+		handler.security.base.internal.get_security_policy, &handler.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.security.mock, 0, &handler.policy_ptr,
+		sizeof (handler.policy_ptr), -1);
+	status |= mock_expect (&handler.policy.mock, handler.policy.base.enforce_anti_rollback,
+		&handler.policy, 1);
+
 	/* Lock for state update: UPDATE_STATUS_SAVING_STATE */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);
 	status |= mock_expect (&handler.task.mock, handler.task.base.unlock, &handler.task, 0);
@@ -1103,6 +1143,14 @@ static void firmware_update_handler_no_revocation_test_execute_run_update_static
 		sizeof (staging_data));
 	status |= mock_expect (&handler.fw.mock, handler.fw.base.get_firmware_header, &handler.fw,
 		MOCK_RETURN_PTR (&handler.header));
+
+	status |= mock_expect (&handler.security.mock,
+		handler.security.base.internal.get_security_policy, &handler.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.security.mock, 0, &handler.policy_ptr,
+		sizeof (handler.policy_ptr), -1);
+	status |= mock_expect (&handler.policy.mock, handler.policy.base.enforce_anti_rollback,
+		&handler.policy, 1);
 
 	/* Lock for state update: UPDATE_STATUS_SAVING_STATE */
 	status |= mock_expect (&handler.task.mock, handler.task.base.lock, &handler.task, 0);

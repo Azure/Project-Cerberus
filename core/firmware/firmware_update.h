@@ -11,10 +11,11 @@
 #include "app_context.h"
 #include "firmware_image.h"
 #include "firmware_update_observer.h"
+#include "common/observable.h"
+#include "crypto/hash.h"
 #include "flash/flash.h"
 #include "flash/flash_updater.h"
-#include "crypto/hash.h"
-#include "common/observable.h"
+#include "system/security_manager.h"
 
 
 /**
@@ -131,13 +132,14 @@ struct firmware_update_state {
  * The meta-data and other dependencies necessary to run firmware update operations.
  */
 struct firmware_update {
-	struct firmware_update_hooks internal;	/**< Internal interface to customize the update process. */
-	struct firmware_update_state *state;	/**< Variable context for the firmware updater. */
-	const struct firmware_flash_map *flash;	/**< The flash address mapping to use for the update. */
-	const struct firmware_image *fw;		/**< The platform driver for handling firmware images. */
-	struct hash_engine *hash;				/**< The hash engine to use during update. */
-	const struct app_context *context;		/**< The platform application context API. */
-	bool no_fw_header;						/**< Indication that a firmware header is not required. */
+	struct firmware_update_hooks internal;		/**< Internal interface to customize the update process. */
+	struct firmware_update_state *state;		/**< Variable context for the firmware updater. */
+	const struct firmware_flash_map *flash;		/**< The flash address mapping to use for the update. */
+	const struct firmware_image *fw;			/**< The platform driver for handling firmware images. */
+	const struct security_manager *security;	/**< The manager for the current security policy. */
+	struct hash_engine *hash;					/**< The hash engine to use during update. */
+	const struct app_context *context;			/**< The platform application context API. */
+	bool no_fw_header;							/**< Indication that a firmware header is not required. */
 };
 
 /**
@@ -157,11 +159,12 @@ struct firmware_update_notification {
 
 int firmware_update_init (struct firmware_update *updater, struct firmware_update_state *state,
 	const struct firmware_flash_map *flash, const struct app_context *context,
-	const struct firmware_image *fw, struct hash_engine *hash, int allowed_revision);
+	const struct firmware_image *fw, const struct security_manager *security,
+	struct hash_engine *hash, int allowed_revision);
 int firmware_update_init_no_firmware_header (struct firmware_update *updater,
 	struct firmware_update_state *state, const struct firmware_flash_map *flash,
-	const struct app_context *context, const struct firmware_image *fw, struct hash_engine *hash,
-	int allowed_revision);
+	const struct app_context *context, const struct firmware_image *fw,
+	const struct security_manager *security, struct hash_engine *hash, int allowed_revision);
 int firmware_update_init_state (const struct firmware_update *updater, int allowed_revision);
 void firmware_update_release (const struct firmware_update *updater);
 

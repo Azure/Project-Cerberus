@@ -17,6 +17,8 @@
 #include "testing/mock/firmware/firmware_update_mock.h"
 #include "testing/mock/firmware/firmware_update_observer_mock.h"
 #include "testing/mock/logging/logging_mock.h"
+#include "testing/mock/system/security_manager_mock.h"
+#include "testing/mock/system/security_policy_mock.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/common/image_header_testing.h"
 #include "testing/crypto/rsa_testing.h"
@@ -35,6 +37,9 @@ struct firmware_update_testing {
 	struct firmware_image_mock fw;							/**< Mock for the FW image interface. */
 	struct app_context_mock app;							/**< Mock for the application context. */
 	struct key_manifest_mock manifest;						/**< Mock for the key manifest. */
+	struct security_manager_mock security;					/**< Mock for the device security manager. */
+	struct security_policy_mock policy;						/**< Mock for the device security policy. */
+	struct security_policy *policy_ptr;						/**< Pointer to the security policy. */
 	struct firmware_header header;							/**< Header on the firmware image. */
 	struct flash_mock flash;								/**< Mock for the updater flash device. */
 	struct flash_mock flash2;								/**< Alternative mock for the backup flash device. */
@@ -132,6 +137,14 @@ static void firmware_update_testing_init_dependencies (CuTest *test,
 	status = key_manifest_mock_init (&updater->manifest);
 	CuAssertIntEquals (test, 0, status);
 
+	status = security_manager_mock_init (&updater->security);
+	CuAssertIntEquals (test, 0, status);
+
+	status = security_policy_mock_init (&updater->policy);
+	CuAssertIntEquals (test, 0, status);
+
+	updater->policy_ptr = &updater->policy.base;
+
 	status = flash_mock_init (&updater->flash);
 	CuAssertIntEquals (test, 0, status);
 
@@ -224,7 +237,8 @@ static void firmware_update_testing_init_updater (CuTest *test,
 	updater->is_mock = false;
 
 	status = firmware_update_init (&updater->test, &updater->state, &updater->map,
-		&updater->app.base, &updater->fw.base, &updater->hash.base, allowed);
+		&updater->app.base, &updater->fw.base, &updater->security.base, &updater->hash.base,
+		allowed);
 	CuAssertIntEquals (test, 0, status);
 
 	if (recovery >= 0) {
@@ -248,7 +262,8 @@ static void firmware_update_testing_init_updater_no_firmware_header (CuTest *tes
 	updater->is_mock = false;
 
 	status = firmware_update_init_no_firmware_header (&updater->test, &updater->state,
-		&updater->map, &updater->app.base, &updater->fw.base, &updater->hash.base, allowed);
+		&updater->map, &updater->app.base, &updater->fw.base, &updater->security.base,
+		&updater->hash.base, allowed);
 	CuAssertIntEquals (test, 0, status);
 
 	if (recovery >= 0) {
@@ -293,7 +308,8 @@ static void firmware_update_testing_init_updater_mock (CuTest *test,
 	updater->is_mock = true;
 
 	status = firmware_update_mock_init (&updater->test_mock, &updater->state, &updater->map,
-		&updater->app.base, &updater->fw.base, &updater->hash.base, allowed);
+		&updater->app.base, &updater->fw.base, &updater->security.base, &updater->hash.base,
+		allowed);
 	CuAssertIntEquals (test, 0, status);
 
 	if (recovery >= 0) {
@@ -420,6 +436,8 @@ static void firmware_update_testing_validate (CuTest *test, struct firmware_upda
 	status |= mock_validate (&updater->flash5.mock);
 	status |= mock_validate (&updater->fw.mock);
 	status |= mock_validate (&updater->app.mock);
+	status |= mock_validate (&updater->policy.mock);
+	status |= mock_validate (&updater->security.mock);
 	status |= mock_validate (&updater->manifest.mock);
 	status |= mock_validate (&updater->observer.mock);
 	status |= mock_validate (&updater->log.mock);
@@ -452,6 +470,8 @@ static void firmware_update_testing_release_dependencies (CuTest *test,
 	status |= flash_mock_validate_and_release (&updater->flash5);
 	status |= firmware_image_mock_validate_and_release (&updater->fw);
 	status |= app_context_mock_validate_and_release (&updater->app);
+	status |= security_policy_mock_validate_and_release (&updater->policy);
+	status |= security_manager_mock_validate_and_release (&updater->security);
 	status |= key_manifest_mock_validate_and_release (&updater->manifest);
 	status |= firmware_update_observer_mock_validate_and_release (&updater->observer);
 	status |= logging_mock_validate_and_release (&updater->log);
@@ -499,7 +519,7 @@ static void firmware_update_test_init (CuTest *test)
 	updater.is_mock = false;
 
 	status = firmware_update_init (&updater.test, &updater.state, &updater.map, &updater.app.base,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, NULL, updater.test.internal.finalize_image);
@@ -518,27 +538,31 @@ static void firmware_update_test_init_null (CuTest *test)
 	firmware_update_testing_init_dependencies (test, &updater, 0);
 
 	status = firmware_update_init (NULL, &updater.state, &updater.map, &updater.app.base,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	status = firmware_update_init (&updater.test, NULL, &updater.map, &updater.app.base,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	status = firmware_update_init (&updater.test, &updater.state, NULL, &updater.app.base,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	status = firmware_update_init (&updater.test, &updater.state, &updater.map, NULL,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	status = firmware_update_init (&updater.test, &updater.state, &updater.map, &updater.app.base,
-		NULL, &updater.hash.base, 0);
+		NULL, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	status = firmware_update_init (&updater.test, &updater.state, &updater.map, &updater.app.base,
-		&updater.fw.base, NULL, 0);
+		&updater.fw.base, NULL, &updater.hash.base, 0);
+	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
+
+	status = firmware_update_init (&updater.test, &updater.state, &updater.map, &updater.app.base,
+		&updater.fw.base, &updater.security.base, NULL, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	firmware_update_testing_release_dependencies (test, &updater);
@@ -557,7 +581,7 @@ static void firmware_update_test_init_no_recovery (CuTest *test)
 	updater.is_mock = false;
 
 	status = firmware_update_init (&updater.test, &updater.state, &updater.map, &updater.app.base,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_update_testing_validate_and_release (test, &updater);
@@ -575,7 +599,7 @@ static void firmware_update_test_init_no_recovery_backup (CuTest *test)
 	updater.is_mock = false;
 
 	status = firmware_update_init (&updater.test, &updater.state, &updater.map, &updater.app.base,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_update_testing_validate_and_release (test, &updater);
@@ -593,7 +617,7 @@ static void firmware_update_test_init_no_backup (CuTest *test)
 	updater.is_mock = false;
 
 	status = firmware_update_init (&updater.test, &updater.state, &updater.map, &updater.app.base,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_update_testing_validate_and_release (test, &updater);
@@ -612,7 +636,7 @@ static void firmware_update_test_init_no_recovery_no_backup (CuTest *test)
 	updater.map.rec_backup_flash = NULL;
 
 	status = firmware_update_init (&updater.test, &updater.state, &updater.map, &updater.app.base,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_FLASH_MAP, status);
 
 	firmware_update_testing_release_dependencies (test, &updater);
@@ -629,13 +653,13 @@ static void firmware_update_test_init_no_active_or_staging (CuTest *test)
 	updater.map.active_flash = NULL;
 
 	status = firmware_update_init (&updater.test, &updater.state, &updater.map, &updater.app.base,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_FLASH_MAP, status);
 
 	updater.map.active_flash = &updater.flash.base;
 	updater.map.staging_flash = NULL;
 	status = firmware_update_init (&updater.test, &updater.state, &updater.map, &updater.app.base,
-		&updater.fw.base, &updater.hash.base, 0);
+		&updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_FLASH_MAP, status);
 
 	firmware_update_testing_release_dependencies (test, &updater);
@@ -645,7 +669,7 @@ static void firmware_update_test_static_init (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -667,7 +691,7 @@ static void firmware_update_test_static_init_null (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -697,6 +721,11 @@ static void firmware_update_test_static_init_null (CuTest *test)
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	test_static.fw = &updater.fw.base;
+	test_static.security = NULL;
+	status = firmware_update_init_state (&test_static, 0);
+	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
+
+	test_static.security = &updater.security.base;
 	test_static.hash = NULL;
 	status = firmware_update_init_state (&test_static, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
@@ -708,7 +737,7 @@ static void firmware_update_test_static_init_no_recovery (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -729,7 +758,7 @@ static void firmware_update_test_static_init_no_recovery_backup (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -749,7 +778,7 @@ static void firmware_update_test_static_init_no_backup (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -769,7 +798,7 @@ static void firmware_update_test_static_init_no_recovery_no_backup (CuTest *test
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -789,7 +818,7 @@ static void firmware_update_test_static_init_no_active_or_staging (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -819,7 +848,7 @@ static void firmware_update_test_init_no_firmware_header (CuTest *test)
 	updater.is_mock = false;
 
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base, 0);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, NULL, updater.test.internal.finalize_image);
@@ -838,27 +867,31 @@ static void firmware_update_test_init_no_firmware_header_null (CuTest *test)
 	firmware_update_testing_init_dependencies (test, &updater, 0);
 
 	status = firmware_update_init_no_firmware_header (NULL, &updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base, 0);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	status = firmware_update_init_no_firmware_header (&updater.test, NULL, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base, 0);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, NULL,
-		&updater.app.base, &updater.fw.base, &updater.hash.base, 0);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
-		NULL, &updater.fw.base, &updater.hash.base, 0);
+		NULL, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
-		&updater.app.base, NULL, &updater.hash.base, 0);
+		&updater.app.base, NULL, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, NULL, 0);
+		&updater.app.base, &updater.fw.base, NULL, &updater.hash.base, 0);
+	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
+
+	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
+		&updater.app.base, &updater.fw.base, &updater.security.base, NULL, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	firmware_update_testing_release_dependencies (test, &updater);
@@ -877,7 +910,7 @@ static void firmware_update_test_init_no_firmware_header_no_recovery (CuTest *te
 	updater.is_mock = false;
 
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base, 0);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_update_testing_validate_and_release (test, &updater);
@@ -895,7 +928,7 @@ static void firmware_update_test_init_no_firmware_header_no_recovery_backup (CuT
 	updater.is_mock = false;
 
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base, 0);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_update_testing_validate_and_release (test, &updater);
@@ -913,7 +946,7 @@ static void firmware_update_test_init_no_firmware_header_no_backup (CuTest *test
 	updater.is_mock = false;
 
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base, 0);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	firmware_update_testing_validate_and_release (test, &updater);
@@ -932,7 +965,7 @@ static void firmware_update_test_init_no_firmware_header_no_recovery_no_backup (
 	updater.map.rec_backup_flash = NULL;
 
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base, 0);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_FLASH_MAP, status);
 
 	firmware_update_testing_release_dependencies (test, &updater);
@@ -949,13 +982,13 @@ static void firmware_update_test_init_no_firmware_header_no_active_or_staging (C
 	updater.map.active_flash = NULL;
 
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base, 0);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_FLASH_MAP, status);
 
 	updater.map.active_flash = &updater.flash.base;
 	updater.map.staging_flash = NULL;
 	status = firmware_update_init_no_firmware_header (&updater.test, &updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base, 0);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_FLASH_MAP, status);
 
 	firmware_update_testing_release_dependencies (test, &updater);
@@ -965,7 +998,8 @@ static void firmware_update_test_static_init_no_firmware_header (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -987,7 +1021,8 @@ static void firmware_update_test_static_init_no_firmware_header_null (CuTest *te
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -1017,6 +1052,11 @@ static void firmware_update_test_static_init_no_firmware_header_null (CuTest *te
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
 
 	test_static.fw = &updater.fw.base;
+	test_static.security = NULL;
+	status = firmware_update_init_state (&test_static, 0);
+	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
+
+	test_static.security = &updater.security.base;
 	test_static.hash = NULL;
 	status = firmware_update_init_state (&test_static, 0);
 	CuAssertIntEquals (test, FIRMWARE_UPDATE_INVALID_ARGUMENT, status);
@@ -1028,7 +1068,8 @@ static void firmware_update_test_static_init_no_firmware_header_no_recovery (CuT
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -1049,7 +1090,8 @@ static void firmware_update_test_static_init_no_firmware_header_no_recovery_back
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -1069,7 +1111,8 @@ static void firmware_update_test_static_init_no_firmware_header_no_backup (CuTes
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -1089,7 +1132,8 @@ static void firmware_update_test_static_init_no_firmware_header_no_recovery_no_b
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -1109,7 +1153,8 @@ static void firmware_update_test_static_init_no_firmware_header_no_active_or_sta
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -1214,6 +1259,14 @@ static void firmware_update_test_run_update (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -1280,6 +1333,14 @@ static void firmware_update_test_run_update_header_last (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -1351,6 +1412,14 @@ static void firmware_update_test_run_update_header_last_small_page (CuTest *test
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -1413,6 +1482,14 @@ static void firmware_update_test_run_update_no_notifications (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
@@ -1463,6 +1540,14 @@ static void firmware_update_test_run_update_callback_null (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
 
@@ -1516,6 +1601,14 @@ static void firmware_update_test_run_update_image_offset (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -1581,6 +1674,14 @@ static void firmware_update_test_run_update_finalize_image (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -1648,6 +1749,14 @@ static void firmware_update_test_run_update_finalize_image_with_offset (CuTest *
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -1717,6 +1826,14 @@ static void firmware_update_test_run_update_with_observer (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.observer.mock, updater.observer.base.on_update_start,
 		&updater.observer, 0, MOCK_ARG_PTR_CONTAINS (&zero, sizeof (zero)));
@@ -1788,6 +1905,14 @@ static void firmware_update_test_run_update_observer_removed (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -1865,6 +1990,14 @@ static void firmware_update_test_run_update_extra_data_received (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -1990,6 +2123,14 @@ static void firmware_update_test_run_update_with_firmware_header_not_required (C
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -2068,6 +2209,14 @@ static void firmware_update_test_run_update_manifest_revocation (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -2171,6 +2320,14 @@ static void firmware_update_test_run_update_manifest_revocation_header_last (CuT
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -2268,6 +2425,14 @@ static void firmware_update_test_run_update_manifest_revocation_header_last_smal
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -2359,6 +2524,14 @@ static void firmware_update_test_run_update_manifest_revocation_image_offset (Cu
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -2447,6 +2620,14 @@ static void firmware_update_test_run_update_manifest_revocation_finalize_image (
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -2540,6 +2721,14 @@ static void firmware_update_test_run_update_manifest_revocation_finalize_image_w
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -2649,6 +2838,14 @@ static void firmware_update_test_run_update_manifest_revocation_no_recovery_back
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -2754,6 +2951,14 @@ static void firmware_update_test_run_update_manifest_revocation_no_recovery (CuT
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -2829,6 +3034,14 @@ static void firmware_update_test_run_update_no_backup (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -2899,6 +3112,14 @@ static void firmware_update_test_run_update_no_backup_manifest_revocation (CuTes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -2987,6 +3208,14 @@ static void firmware_update_test_run_update_recovery_bad (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -3065,6 +3294,14 @@ static void firmware_update_test_run_update_recovery_bad_finalize_image (CuTest 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -3141,6 +3378,14 @@ static void firmware_update_test_run_update_recovery_bad_no_recovery (CuTest *te
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -3221,6 +3466,14 @@ static void firmware_update_test_run_update_recovery_bad_manifest_revocation (Cu
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -3311,6 +3564,14 @@ static void firmware_update_test_run_update_after_recovery_bad (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -3367,6 +3628,14 @@ static void firmware_update_test_run_update_after_recovery_bad (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -3438,6 +3707,14 @@ static void firmware_update_test_run_update_new_recovery_revision_higher (CuTest
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -3531,6 +3808,216 @@ static void firmware_update_test_run_update_new_recovery_revision_lower (CuTest 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
+		MOCK_RETURN_PTR (&updater.manifest));
+	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
+		&updater.manifest, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x40000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (recovery_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x50000, 0x40000,
+		recovery_data, sizeof (recovery_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
+static void firmware_update_test_run_update_revoked_image_rollback_protection_bypassed (
+	CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	firmware_update_testing_init (test, &updater, 1, 1, 0);
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (staging_data));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_REVOCATION));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_key_manifest, &updater.fw,
+		MOCK_RETURN_PTR (&updater.manifest));
+	status |= mock_expect (&updater.manifest.mock, updater.manifest.base.revokes_old_manifest,
+		&updater.manifest, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_CHECK_RECOVERY));
+
+	status |= mock_expect (&updater.log.mock, updater.log.base.create_entry, &updater.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	status |= mock_expect (&updater.log.mock, updater.log.base.flush, &updater.log, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_RECOVERY));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x40000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (recovery_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x50000, 0x40000,
+		recovery_data, sizeof (recovery_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATE_RECOVERY));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x40000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x40000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
+static void firmware_update_test_run_update_revoked_image_rollback_protection_bypassed_firmware_header_not_required (
+	CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CERBERUS_FW,
+		.msg_index = FIRMWARE_LOGGING_RECOVERY_UPDATE,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	firmware_update_testing_init_no_firmware_header (test, &updater, 1, 1, 0);
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (staging_data));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 0);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -3622,6 +4109,14 @@ static void firmware_update_test_run_update_recovery_revision_not_set (CuTest *t
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -3715,6 +4210,14 @@ static void firmware_update_test_run_update_same_revision_after_recovery_update 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -3785,6 +4288,14 @@ static void firmware_update_test_run_update_same_revision_after_recovery_update 
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -3864,6 +4375,14 @@ static void firmware_update_test_run_update_same_revision_after_manifest_revocat
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -3948,6 +4467,14 @@ static void firmware_update_test_run_update_same_revision_after_manifest_revocat
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -4019,6 +4546,14 @@ static void firmware_update_test_run_update_recovery_bad_different_revision (CuT
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -4097,6 +4632,14 @@ static void firmware_update_test_run_update_same_revision_after_recovery_bad (Cu
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -4153,6 +4696,14 @@ static void firmware_update_test_run_update_same_revision_after_recovery_bad (Cu
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -4224,6 +4775,14 @@ static void firmware_update_test_run_update_new_recovery_firmware_header_not_req
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -4318,6 +4877,14 @@ static void firmware_update_test_run_update_recovery_revision_not_set_firmware_h
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -4402,6 +4969,14 @@ static void firmware_update_test_run_update_different_flash_devices (CuTest *tes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -4491,6 +5066,14 @@ static void firmware_update_test_run_update_different_flash_devices_finalize_ima
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -4561,7 +5144,7 @@ static void firmware_update_test_run_update_static_init (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -4580,6 +5163,14 @@ static void firmware_update_test_run_update_static_init (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -4626,7 +5217,7 @@ static void firmware_update_test_run_update_static_init_with_observer (CuTest *t
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -4649,6 +5240,14 @@ static void firmware_update_test_run_update_static_init_with_observer (CuTest *t
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.observer.mock, updater.observer.base.on_update_start,
 		&updater.observer, 0, MOCK_ARG_PTR_CONTAINS (&zero, sizeof (zero)));
@@ -4699,7 +5298,8 @@ static void firmware_update_test_run_update_static_init_no_firmware_header_not_r
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -4765,7 +5365,8 @@ static void firmware_update_test_run_update_static_init_with_firmware_header_not
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -4784,6 +5385,14 @@ static void firmware_update_test_run_update_static_init_with_firmware_header_not
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -4830,7 +5439,7 @@ static void firmware_update_test_run_update_static_init_new_recovery_revision (C
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -4858,6 +5467,14 @@ static void firmware_update_test_run_update_static_init_new_recovery_revision (C
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -4925,7 +5542,7 @@ static void firmware_update_test_run_update_static_init_recovery_revision_not_se
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -4953,6 +5570,14 @@ static void firmware_update_test_run_update_static_init_recovery_revision_not_se
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -5021,7 +5646,8 @@ static void firmware_update_test_run_update_static_init_new_recovery_firmware_he
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -5049,6 +5675,14 @@ static void firmware_update_test_run_update_static_init_new_recovery_firmware_he
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -5117,7 +5751,8 @@ static void firmware_update_test_run_update_static_init_recovery_revision_not_se
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -5145,6 +5780,14 @@ static void firmware_update_test_run_update_static_init_recovery_revision_not_se
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -5439,6 +6082,14 @@ static void firmware_update_test_run_update_verify_rollback_disallowed (CuTest *
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_INVALID_IMAGE));
 
@@ -5473,6 +6124,14 @@ static void firmware_update_test_run_update_verify_rollback_disallowed_firmware_
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_INVALID_IMAGE));
 
@@ -5488,7 +6147,7 @@ static void firmware_update_test_run_update_static_init_verify_rollback_disallow
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -5507,6 +6166,14 @@ static void firmware_update_test_run_update_static_init_verify_rollback_disallow
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_INVALID_IMAGE));
@@ -5525,7 +6192,8 @@ static void firmware_update_test_run_update_static_init_verify_rollback_disallow
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -5544,6 +6212,14 @@ static void firmware_update_test_run_update_static_init_verify_rollback_disallow
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_INVALID_IMAGE));
@@ -5614,6 +6290,14 @@ static void firmware_update_test_run_update_blocked_by_observer (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.observer.mock, updater.observer.base.on_update_start,
 		&updater.observer, 0, MOCK_ARG_PTR_CONTAINS (&zero, sizeof (zero)));
 	status |= mock_expect_output (&updater.observer.mock, 0, &error, sizeof (error), -1);
@@ -5651,6 +6335,14 @@ static void firmware_update_test_run_update_context_error (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.observer.mock, updater.observer.base.on_update_start,
 		&updater.observer, 0, MOCK_ARG_PTR_CONTAINS (&zero, sizeof (zero)));
@@ -5690,6 +6382,14 @@ static void firmware_update_test_run_update_backup_fail_load (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -5728,6 +6428,14 @@ static void firmware_update_test_run_update_backup_img_size_error (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -5769,6 +6477,14 @@ static void firmware_update_test_run_update_backup_error (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -5812,6 +6528,14 @@ static void firmware_update_test_run_update_page_size_fail (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -5862,6 +6586,14 @@ static void firmware_update_test_run_update_erase_failure (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -5911,6 +6643,14 @@ static void firmware_update_test_run_update_write_staging_error (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -5970,6 +6710,14 @@ static void firmware_update_test_run_update_write_staging_error_header_last (CuT
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -6034,6 +6782,14 @@ static void firmware_update_test_run_update_write_staging_error_header_last_smal
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -6090,6 +6846,14 @@ static void firmware_update_test_run_update_write_staging_error_fail_restore_era
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -6142,6 +6906,14 @@ static void firmware_update_test_run_update_write_staging_error_fail_restore (Cu
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -6199,6 +6971,14 @@ static void firmware_update_test_run_update_write_staging_error_image_offset (Cu
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -6254,6 +7034,14 @@ static void firmware_update_test_run_update_header_last_image_fail (CuTest *test
 		RSA_ENCRYPT_LEN * 4);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -6316,6 +7104,14 @@ static void firmware_update_test_run_update_header_last_header_fail (CuTest *tes
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -6376,6 +7172,14 @@ static void firmware_update_test_run_update_finalize_image_error (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -6440,6 +7244,14 @@ static void firmware_update_test_run_update_finalize_image_error_with_offset (Cu
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -6506,6 +7318,14 @@ static void firmware_update_test_run_update_finalize_image_error_fail_restore_er
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -6565,6 +7385,14 @@ static void firmware_update_test_run_update_finalize_image_error_fail_restore (C
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -6628,6 +7456,14 @@ static void firmware_update_test_run_update_finalize_image_error_fail_restore_fi
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -6690,6 +7526,14 @@ static void firmware_update_test_run_update_manifest_check_load_fail (CuTest *te
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -6747,6 +7591,14 @@ static void firmware_update_test_run_update_manifest_check_manifest_fail (CuTest
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -6807,6 +7659,14 @@ static void firmware_update_test_run_update_manifest_check_fail (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -6877,6 +7737,14 @@ static void firmware_update_test_run_update_manifest_backup_load_fail (CuTest *t
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -6960,6 +7828,14 @@ static void firmware_update_test_run_update_manifest_backup_img_size_error (CuTe
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -7045,6 +7921,14 @@ static void firmware_update_test_run_update_manifest_backup_recovery_fail (CuTes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -7132,6 +8016,14 @@ static void firmware_update_test_run_update_recovery_page_size_fail (CuTest *tes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -7226,6 +8118,14 @@ static void firmware_update_test_run_update_recovery_erase_fail (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -7319,6 +8219,14 @@ static void firmware_update_test_run_update_recovery_fail (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -7424,6 +8332,14 @@ static void firmware_update_test_run_update_recovery_fail_header_last (CuTest *t
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -7524,6 +8440,14 @@ static void firmware_update_test_run_update_recovery_fail_header_last_small_page
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -7621,6 +8545,14 @@ static void firmware_update_test_run_update_recovery_fail_finalize (CuTest *test
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -7728,6 +8660,14 @@ static void firmware_update_test_run_update_recovery_restore_erase_fail (CuTest 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -7825,6 +8765,14 @@ static void firmware_update_test_run_update_recovery_restore_fail (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -7926,6 +8874,14 @@ static void firmware_update_test_run_update_recovery_restore_fail_finalize (CuTe
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -8042,6 +8998,14 @@ static void firmware_update_test_run_update_manifest_revocation_fail (CuTest *te
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -8150,6 +9114,14 @@ static void firmware_update_test_run_update_no_recovery_backup_fail (CuTest *tes
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -8238,6 +9210,14 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup 
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -8339,6 +9319,14 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup_
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -8438,6 +9426,14 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup_
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -8539,6 +9535,14 @@ static void firmware_update_test_run_update_recovery_restore_no_recovery_backup_
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -8628,6 +9632,14 @@ static void firmware_update_test_run_update_no_backup_write_staging_error (CuTes
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -8673,6 +9685,14 @@ static void firmware_update_test_run_update_no_backup_finalize_image_error (CuTe
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -8730,6 +9750,14 @@ static void firmware_update_test_run_update_no_backup_recovery_erase_fail (CuTes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -8808,6 +9836,14 @@ static void firmware_update_test_run_update_no_backup_recovery_fail (CuTest *tes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -8889,6 +9925,14 @@ static void firmware_update_test_run_update_no_backup_recovery_finalize_fail (Cu
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -8969,6 +10013,14 @@ static void firmware_update_test_run_update_recovery_bad_page_size_fail (CuTest 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -9022,6 +10074,14 @@ static void firmware_update_test_run_update_recovery_bad_erase_fail (CuTest *tes
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -9077,6 +10137,14 @@ static void firmware_update_test_run_update_recovery_bad_update_fail (CuTest *te
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -9137,6 +10205,14 @@ static void firmware_update_test_run_update_recovery_bad_finalize_fail (CuTest *
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -9190,6 +10266,14 @@ static void firmware_update_test_run_update_after_recovery_page_size_fail (CuTes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -9257,6 +10341,14 @@ static void firmware_update_test_run_update_after_recovery_page_size_fail (CuTes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -9322,6 +10414,14 @@ static void firmware_update_test_run_update_after_recovery_erase_fail (CuTest *t
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -9389,6 +10489,14 @@ static void firmware_update_test_run_update_after_recovery_erase_fail (CuTest *t
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -9460,6 +10568,14 @@ static void firmware_update_test_run_update_after_recovery_fail (CuTest *test)
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -9534,6 +10650,14 @@ static void firmware_update_test_run_update_after_recovery_fail (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -9599,6 +10723,14 @@ static void firmware_update_test_run_update_after_recovery_finalize_fail (CuTest
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -9680,6 +10812,14 @@ static void firmware_update_test_run_update_after_recovery_finalize_fail (CuTest
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -9745,6 +10885,14 @@ static void firmware_update_test_run_update_after_recovery_restore_erase_fail (C
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -9817,6 +10965,14 @@ static void firmware_update_test_run_update_after_recovery_restore_erase_fail (C
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -9887,6 +11043,14 @@ static void firmware_update_test_run_update_after_recovery_restore_fail (CuTest 
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -9961,6 +11125,14 @@ static void firmware_update_test_run_update_after_recovery_restore_fail (CuTest 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -10033,6 +11205,14 @@ static void firmware_update_test_run_update_after_recovery_restore_finalize_fail
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -10111,6 +11291,14 @@ static void firmware_update_test_run_update_after_recovery_restore_finalize_fail
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -10190,6 +11378,14 @@ static void firmware_update_test_run_update_no_recovery_backup_after_recovery_re
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -10260,6 +11456,14 @@ static void firmware_update_test_run_update_no_recovery_backup_after_recovery_re
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -10335,6 +11539,14 @@ static void firmware_update_test_run_update_no_recovery_backup_after_recovery_re
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -10408,6 +11620,14 @@ static void firmware_update_test_run_update_no_recovery_backup_after_recovery_re
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -10478,6 +11698,14 @@ static void firmware_update_test_run_update_after_recovery_backup_load_fail (CuT
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -10535,6 +11763,14 @@ static void firmware_update_test_run_update_after_recovery_backup_load_fail (CuT
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -10599,6 +11835,14 @@ static void firmware_update_test_run_update_after_recovery_backup_img_size_error
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -10658,6 +11902,14 @@ static void firmware_update_test_run_update_after_recovery_backup_img_size_error
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -10722,6 +11974,14 @@ static void firmware_update_test_run_update_after_recovery_backup_fail (CuTest *
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -10782,6 +12042,14 @@ static void firmware_update_test_run_update_after_recovery_backup_fail (CuTest *
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -10849,6 +12117,14 @@ static void firmware_update_test_run_update_no_recovery_backup_after_recovery_ba
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -10909,6 +12185,14 @@ static void firmware_update_test_run_update_no_recovery_backup_after_recovery_ba
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -10975,6 +12259,14 @@ static void firmware_update_test_run_update_no_backup_after_recovery_erase_fail 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -11025,6 +12317,14 @@ static void firmware_update_test_run_update_no_backup_after_recovery_erase_fail 
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -11089,6 +12389,14 @@ static void firmware_update_test_run_update_no_backup_after_recovery_fail (CuTes
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -11139,6 +12447,14 @@ static void firmware_update_test_run_update_no_backup_after_recovery_fail (CuTes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -11205,6 +12521,14 @@ static void firmware_update_test_run_update_no_backup_after_recovery_finalize_fa
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -11260,6 +12584,14 @@ static void firmware_update_test_run_update_no_backup_after_recovery_finalize_fa
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -11328,6 +12660,14 @@ static void firmware_update_test_run_update_after_recovery_bad_page_size_fail (C
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -11357,6 +12697,14 @@ static void firmware_update_test_run_update_after_recovery_bad_page_size_fail (C
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -11430,6 +12778,14 @@ static void firmware_update_test_run_update_after_recovery_bad_erase_fail (CuTes
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -11460,6 +12816,14 @@ static void firmware_update_test_run_update_after_recovery_bad_erase_fail (CuTes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -11533,6 +12897,14 @@ static void firmware_update_test_run_update_after_recovery_bad_update_fail (CuTe
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -11564,6 +12936,14 @@ static void firmware_update_test_run_update_after_recovery_bad_update_fail (CuTe
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -11638,6 +13018,14 @@ static void firmware_update_test_run_update_after_recovery_bad_finalize_fail (Cu
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -11672,6 +13060,14 @@ static void firmware_update_test_run_update_after_recovery_bad_finalize_fail (Cu
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -11746,6 +13142,14 @@ static void firmware_update_test_run_update_no_revocation (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -11800,6 +13204,14 @@ static void firmware_update_test_run_update_no_revocation_header_last (CuTest *t
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -11859,6 +13271,14 @@ static void firmware_update_test_run_update_no_revocation_header_last_small_page
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -11909,6 +13329,14 @@ static void firmware_update_test_run_update_no_revocation_no_notifications (CuTe
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
@@ -11952,6 +13380,14 @@ static void firmware_update_test_run_update_no_revocation_callback_null (CuTest 
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
 
@@ -11998,6 +13434,14 @@ static void firmware_update_test_run_update_no_revocation_image_offset (CuTest *
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -12051,6 +13495,14 @@ static void firmware_update_test_run_update_no_revocation_finalize_image (CuTest
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -12107,6 +13559,14 @@ static void firmware_update_test_run_update_no_revocation_finalize_image_with_of
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -12166,6 +13626,14 @@ static void firmware_update_test_run_update_no_revocation_with_observer (CuTest 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.observer.mock, updater.observer.base.on_update_start,
 		&updater.observer, 0, MOCK_ARG_PTR_CONTAINS (&zero, sizeof (zero)));
 
@@ -12224,6 +13692,14 @@ static void firmware_update_test_run_update_no_revocation_observer_removed (CuTe
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -12289,6 +13765,14 @@ static void firmware_update_test_run_update_no_revocation_extra_data_received (C
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -12392,6 +13876,14 @@ static void firmware_update_test_run_update_no_revocation_with_firmware_header_n
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -12442,6 +13934,14 @@ static void firmware_update_test_run_update_no_revocation_no_backup (CuTest *tes
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -12527,6 +14027,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad (CuTest *
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -12603,6 +14111,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_header_la
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -12681,6 +14197,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_header_la
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -12751,6 +14275,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_with_offs
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -12824,6 +14356,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_finalize_
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -12903,6 +14443,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_finalize_
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -12960,6 +14508,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_no_recove
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -13051,6 +14607,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_active_fa
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -13157,6 +14721,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_active_in
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -13266,6 +14838,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_active_im
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -13348,6 +14928,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad (Cu
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -13385,6 +14973,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad (Cu
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -13446,6 +15042,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_act
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -13490,6 +15094,72 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_act
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update_no_revocation (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
+static void firmware_update_test_run_update_no_revocation_revoked_image_rollback_protection_bypassed (
+	CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+
+	TEST_START;
+
+	firmware_update_testing_init (test, &updater, 1, 1, 0);
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 0);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -13560,6 +15230,14 @@ static void firmware_update_test_run_update_no_revocation_different_flash_device
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -13579,6 +15257,64 @@ static void firmware_update_test_run_update_no_revocation_different_flash_device
 	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x80000, sizeof (staging_data));
 	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash3, 0x80000,
 		0xa0000, staging_data, sizeof (staging_data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_run_update_no_revocation (&updater.test, &updater.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_validate_and_release (test, &updater);
+}
+
+static void firmware_update_test_run_update_no_revocation_revoked_image_rollback_protection_bypassed_firmware_header_not_required (
+	CuTest *test)
+{
+	struct firmware_update_testing updater;
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+
+	TEST_START;
+
+	firmware_update_testing_init_no_firmware_header (test, &updater, 1, 1, 0);
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_VERIFYING_IMAGE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x30000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
+		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
+	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_BACKUP_ACTIVE));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+	status |= flash_mock_expect_erase_copy_verify (&updater.flash, &updater.flash, 0x20000, 0x10000,
+		active_data, sizeof (active_data));
+
+	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_UPDATING_IMAGE));
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (staging_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x30000,
+		staging_data, sizeof (staging_data));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -13613,6 +15349,14 @@ static void firmware_update_test_run_update_no_revocation_different_flash_device
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -13675,6 +15419,14 @@ static void firmware_update_test_run_update_no_revocation_different_flash_device
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -13745,6 +15497,14 @@ static void firmware_update_test_run_update_no_revocation_different_flash_device
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -13790,7 +15550,7 @@ static void firmware_update_test_run_update_no_revocation_static_init (CuTest *t
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -13809,6 +15569,14 @@ static void firmware_update_test_run_update_no_revocation_static_init (CuTest *t
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -13843,7 +15611,7 @@ static void firmware_update_test_run_update_no_revocation_static_init_with_obser
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -13866,6 +15634,14 @@ static void firmware_update_test_run_update_no_revocation_static_init_with_obser
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.observer.mock, updater.observer.base.on_update_start,
 		&updater.observer, 0, MOCK_ARG_PTR_CONTAINS (&zero, sizeof (zero)));
@@ -13904,7 +15680,8 @@ static void firmware_update_test_run_update_no_revocation_static_init_no_firmwar
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -13958,7 +15735,8 @@ static void firmware_update_test_run_update_no_revocation_static_init_with_firmw
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -13977,6 +15755,14 @@ static void firmware_update_test_run_update_no_revocation_static_init_with_firmw
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -14238,6 +16024,14 @@ static void firmware_update_test_run_update_no_revocation_verify_rollback_disall
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_INVALID_IMAGE));
 
@@ -14272,6 +16066,14 @@ static void firmware_update_test_run_update_no_revocation_verify_rollback_disall
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_INVALID_IMAGE));
 
@@ -14288,7 +16090,7 @@ static void firmware_update_test_run_update_no_revocation_static_init_verify_rol
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -14307,6 +16109,14 @@ static void firmware_update_test_run_update_no_revocation_static_init_verify_rol
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_INVALID_IMAGE));
@@ -14325,7 +16135,8 @@ static void firmware_update_test_run_update_no_revocation_static_init_verify_rol
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -14344,6 +16155,14 @@ static void firmware_update_test_run_update_no_revocation_static_init_verify_rol
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_INVALID_IMAGE));
@@ -14414,6 +16233,14 @@ static void firmware_update_test_run_update_no_revocation_blocked_by_observer (C
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.observer.mock, updater.observer.base.on_update_start,
 		&updater.observer, 0, MOCK_ARG_PTR_CONTAINS (&zero, sizeof (zero)));
 	status |= mock_expect_output (&updater.observer.mock, 0, &error, sizeof (error), -1);
@@ -14451,6 +16278,14 @@ static void firmware_update_test_run_update_no_revocation_context_error (CuTest 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.observer.mock, updater.observer.base.on_update_start,
 		&updater.observer, 0, MOCK_ARG_PTR_CONTAINS (&zero, sizeof (zero)));
@@ -14490,6 +16325,14 @@ static void firmware_update_test_run_update_no_revocation_backup_fail_load (CuTe
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -14528,6 +16371,14 @@ static void firmware_update_test_run_update_no_revocation_backup_img_size_error 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -14569,6 +16420,14 @@ static void firmware_update_test_run_update_no_revocation_backup_error (CuTest *
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -14612,6 +16471,14 @@ static void firmware_update_test_run_update_no_revocation_page_size_fail (CuTest
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -14662,6 +16529,14 @@ static void firmware_update_test_run_update_no_revocation_erase_failure (CuTest 
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -14711,6 +16586,14 @@ static void firmware_update_test_run_update_no_revocation_write_staging_error (C
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -14771,6 +16654,14 @@ static void firmware_update_test_run_update_no_revocation_write_staging_error_he
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -14835,6 +16726,14 @@ static void firmware_update_test_run_update_no_revocation_write_staging_error_he
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -14892,6 +16791,14 @@ static void firmware_update_test_run_update_no_revocation_write_staging_error_fa
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -14945,6 +16852,14 @@ static void firmware_update_test_run_update_no_revocation_write_staging_error_fa
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -15003,6 +16918,14 @@ static void firmware_update_test_run_update_no_revocation_write_staging_error_im
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -15058,6 +16981,14 @@ static void firmware_update_test_run_update_no_revocation_header_last_image_fail
 		RSA_ENCRYPT_LEN * 4);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -15120,6 +17051,14 @@ static void firmware_update_test_run_update_no_revocation_header_last_header_fai
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -15180,6 +17119,14 @@ static void firmware_update_test_run_update_no_revocation_finalize_image_error (
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -15246,6 +17193,14 @@ static void firmware_update_test_run_update_no_revocation_finalize_image_error_w
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -15314,6 +17269,14 @@ static void firmware_update_test_run_update_no_revocation_finalize_image_error_f
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -15375,6 +17338,14 @@ static void firmware_update_test_run_update_no_revocation_finalize_image_error_f
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -15439,6 +17410,14 @@ static void firmware_update_test_run_update_no_revocation_finalize_image_error_f
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -15502,6 +17481,14 @@ static void firmware_update_test_run_update_no_revocation_no_backup_write_stagin
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -15548,6 +17535,14 @@ static void firmware_update_test_run_update_no_revocation_no_backup_finalize_ima
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -15886,6 +17881,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_page_size
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -15970,6 +17973,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_erase_fai
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -16056,6 +18067,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_update_fa
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw, 5);
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -16146,6 +18165,14 @@ static void firmware_update_test_run_update_no_revocation_recovery_bad_finalize_
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -16285,6 +18312,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_pag
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -16419,6 +18454,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_era
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -16555,6 +18598,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_upd
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -16700,6 +18751,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_fin
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -16793,6 +18852,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_pag
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -16842,6 +18909,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_pag
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -16946,6 +19021,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_era
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -16996,6 +19079,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_era
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -17100,6 +19191,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_upd
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -17151,6 +19250,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_upd
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -17256,6 +19363,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_fin
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -17311,6 +19426,14 @@ static void firmware_update_test_run_update_no_revocation_after_recovery_bad_fin
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -19596,7 +21719,7 @@ static void firmware_update_test_run_revocation_static_init_manifest_revocation 
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
@@ -19689,7 +21812,8 @@ static void firmware_update_test_run_revocation_static_init_no_firmware_header_n
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -19731,7 +21855,8 @@ static void firmware_update_test_run_revocation_static_init_with_firmware_header
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -19772,7 +21897,7 @@ static void firmware_update_test_run_revocation_static_init_new_recovery_revisio
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
@@ -19844,7 +21969,7 @@ static void firmware_update_test_run_revocation_static_init_recovery_revision_no
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
@@ -19917,7 +22042,8 @@ static void firmware_update_test_run_revocation_static_init_new_recovery_firmwar
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
@@ -19990,7 +22116,8 @@ static void firmware_update_test_run_revocation_static_init_recovery_revision_no
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t recovery_data[] = {0x21, 0x22, 0x23};
@@ -23296,7 +25423,33 @@ static void firmware_update_test_prepare_staging_static_init (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
+	int status;
+
+	TEST_START;
+
+	firmware_update_testing_init_static (test, &updater, &test_static, 0, 0, 0);
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_STAGING_PREP));
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x30000, 5);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_prepare_staging (&test_static, &updater.handler.base, 5);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 5, firmware_update_get_update_remaining (&test_static));
+
+	firmware_update_testing_release_dependencies (test, &updater);
+	firmware_update_release (&test_static);
+}
+
+static void firmware_update_test_prepare_staging_static_init_no_firmware_header (CuTest *test)
+{
+	struct firmware_update_testing updater;
+	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 
 	TEST_START;
@@ -23558,7 +25711,39 @@ static void firmware_update_test_write_to_staging_static_init (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
+	int status;
+	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
+
+	TEST_START;
+
+	firmware_update_testing_init_static (test, &updater, &test_static, 0, 0, 0);
+
+	status = mock_expect (&updater.handler.mock, updater.handler.base.status_change,
+		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_STAGING_WRITE));
+	status |= mock_expect (&updater.flash.mock, updater.flash.base.write, &updater.flash,
+		sizeof (staging_data), MOCK_ARG (0x30000),
+		MOCK_ARG_PTR_CONTAINS (staging_data, sizeof (staging_data)),
+		MOCK_ARG (sizeof (staging_data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_write_to_staging (&test_static, &updater.handler.base, staging_data,
+		sizeof (staging_data));
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, (int) -sizeof (staging_data),
+		firmware_update_get_update_remaining (&test_static));
+
+	firmware_update_testing_release_dependencies (test, &updater);
+	firmware_update_release (&test_static);
+}
+
+static void firmware_update_test_write_to_staging_static_init_no_firmware_header (CuTest *test)
+{
+	struct firmware_update_testing updater;
+	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
 
@@ -23969,6 +26154,14 @@ static void firmware_update_test_validate_recovery_image (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -24083,6 +26276,14 @@ static void firmware_update_test_validate_recovery_image_extra_verify (CuTest *t
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -24220,6 +26421,14 @@ static void firmware_update_test_validate_recovery_image_set_recovery_revision (
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&header2));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -24330,6 +26539,14 @@ static void firmware_update_test_validate_recovery_image_bad (CuTest *test)
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -24434,6 +26651,14 @@ static void firmware_update_test_validate_recovery_image_bad_extra_verify (CuTes
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -24531,6 +26756,14 @@ static void firmware_update_test_validate_recovery_image_load_verify_bad_format 
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -24717,6 +26950,14 @@ static void firmware_update_test_validate_recovery_image_with_firmware_header_no
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -24799,6 +27040,14 @@ static void firmware_update_test_validate_recovery_image_different_flash_devices
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -24888,6 +27137,14 @@ static void firmware_update_test_validate_recovery_image_different_flash_devices
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -24932,7 +27189,7 @@ static void firmware_update_test_validate_recovery_image_static_init (CuTest *te
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -24984,6 +27241,14 @@ static void firmware_update_test_validate_recovery_image_static_init (CuTest *te
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -25030,7 +27295,8 @@ static void firmware_update_test_validate_recovery_image_static_init_no_firmware
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -25128,7 +27394,8 @@ static void firmware_update_test_validate_recovery_image_static_init_with_firmwa
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -25167,6 +27434,14 @@ static void firmware_update_test_validate_recovery_image_static_init_with_firmwa
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -25267,6 +27542,14 @@ static void firmware_update_test_validate_recovery_image_load_failure (CuTest *t
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -25366,6 +27649,14 @@ static void firmware_update_test_validate_recovery_image_verify_failure (CuTest 
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -25471,6 +27762,14 @@ static void firmware_update_test_validate_recovery_image_extra_verify_failure (C
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -25571,6 +27870,14 @@ static void firmware_update_test_validate_recovery_null_firmware_header (CuTest 
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -25959,6 +28266,14 @@ static void firmware_update_test_restore_recovery_image_followed_by_update (CuTe
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -26048,6 +28363,14 @@ static void firmware_update_test_restore_recovery_image_followed_by_update_same_
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -26136,6 +28459,14 @@ static void firmware_update_test_restore_recovery_image_followed_by_update_diffe
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -26315,6 +28646,14 @@ static void firmware_update_test_restore_recovery_image_followed_by_update_with_
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
 
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
+
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
 	status |= mock_expect (&updater.app.mock, updater.app.base.save, &updater.app, 0);
@@ -26434,7 +28773,7 @@ static void firmware_update_test_restore_recovery_image_static_init (CuTest *tes
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	struct debug_log_entry_info entry = {
@@ -26496,7 +28835,8 @@ static void firmware_update_test_restore_recovery_image_static_init_followed_by_
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -26588,7 +28928,8 @@ static void firmware_update_test_restore_recovery_image_static_init_followed_by_
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
-		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t staging_data[] = {0x11, 0x12, 0x13, 0x14, 0x15};
@@ -26633,6 +28974,14 @@ static void firmware_update_test_restore_recovery_image_static_init_followed_by_
 		sizeof (staging_data));
 	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_firmware_header, &updater.fw,
 		MOCK_RETURN_PTR (&updater.header));
+
+	status |= mock_expect (&updater.security.mock,
+		updater.security.base.internal.get_security_policy, &updater.security, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&updater.security.mock, 0, &updater.policy_ptr,
+		sizeof (updater.policy_ptr), -1);
+	status |= mock_expect (&updater.policy.mock, updater.policy.base.enforce_anti_rollback,
+		&updater.policy, 1);
 
 	status |= mock_expect (&updater.handler.mock, updater.handler.base.status_change,
 		&updater.handler, 0, MOCK_ARG (UPDATE_STATUS_SAVING_STATE));
@@ -27429,7 +29778,41 @@ static void firmware_update_test_restore_active_image_static_init (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+
+	TEST_START;
+
+	firmware_update_testing_init_static (test, &updater, &test_static, 0, 0, 0);
+
+	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x40000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.verify, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.hash));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+
+	status |= firmware_update_testing_flash_page_size (&updater.flash, FLASH_PAGE_SIZE);
+	status |= flash_mock_expect_erase_flash_verify (&updater.flash, 0x10000, sizeof (active_data));
+	status |= flash_mock_expect_copy_flash_verify (&updater.flash, &updater.flash, 0x10000, 0x40000,
+		active_data, sizeof (active_data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_restore_active_image (&test_static);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_release_dependencies (test, &updater);
+	firmware_update_release (&test_static);
+}
+
+static void firmware_update_test_restore_active_image_static_init_no_firmware_header (CuTest *test)
+{
+	struct firmware_update_testing updater;
+	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 
@@ -27685,7 +30068,28 @@ static void firmware_update_test_is_recovery_good_static_init (CuTest *test)
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
+
+	TEST_START;
+
+	firmware_update_testing_init_static (test, &updater, &test_static, 0, 0, 0);
+
+	firmware_update_set_recovery_good (&test_static, false);
+	CuAssertIntEquals (test, 0, firmware_update_is_recovery_good (&test_static));
+
+	firmware_update_set_recovery_good (&test_static, true);
+	CuAssertIntEquals (test, 1, firmware_update_is_recovery_good (&test_static));
+
+	firmware_update_testing_release_dependencies (test, &updater);
+	firmware_update_release (&test_static);
+}
+
+static void firmware_update_test_is_recovery_good_static_init_no_firmware_header (CuTest *test)
+{
+	struct firmware_update_testing updater;
+	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 
 	TEST_START;
 
@@ -27910,7 +30314,44 @@ static void firmware_update_test_recovery_matches_active_image_static_init (CuTe
 {
 	struct firmware_update_testing updater;
 	struct firmware_update test_static = firmware_update_static_init (&updater.state, &updater.map,
-		&updater.app.base, &updater.fw.base, &updater.hash.base);
+		&updater.app.base, &updater.fw.base, &updater.security.base, &updater.hash.base);
+	int status;
+	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
+	uint8_t recovery_data[] = {0x01, 0x02, 0x03, 0x04};
+
+	TEST_START;
+
+	firmware_update_testing_init_static (test, &updater, &test_static, 0, 0, 0);
+
+	status = mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x10000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (active_data));
+
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.load, &updater.fw, 0,
+		MOCK_ARG_PTR (&updater.flash), MOCK_ARG (0x40000));
+	status |= mock_expect (&updater.fw.mock, updater.fw.base.get_image_size, &updater.fw,
+		sizeof (recovery_data));
+
+	status |= flash_mock_expect_verify_copy (&updater.flash, 0x10000, active_data, &updater.flash,
+		0x40000, recovery_data, sizeof (active_data));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_recovery_matches_active_image (&test_static);
+	CuAssertIntEquals (test, 0, status);
+
+	firmware_update_testing_release_dependencies (test, &updater);
+	firmware_update_release (&test_static);
+}
+
+static void firmware_update_test_recovery_matches_active_image_static_init_no_firmware_header (
+	CuTest *test)
+{
+	struct firmware_update_testing updater;
+	struct firmware_update test_static = firmware_update_static_init_no_firmware_header (
+		&updater.state, &updater.map, &updater.app.base, &updater.fw.base, &updater.security.base,
+		&updater.hash.base);
 	int status;
 	uint8_t active_data[] = {0x01, 0x02, 0x03, 0x04};
 	uint8_t recovery_data[] = {0x01, 0x02, 0x03, 0x04};
@@ -28143,6 +30584,8 @@ TEST (firmware_update_test_run_update_recovery_bad_no_recovery);
 TEST (firmware_update_test_run_update_recovery_bad_manifest_revocation);
 TEST (firmware_update_test_run_update_after_recovery_bad);
 TEST (firmware_update_test_run_update_new_recovery_revision_lower);
+TEST (firmware_update_test_run_update_revoked_image_rollback_protection_bypassed);
+TEST (firmware_update_test_run_update_revoked_image_rollback_protection_bypassed_firmware_header_not_required);
 TEST (firmware_update_test_run_update_recovery_revision_not_set);
 TEST (firmware_update_test_run_update_same_revision_after_recovery_update);
 TEST (firmware_update_test_run_update_same_revision_after_manifest_revocation);
@@ -28269,6 +30712,8 @@ TEST (firmware_update_test_run_update_no_revocation_recovery_bad_active_invalid_
 TEST (firmware_update_test_run_update_no_revocation_recovery_bad_active_img_size_error);
 TEST (firmware_update_test_run_update_no_revocation_after_recovery_bad);
 TEST (firmware_update_test_run_update_no_revocation_after_recovery_bad_active_fail_load);
+TEST (firmware_update_test_run_update_no_revocation_revoked_image_rollback_protection_bypassed);
+TEST (firmware_update_test_run_update_no_revocation_revoked_image_rollback_protection_bypassed_firmware_header_not_required);
 TEST (firmware_update_test_run_update_no_revocation_different_flash_devices);
 TEST (firmware_update_test_run_update_no_revocation_different_flash_devices_finalize_image);
 TEST (firmware_update_test_run_update_no_revocation_different_flash_devices_active_fail_load);
@@ -28417,6 +30862,7 @@ TEST (firmware_update_test_prepare_staging);
 TEST (firmware_update_test_prepare_staging_image_offset);
 TEST (firmware_update_test_prepare_staging_different_flash_devices);
 TEST (firmware_update_test_prepare_staging_static_init);
+TEST (firmware_update_test_prepare_staging_static_init_no_firmware_header);
 TEST (firmware_update_test_prepare_staging_null_updater);
 TEST (firmware_update_test_prepare_staging_null_callback);
 TEST (firmware_update_test_prepare_staging_image_too_large);
@@ -28427,6 +30873,7 @@ TEST (firmware_update_test_write_to_staging_multiple_calls);
 TEST (firmware_update_test_write_to_staging_image_offset);
 TEST (firmware_update_test_write_to_staging_different_flash_devices);
 TEST (firmware_update_test_write_to_staging_static_init);
+TEST (firmware_update_test_write_to_staging_static_init_no_firmware_header);
 TEST (firmware_update_test_write_to_staging_null_updater);
 TEST (firmware_update_test_write_to_staging_null_callback);
 TEST (firmware_update_test_write_to_staging_write_fail);
@@ -28494,6 +30941,7 @@ TEST (firmware_update_test_restore_active_image_finalize_image_with_offset);
 TEST (firmware_update_test_restore_active_image_different_flash_devices);
 TEST (firmware_update_test_restore_active_image_different_flash_devices_finalize_image);
 TEST (firmware_update_test_restore_active_image_static_init);
+TEST (firmware_update_test_restore_active_image_static_init_no_firmware_header);
 TEST (firmware_update_test_restore_active_image_null);
 TEST (firmware_update_test_restore_active_image_fail_load);
 TEST (firmware_update_test_restore_active_image_invalid_image);
@@ -28504,6 +30952,7 @@ TEST (firmware_update_test_restore_active_image_write_active_error);
 TEST (firmware_update_test_restore_active_image_finalize_image_error);
 TEST (firmware_update_test_is_recovery_good);
 TEST (firmware_update_test_is_recovery_good_static_init);
+TEST (firmware_update_test_is_recovery_good_static_init_no_firmware_header);
 TEST (firmware_update_test_is_recovery_good_null);
 TEST (firmware_update_test_recovery_matches_active_image);
 TEST (firmware_update_test_recovery_matches_active_image_no_recovery);
@@ -28513,6 +30962,7 @@ TEST (firmware_update_test_recovery_matches_active_image_recovery_shorter);
 TEST (firmware_update_test_recovery_matches_active_image_different_data);
 TEST (firmware_update_test_recovery_matches_active_image_different_flash_devices);
 TEST (firmware_update_test_recovery_matches_active_image_static_init);
+TEST (firmware_update_test_recovery_matches_active_image_static_init_no_firmware_header);
 TEST (firmware_update_test_recovery_matches_active_image_null);
 TEST (firmware_update_test_recovery_matches_active_image_active_fail_load);
 TEST (firmware_update_test_recovery_matches_active_image_active_img_size_error);
