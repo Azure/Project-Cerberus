@@ -340,7 +340,7 @@ static void ecc_openssl_release_key_pair (struct ecc_engine *engine,
 }
 
 static int ecc_openssl_get_signature_max_length (struct ecc_engine *engine,
-	struct ecc_private_key *key)
+	const struct ecc_private_key *key)
 {
 	if ((engine == NULL) || (key == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -414,7 +414,7 @@ static int ecc_openssl_get_public_key_der (struct ecc_engine *engine,
 }
 #endif
 
-static int ecc_openssl_sign (struct ecc_engine *engine, struct ecc_private_key *key,
+static int ecc_openssl_sign (struct ecc_engine *engine, const struct ecc_private_key *key,
 	const uint8_t *digest, size_t length, uint8_t *signature, size_t sig_length)
 {
 	unsigned int out_len;
@@ -446,7 +446,7 @@ static int ecc_openssl_sign (struct ecc_engine *engine, struct ecc_private_key *
 	return (status == 1) ? out_len : -ERR_get_error ();
 }
 
-static int ecc_openssl_verify (struct ecc_engine *engine, struct ecc_public_key *key,
+static int ecc_openssl_verify (struct ecc_engine *engine, const struct ecc_public_key *key,
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length)
 {
 	int status;
@@ -464,7 +464,7 @@ static int ecc_openssl_verify (struct ecc_engine *engine, struct ecc_public_key 
 
 #ifdef ECC_ENABLE_ECDH
 static int ecc_openssl_get_shared_secret_max_length (struct ecc_engine *engine,
-	struct ecc_private_key *key)
+	const struct ecc_private_key *key)
 {
 	if ((engine == NULL) || (key == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -474,7 +474,7 @@ static int ecc_openssl_get_shared_secret_max_length (struct ecc_engine *engine,
 }
 
 static int ecc_openssl_compute_shared_secret (struct ecc_engine *engine,
-	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key, uint8_t *secret,
+	const struct ecc_private_key *priv_key, const struct ecc_public_key *pub_key, uint8_t *secret,
 	size_t length)
 {
 	int status;

@@ -18,10 +18,10 @@
 #include "common/unused.h"
 
 
-int cmd_interface_system_process_request (struct cmd_interface *intf,
+int cmd_interface_system_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	struct cmd_interface_system *interface = (struct cmd_interface_system*) intf;
+	const struct cmd_interface_system *interface = (const struct cmd_interface_system*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
@@ -250,12 +250,12 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
 			status = cerberus_protocol_key_exchange (interface->base.session, request,
-				intf->curr_txn_encrypted);
+				request->is_encrypted);
 			break;
 
 		case CERBERUS_PROTOCOL_SESSION_SYNC:
 			status = cerberus_protocol_session_sync (interface->base.session, request,
-				intf->curr_txn_encrypted);
+				request->is_encrypted);
 			break;
 #endif
 
@@ -280,7 +280,7 @@ int cmd_interface_system_process_request (struct cmd_interface *intf,
 	return status;
 }
 
-int cmd_interface_system_process_response (struct cmd_interface *intf,
+int cmd_interface_system_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
 	struct cmd_interface_system *interface = (struct cmd_interface_system*) intf;

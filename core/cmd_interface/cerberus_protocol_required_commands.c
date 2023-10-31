@@ -443,7 +443,7 @@ int cerberus_protocol_get_device_info (const struct cmd_device *device,
  *
  * @return 0 if request completed successfully or an error code.
  */
-int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
+int cerberus_protocol_get_device_id (const struct cmd_interface_device_id *id,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_device_id_response *rsp =

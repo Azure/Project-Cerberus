@@ -5,17 +5,19 @@
 #include <string.h>
 #include "cmd_interface.h"
 #include "cmd_interface_dual_cmd_set.h"
+#include "common/unused.h"
 
 
-static int cmd_interface_dual_cmd_set_process_request (struct cmd_interface *intf,
+int cmd_interface_dual_cmd_set_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	struct cmd_interface_dual_cmd_set *interface = (struct cmd_interface_dual_cmd_set*) intf;
+	const struct cmd_interface_dual_cmd_set *interface =
+		(const struct cmd_interface_dual_cmd_set*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_cerberus_protocol_message (intf, request, &command_id, 
+	status = cmd_interface_process_cerberus_protocol_message (intf, request, &command_id,
 		&command_set, false, false);
 	if (status != 0) {
 		return status;
@@ -30,15 +32,16 @@ static int cmd_interface_dual_cmd_set_process_request (struct cmd_interface *int
 }
 
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-static int cmd_interface_dual_cmd_set_process_response (struct cmd_interface *intf,
+int cmd_interface_dual_cmd_set_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
-	struct cmd_interface_dual_cmd_set *interface = (struct cmd_interface_dual_cmd_set*) intf;
+	const struct cmd_interface_dual_cmd_set *interface =
+		(const struct cmd_interface_dual_cmd_set*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_cerberus_protocol_message (intf, response, &command_id, 
+	status = cmd_interface_process_cerberus_protocol_message (intf, response, &command_id,
 		&command_set, false, false);
 	if (status != 0) {
 		return status;
@@ -53,10 +56,11 @@ static int cmd_interface_dual_cmd_set_process_response (struct cmd_interface *in
 }
 #endif
 
-static int cmd_interface_dual_cmd_set_generate_error_packet (struct cmd_interface *intf,
+int cmd_interface_dual_cmd_set_generate_error_packet (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
 {
-	struct cmd_interface_dual_cmd_set *interface = (struct cmd_interface_dual_cmd_set*) intf;
+	const struct cmd_interface_dual_cmd_set *interface =
+		(const struct cmd_interface_dual_cmd_set*) intf;
 
 	if (interface == NULL) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
@@ -84,7 +88,7 @@ static int cmd_interface_dual_cmd_set_generate_error_packet (struct cmd_interfac
  * @return Initialization status, 0 if success or an error code.
  */
 int cmd_interface_dual_cmd_set_init (struct cmd_interface_dual_cmd_set *intf,
-	struct cmd_interface *intf_0, struct cmd_interface *intf_1)
+	const struct cmd_interface *intf_0, const struct cmd_interface *intf_1)
 {
 	if ((intf == 0)	|| (intf_0 == NULL) || (intf_1 == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
@@ -109,9 +113,7 @@ int cmd_interface_dual_cmd_set_init (struct cmd_interface_dual_cmd_set *intf,
  *
  * @param intf The dual command set command interface instance to deinitialize
  */
-void cmd_interface_dual_cmd_set_deinit (struct cmd_interface_dual_cmd_set *intf)
+void cmd_interface_dual_cmd_set_deinit (const struct cmd_interface_dual_cmd_set *intf)
 {
-	if (intf != NULL) {
-		memset (intf, 0, sizeof (struct cmd_interface_dual_cmd_set));
-	}
+	UNUSED (intf);
 }

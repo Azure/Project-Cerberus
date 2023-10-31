@@ -21,7 +21,7 @@
  *
  * @return 0 if the request is not encrypted, 1 if request is encrypted or an error code.
  */
-static int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
+static int cmd_interface_is_request_encrypted (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_header *header;
@@ -54,7 +54,7 @@ static int cmd_interface_is_request_encrypted (struct cmd_interface *intf,
  *
  * @return 0 if the message was successfully processed or an error code.
  */
-int cmd_interface_process_cerberus_protocol_message (struct cmd_interface *intf,
+int cmd_interface_process_cerberus_protocol_message (const struct cmd_interface *intf,
 	struct cmd_interface_msg *message, uint8_t *command_id, uint8_t *command_set, bool decrypt,
 	bool rsvd_zero)
 {
@@ -70,7 +70,7 @@ int cmd_interface_process_cerberus_protocol_message (struct cmd_interface *intf,
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
-	intf->curr_txn_encrypted = false;
+	message->is_encrypted = false;
 
 	header = (struct cerberus_protocol_header*) message->data;
 
@@ -102,7 +102,7 @@ int cmd_interface_process_cerberus_protocol_message (struct cmd_interface *intf,
 
 			*command_id = header->command;
 			message->max_response -= SESSION_MANAGER_TRAILER_LEN;
-			intf->curr_txn_encrypted = true;
+			message->is_encrypted = true;
 		}
 		else
 #endif
@@ -122,7 +122,8 @@ int cmd_interface_process_cerberus_protocol_message (struct cmd_interface *intf,
  *
  * @return 0 if the response was successfully processed or an error code.
  */
-int cmd_interface_prepare_response (struct cmd_interface *intf, struct cmd_interface_msg *response)
+int cmd_interface_prepare_response (const struct cmd_interface *intf,
+	struct cmd_interface_msg *response)
 {
 	int status = 0;
 
@@ -131,7 +132,7 @@ int cmd_interface_prepare_response (struct cmd_interface *intf, struct cmd_inter
 	}
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
-	if (intf->curr_txn_encrypted) {
+	if (response->is_encrypted) {
 		response->max_response += SESSION_MANAGER_TRAILER_LEN;
 
 		status = cmd_interface_is_request_encrypted (intf, response);
@@ -148,9 +149,6 @@ int cmd_interface_prepare_response (struct cmd_interface *intf, struct cmd_inter
 		}
 
 		status = intf->session->encrypt_message (intf->session, response);
-		if (status == 0) {
-			intf->curr_txn_encrypted = false;
-		}
 	}
 #endif
 
@@ -168,7 +166,7 @@ int cmd_interface_prepare_response (struct cmd_interface *intf, struct cmd_inter
  *
  * @return 0 if the error was successfully generated or an error code.
  */
-int cmd_interface_generate_error_packet (struct cmd_interface *intf,
+int cmd_interface_generate_error_packet (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
 {
 	struct cerberus_protocol_error *error_msg;
@@ -191,13 +189,11 @@ int cmd_interface_generate_error_packet (struct cmd_interface *intf,
 	request->length = sizeof (struct cerberus_protocol_error);
 
 #if CMD_SUPPORT_ENCRYPTED_SESSIONS
-	if (intf->curr_txn_encrypted) {
+	if (request->is_encrypted) {
 		int status = intf->session->encrypt_message (intf->session, request);
 		if (status != 0) {
 			return status;
 		}
-
-		intf->curr_txn_encrypted = false;
 	}
 #endif
 

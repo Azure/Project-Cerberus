@@ -75,7 +75,7 @@ static void ecc_mock_release_key_pair (struct ecc_engine *engine, struct ecc_pri
 }
 
 static int ecc_mock_get_signature_max_length (struct ecc_engine *engine,
-	struct ecc_private_key *key)
+	const struct ecc_private_key *key)
 {
 	struct ecc_engine_mock *mock = (struct ecc_engine_mock*) engine;
 
@@ -112,7 +112,7 @@ static int ecc_mock_get_public_key_der (struct ecc_engine *engine, const struct 
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_PTR_CALL (length));
 }
 
-static int ecc_mock_sign (struct ecc_engine *engine, struct ecc_private_key *key,
+static int ecc_mock_sign (struct ecc_engine *engine, const struct ecc_private_key *key,
 	const uint8_t *digest, size_t length, uint8_t *signature, size_t sig_length)
 {
 	struct ecc_engine_mock *mock = (struct ecc_engine_mock*) engine;
@@ -126,7 +126,7 @@ static int ecc_mock_sign (struct ecc_engine *engine, struct ecc_private_key *key
 		MOCK_ARG_CALL (sig_length));
 }
 
-static int ecc_mock_verify (struct ecc_engine *engine, struct ecc_public_key *key,
+static int ecc_mock_verify (struct ecc_engine *engine, const struct ecc_public_key *key,
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length)
 {
 	struct ecc_engine_mock *mock = (struct ecc_engine_mock*) engine;
@@ -141,7 +141,7 @@ static int ecc_mock_verify (struct ecc_engine *engine, struct ecc_public_key *ke
 }
 
 static int ecc_mock_get_shared_secret_max_length (struct ecc_engine *engine,
-	struct ecc_private_key *key)
+	const struct ecc_private_key *key)
 {
 	struct ecc_engine_mock *mock = (struct ecc_engine_mock*) engine;
 
@@ -154,7 +154,7 @@ static int ecc_mock_get_shared_secret_max_length (struct ecc_engine *engine,
 }
 
 static int ecc_mock_compute_shared_secret (struct ecc_engine *engine,
-	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key, uint8_t *secret,
+	const struct ecc_private_key *priv_key, const struct ecc_public_key *pub_key, uint8_t *secret,
 	size_t length)
 {
 	struct ecc_engine_mock *mock = (struct ecc_engine_mock*) engine;

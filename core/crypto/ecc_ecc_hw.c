@@ -279,7 +279,8 @@ void ecc_ecc_hw_release_key_pair (struct ecc_engine *engine, struct ecc_private_
 	}
 }
 
-int ecc_ecc_hw_get_signature_max_length (struct ecc_engine *engine, struct ecc_private_key *key)
+int ecc_ecc_hw_get_signature_max_length (struct ecc_engine *engine,
+	const struct ecc_private_key *key)
 {
 	if ((engine == NULL) || (key == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -373,8 +374,8 @@ int ecc_ecc_hw_get_public_key_der (struct ecc_engine *engine, const struct ecc_p
 }
 #endif
 
-int ecc_ecc_hw_sign (struct ecc_engine *engine, struct ecc_private_key *key, const uint8_t *digest,
-	size_t length, uint8_t *signature, size_t sig_length)
+int ecc_ecc_hw_sign (struct ecc_engine *engine, const struct ecc_private_key *key,
+	const uint8_t *digest, size_t length, uint8_t *signature, size_t sig_length)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
 	struct ecc_ecdsa_signature raw_signature;
@@ -414,8 +415,8 @@ int ecc_ecc_hw_sign (struct ecc_engine *engine, struct ecc_private_key *key, con
 	return status;
 }
 
-int ecc_ecc_hw_verify (struct ecc_engine *engine, struct ecc_public_key *key, const uint8_t *digest,
-	size_t length, const uint8_t *signature, size_t sig_length)
+int ecc_ecc_hw_verify (struct ecc_engine *engine, const struct ecc_public_key *key,
+	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
 	struct ecc_ecdsa_signature raw_signature;
@@ -447,7 +448,8 @@ int ecc_ecc_hw_verify (struct ecc_engine *engine, struct ecc_public_key *key, co
 }
 
 #ifdef ECC_ENABLE_ECDH
-int ecc_ecc_hw_get_shared_secret_max_length (struct ecc_engine *engine, struct ecc_private_key *key)
+int ecc_ecc_hw_get_shared_secret_max_length (struct ecc_engine *engine,
+	const struct ecc_private_key *key)
 {
 	if ((engine == NULL) || (key == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -456,8 +458,9 @@ int ecc_ecc_hw_get_shared_secret_max_length (struct ecc_engine *engine, struct e
 	return ecc_ecc_hw_private_key (key).key_length;
 }
 
-int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine, struct ecc_private_key *priv_key,
-	struct ecc_public_key *pub_key, uint8_t *secret, size_t length)
+int ecc_ecc_hw_compute_shared_secret (struct ecc_engine *engine,
+	const struct ecc_private_key *priv_key, const struct ecc_public_key *pub_key, uint8_t *secret,
+	size_t length)
 {
 	const struct ecc_engine_ecc_hw *ecc = (const struct ecc_engine_ecc_hw*) engine;
 	int status;

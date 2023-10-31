@@ -354,12 +354,13 @@ int cerberus_protocol_get_device_capabilities (struct device_manager *device_mgr
 
 int cerberus_protocol_get_device_info (const struct cmd_device *device,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_get_device_id (struct cmd_interface_device_id *id,
+int cerberus_protocol_get_device_id (const struct cmd_interface_device_id *id,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_reset_counter (const struct cmd_device *device,
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_process_error_response (struct cmd_interface_msg *response);
+
 
 #endif /* CERBERUS_PROTOCOL_REQUIRED_COMMANDS_H_ */

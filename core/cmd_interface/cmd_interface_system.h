@@ -64,6 +64,7 @@ struct cmd_interface_system {
 };
 
 
+/* TODO:  Observable needs to support const model in order to support static/const instances. */
 int cmd_interface_system_init (struct cmd_interface_system *intf,
 	const struct firmware_update_control *control, const struct manifest_cmd_interface *pfm_0,
 	const struct manifest_cmd_interface *pfm_1, const struct manifest_cmd_interface *cfm,
@@ -89,9 +90,9 @@ int cmd_interface_system_remove_cerberus_protocol_observer (struct cmd_interface
 	const struct cerberus_protocol_observer *observer);
 
 /* Internal functions for use by derived types. */
-int cmd_interface_system_process_request (struct cmd_interface *intf,
+int cmd_interface_system_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request);
-int cmd_interface_system_process_response (struct cmd_interface *intf,
+int cmd_interface_system_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response);
 
 

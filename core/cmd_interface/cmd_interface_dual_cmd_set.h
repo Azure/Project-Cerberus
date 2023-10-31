@@ -12,14 +12,14 @@
  */
 struct cmd_interface_dual_cmd_set {
 	struct cmd_interface base;					/**< Base command interface */
-	struct cmd_interface *intf_0;				/**< Interface to process commands from set 0 */
-	struct cmd_interface *intf_1;				/**< Interface to process commands from set 1 */
+	const struct cmd_interface *intf_0;			/**< Interface to process commands from set 0 */
+	const struct cmd_interface *intf_1;			/**< Interface to process commands from set 1 */
 };
 
 
 int cmd_interface_dual_cmd_set_init (struct cmd_interface_dual_cmd_set *intf,
-	struct cmd_interface *intf_0, struct cmd_interface *intf_1);
-void cmd_interface_dual_cmd_set_deinit (struct cmd_interface_dual_cmd_set *intf);
+	const struct cmd_interface *intf_0, const struct cmd_interface *intf_1);
+void cmd_interface_dual_cmd_set_deinit (const struct cmd_interface_dual_cmd_set *intf);
 
 
 #endif /* CMD_INTERFACE_DUAL_CMD_SET_H_ */

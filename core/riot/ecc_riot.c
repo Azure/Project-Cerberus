@@ -210,7 +210,7 @@ static void ecc_riot_release_key_pair (struct ecc_engine *engine,
 #endif
 
 static int ecc_riot_get_signature_max_length (struct ecc_engine *engine,
-	struct ecc_private_key *key)
+	const struct ecc_private_key *key)
 {
 	if ((engine == NULL) || (key == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
@@ -309,7 +309,7 @@ static int ecc_riot_get_public_key_der (struct ecc_engine *engine, const struct 
 }
 #endif
 
-static int ecc_riot_sign (struct ecc_engine *engine, struct ecc_private_key *key,
+static int ecc_riot_sign (struct ecc_engine *engine, const struct ecc_private_key *key,
 	const uint8_t *digest, size_t length, uint8_t *signature, size_t sig_length)
 {
 	struct ecc_engine_riot *riot = (struct ecc_engine_riot*) engine;
@@ -342,7 +342,7 @@ static int ecc_riot_sign (struct ecc_engine *engine, struct ecc_private_key *key
 	return (status == RIOT_SUCCESS) ? out_len : ECC_ENGINE_SIGN_FAILED;
 }
 
-static int ecc_riot_verify (struct ecc_engine *engine, struct ecc_public_key *key,
+static int ecc_riot_verify (struct ecc_engine *engine, const struct ecc_public_key *key,
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length)
 {
  	int status;

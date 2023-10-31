@@ -24,6 +24,7 @@ struct cmd_interface_mctp_control {
 };
 
 
+/* TODO:  Observable needs to support const model in order to support static/const instances. */
 int cmd_interface_mctp_control_init (struct cmd_interface_mctp_control *intf,
 	struct device_manager *device_manager, uint16_t pci_vendor_id, uint16_t protocol_version);
 void cmd_interface_mctp_control_deinit (struct cmd_interface_mctp_control *intf);

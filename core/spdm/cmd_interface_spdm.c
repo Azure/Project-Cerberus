@@ -13,7 +13,7 @@
 #include "logging/debug_log.h"
 
 
-static int cmd_interface_spdm_process_request (struct cmd_interface *intf,
+static int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
 	UNUSED (intf);
@@ -32,7 +32,7 @@ static int cmd_interface_spdm_process_request (struct cmd_interface *intf,
  *
  * @return 0 if the message was successfully processed or an error code.
  */
-static int cmd_interface_spdm_process_spdm_protocol_message (struct cmd_interface_spdm *intf,
+static int cmd_interface_spdm_process_spdm_protocol_message (const struct cmd_interface_spdm *intf,
 	struct cmd_interface_msg *message, uint8_t *command_id)
 {
 	struct spdm_protocol_header *header = (struct spdm_protocol_header*) message->data;
@@ -58,7 +58,7 @@ static int cmd_interface_spdm_process_spdm_protocol_message (struct cmd_interfac
 	return 0;
 }
 
-static int cmd_interface_spdm_process_response (struct cmd_interface *intf,
+static int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
 	struct cmd_interface_spdm *interface = (struct cmd_interface_spdm*) intf;
@@ -178,7 +178,7 @@ static int cmd_interface_spdm_process_response (struct cmd_interface *intf,
 }
 #endif
 
-static int cmd_interface_spdm_generate_error_packet (struct cmd_interface *intf,
+static int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
 {
 	UNUSED (intf);

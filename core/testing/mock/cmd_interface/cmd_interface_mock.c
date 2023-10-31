@@ -8,7 +8,7 @@
 #include "testing.h"
 
 
-static int cmd_interface_mock_process_request (struct cmd_interface *intf,
+static int cmd_interface_mock_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
 	struct cmd_interface_mock *mock = (struct cmd_interface_mock*) intf;
@@ -21,7 +21,7 @@ static int cmd_interface_mock_process_request (struct cmd_interface *intf,
 		MOCK_ARG_PTR_CALL (request));
 }
 
-static int cmd_interface_mock_process_response (struct cmd_interface *intf,
+static int cmd_interface_mock_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
 	struct cmd_interface_mock *mock = (struct cmd_interface_mock*) intf;
@@ -34,7 +34,7 @@ static int cmd_interface_mock_process_response (struct cmd_interface *intf,
 		MOCK_ARG_PTR_CALL (response));
 }
 
-static int cmd_interface_mock_generate_error_packet (struct cmd_interface *intf,
+static int cmd_interface_mock_generate_error_packet (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
 {
 	struct cmd_interface_mock *mock = (struct cmd_interface_mock*) intf;

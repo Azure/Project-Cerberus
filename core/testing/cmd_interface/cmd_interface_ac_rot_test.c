@@ -8,6 +8,7 @@
 #include "testing.h"
 #include "mctp/mctp_base_protocol.h"
 #include "cmd_interface/cmd_interface_ac_rot.h"
+#include "cmd_interface/cmd_interface_ac_rot_static.h"
 #include "cmd_interface/device_manager.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
@@ -18,7 +19,6 @@
 #include "testing/mock/cmd_interface/cmd_device_mock.h"
 #include "testing/mock/cmd_interface/session_manager_mock.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
-#include "testing/mock/crypto/signature_verification_mock.h"
 #include "testing/mock/keystore/keystore_mock.h"
 #include "testing/engines/x509_testing_engine.h"
 #include "testing/asn1/x509_testing.h"
@@ -35,12 +35,11 @@ TEST_SUITE_LABEL ("cmd_interface_ac_rot");
  * Dependencies for testing the slave command interface.
  */
 struct cmd_interface_ac_rot_testing {
-	struct cmd_interface_ac_rot handler;						/**< Command handler instance. */
+	struct cmd_interface_ac_rot handler;					/**< Command handler instance. */
 	struct attestation_responder_mock attestation;			/**< The attestation responder mock. */
 	struct keystore_mock keystore;							/**< RIoT keystore. */
 	struct x509_engine_mock x509_mock;						/**< The X.509 engine mock for the RIoT keys. */
 	X509_TESTING_ENGINE x509;								/**< X.509 engine for the RIoT keys. */
-	struct signature_verification_mock verification;		/**< The signature verification mock. */
 	struct cmd_background_mock background;					/**< The background command interface mock. */
 	struct device_manager device_manager;					/**< Device manager. */
 	struct riot_key_manager riot;							/**< RIoT keys manager. */
@@ -64,14 +63,14 @@ static struct riot_keys keys = {
 	.alias_cert_length = 0
 };
 
+
 /**
- * Helper function to initialize a subset of the slave command interface parameters.
+ * Helper to initialize all dependencies for testing.
  *
  * @param test The test framework.
- * @param cmd The instance to use for testing.
- * @param direction The device direction to set for the device manager table entry.
+ * @param cmd Testing dependencies to initialize.
  */
-static void setup_cmd_interface_ac_rot_mock_test_init (CuTest *test,
+static void cmd_interface_ac_rot_testing_init_dependencies (CuTest *test,
 	struct cmd_interface_ac_rot_testing *cmd)
 {
 	uint8_t *dev_id_der = NULL;
@@ -117,14 +116,36 @@ static void setup_cmd_interface_ac_rot_mock_test_init (CuTest *test,
 	status = x509_mock_init (&cmd->x509_mock);
 	CuAssertIntEquals (test, 0, status);
 
-	status = signature_verification_mock_init (&cmd->verification);
-	CuAssertIntEquals (test, 0, status);
-
 	status = cmd_device_mock_init (&cmd->cmd_device);
 	CuAssertIntEquals (test, 0, status);
 
 	status = session_manager_mock_init (&cmd->session);
 	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Helper to validate mocks and release all testing dependencies.
+ *
+ * @param test The test framework.
+ * @param cmd Testing dependencies to release.
+ */
+static void cmd_interface_ac_rot_testing_release_dependencies (CuTest *test,
+	struct cmd_interface_ac_rot_testing *cmd)
+{
+	int status;
+
+	status = cmd_background_mock_validate_and_release (&cmd->background);
+	status |= attestation_responder_mock_validate_and_release (&cmd->attestation);
+	status |= keystore_mock_validate_and_release (&cmd->keystore);
+	status |= x509_mock_validate_and_release (&cmd->x509_mock);
+	status |= cmd_device_mock_validate_and_release (&cmd->cmd_device);
+	status |= session_manager_mock_validate_and_release (&cmd->session);
+
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&cmd->device_manager);
+	riot_key_manager_release (&cmd->riot);
+	X509_TESTING_ENGINE_RELEASE (&cmd->x509);
 }
 
 /**
@@ -146,7 +167,7 @@ static void setup_cmd_interface_ac_rot_mock_test_init_fw_version (
 }
 
 /**
- * Helper function to setup the slave command interface.
+ * Helper function to setup the test command interface.
  *
  * @param test The test framework.
  * @param cmd The instance to use for testing.
@@ -156,7 +177,7 @@ static void setup_cmd_interface_ac_rot_mock_test (CuTest *test,
 {
 	int status;
 
-	setup_cmd_interface_ac_rot_mock_test_init (test, cmd);
+	cmd_interface_ac_rot_testing_init_dependencies (test, cmd);
 
 	setup_cmd_interface_ac_rot_mock_test_init_fw_version (cmd, CERBERUS_FW_VERSION,
 		RIOT_CORE_VERSION, FW_VERSION_COUNT);
@@ -169,7 +190,7 @@ static void setup_cmd_interface_ac_rot_mock_test (CuTest *test,
 }
 
 /**
- * Helper function to setup the slave command interface with a flag controlling inclusion of
+ * Helper function to setup the test command interface with a flag controlling inclusion of
  * session manager.
  *
  * @param test The test framework.
@@ -182,7 +203,7 @@ static void setup_cmd_interface_ac_rot_mock_test_with_session_manager (CuTest *t
 	struct session_manager *session_ptr = NULL;
 	int status;
 
-	setup_cmd_interface_ac_rot_mock_test_init (test, cmd);
+	cmd_interface_ac_rot_testing_init_dependencies (test, cmd);
 
 	setup_cmd_interface_ac_rot_mock_test_init_fw_version (cmd, CERBERUS_FW_VERSION,
 		RIOT_CORE_VERSION, FW_VERSION_COUNT);
@@ -199,7 +220,7 @@ static void setup_cmd_interface_ac_rot_mock_test_with_session_manager (CuTest *t
 }
 
 /**
- * Helper function to release the slave command interface instance.
+ * Helper function to release the test command interface instance.
  *
  * @param test The test framework.
  * @param cmd The testing instance to release.
@@ -207,30 +228,7 @@ static void setup_cmd_interface_ac_rot_mock_test_with_session_manager (CuTest *t
  static void complete_cmd_interface_ac_rot_mock_test (CuTest *test,
 	struct cmd_interface_ac_rot_testing *cmd)
 {
-	int status = cmd_background_mock_validate_and_release (&cmd->background);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_responder_mock_validate_and_release (&cmd->attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&cmd->keystore);
-	CuAssertIntEquals (test, 0, status);
-
-	status = x509_mock_validate_and_release (&cmd->x509_mock);
-	CuAssertIntEquals (test, 0, status);
-
-	signature_verification_mock_release (&cmd->verification);
-
-	status = cmd_device_mock_validate_and_release (&cmd->cmd_device);
-	CuAssertIntEquals (test, 0, status);
-
-	status = session_manager_mock_validate_and_release (&cmd->session);
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&cmd->device_manager);
-
-	riot_key_manager_release (&cmd->riot);
-	X509_TESTING_ENGINE_RELEASE (&cmd->x509);
+	cmd_interface_ac_rot_testing_release_dependencies (test, cmd);
 
 	cmd_interface_ac_rot_deinit (&cmd->handler);
 }
@@ -241,185 +239,86 @@ static void setup_cmd_interface_ac_rot_mock_test_with_session_manager (CuTest *t
 
 static void cmd_interface_ac_rot_test_init (CuTest *test)
 {
-	struct cmd_interface_ac_rot interface;
-	struct attestation_responder_mock attestation;
-	struct cmd_background_mock background;
-	struct device_manager device_manager;
-	struct riot_key_manager riot;
-	struct keystore_mock keystore;
-	struct cmd_device_mock cmd_device;
-	X509_TESTING_ENGINE x509;
-	uint8_t *dev_id_der = NULL;
+	struct cmd_interface_ac_rot_testing cmd;
 	const char *id[FW_VERSION_COUNT] = {CERBERUS_FW_VERSION, RIOT_CORE_VERSION};
 	struct cmd_interface_fw_version fw_version = {.count = FW_VERSION_COUNT, .id = id};
 	int status;
 
 	TEST_START;
 
-	status = cmd_background_mock_init (&background);
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
+
+	status = cmd_interface_ac_rot_init (&cmd.handler, &cmd.attestation.base, &cmd.device_manager,
+		&cmd.background.base, &fw_version, &cmd.riot, &cmd.cmd_device.base, 0, 0, 0, 0, NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = X509_TESTING_ENGINE_INIT (&x509);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
+	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
+	CuAssertPtrNotNull (test, cmd.handler.base.generate_error_packet);
 
-	status = keystore_mock_init (&keystore);
-	CuAssertIntEquals (test, 0, status);
+	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
+}
 
-	status = mock_expect (&keystore.mock, keystore.base.load_key, &keystore, KEYSTORE_NO_KEY,
-	MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&keystore.mock, 1, &dev_id_der, sizeof (dev_id_der), -1);
+static void cmd_interface_ac_rot_test_init_null (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	const char *id[FW_VERSION_COUNT] = {CERBERUS_FW_VERSION, RIOT_CORE_VERSION};
+	struct cmd_interface_fw_version fw_version = {.count = FW_VERSION_COUNT, .id = id};
+	int status;
 
-	CuAssertIntEquals (test, 0, status);
+	TEST_START;
 
-	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
-	keys.devid_csr_length = RIOT_CORE_DEVID_CSR_LEN;
-	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
-	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
 
-	status = riot_key_manager_init_static (&riot, &keystore.base, &keys, &x509.base);
-	CuAssertIntEquals (test, 0, status);
+	status = cmd_interface_ac_rot_init (NULL, &cmd.attestation.base, &cmd.device_manager,
+		&cmd.background.base, &fw_version, &cmd.riot, &cmd.cmd_device.base, 0, 0, 0, 0, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = attestation_responder_mock_init (&attestation);
-	CuAssertIntEquals (test, 0, status);
+	status = cmd_interface_ac_rot_init (&cmd.handler, NULL, &cmd.device_manager,
+		&cmd.background.base, &fw_version, &cmd.riot, &cmd.cmd_device.base, 0, 0, 0, 0, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = device_manager_init (&device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
+	status = cmd_interface_ac_rot_init (&cmd.handler, &cmd.attestation.base, NULL,
+		&cmd.background.base, &fw_version, &cmd.riot, &cmd.cmd_device.base, 0, 0, 0, 0, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_device_mock_init (&cmd_device);
-	CuAssertIntEquals (test, 0, status);
+	status = cmd_interface_ac_rot_init (&cmd.handler, &cmd.attestation.base, &cmd.device_manager,
+		NULL, &fw_version, &cmd.riot, &cmd.cmd_device.base, 0, 0, 0, 0, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_ac_rot_init (&interface, &attestation.base, &device_manager,
-		&background.base, &fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
-	CuAssertIntEquals (test, 0, status);
+	status = cmd_interface_ac_rot_init (&cmd.handler, &cmd.attestation.base, &cmd.device_manager,
+		&cmd.background.base, NULL, &cmd.riot, &cmd.cmd_device.base, 0, 0, 0, 0, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_ac_rot_init (&cmd.handler, &cmd.attestation.base, &cmd.device_manager,
+		&cmd.background.base, &fw_version, NULL, &cmd.cmd_device.base, 0, 0, 0, 0, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_ac_rot_init (&cmd.handler, &cmd.attestation.base, &cmd.device_manager,
+		&cmd.background.base, &fw_version, &cmd.riot, NULL, 0, 0, 0, 0, NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
+}
+
+static void cmd_interface_ac_rot_test_static_init (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	const char *id[FW_VERSION_COUNT] = {CERBERUS_FW_VERSION, RIOT_CORE_VERSION};
+	struct cmd_interface_fw_version fw_version = {.count = FW_VERSION_COUNT, .id = id};
+	struct cmd_interface_ac_rot interface = cmd_interface_ac_rot_static_init (&cmd.attestation.base,
+		&cmd.device_manager, &cmd.background.base, &fw_version, &cmd.riot, &cmd.cmd_device.base, 0,
+		0, 0, 0, NULL);
+
+	TEST_START;
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
 	CuAssertPtrNotNull (test, interface.base.process_response);
 	CuAssertPtrNotNull (test, interface.base.generate_error_packet);
 
-	status = cmd_background_mock_validate_and_release (&background);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
 
-	status = attestation_responder_mock_validate_and_release (&attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_device_mock_validate_and_release (&cmd_device);
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&device_manager);
-
-	riot_key_manager_release (&riot);
-	X509_TESTING_ENGINE_RELEASE (&x509);
-
-	cmd_interface_ac_rot_deinit (&interface);
-}
-
-static void cmd_interface_ac_rot_test_init_null (CuTest *test)
-{
-	struct cmd_interface_ac_rot interface;
-	struct attestation_responder_mock attestation;
-	struct cmd_background_mock background;
-	struct device_manager device_manager;
-	struct riot_key_manager riot;
-	struct keystore_mock keystore;
-	struct cmd_device_mock cmd_device;
-	struct ecc_engine_mock ecc;
-	struct hash_engine_mock hash;
-	X509_TESTING_ENGINE x509;
-	uint8_t *dev_id_der = NULL;
-	const char *id[FW_VERSION_COUNT] = {CERBERUS_FW_VERSION, RIOT_CORE_VERSION};
-	struct cmd_interface_fw_version fw_version = {.count = FW_VERSION_COUNT, .id = id};
-	int status;
-
-	TEST_START;
-
-	status = cmd_background_mock_init (&background);
-	CuAssertIntEquals (test, 0, status);
-
-	status = X509_TESTING_ENGINE_INIT (&x509);
-	CuAssertIntEquals (test, 0, status);
-
-	status = ecc_mock_init (&ecc);
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_init (&keystore);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&keystore.mock, keystore.base.load_key, &keystore, KEYSTORE_NO_KEY,
-	MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&keystore.mock, 1, &dev_id_der, sizeof (dev_id_der), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
-	keys.devid_csr_length = RIOT_CORE_DEVID_CSR_LEN;
-	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
-	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
-
-	status = riot_key_manager_init_static (&riot, &keystore.base, &keys, &x509.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_responder_mock_init (&attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_init (&device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_device_mock_init (&cmd_device);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_interface_ac_rot_init (NULL, &attestation.base, &device_manager, &background.base,
-		&fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_ac_rot_init (&interface, NULL, &device_manager, &background.base,
-		&fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_ac_rot_init (&interface, &attestation.base, NULL, &background.base,
-		&fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_ac_rot_init (&interface, &attestation.base, &device_manager, NULL,
-		&fw_version, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_ac_rot_init (&interface, &attestation.base, &device_manager,
-		&background.base, NULL, &riot, &cmd_device.base, 0, 0, 0, 0, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_ac_rot_init (&interface, &attestation.base, &device_manager,
-		&background.base, &fw_version, NULL, &cmd_device.base, 0, 0, 0, 0, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_ac_rot_init (&interface, &attestation.base, &device_manager,
-		&background.base, &fw_version, &riot, NULL, 0, 0, 0, 0, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_background_mock_validate_and_release (&background);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_responder_mock_validate_and_release (&attestation);
-	CuAssertIntEquals (test, 0, status);
-
-	status = keystore_mock_validate_and_release (&keystore);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_device_mock_validate_and_release (&cmd_device);
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&device_manager);
-
-	riot_key_manager_release (&riot);
-	X509_TESTING_ENGINE_RELEASE (&x509);
-
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
 	cmd_interface_ac_rot_deinit (&interface);
 }
 
@@ -722,6 +621,145 @@ static void cmd_interface_ac_rot_test_process_encrypted_message (CuTest *test)
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
+static void cmd_interface_ac_rot_test_process_encrypted_message_static_init (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	struct cmd_interface_ac_rot test_static = cmd_interface_ac_rot_static_init (
+		&cmd.attestation.base, &cmd.device_manager, &cmd.background.base, &cmd.fw_version,
+		&cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678, 40, &cmd.session.base);
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg decrypted_request;
+	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg response;
+	uint8_t encrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg encrypted_response;
+	struct cerberus_protocol_reset_counter *req = (struct cerberus_protocol_reset_counter*) data;
+	struct cerberus_protocol_reset_counter_response *resp =
+		(struct cerberus_protocol_reset_counter_response*) data;
+	struct cerberus_protocol_reset_counter *plaintext_rq =
+		(struct cerberus_protocol_reset_counter*) decrypted_data;
+	struct cerberus_protocol_reset_counter_response *plaintext_rsp =
+		(struct cerberus_protocol_reset_counter_response*) response_data;
+	struct cerberus_protocol_reset_counter_response *ciphertext_rsp =
+		(struct cerberus_protocol_reset_counter_response*) encrypted_data;
+	uint8_t encrypted_port = 0x33;
+	uint8_t port = 0;
+	uint8_t encrypted_type = 0xBB;
+	uint8_t type = 0;
+	uint16_t encrypted_counter = 0x1122;
+	uint16_t counter = 4;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	memset (&decrypted_request, 0, sizeof (decrypted_request));
+	memset (decrypted_data, 0, sizeof (decrypted_data));
+	decrypted_request.data = decrypted_data;
+
+	memset (&response, 0, sizeof (response));
+	memset (response_data, 0, sizeof (response_data));
+	response.data = response_data;
+
+	memset (&encrypted_response, 0, sizeof (encrypted_response));
+	memset (encrypted_data, 0, sizeof (encrypted_data));
+	encrypted_response.data = encrypted_data;
+
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = 0;
+	req->header.crypt = 1;
+
+	req->type = encrypted_type;
+	req->port = encrypted_port;
+	request.length = sizeof (struct cerberus_protocol_reset_counter) +
+		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	plaintext_rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	plaintext_rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	plaintext_rq->header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+	plaintext_rq->header.crypt = 1;
+	plaintext_rq->type = 0;
+
+	decrypted_request.length = sizeof (struct cerberus_protocol_reset_counter);
+	decrypted_request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	plaintext_rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	plaintext_rsp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	plaintext_rsp->header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+	plaintext_rsp->header.crypt = 1;
+	plaintext_rsp->counter = counter;
+
+	response.length = sizeof (struct cerberus_protocol_reset_counter_response);
+	response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	ciphertext_rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	ciphertext_rsp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	ciphertext_rsp->header.command = CERBERUS_PROTOCOL_RESET_COUNTER;
+	ciphertext_rsp->header.crypt = 1;
+	ciphertext_rsp->counter = encrypted_counter;
+
+	encrypted_response.length = sizeof (struct cerberus_protocol_reset_counter_response) +
+		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	encrypted_response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	encrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	encrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
+
+	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+	status |= mock_expect_output_deep_copy (&cmd.session.mock, 0, &decrypted_request,
+		sizeof (decrypted_request), cmd_interface_mock_copy_request);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.cmd_device.mock, cmd.cmd_device.base.get_reset_counter,
+		&cmd.cmd_device, 0,	MOCK_ARG (type), MOCK_ARG (port), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cmd.cmd_device.mock, 2, &counter, sizeof (uint16_t), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cmd.session.mock, cmd.session.base.encrypt_message,
+		&cmd.session, 0, MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request,
+			&response, sizeof (response), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request));
+	status |= mock_expect_output_deep_copy (&cmd.session.mock, 0, &encrypted_response,
+		sizeof (encrypted_response), cmd_interface_mock_copy_request);
+	CuAssertIntEquals (test, 0, status);
+
+	request.crypto_timeout = true;
+	status = test_static.base.process_request (&test_static.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_reset_counter_response) +
+		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 1, resp->header.crypt);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0, resp->header.reserved1);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_RESET_COUNTER, resp->header.command);
+	CuAssertIntEquals (test, encrypted_counter, resp->counter);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
+	cmd_interface_ac_rot_deinit (&test_static);
+}
+
 static void cmd_interface_ac_rot_test_process_encrypted_message_decrypt_fail (CuTest *test)
 {
 	struct cmd_interface_ac_rot_testing cmd;
@@ -1007,7 +1045,7 @@ static void cmd_interface_ac_rot_test_process_get_fw_version_unset_version (CuTe
 
 	TEST_START;
 
-	setup_cmd_interface_ac_rot_mock_test_init (test, &cmd);
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
 
 	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, NULL,
 		RIOT_CORE_VERSION, FW_VERSION_COUNT);
@@ -1021,6 +1059,27 @@ static void cmd_interface_ac_rot_test_process_get_fw_version_unset_version (CuTe
 		&cmd.handler.base);
 
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
+}
+
+static void cmd_interface_ac_rot_test_process_get_fw_version_static_init (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	struct cmd_interface_ac_rot test_static = cmd_interface_ac_rot_static_init (
+		&cmd.attestation.base, &cmd.device_manager, &cmd.background.base, &cmd.fw_version,
+		&cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678, 40, &cmd.session.base);
+
+	TEST_START;
+
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
+
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+		RIOT_CORE_VERSION, FW_VERSION_COUNT);
+
+	cerberus_protocol_required_commands_testing_process_get_fw_version (test, &test_static.base,
+		CERBERUS_FW_VERSION);
+
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
+	cmd_interface_ac_rot_deinit (&test_static);
 }
 
 static void cmd_interface_ac_rot_test_process_get_fw_version_invalid_len (CuTest *test)
@@ -1066,7 +1125,7 @@ static void cmd_interface_ac_rot_test_process_get_fw_version_bad_count (CuTest *
 
 	TEST_START;
 
-	setup_cmd_interface_ac_rot_mock_test_init (test, &cmd);
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
 
 	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, NULL, RIOT_CORE_VERSION, 0);
 
@@ -1115,6 +1174,27 @@ static void cmd_interface_ac_rot_test_process_get_certificate_digest_limited_res
 	cerberus_protocol_required_commands_testing_process_get_certificate_digest_limited_response (
 		test, &cmd.handler.base, &cmd.attestation);
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
+}
+
+static void cmd_interface_ac_rot_test_process_get_certificate_digest_static_init (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	struct cmd_interface_ac_rot test_static = cmd_interface_ac_rot_static_init (
+		&cmd.attestation.base, &cmd.device_manager, &cmd.background.base, &cmd.fw_version,
+		&cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678, 40, &cmd.session.base);
+
+	TEST_START;
+
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
+
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+		RIOT_CORE_VERSION, FW_VERSION_COUNT);
+
+	cerberus_protocol_required_commands_testing_process_get_certificate_digest_aux_slot (test,
+		&test_static.base, &cmd.attestation);
+
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
+	cmd_interface_ac_rot_deinit (&test_static);
 }
 
 static void cmd_interface_ac_rot_test_process_get_certificate_digest_unsupported_slot (CuTest *test)
@@ -1471,6 +1551,27 @@ static void cmd_interface_ac_rot_test_process_get_capabilities (CuTest *test)
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
+static void cmd_interface_ac_rot_test_process_get_capabilities_static_init (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	struct cmd_interface_ac_rot test_static = cmd_interface_ac_rot_static_init (
+		&cmd.attestation.base, &cmd.device_manager, &cmd.background.base, &cmd.fw_version,
+		&cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678, 40, &cmd.session.base);
+
+	TEST_START;
+
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
+
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+		RIOT_CORE_VERSION, FW_VERSION_COUNT);
+
+	cerberus_protocol_required_commands_testing_process_get_capabilities (test, &test_static.base,
+		&cmd.device_manager);
+
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
+	cmd_interface_ac_rot_deinit (&test_static);
+}
+
 static void cmd_interface_ac_rot_test_process_get_capabilities_invalid_device (CuTest *test)
 {
 	struct cmd_interface_ac_rot_testing cmd;
@@ -1505,6 +1606,27 @@ static void cmd_interface_ac_rot_test_process_get_devid_csr (CuTest *test)
 	cerberus_protocol_required_commands_testing_process_get_devid_csr (test, &cmd.handler.base,
 		RIOT_CORE_DEVID_CSR, RIOT_CORE_DEVID_CSR_LEN);
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
+}
+
+static void cmd_interface_ac_rot_test_process_get_devid_csr_static_init (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	struct cmd_interface_ac_rot test_static = cmd_interface_ac_rot_static_init (
+		&cmd.attestation.base, &cmd.device_manager, &cmd.background.base, &cmd.fw_version,
+		&cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678, 40, &cmd.session.base);
+
+	TEST_START;
+
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
+
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+		RIOT_CORE_VERSION, FW_VERSION_COUNT);
+
+	cerberus_protocol_required_commands_testing_process_get_devid_csr (test, &test_static.base,
+		RIOT_CORE_DEVID_CSR, RIOT_CORE_DEVID_CSR_LEN);
+
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
+	cmd_interface_ac_rot_deinit (&test_static);
 }
 
 static void cmd_interface_ac_rot_test_process_get_devid_csr_invalid_buf_len (CuTest *test)
@@ -1589,6 +1711,27 @@ static void cmd_interface_ac_rot_test_process_import_intermediate_cert (CuTest *
 	cerberus_protocol_required_commands_testing_process_import_intermediate_cert (test,
 		&cmd.handler.base, &cmd.keystore, &cmd.background);
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
+}
+
+static void cmd_interface_ac_rot_test_process_import_signed_ca_cert_static_init (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	struct cmd_interface_ac_rot test_static = cmd_interface_ac_rot_static_init (
+		&cmd.attestation.base, &cmd.device_manager, &cmd.background.base, &cmd.fw_version,
+		&cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678, 40, &cmd.session.base);
+
+	TEST_START;
+
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
+
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+		RIOT_CORE_VERSION, FW_VERSION_COUNT);
+
+	cerberus_protocol_required_commands_testing_process_import_signed_dev_id_cert (test,
+		&test_static.base, &cmd.keystore, &cmd.background);
+
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
+	cmd_interface_ac_rot_deinit (&test_static);
 }
 
 static void cmd_interface_ac_rot_test_process_import_signed_ca_cert_invalid_len (CuTest *test)
@@ -1782,6 +1925,27 @@ static void cmd_interface_ac_rot_test_process_get_device_id (CuTest *test)
 	cerberus_protocol_required_commands_testing_process_get_device_id (test, &cmd.handler.base,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID, 4);
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
+}
+
+static void cmd_interface_ac_rot_test_process_get_device_id_static_init (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	struct cmd_interface_ac_rot test_static = cmd_interface_ac_rot_static_init (
+		&cmd.attestation.base, &cmd.device_manager, &cmd.background.base, &cmd.fw_version,
+		&cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678, 40, &cmd.session.base);
+
+	TEST_START;
+
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
+
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+		RIOT_CORE_VERSION, FW_VERSION_COUNT);
+
+	cerberus_protocol_required_commands_testing_process_get_device_id (test, &test_static.base,
+		0x1234, 20, 0x5678, 40);
+
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
+	cmd_interface_ac_rot_deinit (&test_static);
 }
 
 static void cmd_interface_ac_rot_test_process_get_device_id_invalid_len (CuTest *test)
@@ -2019,7 +2183,7 @@ static void cmd_interface_ac_rot_test_process_session_sync_no_session_mgr (CuTes
 
 	TEST_START;
 
-	setup_cmd_interface_ac_rot_mock_test_init (test, &cmd);
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
 
 	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
 		RIOT_CORE_VERSION, FW_VERSION_COUNT);
@@ -2105,6 +2269,29 @@ static void cmd_interface_ac_rot_test_process_response (CuTest *test)
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
+static void cmd_interface_ac_rot_test_process_response_static_init (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	struct cmd_interface_ac_rot test_static = cmd_interface_ac_rot_static_init (
+		&cmd.attestation.base, &cmd.device_manager, &cmd.background.base, &cmd.fw_version,
+		&cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678, 40, &cmd.session.base);
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
+
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+		RIOT_CORE_VERSION, FW_VERSION_COUNT);
+
+	status = test_static.base.process_response (&test_static.base, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
+
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
+	cmd_interface_ac_rot_deinit (&test_static);
+}
+
 static void cmd_interface_ac_rot_test_generate_error_packet (CuTest *test)
 {
 	struct cmd_interface_ac_rot_testing cmd;
@@ -2130,6 +2317,26 @@ static void cmd_interface_ac_rot_test_generate_error_packet_encrypted (CuTest *t
 		&cmd.handler.base, &cmd.session);
 
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
+}
+
+static void cmd_interface_ac_rot_test_generate_error_packet_static_init (CuTest *test)
+{
+	struct cmd_interface_ac_rot_testing cmd;
+	struct cmd_interface_ac_rot test_static = cmd_interface_ac_rot_static_init (
+		&cmd.attestation.base, &cmd.device_manager, &cmd.background.base, &cmd.fw_version,
+		&cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678, 40, &cmd.session.base);
+
+	TEST_START;
+
+	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
+
+	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
+		RIOT_CORE_VERSION, FW_VERSION_COUNT);
+
+	cerberus_protocol_required_commands_testing_generate_error_packet (test, &test_static.base);
+
+	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
+	cmd_interface_ac_rot_deinit (&test_static);
 }
 
 static void cmd_interface_ac_rot_test_generate_error_packet_encrypted_fail (CuTest *test)
@@ -2165,6 +2372,7 @@ TEST_SUITE_START (cmd_interface_ac_rot);
 
 TEST (cmd_interface_ac_rot_test_init);
 TEST (cmd_interface_ac_rot_test_init_null);
+TEST (cmd_interface_ac_rot_test_static_init);
 TEST (cmd_interface_ac_rot_test_deinit_null);
 TEST (cmd_interface_ac_rot_test_process_null);
 TEST (cmd_interface_ac_rot_test_process_payload_too_short);
@@ -2172,12 +2380,14 @@ TEST (cmd_interface_ac_rot_test_process_unsupported_message);
 TEST (cmd_interface_ac_rot_test_process_unknown_command);
 TEST (cmd_interface_ac_rot_test_process_reserved_fields_not_zero);
 TEST (cmd_interface_ac_rot_test_process_encrypted_message);
+TEST (cmd_interface_ac_rot_test_process_encrypted_message_static_init);
 TEST (cmd_interface_ac_rot_test_process_encrypted_message_decrypt_fail);
 TEST (cmd_interface_ac_rot_test_process_encrypted_message_encrypt_fail);
 TEST (cmd_interface_ac_rot_test_process_encrypted_message_no_session_manager);
 TEST (cmd_interface_ac_rot_test_process_encrypted_message_no_response);
 TEST (cmd_interface_ac_rot_test_process_get_fw_version);
 TEST (cmd_interface_ac_rot_test_process_get_fw_version_unset_version);
+TEST (cmd_interface_ac_rot_test_process_get_fw_version_static_init);
 TEST (cmd_interface_ac_rot_test_process_get_fw_version_unsupported_area);
 TEST (cmd_interface_ac_rot_test_process_get_fw_version_invalid_len);
 TEST (cmd_interface_ac_rot_test_process_get_fw_version_riot);
@@ -2187,6 +2397,7 @@ TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_aux_slot);
 TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_unsupported_slot);
 TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_unavailable_cert);
 TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_limited_response);
+TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_static_init);
 TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_invalid_len);
 TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_unsupported_algo);
 TEST (cmd_interface_ac_rot_test_process_get_certificate_digest_encryption_unsupported);
@@ -2214,9 +2425,11 @@ TEST (cmd_interface_ac_rot_test_process_get_challenge_response_limited_response_
 TEST (cmd_interface_ac_rot_test_process_get_challenge_response_fail);
 TEST (cmd_interface_ac_rot_test_process_get_challenge_response_invalid_len);
 TEST (cmd_interface_ac_rot_test_process_get_capabilities);
+TEST (cmd_interface_ac_rot_test_process_get_capabilities_static_init);
 TEST (cmd_interface_ac_rot_test_process_get_capabilities_invalid_device);
 TEST (cmd_interface_ac_rot_test_process_get_capabilities_invalid_len);
 TEST (cmd_interface_ac_rot_test_process_get_devid_csr);
+TEST (cmd_interface_ac_rot_test_process_get_devid_csr_static_init);
 TEST (cmd_interface_ac_rot_test_process_get_devid_csr_invalid_buf_len);
 TEST (cmd_interface_ac_rot_test_process_get_devid_csr_unsupported_index);
 TEST (cmd_interface_ac_rot_test_process_get_devid_csr_too_big);
@@ -2224,6 +2437,7 @@ TEST (cmd_interface_ac_rot_test_process_get_devid_csr_too_big_limited_response);
 TEST (cmd_interface_ac_rot_test_process_import_signed_dev_id_cert);
 TEST (cmd_interface_ac_rot_test_process_import_root_ca_cert);
 TEST (cmd_interface_ac_rot_test_process_import_intermediate_cert);
+TEST (cmd_interface_ac_rot_test_process_import_signed_ca_cert_static_init);
 TEST (cmd_interface_ac_rot_test_process_import_signed_ca_cert_invalid_len);
 TEST (cmd_interface_ac_rot_test_process_import_signed_ca_cert_no_cert);
 TEST (cmd_interface_ac_rot_test_process_import_signed_ca_cert_bad_cert_length);
@@ -2240,6 +2454,7 @@ TEST (cmd_interface_ac_rot_test_process_get_device_info_invalid_len);
 TEST (cmd_interface_ac_rot_test_process_get_device_info_bad_info_index);
 TEST (cmd_interface_ac_rot_test_process_get_device_info_fail);
 TEST (cmd_interface_ac_rot_test_process_get_device_id);
+TEST (cmd_interface_ac_rot_test_process_get_device_id_static_init);
 TEST (cmd_interface_ac_rot_test_process_get_device_id_invalid_len);
 TEST (cmd_interface_ac_rot_test_process_reset_counter);
 TEST (cmd_interface_ac_rot_test_process_reset_counter_port0);
@@ -2264,8 +2479,10 @@ TEST (cmd_interface_ac_rot_test_process_session_sync_unencrypted);
 TEST (cmd_interface_ac_rot_test_process_session_sync_invalid_len);
 TEST (cmd_interface_ac_rot_test_supports_all_required_commands);
 TEST (cmd_interface_ac_rot_test_process_response);
+TEST (cmd_interface_ac_rot_test_process_response_static_init);
 TEST (cmd_interface_ac_rot_test_generate_error_packet);
 TEST (cmd_interface_ac_rot_test_generate_error_packet_encrypted);
+TEST (cmd_interface_ac_rot_test_generate_error_packet_static_init);
 TEST (cmd_interface_ac_rot_test_generate_error_packet_encrypted_fail);
 TEST (cmd_interface_ac_rot_test_generate_error_packet_invalid_arg);
 

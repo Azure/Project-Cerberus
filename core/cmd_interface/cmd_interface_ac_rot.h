@@ -37,7 +37,7 @@ int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 	struct riot_key_manager *riot, const struct cmd_device *cmd_device, uint16_t vendor_id,
 	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session);
-void cmd_interface_ac_rot_deinit (struct cmd_interface_ac_rot *intf);
+void cmd_interface_ac_rot_deinit (const struct cmd_interface_ac_rot *intf);
 
 
 #endif /* CMD_INTERFACE_AC_ROT_H_ */

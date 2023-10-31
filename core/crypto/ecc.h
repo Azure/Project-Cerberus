@@ -169,7 +169,7 @@ struct ecc_engine {
 	 * @return The maximum number of signature bytes or an error code.  Use ROT_IS_ERROR to check
 	 * the return value.
 	 */
-	int (*get_signature_max_length) (struct ecc_engine *engine, struct ecc_private_key *key);
+	int (*get_signature_max_length) (struct ecc_engine *engine, const struct ecc_private_key *key);
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 	/**
@@ -219,8 +219,8 @@ struct ecc_engine {
 	 * @return The length of the signature or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*sign) (struct ecc_engine *engine, struct ecc_private_key *key, const uint8_t *digest,
-		size_t length, uint8_t *signature, size_t sig_length);
+	int (*sign) (struct ecc_engine *engine, const struct ecc_private_key *key,
+		const uint8_t *digest, size_t length, uint8_t *signature, size_t sig_length);
 
 	/**
 	 * Verify an ECDSA signature against a SHA2 digest.
@@ -236,8 +236,8 @@ struct ecc_engine {
 	 *
 	 * @return 0 if the signature matches the digest or an error code.
 	 */
-	int (*verify) (struct ecc_engine *engine, struct ecc_public_key *key, const uint8_t *digest,
-		size_t length, const uint8_t *signature, size_t sig_length);
+	int (*verify) (struct ecc_engine *engine, const struct ecc_public_key *key,
+		const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length);
 
 #ifdef ECC_ENABLE_ECDH
 	/**
@@ -249,7 +249,8 @@ struct ecc_engine {
 	 * @return The maximum number of bytes in the secret or an error code.  Use ROT_IS_ERROR to
 	 * check the return value.
 	 */
-	int (*get_shared_secret_max_length) (struct ecc_engine *engine, struct ecc_private_key *key);
+	int (*get_shared_secret_max_length) (struct ecc_engine *engine,
+		const struct ecc_private_key *key);
 
 	/**
 	 * Generate the ECDH shared secret for a pair of keys.
@@ -264,8 +265,8 @@ struct ecc_engine {
 	 * @return The length of the shared secret or an error code.  Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*compute_shared_secret) (struct ecc_engine *engine, struct ecc_private_key *priv_key,
-		struct ecc_public_key *pub_key, uint8_t *secret, size_t length);
+	int (*compute_shared_secret) (struct ecc_engine *engine, const struct ecc_private_key *priv_key,
+		const struct ecc_public_key *pub_key, uint8_t *secret, size_t length);
 #endif
 };
 

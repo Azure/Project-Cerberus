@@ -23,6 +23,8 @@ struct cmd_interface_msg {
 	uint8_t source_eid;				/**< Endpoint ID that generated the message. */
 	uint8_t source_addr;			/**< Address of device that generated the message. */
 	uint8_t target_eid;				/**< Endpoint ID that should process the message. */
+	bool is_encrypted;				/**< Flag indicating if the message is encrypted or should be
+										encrypted. */
 	bool crypto_timeout;			/**< Flag indicating if the message is a request and required
 										cryptographic operations and should be granted a longer
 										timeout.  This is set for every message, even when there is
@@ -63,7 +65,7 @@ struct cmd_interface {
 	 *
 	 * @return 0 if the request was successfully processed or an error code.
 	 */
-	int (*process_request) (struct cmd_interface *intf, struct cmd_interface_msg *request);
+	int (*process_request) (const struct cmd_interface *intf, struct cmd_interface_msg *request);
 
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	/**
@@ -74,7 +76,7 @@ struct cmd_interface {
 	 *
 	 * @return 0 if the response was successfully processed or an error code.
 	 */
-	int (*process_response) (struct cmd_interface *intf, struct cmd_interface_msg *response);
+	int (*process_response) (const struct cmd_interface *intf, struct cmd_interface_msg *response);
 #endif
 
 	/**
@@ -88,20 +90,21 @@ struct cmd_interface {
 	 *
 	 * @return 0 if the packet was generated successfully or an error code.
 	 */
-	int (*generate_error_packet) (struct cmd_interface *intf, struct cmd_interface_msg *request,
-		uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
+	int (*generate_error_packet) (const struct cmd_interface *intf,
+		struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data,
+		uint8_t cmd_set);
 
 	struct session_manager *session;				/**< Session manager for channel encryption */
-	bool curr_txn_encrypted;						/**< Current transaction encrypted */
 };
 
 
 /* Internal functions for use by derived types. */
-int cmd_interface_process_cerberus_protocol_message (struct cmd_interface *intf,
+int cmd_interface_process_cerberus_protocol_message (const struct cmd_interface *intf,
 	struct cmd_interface_msg *message, uint8_t *command_id, uint8_t *command_set, bool decrypt,
 	bool rsvd_zero);
-int cmd_interface_prepare_response (struct cmd_interface *intf, struct cmd_interface_msg *response);
-int cmd_interface_generate_error_packet (struct cmd_interface *intf,
+int cmd_interface_prepare_response (const struct cmd_interface *intf,
+	struct cmd_interface_msg *response);
+int cmd_interface_generate_error_packet (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set);
 
 

@@ -11,10 +11,10 @@
 #include "common/unused.h"
 
 
-static int cmd_interface_ac_rot_process_request (struct cmd_interface *intf,
+int cmd_interface_ac_rot_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	struct cmd_interface_ac_rot *ac_rot = (struct cmd_interface_ac_rot*) intf;
+	const struct cmd_interface_ac_rot *ac_rot = (const struct cmd_interface_ac_rot*) intf;
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
@@ -77,12 +77,12 @@ static int cmd_interface_ac_rot_process_request (struct cmd_interface *intf,
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 		case CERBERUS_PROTOCOL_EXCHANGE_KEYS:
 			status = cerberus_protocol_key_exchange (ac_rot->base.session, request,
-				intf->curr_txn_encrypted);
+				request->is_encrypted);
 			break;
 
 		case CERBERUS_PROTOCOL_SESSION_SYNC:
 			status = cerberus_protocol_session_sync (ac_rot->base.session, request,
-				intf->curr_txn_encrypted);
+				request->is_encrypted);
 			break;
 #endif
 
@@ -98,7 +98,7 @@ static int cmd_interface_ac_rot_process_request (struct cmd_interface *intf,
 }
 
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-static int cmd_interface_ac_rot_process_response (struct cmd_interface *intf,
+int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
 	return CMD_HANDLER_UNSUPPORTED_OPERATION;
@@ -106,20 +106,20 @@ static int cmd_interface_ac_rot_process_response (struct cmd_interface *intf,
 #endif
 
 /**
- * Initialize System command interface instance
+ * Initialize a minimal AC-RoT command handler.
  *
- * @param intf The System command interface instance to initialize
- * @param attestation Attestation responder instance to utilize
- * @param device_manager Device manager
+ * @param intf The handler to initialize.
+ * @param attestation Handler for attestation requests.
+ * @param device_manager Manager for known devices.
  * @param background Context for executing long-running operations in the background.
- * @param fw_version The FW version strings
- * @param riot RIoT keys manager
- * @param cmd_device Device command handler instance
- * @param vendor_id Device vendor ID
- * @param device_id Device ID
- * @param subsystem_vid Subsystem vendor ID
- * @param subsystem_id Subsystem ID
- * @param session Session manager for channel encryption
+ * @param fw_version The FW version strings reported by the device.
+ * @param riot Manager for device identity keys.
+ * @param cmd_device Handler for commands that depend on platform details.
+ * @param vendor_id Device vendor identifier for the platform.
+ * @param device_id Device identifier for the platform.
+ * @param subsystem_vid Subsystem vendor identifier for the platform.
+ * @param subsystem_id Subsystem identifier for the platform.
+ * @param session Optional handler for channel encryption.
  *
  * @return Initialization status, 0 if success or an error code.
  */
@@ -163,11 +163,11 @@ int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 }
 
 /**
- * Deinitialize AC-RoT system command interface instance
+ * Deinitialize AC-RoT command handler.
  *
- * @param intf The AC-RoT system command interface instance to deinitialize
+ * @param intf The AC-RoT command handler to deinitialize.
  */
-void cmd_interface_ac_rot_deinit (struct cmd_interface_ac_rot *intf)
+void cmd_interface_ac_rot_deinit (const struct cmd_interface_ac_rot *intf)
 {
 	UNUSED (intf);
 }

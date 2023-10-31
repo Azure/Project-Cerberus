@@ -20,6 +20,7 @@ struct cmd_interface_spdm {
 };
 
 
+/* TODO:  Observable needs to support const model in order to support static/const instances. */
 int cmd_interface_spdm_init (struct cmd_interface_spdm *intf);
 void cmd_interface_spdm_deinit (struct cmd_interface_spdm *intf);
 

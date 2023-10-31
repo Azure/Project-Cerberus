@@ -22,7 +22,8 @@
  * @return 0 if the message was successfully processed or an error code.
  */
 static int cmd_interface_mctp_control_process_mctp_protocol_message (
-	struct cmd_interface_mctp_control *intf, struct cmd_interface_msg *message, uint8_t *command_id)
+	const struct cmd_interface_mctp_control *intf, struct cmd_interface_msg *message,
+	uint8_t *command_id)
 {
 	struct mctp_control_protocol_header *header;
 	struct mctp_control_protocol_resp_header *rsp_header;
@@ -66,7 +67,7 @@ static int cmd_interface_mctp_control_process_mctp_protocol_message (
 	return 0;
 }
 
-static int cmd_interface_mctp_control_process_request (struct cmd_interface *intf,
+static int cmd_interface_mctp_control_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
 	struct cmd_interface_mctp_control *interface = (struct cmd_interface_mctp_control*) intf;
@@ -117,7 +118,7 @@ static int cmd_interface_mctp_control_process_request (struct cmd_interface *int
 }
 
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-static int cmd_interface_mctp_control_process_response (struct cmd_interface *intf,
+static int cmd_interface_mctp_control_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
 	struct cmd_interface_mctp_control *interface = (struct cmd_interface_mctp_control*) intf;
@@ -185,7 +186,7 @@ static int cmd_interface_mctp_control_process_response (struct cmd_interface *in
 }
 #endif
 
-static int cmd_interface_mctp_control_generate_error_packet (struct cmd_interface *intf,
+static int cmd_interface_mctp_control_generate_error_packet (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data, uint8_t cmd_set)
 {
 	UNUSED (intf);

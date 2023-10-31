@@ -3529,29 +3529,12 @@ void cerberus_protocol_required_commands_testing_generate_error_packet (CuTest *
 void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_msg request;
-	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_msg decrypted_request;
-	struct cerberus_protocol_key_exchange *rq =
-		(struct cerberus_protocol_key_exchange*) data;
-	struct cerberus_protocol_key_exchange *decrypted_rq =
-		(struct cerberus_protocol_key_exchange*) decrypted_data;
-	uint8_t hmac_buf[SHA256_HASH_LENGTH] = {0};
 	uint8_t error_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg error_packet;
 	uint8_t encrypted_error_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg encrypted_error_packet;
 	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
 	int status;
-
-	memset (&request, 0, sizeof (request));
-	memset (data, 0, sizeof (data));
-	request.data = data;
-
-	memset (&decrypted_request, 0, sizeof (decrypted_request));
-	memset (decrypted_data, 0, sizeof (decrypted_data));
-	decrypted_request.data = decrypted_data;
 
 	memset (&error_packet, 0, sizeof (error_packet));
 	memset (error_data, 0, sizeof (error_data));
@@ -3560,33 +3543,6 @@ void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted
 	memset (&encrypted_error_packet, 0, sizeof (encrypted_error_packet));
 	memset (encrypted_error_data, 0, sizeof (encrypted_error_data));
 	encrypted_error_packet.data = encrypted_error_data;
-
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	rq->header.crypt = 1;
-	rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
-
-	rq->key_type = 0xAA;
-
-	memset (cerberus_protocol_key_exchange_type_2_hmac_data (rq), 0xCC, sizeof (hmac_buf));
-
-	request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
-	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	decrypted_rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	decrypted_rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	decrypted_rq->header.crypt = 1;
-	decrypted_rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
-
-	decrypted_rq->key_type = CERBERUS_PROTOCOL_DELETE_SESSION_KEY;
-
-	memcpy (cerberus_protocol_key_exchange_type_2_hmac_data (decrypted_rq), hmac_buf,
-		sizeof (hmac_buf));
-
-	decrypted_request.length = cerberus_protocol_key_exchange_type_2_length (SHA256_HASH_LENGTH);
-	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -3603,6 +3559,7 @@ void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted
 	error_packet.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	error_packet.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	error_packet.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	error_packet.is_encrypted = true;
 
 	error = (struct cerberus_protocol_error*) encrypted_error_packet.data;
 	error->header.msg_type = 0x7E;
@@ -3620,24 +3577,6 @@ void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted
 		SESSION_MANAGER_TRAILER_LEN;
 	encrypted_error_packet.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	encrypted_error_packet.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
-		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
-	status |= mock_expect_output_deep_copy (&session->mock, 0, &decrypted_request,
-		sizeof (decrypted_request), cmd_interface_mock_copy_request);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&session->mock, session->base.reset_session, session,
-		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID),
-		MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), MOCK_ARG (sizeof (hmac_buf)));
-	CuAssertIntEquals (test, 0, status);
-
-	request.crypto_timeout = false;
-	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, SESSION_MANAGER_NO_MEMORY, status);
-	CuAssertIntEquals (test, true, request.crypto_timeout);
 
 	status = mock_expect (&session->mock, session->base.encrypt_message, session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &error_packet,
@@ -3671,58 +3610,14 @@ void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted
 void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted_fail (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session)
 {
-	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_msg request;
-	uint8_t decrypted_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_msg decrypted_request;
-	struct cerberus_protocol_key_exchange *rq =
-		(struct cerberus_protocol_key_exchange*) data;
-	struct cerberus_protocol_key_exchange *decrypted_rq =
-		(struct cerberus_protocol_key_exchange*) decrypted_data;
-	uint8_t hmac_buf[SHA256_HASH_LENGTH] = {0};
 	uint8_t error_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg error_packet;
 	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
 	int status;
 
-	memset (&request, 0, sizeof (request));
-	memset (data, 0, sizeof (data));
-	request.data = data;
-
-	memset (&decrypted_request, 0, sizeof (decrypted_request));
-	memset (decrypted_data, 0, sizeof (decrypted_data));
-	decrypted_request.data = decrypted_data;
-
 	memset (&error_packet, 0, sizeof (error_packet));
 	memset (error_data, 0, sizeof (error_data));
 	error_packet.data = error_data;
-
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	rq->header.crypt = 1;
-	rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
-
-	rq->key_type = 0xAA;
-
-	memset (cerberus_protocol_key_exchange_type_2_hmac_data (rq), 0xCC, sizeof (hmac_buf));
-
-	request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
-	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	decrypted_rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	decrypted_rq->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	decrypted_rq->header.crypt = 1;
-	decrypted_rq->header.command = CERBERUS_PROTOCOL_EXCHANGE_KEYS;
-
-	decrypted_rq->key_type = CERBERUS_PROTOCOL_DELETE_SESSION_KEY;
-
-	memcpy (cerberus_protocol_key_exchange_type_2_hmac_data (decrypted_rq), hmac_buf,
-		sizeof (hmac_buf));
-
-	decrypted_request.length = cerberus_protocol_key_exchange_type_2_length (SHA256_HASH_LENGTH);
-	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -3736,26 +3631,10 @@ void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted
 	error->error_data = 0;
 
 	error_packet.length = sizeof (struct cerberus_protocol_error);
+	error_packet.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	error_packet.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	error_packet.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
-		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request));
-	status |= mock_expect_output_deep_copy (&session->mock, 0, &decrypted_request,
-		sizeof (decrypted_request), cmd_interface_mock_copy_request);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&session->mock, session->base.reset_session, session,
-		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID),
-		MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), MOCK_ARG (sizeof (hmac_buf)));
-	CuAssertIntEquals (test, 0, status);
-
-	request.crypto_timeout = false;
-	status = cmd->process_request (cmd, &request);
-	CuAssertIntEquals (test, SESSION_MANAGER_NO_MEMORY, status);
-	CuAssertIntEquals (test, true, request.crypto_timeout);
+	error_packet.is_encrypted = true;
 
 	status = mock_expect (&session->mock, session->base.encrypt_message, session,
 		SESSION_MANAGER_NO_MEMORY,
