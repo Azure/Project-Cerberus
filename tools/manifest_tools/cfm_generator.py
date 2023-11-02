@@ -189,35 +189,38 @@ def generate_measurements (xml_measurements, hash_engine, measurement_hash_type)
     digest_len = manifest_common.get_hash_len (measurement_hash_type)
 
     for pmr_id, measurement_entries_dict in xml_measurements.items ():
-        for measurement_id, measurements_dict in measurement_entries_dict.items ():
-            num_digests = len (measurements_dict["allowable_digests"])
-            digests_buf = (ctypes.c_ubyte * (digest_len * num_digests)) ()
-            digests_len = 0
+        for measurement_id, version_sets in measurement_entries_dict.items ():
+            allowable_digest_list = []
+            allowable_digest_len = 0
+            entries = 0
+            for version_set, measurements_dict in version_sets["version_set"].items ():
+                num_digests = len (measurements_dict["allowable_digests"])
+                digests_buf = (ctypes.c_ubyte * (digest_len * num_digests)) ()
+                digests_len = 0
+                entries += 1
+                for digest in measurements_dict["allowable_digests"]:
+                    if len (digest) != digest_len:
+                        raise ValueError ("Hash of type '{0}' has unexpected length {1} vs {2}".format (
+                            measurement_hash_type, len (digest), digest_len))
 
-            for digest in measurements_dict["allowable_digests"]:
-                if len (digest) != digest_len:
-                    raise ValueError ("Hash of type '{0}' has unexpected length {1} vs {2}".format (
-                        measurement_hash_type, len (digest), digest_len))
+                    digest_arr = (ctypes.c_ubyte * digest_len).from_buffer_copy (digest)
+                    ctypes.memmove (ctypes.addressof (digests_buf) + digests_len, digest_arr,
+                        digest_len)
+                    digests_len += digest_len
 
-                digest_arr = (ctypes.c_ubyte * digest_len).from_buffer_copy (digest)
-                ctypes.memmove (ctypes.addressof (digests_buf) + digests_len, digest_arr,
-                    digest_len)
-                digests_len += digest_len
+                class cfm_allowable_digest_element (ctypes.LittleEndianStructure):
+                    _pack_ = 1
+                    _fields_ = [('version_set', ctypes.c_uint16),
+                                ('digest_count', ctypes.c_ubyte),
+                                ('reserved', ctypes.c_ubyte),
+                                ('digest', ctypes.c_ubyte * digests_len)]
 
-            class cfm_allowable_digest_element (ctypes.LittleEndianStructure):
-                _pack_ = 1
-                _fields_ = [('version_set', ctypes.c_uint16),
-                            ('digest_count', ctypes.c_ubyte),
-                            ('reserved', ctypes.c_ubyte),
-                            ('digest', ctypes.c_ubyte * digests_len)]
-
-            # TODO: Derive version set based on digests across versions
-            allowable_digest = cfm_allowable_digest_element (1, num_digests, 0, digests_buf)
-            allowable_digest_len = ctypes.sizeof (allowable_digest)
+                allowable_digest = cfm_allowable_digest_element (version_set, num_digests, 0, digests_buf)
+                allowable_digest_list.append (allowable_digest)
+                allowable_digest_len += ctypes.sizeof (allowable_digest)
 
             allowable_digest_buf = (ctypes.c_ubyte * allowable_digest_len) ()
-            ctypes.memmove (ctypes.addressof (allowable_digest_buf),
-                ctypes.addressof (allowable_digest), allowable_digest_len)
+            manifest_common.move_list_to_buffer (allowable_digest_buf, 0, allowable_digest_list)
 
             class cfm_measurement_element (ctypes.LittleEndianStructure):
                 _pack_ = 1
@@ -227,7 +230,7 @@ def generate_measurements (xml_measurements, hash_engine, measurement_hash_type)
                             ('reserved', ctypes.c_ubyte),
                             ('digests_list', ctypes.c_ubyte * allowable_digest_len)]
 
-            measurement = cfm_measurement_element (pmr_id, measurement_id, 1, 0,
+            measurement = cfm_measurement_element (pmr_id, measurement_id, entries, 0,
                 allowable_digest_buf)
             measurement_len = ctypes.sizeof (measurement)
 
@@ -271,34 +274,33 @@ def generate_measurement_data (xml_measurement_data, hash_engine):
             allowable_data_toc_list = []
             allowable_data_hash_list = []
             allowable_data_len = 0
-
             for group in measurement_data_dict["allowable_data"]:
-                num_data = len (group["data"])
+                num_data = 0
                 total_data_len = 0
                 data_list = []
                 data_list_buf = []
+                for version_set, data_entries in group["data"]["version_set"].items ():
+                    for data in data_entries:
+                        num_data += 1
+                        data_len = len (data)
+                        manifest_common.check_maximum (data_len, 255,
+                            "PMR {0} measurement {1} data length".format (pmr_id, measurement_id))
+                        data_padding, data_padding_len = manifest_common.generate_4byte_padding_buf (
+                            data_len)
 
-                for data in group["data"]:
-                    data_len = len (data)
-                    manifest_common.check_maximum (data_len, 255,
-                        "PMR {0} measurement {1} data length".format (pmr_id, measurement_id))
-                    data_padding, data_padding_len = manifest_common.generate_4byte_padding_buf (
-                        data_len)
+                        data_buf = (ctypes.c_ubyte * data_len).from_buffer_copy (data)
+                        data_buf_len = ctypes.sizeof (data_buf)
 
-                    data_buf = (ctypes.c_ubyte * data_len).from_buffer_copy (data)
-                    data_buf_len = ctypes.sizeof (data_buf)
+                        class cfm_allowable_data_element_entry (ctypes.LittleEndianStructure):
+                            _pack_ = 1
+                            _fields_ = [('version_set', ctypes.c_uint16),
+                                        ('data_length', ctypes.c_uint16),
+                                        ('data', ctypes.c_ubyte * data_buf_len),
+                                        ('data_padding', ctypes.c_ubyte * data_padding_len)]
 
-                    class cfm_allowable_data_element_entry (ctypes.LittleEndianStructure):
-                        _pack_ = 1
-                        _fields_ = [('version_set', ctypes.c_uint16),
-                                    ('data_length', ctypes.c_uint16),
-                                    ('data', ctypes.c_ubyte * data_buf_len),
-                                    ('data_padding', ctypes.c_ubyte * data_padding_len)]
-
-                    # TODO: Derive version set based on measurements across versions
-                    data_entry = cfm_allowable_data_element_entry (1, data_len, data_buf, data_padding)
-                    data_list.append (data_entry)
-                    total_data_len += ctypes.sizeof (data_entry)
+                        data_entry = cfm_allowable_data_element_entry (version_set, data_len, data_buf, data_padding)
+                        data_list.append (data_entry)
+                        total_data_len += ctypes.sizeof (data_entry)
 
                 check = manifest_common.get_key_from_dict (group, "check", "Measurement Data")
 
@@ -371,8 +373,8 @@ def generate_measurement_data (xml_measurement_data, hash_engine):
                 hash_engine))
             measurement_data_hash_list.extend (allowable_data_hash_list)
 
-    measurement_data_buf = (ctypes.c_ubyte * measurement_data_buf_len) ()
-    manifest_common.move_list_to_buffer (measurement_data_buf, 0, measurement_data_list)
+        measurement_data_buf = (ctypes.c_ubyte * measurement_data_buf_len) ()
+        manifest_common.move_list_to_buffer (measurement_data_buf, 0, measurement_data_list)
 
     return measurement_data_buf, len (measurement_data_list), measurement_data_toc_list, \
         measurement_data_hash_list
@@ -598,6 +600,143 @@ def generate_comp_device (comp_device_type, num_pmr_digests, num_measurement, nu
 
     return comp_device, comp_device_toc_entry, comp_device_hash
 
+def group_measurements_into_version_sets (xml_parsed_dict, component_key, components):
+    """
+    groups the measurements allowable digests into version sets. The first xml file's entries are
+    added to the component dictionary, the rest of the xml entries are compared with the existing entries.
+    When new pmr id does not existis, a new entry is created with version_set as 1. If pmr_id is already
+    present, measurement_id is compared, when the allowable_digests are same for the same measurement id,
+    the enry is ignored, if not the new entry is added by incrementing the version_set number by 1
+
+    :param xml_parsed_dict: the dictionary that is created by load_xmls function by parsing the
+                           xml files
+    :param component_key: type string - The platform for component attesatation
+    :param components: dictionary updated with version_set grouping, with old entries
+
+    :return components dictionary updated with version_set grouping, with new entries
+    """
+
+    for pmr_id, pmr_entries in xml_parsed_dict["measurements"].items ():
+        if not pmr_id in components[component_key]["measurements"]:
+            components[component_key]["measurements"][pmr_id] = {}
+
+            for measurement_id, measurement_entries in pmr_entries.items ():
+                components[component_key]["measurements"][pmr_id][measurement_id] = {"version_set":{}}
+                components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][1] = measurement_entries
+        else:
+            for measurement_id, measurement_entries in pmr_entries.items ():
+                if measurement_id in components[component_key]["measurements"][pmr_id]:
+                    existing_version_sets = components[component_key]["measurements"] \
+                        [pmr_id][measurement_id]["version_set"].copy ()
+
+                    for digest in measurement_entries["allowable_digests"]:
+                        version_set_not_contain_digest = []
+
+                        for version_set, version_set_dict in existing_version_sets.items ():
+                            if not digest in version_set_dict["allowable_digests"]:
+                                version_set_not_contain_digest.append (version_set)
+
+                        if len (version_set_not_contain_digest) != 0:
+                            version_set_not_contain_digest.sort ()
+                            new_version_set = version_set_not_contain_digest[-1] + 1
+                            components[component_key]["measurements"][pmr_id][measurement_id] \
+                                ["version_set"].update ({new_version_set:measurement_entries})
+                else:
+                    components[component_key]["measurements"][pmr_id][measurement_id] = {"version_set":{}}
+                    components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][1] = measurement_entries
+
+    return components
+
+def set_data_list_in_version_set_dict (allowable_data_list, version_set_num):
+    """
+    This is a helper function for group_measurement_data_into_version_sets function to group
+    allowable data list into version set dictionary which will be processed by generate_measurement_data
+    function
+
+    :param allowable_data_list: allowable_data element list that is extracted from measurement_data dictionary
+    :param version_set_num: integer value to group the data_list from the allowable_data element as version_set
+
+    :return data_list: the data list is created with each data element with version set grouping
+    """
+
+    data_list = []
+    for allowable_data_element in allowable_data_list:
+        data_element = {}
+
+        for data_key, data_value in allowable_data_element.items ():
+            if data_key == "data":
+                data_element[data_key] = {"version_set": {version_set_num:data_value}}
+            else:
+                data_element[data_key] = data_value
+
+        data_list.append (data_element)
+
+    return data_list
+
+def group_measurement_data_into_version_sets (component_dict, component_key, components):
+    """
+    groups the measurement_data allowable_data into version sets. The first xml file's entries are
+    added to the component dictionary, the rest of the xml entries are compared with the existing entries.
+    When new pmr id does not existis, a new entry is created with version_set as 1. If pmr_id is already
+    present, measurement_id is compared, when the allowable_data are same for the same measurement id,
+    the enry is ignored, if not the new entry is added by incrementing the version_set number by 1
+
+    :param component_dict: the dictionary that is created by load_xmls function by parsing the
+                           xml files
+    :param component_key: type string - The platform for component attesatation
+    :param components: dictionary updated with version_set grouping, with old entries
+
+    :return components dictionary updated with version_set grouping, with new entries
+    """
+
+    for pmr_id, pmr_entries in component_dict["measurement_data"].items ():
+        if not pmr_id in components[component_key]["measurement_data"]:
+            components[component_key][element_key][pmr_id] = {}
+
+            for measurement_id, measurement_entries in pmr_entries.items ():
+                data_list_to_append = set_data_list_in_version_set_dict (measurement_entries["allowable_data"], 1)
+                components[component_key][element_key][pmr_id][measurement_id]= \
+                    {"allowable_data" : data_list_to_append}
+        else:
+            # compare the data value to see if its same for same measurement id
+            for measurement_id, measurement_data_entries in pmr_entries.items ():
+                if measurement_id in components[component_key]["measurement_data"][pmr_id]:
+                    available_allowable_data_list = components[component_key]["measurement_data"] \
+                        [pmr_id][measurement_id]["allowable_data"]
+                    new_allowable_data_list = measurement_data_entries["allowable_data"]
+
+                    for index in range (0, len (new_allowable_data_list)):
+                        new_data_entries = []
+                        duplicate_data = []
+                        version_set_count = 0
+                        new_data_list_len = len (new_allowable_data_list[index]["data"])
+
+                        for new_data in new_allowable_data_list[index]["data"]:
+                            new_data_entries.append (new_data)
+                            available_version_sets = available_allowable_data_list[index]["data"]["version_set"]
+
+                            for version_set_id, available_data_list in available_version_sets.items ():
+                                version_set_count += 1
+                                if new_data in available_data_list:
+                                    duplicate_entry_dict = {"version_set": version_set_id, "data": new_data}
+                                    duplicate_data.append (duplicate_entry_dict)
+                                    break
+
+                        if len (duplicate_data) == new_data_list_len:
+                            if all (ele["version_set"] == duplicate_data[0]["version_set"] for ele in duplicate_data):
+                                new_data_entries.clear ()
+                                continue
+
+                        new_version_set = list (available_version_sets.keys ())[-1] + 1
+                        components[component_key]["measurement_data"][pmr_id][measurement_id]["allowable_data"] \
+                            [index]["data"]["version_set"].update ({new_version_set:new_data_entries})
+                else:
+                    components[component_key]["measurement_data"][pmr_id][measurement_id] = {}
+                    data_list_to_append = set_data_list_in_version_set_dict (measurement_data_entries["allowable_data"], 1)
+                    components[component_key][element_key][pmr_id][measurement_id] = \
+                        {"allowable_data" : data_list_to_append}
+
+    return components
 
 #*************************************** Start of Script ***************************************
 
@@ -622,9 +761,46 @@ hash_list = []
 for xml_key, xml_dict in processed_xml.items ():
     for component_key, component_dict in xml_dict.items ():
         if component_key in components:
-            raise ValueError ("Component '{0}' defined in multiple XMLs".format (component_key))
+            if "root_ca_digests" in component_dict:
+                for digest in component_dict["root_ca_digests"]["allowable_digests"]:
+                    if not digest in components[component_key]["root_ca_digests"]["allowable_digests"]:
+                        components[component_key]["root_ca_digests"]["allowable_digests"].append (digest)
 
-        components.update ({component_key:component_dict})
+            if "measurements" in component_dict:
+                components = group_measurements_into_version_sets (component_dict, component_key, components)
+
+            if "measurement_data" in component_dict:
+                components = group_measurement_data_into_version_sets (component_dict, component_key, \
+                    components)
+
+        else:
+            components.update ({component_key:{}})
+
+            for element_key, element_dict in component_dict.items ():
+                if not element_key in ["measurements", "measurement_data"]:
+                    components[component_key][element_key] = element_dict
+                    continue
+
+                if element_key == "measurements":
+                    components[component_key][element_key] = {}
+
+                    for pmr_id, pmr_entries in element_dict.items ():
+                        components[component_key][element_key][pmr_id] = {}
+
+                        for measurement_id, measurement_entries in pmr_entries.items ():
+                            components[component_key][element_key][pmr_id][measurement_id] = {"version_set":{}}
+                            components[component_key][element_key][pmr_id][measurement_id]["version_set"][1] = measurement_entries
+
+                if element_key == "measurement_data":
+                    components[component_key][element_key] = {}
+
+                    for pmr_id, pmr_entries in element_dict.items ():
+                        components[component_key][element_key][pmr_id] = {}
+
+                        for measurement_id, measurement_entries in pmr_entries.items ():
+                            data_list_to_append = set_data_list_in_version_set_dict (measurement_entries["allowable_data"], 1)
+                            components[component_key][element_key][pmr_id][measurement_id] = \
+                                {"allowable_data" : data_list_to_append}
 
 platform_id, platform_id_toc_entry, platform_id_hash = \
     manifest_common.generate_platform_id_buf ({"platform_id": platform_id}, hash_engine)
