@@ -1040,7 +1040,8 @@ int cerberus_protocol_get_update_status (const struct firmware_update_control *c
 	}
 
 	if (status == 0) {
-		request->length = sizeof (struct cerberus_protocol_update_status_response);
+		cmd_interface_msg_set_message_payload_length (request,
+			sizeof (struct cerberus_protocol_update_status_response));
 	}
 	return status;
 }

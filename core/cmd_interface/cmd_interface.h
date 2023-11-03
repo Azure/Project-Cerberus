@@ -8,18 +8,27 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "status/rot_status.h"
-#include "cerberus_protocol.h"
+#include "session_manager.h"
 
 
 /**
  * Container for message data.
  */
 struct cmd_interface_msg {
-	uint8_t *data;					/**< The raw message data buffer.  This contains the message to
-										process. If message is a request, this buffer can be updated
-										with any response data. */
+	uint8_t *data;					/**< The raw message data buffer.  This contains the full
+										message to process, including all protocol headers. If the
+										message is a request, this buffer can be updated with the
+										response data, while providing sufficient space before the
+										data for any protocol headers that will need to be added. */
 	size_t length;					/**< Length of the data buffer contents. */
 	size_t max_response;			/**< Maximum length allowed for a response. */
+	uint8_t *payload;				/**< Payload data for the message.  This is a pointer to a
+										location in the message buffer indicating the payload start,
+										after accounting for protocol headers.  The protocol stack
+										will move this pointer as messages pass through the various
+										processing layers.  This can be filled with response data
+										without needing to account for protocol header space. */
+	size_t payload_length;			/**< Length of the message payload. */
 	uint8_t source_eid;				/**< Endpoint ID that generated the message. */
 	uint8_t source_addr;			/**< Address of device that generated the message. */
 	uint8_t target_eid;				/**< Endpoint ID that should process the message. */
@@ -97,6 +106,23 @@ struct cmd_interface {
 	struct session_manager *session;				/**< Session manager for channel encryption */
 };
 
+
+/* Utility functions for managing messages. */
+void cmd_interface_msg_new_message (struct cmd_interface_msg *message, uint8_t source_eid,
+	uint8_t source_addr, uint8_t target_eid, int channel_id);
+
+void cmd_interface_msg_add_payload_data (struct cmd_interface_msg *message, const uint8_t *data,
+	size_t length);
+void cmd_interface_msg_set_message_payload_length (struct cmd_interface_msg *message,
+	size_t length);
+
+void cmd_interface_msg_remove_protocol_header (struct cmd_interface_msg *message,
+	size_t header_length);
+void cmd_interface_msg_add_protocol_header (struct cmd_interface_msg *message,
+	size_t header_length);
+
+size_t cmd_interface_msg_get_protocol_length (const struct cmd_interface_msg *message);
+size_t cmd_interface_msg_get_max_response (const struct cmd_interface_msg *message);
 
 /* Internal functions for use by derived types. */
 int cmd_interface_process_cerberus_protocol_message (const struct cmd_interface *intf,

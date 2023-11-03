@@ -984,7 +984,6 @@ int64_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 	int64_t value_ptr;
 	bool update_value;
 
-
 	if (call == NULL) {
 		return MOCK_NO_MEMORY;
 	}

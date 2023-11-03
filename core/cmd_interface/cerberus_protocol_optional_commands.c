@@ -1001,7 +1001,8 @@ int cerberus_protocol_get_attestation_data (struct pcr_store *pcr_store,
 		return status;
 	}
 
-	request->length = cerberus_protocol_get_attestation_data_response_length (status);
+	cmd_interface_msg_set_message_payload_length (request,
+		cerberus_protocol_get_attestation_data_response_length (status));
 
 	return 0;
 }
@@ -1069,7 +1070,8 @@ int cerberus_protocol_key_exchange (struct session_manager *session,
 	}
 
 	if (status == 0) {
-		request->length = sizeof (struct cerberus_protocol_key_exchange_response);
+		cmd_interface_msg_set_message_payload_length (request,
+			sizeof (struct cerberus_protocol_key_exchange_response));
 	}
 
 	return status;
@@ -1112,7 +1114,8 @@ int cerberus_protocol_session_sync (struct session_manager *session,
 		return status;
 	}
 
-	request->length = cerberus_protocol_session_sync_length (status);
+	cmd_interface_msg_set_message_payload_length (request,
+		cerberus_protocol_session_sync_length (status));
 
 	return 0;
 }

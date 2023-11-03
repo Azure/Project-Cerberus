@@ -22,6 +22,14 @@
 
 #pragma pack(push, 1)
 /**
+ * Header that is added to SPDM messages when using the MCTP binding.
+ */
+struct spdm_protocol_mctp_header {
+	uint8_t msg_type:7;										/**< MCTP message type */
+	uint8_t integrity_check:1;								/**< MCTP message integrity check */
+};
+
+/**
  * SPDM portion of packet header
  */
 struct spdm_protocol_header {

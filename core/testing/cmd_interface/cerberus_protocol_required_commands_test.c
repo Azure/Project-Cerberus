@@ -3556,6 +3556,8 @@ void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted
 	error->error_data = 0;
 
 	error_packet.length = sizeof (struct cerberus_protocol_error);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 	error_packet.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	error_packet.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	error_packet.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -3575,8 +3577,11 @@ void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted
 
 	encrypted_error_packet.length = sizeof (struct cerberus_protocol_error) +
 		SESSION_MANAGER_TRAILER_LEN;
+	encrypted_error_packet.payload = encrypted_error_packet.data;
+	encrypted_error_packet.payload_length = encrypted_error_packet.length;
 	encrypted_error_packet.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	encrypted_error_packet.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	encrypted_error_packet.is_encrypted = true;
 
 	status = mock_expect (&session->mock, session->base.encrypt_message, session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &error_packet,
@@ -3631,6 +3636,8 @@ void cerberus_protocol_required_commands_testing_generate_error_packet_encrypted
 	error->error_data = 0;
 
 	error_packet.length = sizeof (struct cerberus_protocol_error);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 	error_packet.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	error_packet.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	error_packet.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;

@@ -1279,6 +1279,8 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 	req->port_id = 0xBB;
 	request.length = sizeof (struct cerberus_protocol_update_status) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1291,6 +1293,8 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 	plaintext_rq->port_id = 1;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_update_status);
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1302,9 +1306,12 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 	plaintext_rsp->update_status = update_status;
 
 	response.length = sizeof (struct cerberus_protocol_update_status_response);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = true;
 
 	ciphertext_rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	ciphertext_rsp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
@@ -1314,9 +1321,12 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 
 	encrypted_response.length = sizeof (struct cerberus_protocol_update_status_response) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	encrypted_response.payload = encrypted_response.data;
+	encrypted_response.payload_length = encrypted_response.length;
 	encrypted_response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	encrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	encrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	encrypted_response.is_encrypted = true;
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -1381,6 +1391,8 @@ static void cmd_interface_system_test_process_encrypted_message_decrypt_fail (Cu
 	req->port_id = 0xBB;
 	request.length = sizeof (struct cerberus_protocol_update_status) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1442,6 +1454,8 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 	req->port_id = 0xBB;
 	request.length = sizeof (struct cerberus_protocol_update_status) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1454,6 +1468,8 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 	plaintext_rq->port_id = 1;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_update_status);
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1465,9 +1481,12 @@ static void cmd_interface_system_test_process_encrypted_message_encrypt_fail (Cu
 	plaintext_rsp->update_status = update_status;
 
 	response.length = sizeof (struct cerberus_protocol_update_status_response);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = true;
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -1567,6 +1586,8 @@ static void cmd_interface_system_test_process_encrypted_message_no_response (CuT
 	req->log_type = 0xAA;
 	request.length = sizeof (struct cerberus_protocol_clear_log) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1578,6 +1599,8 @@ static void cmd_interface_system_test_process_encrypted_message_no_response (CuT
 	plaintext_rq->log_type = CERBERUS_PROTOCOL_DEBUG_LOG;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_clear_log);
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1643,6 +1666,8 @@ static void cmd_interface_system_test_process_encrypted_message_only_header (CuT
 
 	request.length = sizeof (struct cerberus_protocol_get_attestation_data) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1657,6 +1682,8 @@ static void cmd_interface_system_test_process_encrypted_message_only_header (CuT
 	plaintext_rq->offset = 0;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_get_attestation_data);
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -1665,6 +1692,12 @@ static void cmd_interface_system_test_process_encrypted_message_only_header (CuT
 	memcpy (&response_data, decrypted_data, sizeof (response_data));
 	response.data = response_data;
 	response.length = sizeof (struct cerberus_protocol_header);
+	response.payload = response.data;
+	response.payload_length = response.length;
+	response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = true;
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,
@@ -7756,6 +7789,8 @@ static void cmd_interface_system_test_process_response_encrypted_message (CuTest
 	response.length =
 		cerberus_protocol_get_certificate_digest_response_length (rsp) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.max_response = SESSION_MANAGER_TRAILER_LEN;
@@ -7770,11 +7805,14 @@ static void cmd_interface_system_test_process_response_encrypted_message (CuTest
 
 	decrypted_response.length =
 		cerberus_protocol_get_certificate_digest_response_length (plaintext_rsp);
+	decrypted_response.payload = decrypted_response.data;
+	decrypted_response.payload_length = decrypted_response.length;
 	decrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	decrypted_response.max_response = SESSION_MANAGER_TRAILER_LEN;
 
 	memcpy (&decrypted_response2, &decrypted_response, sizeof (struct cmd_interface_msg));
+	decrypted_response2.is_encrypted = true;
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.decrypt_message, &cmd.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,

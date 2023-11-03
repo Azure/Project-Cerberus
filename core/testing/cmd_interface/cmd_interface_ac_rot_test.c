@@ -541,6 +541,8 @@ static void cmd_interface_ac_rot_test_process_encrypted_message (CuTest *test)
 	req->port = encrypted_port;
 	request.length = sizeof (struct cerberus_protocol_reset_counter) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -552,6 +554,8 @@ static void cmd_interface_ac_rot_test_process_encrypted_message (CuTest *test)
 	plaintext_rq->type = 0;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_reset_counter);
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -563,9 +567,12 @@ static void cmd_interface_ac_rot_test_process_encrypted_message (CuTest *test)
 	plaintext_rsp->counter = counter;
 
 	response.length = sizeof (struct cerberus_protocol_reset_counter_response);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = true;
 
 	ciphertext_rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	ciphertext_rsp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
@@ -575,9 +582,12 @@ static void cmd_interface_ac_rot_test_process_encrypted_message (CuTest *test)
 
 	encrypted_response.length = sizeof (struct cerberus_protocol_reset_counter_response) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	encrypted_response.payload = encrypted_response.data;
+	encrypted_response.payload_length = encrypted_response.length;
 	encrypted_response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	encrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	encrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	encrypted_response.is_encrypted = true;
 
 	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
 
@@ -679,6 +689,8 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_static_init (CuT
 	req->port = encrypted_port;
 	request.length = sizeof (struct cerberus_protocol_reset_counter) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -690,6 +702,8 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_static_init (CuT
 	plaintext_rq->type = 0;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_reset_counter);
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -701,9 +715,12 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_static_init (CuT
 	plaintext_rsp->counter = counter;
 
 	response.length = sizeof (struct cerberus_protocol_reset_counter_response);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = true;
 
 	ciphertext_rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	ciphertext_rsp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
@@ -713,9 +730,12 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_static_init (CuT
 
 	encrypted_response.length = sizeof (struct cerberus_protocol_reset_counter_response) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	encrypted_response.payload = encrypted_response.data;
+	encrypted_response.payload_length = encrypted_response.length;
 	encrypted_response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	encrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	encrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	encrypted_response.is_encrypted = true;
 
 	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
 
@@ -784,6 +804,8 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_decrypt_fail (Cu
 	req->port = encrypted_port;
 	request.length = sizeof (struct cerberus_protocol_reset_counter) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -850,6 +872,8 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_encrypt_fail (Cu
 	req->port = encrypted_port;
 	request.length = sizeof (struct cerberus_protocol_reset_counter) +
 		CERBERUS_PROTOCOL_AES_GCM_TAG_LEN + CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -861,6 +885,8 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_encrypt_fail (Cu
 	plaintext_rq->type = 0;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_reset_counter);
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -872,9 +898,12 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_encrypt_fail (Cu
 	plaintext_rsp->counter = counter;
 
 	response.length = sizeof (struct cerberus_protocol_reset_counter_response);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = true;
 
 	setup_cmd_interface_ac_rot_mock_test_with_session_manager (test, &cmd, true);
 
@@ -978,6 +1007,8 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_no_response (CuT
 	request.length = sizeof (struct cerberus_protocol_import_certificate) +
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN - 1 + CERBERUS_PROTOCOL_AES_GCM_TAG_LEN +
 		CERBERUS_PROTOCOL_AES_IV_LEN;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	request.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
@@ -994,6 +1025,8 @@ static void cmd_interface_ac_rot_test_process_encrypted_message_no_response (CuT
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_import_certificate) +
 		X509_CERTSS_RSA_CA_NOPL_DER_LEN - 1;
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;

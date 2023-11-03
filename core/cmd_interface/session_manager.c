@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "cmd_interface.h"
+#include "session_manager.h"
 #include "common/buffer_util.h"
 #include "common/common_math.h"
 #include "crypto/aes.h"
@@ -12,7 +14,6 @@
 #include "crypto/kdf.h"
 #include "riot/riot_core.h"
 #include "riot/riot_key_manager.h"
-#include "session_manager.h"
 
 
 /**
@@ -271,7 +272,8 @@ int session_manager_encrypt_message (struct session_manager *session,
 		return status;
 	}
 
-	status = common_math_increment_byte_array (curr_session->aes_init_vector, CERBERUS_PROTOCOL_AES_IV_LEN, false);
+	status = common_math_increment_byte_array (curr_session->aes_init_vector,
+		CERBERUS_PROTOCOL_AES_IV_LEN, false);
 	if (status != 0) {
 		return status;
 	}

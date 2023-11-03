@@ -4,16 +4,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mctp_base_protocol.h"
+#include "mctp_control_protocol.h"
+#include "mctp_control_protocol_commands.h"
+#include "mctp_interface.h"
+#include "mctp_logging.h"
 #include "common/common_math.h"
 #include "common/buffer_util.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/cmd_channel.h"
-#include "mctp_control_protocol.h"
-#include "mctp_control_protocol_commands.h"
-#include "mctp_logging.h"
-#include "mctp_base_protocol.h"
-#include "mctp_interface.h"
+#include "spdm/spdm_protocol.h"
 
 
 /**
@@ -328,12 +329,9 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 	}
 
 	if (som) {
-		mctp->req_buffer.length = 0;
-		mctp->req_buffer.source_eid = src_eid;
-		mctp->req_buffer.source_addr = source_addr;
-		mctp->req_buffer.target_eid = dest_eid;
+		cmd_interface_msg_new_message (&mctp->req_buffer, src_eid, source_addr, dest_eid,
+			mctp->channel_id);
 		mctp->start_packet_len = payload_len;
-		mctp->req_buffer.channel_id = mctp->channel_id;
 		mctp->packet_seq = 0;
 		mctp->msg_tag = msg_tag;
 	}
@@ -373,8 +371,7 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 	}
 
 	// Assemble packets into message and process message when EOM is received
-	memcpy (&mctp->req_buffer.data[mctp->req_buffer.length], payload, payload_len);
-	mctp->req_buffer.length += payload_len;
+	cmd_interface_msg_add_payload_data (&mctp->req_buffer, payload, payload_len);
 	mctp->packet_seq = (mctp->packet_seq + 1) % 4;
 
 	if (eom) {
@@ -395,6 +392,9 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
 			}
 			else if (MCTP_BASE_PROTOCOL_IS_SPDM_MSG (mctp->msg_type)) {
 				if (mctp->cmd_spdm) {
+					cmd_interface_msg_remove_protocol_header (&mctp->req_buffer,
+						sizeof (struct spdm_protocol_mctp_header));
+
 					status = mctp->cmd_spdm->process_response (mctp->cmd_spdm, &mctp->req_buffer);
 				}
 				else {
@@ -512,7 +512,7 @@ int mctp_interface_process_packet (struct mctp_interface *mctp, struct cmd_packe
  */
 void mctp_interface_reset_message_processing (struct mctp_interface *mctp)
 {
-	mctp->req_buffer.length = 0;
+	cmd_interface_msg_new_message (&mctp->req_buffer, 0, 0, 0, 0);
 	mctp->start_packet_len = 0;
 }
 

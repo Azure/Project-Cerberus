@@ -194,14 +194,20 @@ int cmd_interface_mock_validate_request (const char *arg_info, void *expected, v
 	int fail = 0;
 
 	if (req_expected->source_eid != req_actual->source_eid) {
-		platform_printf ("%sUnexpected source EID: expected=0x%x, actual=0x%x" NEWLINE,
-			arg_info, req_expected->source_eid, req_actual->source_eid);
+		platform_printf ("%sUnexpected source EID: expected=0x%x, actual=0x%x" NEWLINE, arg_info,
+			req_expected->source_eid, req_actual->source_eid);
+		fail |= 1;
+	}
+
+	if (req_expected->source_addr != req_actual->source_addr) {
+		platform_printf ("%sUnexpected source address: expected=0x%x, actual=0x%x" NEWLINE,
+			arg_info, req_expected->source_addr, req_actual->source_addr);
 		fail |= 1;
 	}
 
 	if (req_expected->target_eid != req_actual->target_eid) {
-		platform_printf ("%sUnexpected target EID: expected=0x%x, actual=0x%x" NEWLINE,
-			arg_info, req_expected->target_eid, req_actual->target_eid);
+		platform_printf ("%sUnexpected target EID: expected=0x%x, actual=0x%x" NEWLINE, arg_info,
+			req_expected->target_eid, req_actual->target_eid);
 		fail |= 1;
 	}
 
@@ -217,9 +223,45 @@ int cmd_interface_mock_validate_request (const char *arg_info, void *expected, v
 		fail |= 1;
 	}
 
+	if (req_expected->is_encrypted != req_actual->is_encrypted) {
+		platform_printf ("%sUnexpected encrypted flag: expected=0x%x, actual=0x%x" NEWLINE,
+			arg_info, req_expected->is_encrypted, req_actual->is_encrypted);
+		fail |= 1;
+	}
+
+	if (req_expected->crypto_timeout != req_actual->crypto_timeout) {
+		platform_printf ("%sUnexpected crypto timeout: expected=0x%x, actual=0x%x" NEWLINE,
+			arg_info, req_expected->crypto_timeout, req_actual->crypto_timeout);
+		fail |= 1;
+	}
+
 	if (req_expected->channel_id != req_actual->channel_id) {
 		platform_printf ("%sUnexpected request channel: expected=0x%x, actual=0x%x" NEWLINE,
 			arg_info, req_expected->channel_id, req_actual->channel_id);
+		fail |= 1;
+	}
+
+	/* Don't compare payload pointers directly since they won't match.  But the offset from the base
+	 * data pointer should be the same. */
+	if ((req_expected->payload == NULL) && (req_actual->payload != NULL)) {
+		platform_printf ("%sUnexpected payload pointer: expected=%p, actual=%p" NEWLINE, arg_info,
+			req_expected->payload, req_actual->payload);
+		fail |= 1;
+	}
+	else {
+		size_t diff_expected = req_expected->payload - req_expected->data;
+		size_t diff_actual = req_actual->payload - req_actual->data;
+
+		if (diff_expected != diff_actual) {
+			platform_printf ("%sUnexpected payload offset: expected=0x%x, actual=0x%x" NEWLINE,
+				arg_info, diff_expected, diff_actual);
+			fail |= 1;
+		}
+	}
+
+	if (req_expected->payload_length != req_actual->payload_length) {
+		platform_printf ("%sUnexpected payload length: expected=0x%lx, actual=0x%lx" NEWLINE,
+			arg_info, req_expected->payload_length, req_actual->payload_length);
 		fail |= 1;
 	}
 
@@ -239,6 +281,7 @@ void cmd_interface_mock_save_request (const struct mock_arg *expected, struct mo
 {
 	struct cmd_interface_msg *req_orig;
 	struct cmd_interface_msg *req_copy;
+	size_t payload_offset;
 
 	call->ptr_value = platform_malloc (expected->ptr_value_len);
 
@@ -252,6 +295,11 @@ void cmd_interface_mock_save_request (const struct mock_arg *expected, struct mo
 		req_copy->data = platform_malloc (req_orig->length);
 		if (req_copy->data != NULL) {
 			memcpy (req_copy->data, req_orig->data, req_orig->length);
+
+			if (req_copy->payload != NULL) {
+				payload_offset = req_orig->payload - req_orig->data;
+				req_copy->payload = &req_copy->data[payload_offset];
+			}
 		}
 	}
 }
@@ -277,7 +325,6 @@ void cmd_interface_mock_free_request (void *arg)
  * @param expected The expectation context for the argument to copy.
  * @param call The calling context to copy into.
  * @param out_len Buffer space available in the function argument.
- *
  */
 void cmd_interface_mock_copy_request (const struct mock_arg *expected, struct mock_arg *call,
 	size_t out_len)
@@ -285,11 +332,17 @@ void cmd_interface_mock_copy_request (const struct mock_arg *expected, struct mo
 	const struct cmd_interface_msg *req_orig = expected->out_data;
 	struct cmd_interface_msg *req_copy = (struct cmd_interface_msg*) ((uintptr_t) call->value);
 	void *data_tmp = req_copy->data;
+	size_t payload_offset;
 
 	memcpy ((void*) ((uintptr_t) call->value), expected->out_data, out_len);
 
 	req_copy->data = data_tmp;
 	memcpy (req_copy->data, req_orig->data, req_orig->length);
+
+	if (req_copy->payload != NULL) {
+		payload_offset = req_orig->payload - req_orig->data;
+		req_copy->payload = &req_copy->data[payload_offset];
+	}
 }
 
 /**
@@ -305,6 +358,7 @@ int cmd_interface_mock_duplicate_request (const void *arg_data, size_t arg_lengt
 {
 	const struct cmd_interface_msg *req_orig = arg_data;
 	struct cmd_interface_msg *req_copy;
+	size_t payload_offset;
 
 	if (arg_length != sizeof (struct cmd_interface_msg)) {
 		return MOCK_BAD_ARG_LENGTH;
@@ -327,5 +381,10 @@ int cmd_interface_mock_duplicate_request (const void *arg_data, size_t arg_lengt
 	}
 
 	memcpy (req_copy->data, req_orig->data, req_orig->length);
+	if (req_copy->payload != NULL) {
+		payload_offset = req_orig->payload - req_orig->data;
+		req_copy->payload = &req_copy->data[payload_offset];
+	}
+
 	return 0;
 }

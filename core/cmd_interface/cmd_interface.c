@@ -7,10 +7,162 @@
 #include <string.h>
 #include "mctp/mctp_base_protocol.h"
 #include "cerberus_protocol.h"
-#include "session_manager.h"
 #include "cmd_interface.h"
-#include "cmd_logging.h"
 
+
+/**
+ * Configure the message structure to support receiving a new message in the data buffer.  The data
+ * pointer is not modified, but the descriptor for that buffer is reset.
+ *
+ * @param message The message instance to initialize.
+ * @param source_eid EID to assign as the message source.
+ * @param source_addr Bus address to assign as the message source.
+ * @param target_eid EID to assign as the message target.
+ * @param channel_id Identifier for the command channel receiving the message.
+ */
+void cmd_interface_msg_new_message (struct cmd_interface_msg *message, uint8_t source_eid,
+	uint8_t source_addr, uint8_t target_eid, int channel_id)
+{
+	if (message != NULL) {
+		message->length = 0;
+		message->payload = message->data;
+		message->payload_length = 0;
+		message->source_eid = source_eid;
+		message->source_addr = source_addr;
+		message->target_eid = target_eid;
+		message->is_encrypted = false;
+		message->crypto_timeout = false;
+		message->channel_id = channel_id;
+	}
+}
+
+/**
+ * Add new payload data to the message buffer.
+ *
+ * The data will be copied and the message length updated.  There are no length checks performed
+ * before the copy, so the caller must ensure there is sufficient space in the message buffer for
+ * the additional payload data.
+ *
+ * @param message The message to update.
+ * @param data The payload data to copy into the message buffer.
+ * @param length Length of the payload data.
+ */
+void cmd_interface_msg_add_payload_data (struct cmd_interface_msg *message, const uint8_t *data,
+	size_t length)
+{
+	if ((message == NULL) || (data == NULL) || (length == 0)) {
+		return;
+	}
+
+	memcpy (&message->data[message->length], data, length);
+	message->length += length;
+	message->payload_length += length;
+}
+
+/**
+ * Set the length of a message payload without any additional protocol headers.  Protocol headers
+ * will need to be added using {@link cmd_interface_msg_add_protocol_header}.
+ *
+ * The length provided is not validated in any way.  The caller must ensure the length is valid for
+ * the data in the message buffer.
+ *
+ * @param message The message to update.
+ * @param length Length of the message.
+ */
+void cmd_interface_msg_set_message_payload_length (struct cmd_interface_msg *message,
+	size_t length)
+{
+	if (message != NULL) {
+		message->length = length;
+		message->payload_length = length;
+	}
+}
+
+/**
+ * Update the message payload to remove a layer of protocol headers.  The message structure must
+ * have been properly initialized with {@link cmd_interface_msg_new_message} and have message data
+ * in the buffer before making this call.
+ *
+ * @param message The message to update.
+ * @param header_length Size of the protocol header.
+ */
+void cmd_interface_msg_remove_protocol_header (struct cmd_interface_msg *message,
+	size_t header_length)
+{
+	if (message != NULL) {
+		if (header_length > message->payload_length) {
+			header_length = message->payload_length;
+		}
+
+		message->payload += header_length;
+		message->payload_length -= header_length;
+	}
+}
+
+/**
+ * Update the message payload to add a layer of protocol headers.  The message structure must have
+ * been properly initialized with {@link cmd_interface_msg_new_message}.
+ *
+ * When adding protocol headers, both the payload and overall data lengths will be increased.
+ *
+ * @param message The message to update.
+ * @param header_length Size of the protocol header.
+ */
+void cmd_interface_msg_add_protocol_header (struct cmd_interface_msg *message,
+	size_t header_length)
+{
+	size_t hdr_space;
+
+	if (message != NULL) {
+		hdr_space = message->payload - message->data;
+		if (hdr_space < header_length) {
+			header_length = hdr_space;
+		}
+
+		message->payload -= header_length;
+		message->payload_length += header_length;
+		message->length += header_length;
+	}
+}
+
+/**
+ * Determine the length of protocol header data added to the message.
+ *
+ * @param message The message to query.
+ *
+ * @return Length of the protocol header on the message data.
+ */
+size_t cmd_interface_msg_get_protocol_length (const struct cmd_interface_msg *message)
+{
+	if (message == NULL) {
+		return 0;
+	}
+
+	if ((message->payload < message->data) ||
+		(message->payload >= (message->data + message->length))) {
+		return 0;
+	}
+
+	return (message->payload - message->data);
+}
+
+/**
+ * Determine the maximum data length allowed for response messages when building the response in the
+ * message payload buffer.  This will be the maximum message payload length, excluding protocol
+ * headers.
+ *
+ * @param message The message to query.
+ *
+ * @return Maximum allowed length of payload response data.
+ */
+size_t cmd_interface_msg_get_max_response (const struct cmd_interface_msg *message)
+{
+	if (message == NULL) {
+		return 0;
+	}
+
+	return message->max_response - cmd_interface_msg_get_protocol_length (message);
+}
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 /**

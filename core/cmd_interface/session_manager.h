@@ -13,7 +13,6 @@
 #include "keystore/keystore.h"
 #include "riot/riot_key_manager.h"
 #include "status/rot_status.h"
-#include "cmd_interface.h"
 #include "cerberus_protocol.h"
 
 
@@ -38,6 +37,9 @@ enum {
 	SESSION_PAIRING_STATE_NOT_PAIRED,					/**< Device paired but current session not setup with pairing yet */
 	SESSION_PAIRING_STATE_PAIRED,						/**< Pairing completed with device successfully */
 };
+
+/* Forward declare the message structure needed for session manager API. */
+struct cmd_interface_msg;
 
 /**
  * Entry in table holding session information and cached keys.

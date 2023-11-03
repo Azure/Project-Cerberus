@@ -439,6 +439,7 @@ static void mctp_interface_test_process_packet_invalid_req (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->byte_count = 15;
 	header->source_addr = 0xAB;
@@ -539,6 +540,7 @@ static void mctp_interface_test_process_packet_unsupported_message (CuTest *test
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -640,6 +642,7 @@ static void mctp_interface_test_process_packet_invalid_crc (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -850,6 +853,7 @@ static void mctp_interface_test_process_packet_out_of_order (CuTest *test)
 	TEST_START;
 
 	memset (rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -993,7 +997,8 @@ static void mctp_interface_test_process_packet_no_som (CuTest *test)
 
 	TEST_START;
 
-	memset (rx.data, 0, sizeof (rx.data));
+	memset (&rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -1095,6 +1100,7 @@ static void mctp_interface_test_process_packet_invalid_msg_tag (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -1263,6 +1269,7 @@ static void mctp_interface_test_process_packet_invalid_packet_seq (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -1372,6 +1379,7 @@ static void mctp_interface_test_process_packet_invalid_msg_size (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -1484,6 +1492,7 @@ static void mctp_interface_test_process_packet_msg_overflow (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 237;
@@ -1710,6 +1719,8 @@ static void mctp_interface_test_process_packet_cmd_interface_fail (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -1757,8 +1768,12 @@ static void mctp_interface_test_process_packet_cmd_interface_fail (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -1834,6 +1849,8 @@ static void mctp_interface_test_process_packet_cmd_interface_fail_cmd_set_1 (CuT
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -1882,8 +1899,12 @@ static void mctp_interface_test_process_packet_cmd_interface_fail_cmd_set_1 (CuT
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -1959,6 +1980,9 @@ static void mctp_interface_test_process_packet_no_response (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2006,8 +2030,12 @@ static void mctp_interface_test_process_packet_no_response (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -2086,6 +2114,9 @@ static void mctp_interface_test_process_packet_no_response_non_zero_message_tag 
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2133,8 +2164,12 @@ static void mctp_interface_test_process_packet_no_response_non_zero_message_tag 
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -2214,6 +2249,9 @@ static void mctp_interface_test_process_packet_no_response_cmd_set_1 (CuTest *te
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2262,8 +2300,12 @@ static void mctp_interface_test_process_packet_no_response_cmd_set_1 (CuTest *te
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -2339,6 +2381,7 @@ static void mctp_interface_test_process_packet_unsupported_type (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2447,6 +2490,8 @@ static void mctp_interface_test_process_packet_mctp_control_request (CuTest *tes
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2480,8 +2525,12 @@ static void mctp_interface_test_process_packet_mctp_control_request (CuTest *tes
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
@@ -2537,8 +2586,6 @@ static void mctp_interface_test_process_packet_mctp_control_request_fail (CuTest
 	struct cmd_message *tx;
 	uint8_t data[10];
 	struct cmd_interface_msg request;
-	uint8_t response_data[2];
-	struct cmd_interface_msg response;
 	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) rx.data;
 	int status;
@@ -2546,6 +2593,7 @@ static void mctp_interface_test_process_packet_mctp_control_request_fail (CuTest
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2579,19 +2627,15 @@ static void mctp_interface_test_process_packet_mctp_control_request_fail (CuTest
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
-
-	response.data = response_data;
-	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
-	response.data[1] = 0x12;
-	response.length = sizeof (response_data);
-	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	response.crypto_timeout = false;
 
 	status = mock_expect (&mctp.cmd_mctp.mock, mctp.cmd_mctp.base.process_request, &mctp.cmd_mctp,
 		CMD_HANDLER_NO_MEMORY,
@@ -2617,7 +2661,10 @@ static void mctp_interface_test_process_packet_mctp_control_response (CuTest *te
 	struct cmd_interface_msg response;
 	int status;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2651,13 +2698,15 @@ static void mctp_interface_test_process_packet_mctp_control_response (CuTest *te
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
+	response.payload = data;
+	response.payload_length = sizeof (data);
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -2689,7 +2738,10 @@ static void mctp_interface_test_process_packet_mctp_control_response_fail (CuTes
 	struct cmd_interface_msg response;
 	int status;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2723,13 +2775,15 @@ static void mctp_interface_test_process_packet_mctp_control_response_fail (CuTes
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
+	response.payload = data;
+	response.payload_length = sizeof (data);
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -2764,6 +2818,7 @@ static void mctp_interface_test_process_packet_spdm_request (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2797,8 +2852,12 @@ static void mctp_interface_test_process_packet_spdm_request (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -2825,6 +2884,8 @@ static void mctp_interface_test_process_packet_one_packet_request (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2858,8 +2919,12 @@ static void mctp_interface_test_process_packet_one_packet_request (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -2925,6 +2990,8 @@ static void mctp_interface_test_process_packet_one_packet_response (CuTest *test
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2958,8 +3025,12 @@ static void mctp_interface_test_process_packet_one_packet_response (CuTest *test
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -3026,6 +3097,8 @@ static void mctp_interface_test_process_packet_one_packet_response_non_zero_mess
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -3059,8 +3132,12 @@ static void mctp_interface_test_process_packet_one_packet_response_non_zero_mess
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -3131,6 +3208,8 @@ static void mctp_interface_test_process_packet_two_packet_response (CuTest *test
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -3164,8 +3243,12 @@ static void mctp_interface_test_process_packet_two_packet_response (CuTest *test
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -3255,6 +3338,9 @@ static void mctp_interface_test_process_packet_channel_id_reset_next_som (CuTest
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -3310,8 +3396,12 @@ static void mctp_interface_test_process_packet_channel_id_reset_next_som (CuTest
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 1;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -3399,6 +3489,8 @@ static void mctp_interface_test_process_packet_normal_timeout (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -3434,8 +3526,12 @@ static void mctp_interface_test_process_packet_normal_timeout (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -3505,6 +3601,8 @@ static void mctp_interface_test_process_packet_crypto_timeout (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -3540,8 +3638,12 @@ static void mctp_interface_test_process_packet_crypto_timeout (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -3622,6 +3724,9 @@ static void mctp_interface_test_process_packet_max_message (CuTest *test)
 
 	i = 0;
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 237;
@@ -3803,8 +3908,12 @@ static void mctp_interface_test_process_packet_max_message (CuTest *test)
 	request.data = data;
 	request.length = sizeof (msg_data);
 	memcpy (request.data, msg_data, request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -3902,6 +4011,8 @@ static void mctp_interface_test_process_packet_max_response (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -3935,8 +4046,12 @@ static void mctp_interface_test_process_packet_max_response (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -4041,6 +4156,8 @@ static void mctp_interface_test_process_packet_max_response_min_packets (CuTest 
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -4086,8 +4203,12 @@ static void mctp_interface_test_process_packet_max_response_min_packets (CuTest 
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -4230,6 +4351,7 @@ static void mctp_interface_test_process_packet_reset_message_processing (CuTest 
 	TEST_START;
 
 	memset (rx, 0, sizeof (rx));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -4364,6 +4486,9 @@ static void mctp_interface_test_process_packet_response_length_limited (CuTest *
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -4423,8 +4548,12 @@ static void mctp_interface_test_process_packet_response_length_limited (CuTest *
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
@@ -4504,6 +4633,9 @@ static void mctp_interface_test_process_packet_response_too_large (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -4551,8 +4683,12 @@ static void mctp_interface_test_process_packet_response_too_large (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -4639,6 +4775,9 @@ static void mctp_interface_test_process_packet_response_too_large_length_limited
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -4698,8 +4837,12 @@ static void mctp_interface_test_process_packet_response_too_large_length_limited
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
@@ -4789,6 +4932,8 @@ static void mctp_interface_test_process_packet_two_packet_response_length_limite
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -4834,8 +4979,12 @@ static void mctp_interface_test_process_packet_two_packet_response_length_limite
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -4922,6 +5071,8 @@ static void mctp_interface_test_process_packet_error_message_fail (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -4955,8 +5106,12 @@ static void mctp_interface_test_process_packet_error_message_fail (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -5001,6 +5156,9 @@ static void mctp_interface_test_process_packet_error_too_large (CuTest *test)
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5048,8 +5206,12 @@ static void mctp_interface_test_process_packet_error_too_large (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -5092,6 +5254,7 @@ static void mctp_interface_test_process_packet_unexpected_response (CuTest *test
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5149,7 +5312,10 @@ static void mctp_interface_test_process_packet_response_with_unexpected_msg_tag 
 	uint8_t data[10];
 	struct cmd_interface_msg response;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5189,8 +5355,6 @@ static void mctp_interface_test_process_packet_response_with_unexpected_msg_tag 
 	response.channel_id = 0;
 	response.max_response = 0;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	context.expected_status = MCTP_BASE_PROTOCOL_UNEXPECTED_PKT;
@@ -5225,6 +5389,7 @@ static void mctp_interface_test_process_packet_discovery_notify_response (CuTest
 	data[2] = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
 
 	memset (&tx_packet, 0, sizeof (tx_packet));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 8;
@@ -5278,8 +5443,12 @@ static void mctp_interface_test_process_packet_discovery_notify_response (CuTest
 	response.data = data;
 	response.length = 4;
 	memcpy (response.data, &rx_packet.data[7], response.length);
+	response.payload = data;
+	response.payload_length = 4;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
@@ -5314,7 +5483,10 @@ static void mctp_interface_test_issue_request_then_process_packet_response_from_
 	uint8_t data[10];
 	struct cmd_interface_msg response;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5354,8 +5526,6 @@ static void mctp_interface_test_issue_request_then_process_packet_response_from_
 	response.channel_id = 0;
 	response.max_response = 0;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	context.expected_status = MCTP_BASE_PROTOCOL_UNEXPECTED_PKT;
@@ -5380,7 +5550,10 @@ static void mctp_interface_test_issue_request_then_process_packet_response (CuTe
 	struct cmd_interface_msg response;
 	int status;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5414,13 +5587,15 @@ static void mctp_interface_test_issue_request_then_process_packet_response (CuTe
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
+	response.payload = data;
+	response.payload_length = sizeof (data);
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -5454,7 +5629,10 @@ static void mctp_interface_test_issue_request_then_process_packet_multiple_respo
 	struct cmd_interface_msg response;
 	int status;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5488,13 +5666,15 @@ static void mctp_interface_test_issue_request_then_process_packet_multiple_respo
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
+	response.payload = data;
+	response.payload_length = sizeof (data);
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -5529,7 +5709,10 @@ static void mctp_interface_test_issue_request_then_process_response_fail (CuTest
 	struct cmd_interface_msg response;
 	int status;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5563,13 +5746,15 @@ static void mctp_interface_test_issue_request_then_process_response_fail (CuTest
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
+	response.payload = data;
+	response.payload_length = sizeof (data);
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -5601,7 +5786,10 @@ static void mctp_interface_test_issue_request_then_process_error_packet (CuTest 
 	struct cmd_interface_msg response;
 	int status;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5633,12 +5821,14 @@ static void mctp_interface_test_issue_request_then_process_error_packet (CuTest 
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
+	response.payload = data;
+	response.payload_length = sizeof (data);
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -5670,7 +5860,10 @@ static void mctp_interface_test_issue_spdm_request_then_process_packet_response 
 	struct cmd_interface_msg response;
 	int status;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5704,13 +5897,15 @@ static void mctp_interface_test_issue_spdm_request_then_process_packet_response 
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
+	response.payload = &data[1];
+	response.payload_length = sizeof (data) - 1;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -5741,7 +5936,10 @@ static void mctp_interface_test_issue_spdm_request_then_process_packet_response_
 	struct cmd_interface_msg response;
 	int status;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5775,13 +5973,15 @@ static void mctp_interface_test_issue_spdm_request_then_process_packet_response_
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
+	response.payload = &data[1];
+	response.payload_length = sizeof (data) - 1;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -5813,7 +6013,10 @@ static void mctp_interface_test_issue_spdm_request_then_process_packet_response_
 	uint8_t data[10];
 	struct cmd_interface_msg response;
 
+	TEST_START;
+
 	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -5847,13 +6050,15 @@ static void mctp_interface_test_issue_spdm_request_then_process_packet_response_
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx.data[7], response.length);
+	response.payload = &data[1];
+	response.payload_length = sizeof (data) - 1;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, false);
 
@@ -5876,6 +6081,8 @@ static void mctp_interface_test_issue_request_no_response (CuTest *test)
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
 	int status;
+
+	TEST_START;
 
 	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -5904,8 +6111,6 @@ static void mctp_interface_test_issue_request_no_response (CuTest *test)
 	tx_packet.dest_addr = 0x55;
 	tx_packet.timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -5930,6 +6135,8 @@ static void mctp_interface_test_issue_request_state_clean_after_completion_no_re
 	struct cmd_packet tx_packet2;
 	struct mctp_base_protocol_transport_header *header;
 	int status;
+
+	TEST_START;
 
 	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -5983,8 +6190,6 @@ static void mctp_interface_test_issue_request_state_clean_after_completion_no_re
 	tx_packet2.dest_addr = 0x55;
 	tx_packet2.timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -6017,6 +6222,8 @@ static void mctp_interface_test_issue_request_multiple_packets_no_response (CuTe
 	struct mctp_base_protocol_transport_header *header;
 	int status;
 	int i;
+
+	TEST_START;
 
 	payload[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -6077,8 +6284,6 @@ static void mctp_interface_test_issue_request_multiple_packets_no_response (CuTe
 	tx_packet[1].dest_addr = 0x55;
 	tx_packet[1].timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -6105,6 +6310,8 @@ static void mctp_interface_test_issue_request_maximum_packet_length_no_response 
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
 	int status;
+
+	TEST_START;
 
 	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -6134,8 +6341,6 @@ static void mctp_interface_test_issue_request_maximum_packet_length_no_response 
 	tx_packet.dest_addr = 0x55;
 	tx_packet.timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -6162,6 +6367,8 @@ static void mctp_interface_test_issue_request_maximum_num_packets_no_response (C
 	size_t num_packets = sizeof (tx_packet) / sizeof (tx_packet[0]);
 	uint8_t packet_seq = 0;
 	int status;
+
+	TEST_START;
 
 	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -6227,8 +6434,6 @@ static void mctp_interface_test_issue_request_maximum_num_packets_no_response (C
 
 	packet_seq = (packet_seq + 1) % 8;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	for (i_packet = 0; i_packet < num_packets; ++i_packet) {
@@ -6256,6 +6461,8 @@ static void mctp_interface_test_issue_request_limited_packet_length_no_response 
 	struct device_manager_full_capabilities remote;
 	int status;
 	int i;
+
+	TEST_START;
 
 	payload[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -6315,8 +6522,6 @@ static void mctp_interface_test_issue_request_limited_packet_length_no_response 
 	tx_packet[1].dest_addr = 0x55;
 	tx_packet[1].timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	memset (&remote, 0, sizeof (remote));
@@ -6357,6 +6562,8 @@ static void mctp_interface_test_issue_request_limited_message_length_no_response
 	struct device_manager_full_capabilities remote;
 	int status;
 	int i;
+
+	TEST_START;
 
 	payload[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -6417,8 +6624,6 @@ static void mctp_interface_test_issue_request_limited_message_length_no_response
 	tx_packet[1].dest_addr = 0x55;
 	tx_packet[1].timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	memset (&remote, 0, sizeof (remote));
@@ -6458,6 +6663,8 @@ static void mctp_interface_test_issue_request_control_packet_no_response (CuTest
 	struct mctp_base_protocol_transport_header *header;
 	int status;
 
+	TEST_START;
+
 	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 
 	memset (&tx_packet, 0, sizeof (tx_packet));
@@ -6485,8 +6692,6 @@ static void mctp_interface_test_issue_request_control_packet_no_response (CuTest
 	tx_packet.dest_addr = 0x55;
 	tx_packet.timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -6508,6 +6713,8 @@ static void mctp_interface_test_issue_request_buffers_overlapping_end_no_respons
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
 	int status;
+
+	TEST_START;
 
 	msg_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN - 6] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -6536,8 +6743,6 @@ static void mctp_interface_test_issue_request_buffers_overlapping_end_no_respons
 	tx_packet.dest_addr = 0x55;
 	tx_packet.timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -6562,6 +6767,8 @@ static void mctp_interface_test_issue_request_buffers_overlapping_same_pointer_n
 	struct mctp_base_protocol_transport_header *header;
 	int status;
 
+	TEST_START;
+
 	msg_buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
 	memset (&tx_packet, 0, sizeof (tx_packet));
@@ -6588,8 +6795,6 @@ static void mctp_interface_test_issue_request_buffers_overlapping_same_pointer_n
 	tx_packet.state = CMD_VALID_PACKET;
 	tx_packet.dest_addr = 0x55;
 	tx_packet.timeout_valid = false;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -6613,6 +6818,8 @@ static void mctp_interface_test_issue_request_buffers_overlapping_before_no_resp
 	struct mctp_base_protocol_transport_header *header;
 	int status;
 
+	TEST_START;
+
 	msg_buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
 	memset (&tx_packet, 0, sizeof (tx_packet));
@@ -6640,8 +6847,6 @@ static void mctp_interface_test_issue_request_buffers_overlapping_before_no_resp
 	tx_packet.dest_addr = 0x55;
 	tx_packet.timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -6663,6 +6868,8 @@ static void mctp_interface_test_issue_request_buffers_overlapping_within_no_resp
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
 	int status;
+
+	TEST_START;
 
 	msg_buf[2] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -6691,8 +6898,6 @@ static void mctp_interface_test_issue_request_buffers_overlapping_within_no_resp
 	tx_packet.dest_addr = 0x55;
 	tx_packet.timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -6714,6 +6919,8 @@ static void mctp_interface_test_issue_request_buffers_overlapping_after_no_respo
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
 	int status;
+
+	TEST_START;
 
 	msg_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN - 6] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -6742,8 +6949,6 @@ static void mctp_interface_test_issue_request_buffers_overlapping_after_no_respo
 	tx_packet.dest_addr = 0x55;
 	tx_packet.timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -6767,6 +6972,8 @@ static void mctp_interface_test_issue_request_cmd_channel_fail (CuTest *test)
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
 	int status;
+
+	TEST_START;
 
 	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
@@ -6794,8 +7001,6 @@ static void mctp_interface_test_issue_request_cmd_channel_fail (CuTest *test)
 	tx_packet.state = CMD_VALID_PACKET;
 	tx_packet.dest_addr = 0x55;
 	tx_packet.timeout_valid = false;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -6853,9 +7058,9 @@ static void mctp_interface_test_issue_request_output_buf_too_small (CuTest *test
  	uint8_t msg_buf[255] = {0};
 	int status;
 
-	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-
 	TEST_START;
+
+	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -6893,6 +7098,8 @@ static void mctp_interface_test_issue_request_no_wait (CuTest *test)
 	struct mctp_base_protocol_transport_header *header;
 	int status;
 
+	TEST_START;
+
 	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
 	memset (&tx_packet, 0, sizeof (tx_packet));
@@ -6920,8 +7127,6 @@ static void mctp_interface_test_issue_request_no_wait (CuTest *test)
 	tx_packet.dest_addr = 0x55;
 	tx_packet.timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -6943,6 +7148,8 @@ static void mctp_interface_test_send_discovery_notify (CuTest *test)
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
 	int status;
+
+	TEST_START;
 
 	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	buf[1] = 0x80;
@@ -6973,8 +7180,6 @@ static void mctp_interface_test_send_discovery_notify (CuTest *test)
 	tx_packet.dest_addr = 0x51;
 	tx_packet.timeout_valid = false;
 
-	TEST_START;
-
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
 	status = mock_expect (&mctp.channel.mock, mctp.channel.base.send_packet, &mctp.channel, 0,
@@ -6999,11 +7204,14 @@ static void mctp_interface_test_send_discovery_notify_followed_by_another_rq (Cu
 	struct cmd_interface_msg response;
 	int status;
 
+	TEST_START;
+
 	data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	data[1] = 0x80;
 	data[2] = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
 
 	memset (&tx_packet, 0, sizeof (tx_packet));
+	memset (&response, 0, sizeof (response));
 
 	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
 
@@ -7027,8 +7235,6 @@ static void mctp_interface_test_send_discovery_notify_followed_by_another_rq (Cu
 	tx_packet.state = CMD_VALID_PACKET;
 	tx_packet.dest_addr = 0x51;
 	tx_packet.timeout_valid = false;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -7076,8 +7282,12 @@ static void mctp_interface_test_send_discovery_notify_followed_by_another_rq (Cu
 	response.data = data;
 	response.length = sizeof (data);
 	memcpy (response.data, &rx_packet.data[7], response.length);
+	response.payload = data;
+	response.payload_length = sizeof (data);
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
@@ -7124,6 +7334,8 @@ static void mctp_interface_test_send_discovery_notify_followed_discovery_notify_
 	data[2] = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
 
 	memset (&tx_packet, 0, sizeof (tx_packet));
+	memset (&response, 0, sizeof (response));
+	memset (&response1, 0, sizeof (response1));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 8;
@@ -7177,8 +7389,12 @@ static void mctp_interface_test_send_discovery_notify_followed_discovery_notify_
 	response.data = data;
 	response.length = 4;
 	memcpy (response.data, &rx_packet.data[7], response.length);
+	response.payload = data;
+	response.payload_length = 4;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
 	response.crypto_timeout = false;
 	response.channel_id = 0;
 	response.max_response = 0;
@@ -7235,8 +7451,12 @@ static void mctp_interface_test_send_discovery_notify_followed_discovery_notify_
 	response1.data = data1;
 	response1.length = sizeof (data1);
 	memcpy (response1.data, &rx_packet.data[7], response1.length);
+	response1.payload = data1;
+	response1.payload_length = sizeof (data1);
 	response1.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response1.source_addr = 0x55;
 	response1.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response1.is_encrypted = false;
 	response1.crypto_timeout = false;
 	response1.channel_id = 0;
 	response1.max_response = 0;
@@ -7272,11 +7492,15 @@ static void mctp_interface_test_send_discovery_notify_followed_by_another_rq_the
 	struct cmd_interface_msg response2;
 	int status;
 
+	TEST_START;
+
 	data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	data[1] = 0x80;
 	data[2] = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
 
 	memset (&tx_packet, 0, sizeof (tx_packet));
+	memset (&response1, 0, sizeof (response1));
+	memset (&response2, 0, sizeof (response2));
 
 	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
 
@@ -7300,8 +7524,6 @@ static void mctp_interface_test_send_discovery_notify_followed_by_another_rq_the
 	tx_packet.state = CMD_VALID_PACKET;
 	tx_packet.dest_addr = 0x51;
 	tx_packet.timeout_valid = false;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 
@@ -7349,8 +7571,12 @@ static void mctp_interface_test_send_discovery_notify_followed_by_another_rq_the
 	response1.data = data;
 	response1.length = sizeof (data);
 	memcpy (response1.data, &rx_packet.data[7], response1.length);
+	response1.payload = data;
+	response1.payload_length = sizeof (data);
 	response1.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response1.source_addr = 0x55;
 	response1.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response1.is_encrypted = false;
 	response1.crypto_timeout = false;
 	response1.channel_id = 0;
 	response1.max_response = 0;
@@ -7433,8 +7659,12 @@ static void mctp_interface_test_send_discovery_notify_followed_by_another_rq_the
 	response2.data = data;
 	response2.length = sizeof (data);
 	memcpy (response2.data, &rx_packet.data[7], response2.length);
+	response2.payload = data;
+	response2.payload_length = sizeof (data);
 	response2.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response2.source_addr = 0x55;
 	response2.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response2.is_encrypted = false;
 	response2.crypto_timeout = false;
 	response2.channel_id = 0;
 	response2.max_response = 0;
@@ -7497,6 +7727,8 @@ static void mctp_interface_test_send_discovery_notify_cmd_channel_fail (CuTest *
 	struct mctp_base_protocol_transport_header *header;
 	int status;
 
+	TEST_START;
+
 	buf[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	buf[1] = 0x80;
 	buf[2] = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
@@ -7525,8 +7757,6 @@ static void mctp_interface_test_send_discovery_notify_cmd_channel_fail (CuTest *
 	tx_packet.state = CMD_VALID_PACKET;
 	tx_packet.dest_addr = 0x51;
 	tx_packet.timeout_valid = false;
-
-	TEST_START;
 
 	setup_mctp_interface_with_interface_mock_test (test, &mctp, true);
 

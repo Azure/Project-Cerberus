@@ -276,6 +276,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0 (CuTest *t
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = 0xCC;
 	request.target_eid = 0xDD;
 	request.channel_id = 0;
@@ -296,6 +298,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0 (CuTest *t
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xDD;
 	response.target_eid = 0xCC;
 	response.channel_id = 0;
@@ -358,6 +362,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_encrypted 
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = 0xCC;
 	request.target_eid = 0xDD;
 	request.channel_id = 0;
@@ -378,6 +384,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_encrypted 
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xDD;
 	response.target_eid = 0xCC;
 	response.channel_id = 0;
@@ -442,6 +450,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_static_ini
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = 0xCC;
 	request.target_eid = 0xDD;
 	request.channel_id = 0;
@@ -462,6 +472,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_static_ini
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xDD;
 	response.target_eid = 0xCC;
 	response.channel_id = 0;
@@ -525,6 +537,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1 (CuTest *t
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = 0xCC;
 	request.target_eid = 0xDD;
 	request.channel_id = 0;
@@ -545,6 +559,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1 (CuTest *t
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xDD;
 	response.target_eid = 0xCC;
 	response.channel_id = 0;
@@ -607,6 +623,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_encrypted 
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = 0xCC;
 	request.target_eid = 0xDD;
 	request.channel_id = 0;
@@ -627,6 +645,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_encrypted 
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xDD;
 	response.target_eid = 0xCC;
 	response.channel_id = 0;
@@ -691,6 +711,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_static_ini
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = 0xCC;
 	request.target_eid = 0xDD;
 	request.channel_id = 0;
@@ -711,6 +733,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_static_ini
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xDD;
 	response.target_eid = 0xCC;
 	response.channel_id = 0;
@@ -775,6 +799,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_reserved_f
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = 0xCC;
 	request.target_eid = 0xDD;
 	request.channel_id = 0;
@@ -795,6 +821,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_reserved_f
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xDD;
 	response.target_eid = 0xCC;
 	response.channel_id = 0;
@@ -858,6 +886,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_reserved_f
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = 0xCC;
 	request.target_eid = 0xDD;
 	request.channel_id = 0;
@@ -878,6 +908,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_reserved_f
 	memset (response_data, 0, sizeof (response_data));
 	response.data = response_data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xDD;
 	response.target_eid = 0xCC;
 	response.channel_id = 0;
@@ -938,6 +970,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_0_fail (CuTe
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = 0xCC;
 	request.target_eid = 0xDD;
 	request.channel_id = 0;
@@ -984,6 +1018,8 @@ static void cmd_interface_dual_cmd_set_test_process_request_cmd_set_1_fail (CuTe
 	memset (data, 0, sizeof (data));
 	request.data = data;
 	request.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = 0xCC;
 	request.target_eid = 0xDD;
 	request.channel_id = 0;
@@ -1024,7 +1060,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_payload_too_short (
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN - 1;
 	response.source_eid = 0xAA;
 	response.target_eid = 0xBB;
@@ -1049,7 +1085,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_unsupported_message
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 
@@ -1093,7 +1129,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_error_packet (CuTes
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 
@@ -1107,6 +1143,8 @@ static void cmd_interface_dual_cmd_set_test_process_response_error_packet (CuTes
 	header->command = CERBERUS_PROTOCOL_ERROR;
 
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xAA;
 	response.target_eid = 0xBB;
 
@@ -1135,7 +1173,7 @@ static void cmd_interface_dual_cmd_set_test_process_response_null (CuTest *test)
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 	response.data[0] = 0;
@@ -1166,10 +1204,12 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0 (CuTest *
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xCC;
 	response.target_eid = 0xDD;
 	response.channel_id = 0;
@@ -1214,10 +1254,12 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_encrypted
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xCC;
 	response.target_eid = 0xDD;
 	response.channel_id = 0;
@@ -1262,10 +1304,12 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1 (CuTest *
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xCC;
 	response.target_eid = 0xDD;
 	response.channel_id = 0;
@@ -1310,10 +1354,12 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_encrypted
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xCC;
 	response.target_eid = 0xDD;
 	response.channel_id = 0;
@@ -1360,10 +1406,12 @@ static void cmd_interface_dual_cmd_set_test_process_response_static_init (CuTest
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xCC;
 	response.target_eid = 0xDD;
 	response.channel_id = 0;
@@ -1410,10 +1458,12 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_reserved_
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xCC;
 	response.target_eid = 0xDD;
 	response.channel_id = 0;
@@ -1459,10 +1509,12 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_reserved_
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xCC;
 	response.target_eid = 0xDD;
 	response.channel_id = 0;
@@ -1507,10 +1559,12 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_0_fail (CuT
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xCC;
 	response.target_eid = 0xDD;
 	response.channel_id = 0;
@@ -1553,10 +1607,12 @@ static void cmd_interface_dual_cmd_set_test_process_response_cmd_set_1_fail (CuT
 
 	TEST_START;
 
-	memset (&response, 0, sizeof (struct cmd_interface_msg));
+	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
 	response.data = data;
 	response.length = CERBERUS_PROTOCOL_MIN_MSG_LEN + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = 0xCC;
 	response.target_eid = 0xDD;
 	response.channel_id = 0;

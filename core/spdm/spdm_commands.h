@@ -90,7 +90,7 @@ struct spdm_get_version_response {
  * SPDM version entry format
  */
 struct spdm_version_num_entry {
-	uint8_t alpha:4;											/**< Pre-release WIP version of the specficiation */
+	uint8_t alpha:4;											/**< Pre-release WIP version of the specification */
 	uint8_t update_version:4;									/**< Specification update version */
 	uint8_t minor_version:4;									/**< Specification minor version */
 	uint8_t major_version:4;									/**< Specification major version */

@@ -10615,8 +10615,11 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 		ECC_PUBKEY_DER_LEN);
 
 	request.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.crypto_timeout = true;
 
 	resp->common.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	resp->common.header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
@@ -10641,6 +10644,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 
 	response.length = cerberus_protocol_key_exchange_type_0_response_length (ECC_PUBKEY_DER_LEN,
 		ECC_SIG_TEST_LEN, SHA256_HASH_LENGTH);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = true;
@@ -10715,8 +10720,11 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_0
 		ECC_PUBKEY_DER_LEN);
 
 	request.length = cerberus_protocol_key_exchange_type_0_length (ECC_PUBKEY_DER_LEN);
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.crypto_timeout = true;
 
 	status = mock_expect (&session->mock, session->base.establish_session, session,
 		SESSION_MANAGER_NO_MEMORY,
@@ -10778,6 +10786,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	memset (cerberus_protocol_key_exchange_type_1_hmac_data (rq), 0xCC, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -10793,6 +10803,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 		sizeof (hmac_buf));
 
 	decrypted_request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -10804,8 +10816,11 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	resp->key_type = CERBERUS_PROTOCOL_PAIRED_KEY_HMAC;
 
 	response.length = sizeof (struct cerberus_protocol_key_exchange_response);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = true;
 	response.crypto_timeout = true;
 
 	resp = (struct cerberus_protocol_key_exchange_response*) encrypted_response.data;
@@ -10818,8 +10833,11 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	resp->key_type = 0xBB;
 
 	encrypted_response.length = sizeof (struct cerberus_protocol_key_exchange_response);
+	encrypted_response.payload = encrypted_response.data;
+	encrypted_response.payload_length = encrypted_response.length;
 	encrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	encrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	encrypted_response.is_encrypted = true;
 	encrypted_response.crypto_timeout = true;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
@@ -10887,6 +10905,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	memcpy (cerberus_protocol_key_exchange_type_1_hmac_data (rq), hmac_buf, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -10929,6 +10949,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	memset (cerberus_protocol_key_exchange_type_1_hmac_data (rq), 0xCC, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -10944,6 +10966,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 		sizeof (hmac_buf));
 
 	decrypted_request.length = cerberus_protocol_key_exchange_type_1_length (sizeof (hmac_buf));
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -10956,8 +10980,9 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_1
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&session->mock, session->base.setup_paired_session, session,
-		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG (ECC_PUBKEY_DER_LEN),
-		MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), MOCK_ARG (sizeof (hmac_buf)));
+		SESSION_MANAGER_NO_MEMORY, MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID),
+		MOCK_ARG (ECC_PUBKEY_DER_LEN), MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)),
+		MOCK_ARG (sizeof (hmac_buf)));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = false;
@@ -11000,6 +11025,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	memset (cerberus_protocol_key_exchange_type_2_hmac_data (rq), 0xCC, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -11014,6 +11041,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 		sizeof (hmac_buf));
 
 	decrypted_request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -11026,8 +11055,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&session->mock, session->base.reset_session, session, 0,
-		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID), MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)),
-		MOCK_ARG (sizeof (hmac_buf)));
+		MOCK_ARG (MCTP_BASE_PROTOCOL_BMC_EID),
+		MOCK_ARG_PTR_CONTAINS_TMP (hmac_buf, sizeof (hmac_buf)), MOCK_ARG (sizeof (hmac_buf)));
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = false;
@@ -11110,6 +11139,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 	memset (cerberus_protocol_key_exchange_type_2_hmac_data (rq), 0xCC, sizeof (hmac_buf));
 
 	request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -11124,6 +11155,8 @@ void cerberus_protocol_optional_commands_testing_process_get_key_exchange_type_2
 		sizeof (hmac_buf));
 
 	decrypted_request.length = cerberus_protocol_key_exchange_type_2_length (sizeof (hmac_buf));
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -11293,6 +11326,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 	rq->rn_req = 0xeeff0011;
 
 	request.length = sizeof (struct cerberus_protocol_session_sync);
+	request.payload = request.data;
+	request.payload_length = request.payload_length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -11304,6 +11339,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 	decrypted_rq->rn_req = 0xaabbccdd;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_session_sync);
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -11314,8 +11351,11 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 
 	response.length = sizeof (struct cerberus_protocol_session_sync_response) +
 		sizeof (hmac_expected);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = true;
 	response.crypto_timeout = true;
 
 	memcpy (cerberus_protocol_session_sync_hmac_data (resp), hmac_expected,
@@ -11331,8 +11371,11 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 
 	encrypted_response.length = sizeof (struct cerberus_protocol_session_sync_response) +
 		sizeof (hmac_expected_encrypted);
+	encrypted_response.payload = encrypted_response.data;
+	encrypted_response.payload_length = encrypted_response.length;
 	encrypted_response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	encrypted_response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	encrypted_response.is_encrypted = true;
 	encrypted_response.crypto_timeout = true;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
@@ -11434,6 +11477,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_fail (CuTe
 	rq->rn_req = 0xeeff0011;
 
 	request.length = sizeof (struct cerberus_protocol_session_sync);
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -11445,6 +11490,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_fail (CuTe
 	decrypted_rq->rn_req = 0xaabbccdd;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_session_sync);
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -11524,6 +11571,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_invalid_le
 	rq->rn_req = 0xeeff0011;
 
 	request.length = sizeof (struct cerberus_protocol_session_sync);
+	request.payload = request.data;
+	request.payload_length = request.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -11535,6 +11584,8 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_invalid_le
 	decrypted_rq->rn_req = 0xaabbccdd;
 
 	decrypted_request.length = sizeof (struct cerberus_protocol_session_sync) - 1;
+	decrypted_request.payload = decrypted_request.data;
+	decrypted_request.payload_length = decrypted_request.length;
 	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -11551,9 +11602,15 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_invalid_le
 	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 
+	request.length = sizeof (struct cerberus_protocol_session_sync) + 1;
+	request.payload_length = request.length;
+	request.is_encrypted = false;
+	request.crypto_timeout = false;
+
 	decrypted_request.length = sizeof (struct cerberus_protocol_session_sync) + 1;
-	decrypted_request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	decrypted_request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	decrypted_request.payload_length = decrypted_request.length;
+	decrypted_request.is_encrypted = false;
+	decrypted_request.crypto_timeout = false;
 
 	status = mock_expect (&session->mock, session->base.decrypt_message, session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &request,

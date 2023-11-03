@@ -349,6 +349,8 @@ static void cmd_channel_handler_test_execute (CuTest *test)
 	cmd_channel_handler_testing_init (test, &handler);
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -409,8 +411,12 @@ static void cmd_channel_handler_test_execute (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -468,6 +474,8 @@ static void cmd_channel_handler_test_execute_static_init (CuTest *test)
 	cmd_channel_handler_testing_init_dependencies (test, &handler);
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -528,8 +536,12 @@ static void cmd_channel_handler_test_execute_static_init (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;

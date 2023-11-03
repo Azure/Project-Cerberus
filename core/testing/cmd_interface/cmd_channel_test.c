@@ -250,7 +250,7 @@ static void cmd_channel_test_validate_packet_for_send_overflow (CuTest *test)
 
 	packet.pkt_size = sizeof (packet.data) + 1;
 	status = cmd_channel_validate_packet_for_send (&packet);
-	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_PKT_SIZE, status);	
+	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_PKT_SIZE, status);
 }
 
 static void cmd_channel_test_receive_and_process_single_packet_response (CuTest *test)
@@ -269,6 +269,8 @@ static void cmd_channel_test_receive_and_process_single_packet_response (CuTest 
 	TEST_START;
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -331,8 +333,12 @@ static void cmd_channel_test_receive_and_process_single_packet_response (CuTest 
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -393,6 +399,8 @@ static void cmd_channel_test_receive_and_process_multi_packet_response (CuTest *
 	}
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -477,8 +485,12 @@ static void cmd_channel_test_receive_and_process_multi_packet_response (CuTest *
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -548,6 +560,8 @@ static void cmd_channel_test_receive_and_process_max_response (CuTest *test)
 	}
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -610,8 +624,12 @@ static void cmd_channel_test_receive_and_process_max_response (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -672,6 +690,9 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	}
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
@@ -775,8 +796,12 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	request.data[2] = 0;
 	request.data[3] = 0;
 	memcpy (&request.data[4], payload, request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -843,6 +868,8 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout (CuT
 	TEST_START;
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -879,8 +906,12 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout (CuT
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -934,6 +965,8 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout_not_
 	TEST_START;
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -998,8 +1031,12 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout_not_
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -1056,6 +1093,8 @@ static void cmd_channel_test_receive_and_process_set_receive_timeout (CuTest *te
 	TEST_START;
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -1118,8 +1157,12 @@ static void cmd_channel_test_receive_and_process_set_receive_timeout (CuTest *te
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -1173,6 +1216,8 @@ static void cmd_channel_test_receive_and_process_channel_rx_error (CuTest *test)
 	TEST_START;
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -1235,8 +1280,12 @@ static void cmd_channel_test_receive_and_process_channel_rx_error (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -1300,6 +1349,9 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	}
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
@@ -1389,8 +1441,12 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	request.data[2] = 0;
 	request.data[3] = 0;
 	memcpy (&request.data[4], payload, request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -1491,6 +1547,8 @@ static void cmd_channel_test_receive_and_process_send_failure (CuTest *test)
 	}
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -1575,8 +1633,12 @@ static void cmd_channel_test_receive_and_process_send_failure (CuTest *test)
 	request.data = data;
 	request.length = sizeof (data);
 	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -1637,6 +1699,7 @@ static void cmd_channel_test_receive_and_process_mctp_fatal_error (CuTest *test)
 	}
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
@@ -1827,6 +1890,9 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	}
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
@@ -1916,8 +1982,12 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	request.data[2] = 0;
 	request.data[3] = 0;
 	memcpy (&request.data[4], payload, request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -2023,6 +2093,9 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	}
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
@@ -2112,8 +2185,12 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	request.data[2] = 0;
 	request.data[3] = 0;
 	memcpy (&request.data[4], payload, request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
@@ -2216,6 +2293,7 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 	}
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
@@ -2438,6 +2516,7 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 	}
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
+	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
