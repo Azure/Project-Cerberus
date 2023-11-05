@@ -272,6 +272,32 @@ int cmd_interface_mock_validate_request (const char *arg_info, void *expected, v
 }
 
 /**
+ * Copy the data present in a command request structure.
+ *
+ * @param req_orig The original data that will be copied.
+ * @param req_copy The destination for the data.
+ */
+static void cmd_interface_mock_copy_request_data (const struct cmd_interface_msg *req_orig,
+	struct cmd_interface_msg *req_copy)
+{
+	size_t payload_offset;
+
+	if (req_copy->data != NULL) {
+		if (req_copy->payload == NULL) {
+			/* If there is no payload set, just copy the data. */
+			memcpy (req_copy->data, req_orig->data, req_orig->length);
+		}
+		else {
+			/* Copy from the beginning of the data buffer to the end of the payload and set the
+			 * payload pointer to the right location. */
+			payload_offset = req_orig->payload - req_orig->data;
+			memcpy (req_copy->data, req_orig->data, req_orig->payload_length + payload_offset);
+			req_copy->payload = &req_copy->data[payload_offset];
+		}
+	}
+}
+
+/**
  * Allocate memory and perform a deep copy of the command request structure for validation.
  *
  * @param expected The expectation context for the argument to save.
@@ -281,7 +307,6 @@ void cmd_interface_mock_save_request (const struct mock_arg *expected, struct mo
 {
 	struct cmd_interface_msg *req_orig;
 	struct cmd_interface_msg *req_copy;
-	size_t payload_offset;
 
 	call->ptr_value = platform_malloc (expected->ptr_value_len);
 
@@ -293,14 +318,7 @@ void cmd_interface_mock_save_request (const struct mock_arg *expected, struct mo
 		req_copy = (struct cmd_interface_msg*) call->ptr_value;
 
 		req_copy->data = platform_malloc (req_orig->length);
-		if (req_copy->data != NULL) {
-			memcpy (req_copy->data, req_orig->data, req_orig->length);
-
-			if (req_copy->payload != NULL) {
-				payload_offset = req_orig->payload - req_orig->data;
-				req_copy->payload = &req_copy->data[payload_offset];
-			}
-		}
+		cmd_interface_mock_copy_request_data (req_orig, req_copy);
 	}
 }
 
@@ -332,17 +350,11 @@ void cmd_interface_mock_copy_request (const struct mock_arg *expected, struct mo
 	const struct cmd_interface_msg *req_orig = expected->out_data;
 	struct cmd_interface_msg *req_copy = (struct cmd_interface_msg*) ((uintptr_t) call->value);
 	void *data_tmp = req_copy->data;
-	size_t payload_offset;
 
 	memcpy ((void*) ((uintptr_t) call->value), expected->out_data, out_len);
 
 	req_copy->data = data_tmp;
-	memcpy (req_copy->data, req_orig->data, req_orig->length);
-
-	if (req_copy->payload != NULL) {
-		payload_offset = req_orig->payload - req_orig->data;
-		req_copy->payload = &req_copy->data[payload_offset];
-	}
+	cmd_interface_mock_copy_request_data (req_orig, req_copy);
 }
 
 /**
@@ -358,7 +370,6 @@ int cmd_interface_mock_duplicate_request (const void *arg_data, size_t arg_lengt
 {
 	const struct cmd_interface_msg *req_orig = arg_data;
 	struct cmd_interface_msg *req_copy;
-	size_t payload_offset;
 
 	if (arg_length != sizeof (struct cmd_interface_msg)) {
 		return MOCK_BAD_ARG_LENGTH;
@@ -380,11 +391,7 @@ int cmd_interface_mock_duplicate_request (const void *arg_data, size_t arg_lengt
 		return MOCK_NO_MEMORY;
 	}
 
-	memcpy (req_copy->data, req_orig->data, req_orig->length);
-	if (req_copy->payload != NULL) {
-		payload_offset = req_orig->payload - req_orig->data;
-		req_copy->payload = &req_copy->data[payload_offset];
-	}
+	cmd_interface_mock_copy_request_data (req_orig, req_copy);
 
 	return 0;
 }

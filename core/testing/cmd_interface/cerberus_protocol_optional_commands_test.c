@@ -11327,7 +11327,7 @@ void cerberus_protocol_optional_commands_testing_process_session_sync (CuTest *t
 
 	request.length = sizeof (struct cerberus_protocol_session_sync);
 	request.payload = request.data;
-	request.payload_length = request.payload_length;
+	request.payload_length = request.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 

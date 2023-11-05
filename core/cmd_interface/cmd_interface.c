@@ -103,7 +103,8 @@ void cmd_interface_msg_remove_protocol_header (struct cmd_interface_msg *message
  * Update the message payload to add a layer of protocol headers.  The message structure must have
  * been properly initialized with {@link cmd_interface_msg_new_message}.
  *
- * When adding protocol headers, both the payload and overall data lengths will be increased.
+ * When adding protocol headers, both the payload and overall data lengths will be increased, unless
+ * these lengths are different from each other.
  *
  * @param message The message to update.
  * @param header_length Size of the protocol header.
@@ -120,8 +121,14 @@ void cmd_interface_msg_add_protocol_header (struct cmd_interface_msg *message,
 		}
 
 		message->payload -= header_length;
+
+		/* If both lengths are the same, keep them in sync with each other.  If they start off
+		 * different, don't update the raw message length. */
+		if (message->length == message->payload_length) {
+			message->length += header_length;
+		}
 		message->payload_length += header_length;
-		message->length += header_length;
+
 	}
 }
 
@@ -231,6 +238,7 @@ int cmd_interface_process_cerberus_protocol_message (const struct cmd_interface 
 	}
 
 	if ((header->msg_type != (MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF)) ||
+		(header->integrity_check == 1) ||
 		(header->pci_vendor_id != CERBERUS_PROTOCOL_MSFT_PCI_VID)) {
 		return CMD_HANDLER_UNSUPPORTED_MSG;
 	}

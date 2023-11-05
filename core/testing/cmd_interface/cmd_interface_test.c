@@ -304,6 +304,37 @@ static void cmd_interface_test_msg_add_protocol_header (CuTest *test)
 	CuAssertIntEquals (test, 14, msg.length);
 }
 
+static void cmd_interface_test_msg_add_protocol_header_different_payload_length (CuTest *test)
+{
+	uint8_t data[16];
+	struct cmd_interface_msg msg = {
+		.data = data,
+	};
+
+	TEST_START;
+
+	cmd_interface_msg_new_message (&msg, 0x11, 0x22, 0x33, 50);
+	msg.max_response = sizeof (data);
+	msg.payload = &data[12];
+	msg.payload_length = 4;
+	msg.length = sizeof (data);
+
+	cmd_interface_msg_add_protocol_header (&msg, 3);
+	CuAssertPtrEquals (test, &data[9], msg.payload);
+	CuAssertIntEquals (test, 7, msg.payload_length);
+	CuAssertIntEquals (test, sizeof (data), msg.length);
+
+	cmd_interface_msg_add_protocol_header (&msg, 7);
+	CuAssertPtrEquals (test, &data[2], msg.payload);
+	CuAssertIntEquals (test, 14, msg.payload_length);
+	CuAssertIntEquals (test, sizeof (data), msg.length);
+
+	cmd_interface_msg_add_protocol_header (&msg, 0);
+	CuAssertPtrEquals (test, &data[2], msg.payload);
+	CuAssertIntEquals (test, 14, msg.payload_length);
+	CuAssertIntEquals (test, sizeof (data), msg.length);
+}
+
 static void cmd_interface_test_msg_add_protocol_header_more_than_buffer_space (CuTest *test)
 {
 	uint8_t data[16];
@@ -499,6 +530,7 @@ TEST (cmd_interface_test_msg_remove_protocol_header_more_than_data);
 TEST (cmd_interface_test_msg_remove_protocol_header_more_than_payload);
 TEST (cmd_interface_test_msg_remove_protocol_header_null);
 TEST (cmd_interface_test_msg_add_protocol_header);
+TEST (cmd_interface_test_msg_add_protocol_header_different_payload_length);
 TEST (cmd_interface_test_msg_add_protocol_header_more_than_buffer_space);
 TEST (cmd_interface_test_msg_add_protocol_header_null);
 TEST (cmd_interface_test_msg_get_protocol_length);

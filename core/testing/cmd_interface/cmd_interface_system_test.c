@@ -1142,6 +1142,14 @@ static void cmd_interface_system_test_process_unsupported_message (CuTest *test)
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->integrity_check = 1;
+
+	request.crypto_timeout = true;
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_MSG, status);
+	CuAssertIntEquals (test, false, request.crypto_timeout);
+
+	header->integrity_check = 0;
 	header->pci_vendor_id = 0xAA;
 
 	request.crypto_timeout = true;

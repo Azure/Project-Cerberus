@@ -5,6 +5,7 @@
 #define MCTP_BASE_PROTOCOL_H_
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 #include "status/rot_status.h"
 #include "platform_config.h"
