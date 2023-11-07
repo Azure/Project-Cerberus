@@ -21,7 +21,7 @@ int cmd_interface_dual_cmd_set_generate_error_packet (const struct cmd_interface
  */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 #define	CMD_INTERFACE_DUAL_CMD_SET_RESPONSE_API	\
-	.process_response = cmd_interface_dual_cmd_set_process_response
+	.process_response = cmd_interface_dual_cmd_set_process_response,
 #else
 #define	CMD_INTERFACE_DUAL_CMD_SET_RESPONSE_API
 #endif
@@ -31,7 +31,7 @@ int cmd_interface_dual_cmd_set_generate_error_packet (const struct cmd_interface
  */
 #define	CMD_INTERFACE_DUAL_CMD_SET_API_INIT { \
 		.process_request = cmd_interface_dual_cmd_set_process_request, \
-		CMD_INTERFACE_DUAL_CMD_SET_RESPONSE_API, \
+		CMD_INTERFACE_DUAL_CMD_SET_RESPONSE_API \
 		.generate_error_packet = cmd_interface_dual_cmd_set_generate_error_packet, \
 		.session = NULL, \
 	}

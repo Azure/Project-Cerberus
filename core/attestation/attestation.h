@@ -29,7 +29,7 @@ enum {
 enum {
 	ATTESTATION_RIOT_SLOT_NUM = 0,								/**< Slot number for the RIoT certificate chain */
 	ATTESTATION_AUX_SLOT_NUM,									/**< Slot number for the auxiliary certificate chain */
-	ATTESTATION_MAX_SLOT_NUM = 7								/**< The maximum allowed ceritifate slot number */
+	ATTESTATION_MAX_SLOT_NUM = 7								/**< The maximum allowed certificate slot number */
 };
 
 /**

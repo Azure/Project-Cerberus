@@ -19,7 +19,7 @@ int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
  */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 #define	CMD_INTERFACE_AC_ROT_RESPONSE_API	\
-	.process_response = cmd_interface_ac_rot_process_response
+	.process_response = cmd_interface_ac_rot_process_response,
 #else
 #define	CMD_INTERFACE_AC_ROT_RESPONSE_API
 #endif
@@ -31,7 +31,7 @@ int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
  */
 #define	CMD_INTERFACE_AC_ROT_API_INIT(session_ptr) { \
 		.process_request = cmd_interface_ac_rot_process_request, \
-		CMD_INTERFACE_AC_ROT_RESPONSE_API, \
+		CMD_INTERFACE_AC_ROT_RESPONSE_API \
 		.generate_error_packet = cmd_interface_generate_error_packet, \
 		.session = session_ptr, \
 	}

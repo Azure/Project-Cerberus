@@ -37,7 +37,8 @@ void cmd_interface_msg_new_message (struct cmd_interface_msg *message, uint8_t s
 }
 
 /**
- * Add new payload data to the message buffer.
+ * Add new payload data to the message buffer.  The new data will be appended to the existing
+ * payload location.
  *
  * The data will be copied and the message length updated.  There are no length checks performed
  * before the copy, so the caller must ensure there is sufficient space in the message buffer for
@@ -54,7 +55,7 @@ void cmd_interface_msg_add_payload_data (struct cmd_interface_msg *message, cons
 		return;
 	}
 
-	memcpy (&message->data[message->length], data, length);
+	memcpy (&message->payload[message->payload_length], data, length);
 	message->length += length;
 	message->payload_length += length;
 }
@@ -145,8 +146,7 @@ size_t cmd_interface_msg_get_protocol_length (const struct cmd_interface_msg *me
 		return 0;
 	}
 
-	if ((message->payload < message->data) ||
-		(message->payload >= (message->data + message->length))) {
+	if (message->payload < message->data) {
 		return 0;
 	}
 

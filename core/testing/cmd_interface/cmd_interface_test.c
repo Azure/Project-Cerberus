@@ -111,6 +111,66 @@ static void cmd_interface_test_msg_add_payload_data_multiple (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void cmd_interface_test_msg_add_payload_data_payload_offset (CuTest *test)
+{
+	uint8_t data[16] = {0};
+	struct cmd_interface_msg msg = {
+		.data = data,
+	};
+	uint8_t new[5] = {1, 2, 3, 4, 5};
+	uint8_t expected[11] = {0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5};
+	int status;
+
+	TEST_START;
+
+	cmd_interface_msg_new_message (&msg, 0x11, 0x22, 0x33, 50);
+	CuAssertIntEquals (test, 0, msg.length);
+	CuAssertIntEquals (test, 0, msg.payload_length);
+
+	msg.payload = &data[6];
+
+	cmd_interface_msg_add_payload_data (&msg, new, sizeof (new));
+	CuAssertPtrEquals (test, data, msg.data);
+	CuAssertIntEquals (test, sizeof (new), msg.length);
+	CuAssertPtrEquals (test, &data[6], msg.payload);
+	CuAssertIntEquals (test, sizeof (new), msg.payload_length);
+
+	status = testing_validate_array (expected, data, sizeof (expected));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_interface_test_msg_add_payload_data_existing_payload_data (CuTest *test)
+{
+	uint8_t data[16] = {0};
+	struct cmd_interface_msg msg = {
+		.data = data,
+	};
+	uint8_t new[5] = {1, 2, 3, 4, 5};
+	uint8_t expected[11] = {0, 0, 0, 0, 10, 11, 1, 2, 3, 4, 5};
+	int status;
+
+	TEST_START;
+
+	cmd_interface_msg_new_message (&msg, 0x11, 0x22, 0x33, 50);
+	CuAssertIntEquals (test, 0, msg.length);
+	CuAssertIntEquals (test, 0, msg.payload_length);
+
+	msg.payload = &data[4];
+	msg.payload[0] = 10;
+	msg.payload[1] = 11;
+	msg.length = 2;
+	msg.payload_length = 2;
+
+	cmd_interface_msg_add_payload_data (&msg, new, sizeof (new));
+	CuAssertPtrEquals (test, data, msg.data);
+	CuAssertIntEquals (test, sizeof (new) + 2, msg.length);
+	CuAssertPtrEquals (test, &data[4], msg.payload);
+	CuAssertIntEquals (test, sizeof (new) + 2, msg.payload_length);
+
+	status = testing_validate_array (expected, data, sizeof (expected));
+	CuAssertIntEquals (test, 0, status);
+}
+
 static void cmd_interface_test_msg_add_payload_data_null (CuTest *test)
 {
 	uint8_t data[16] = {0};
@@ -407,6 +467,24 @@ static void cmd_interface_test_msg_get_protocol_length (CuTest *test)
 	CuAssertIntEquals (test, 8, length);
 }
 
+static void cmd_interface_test_msg_get_protocol_length_payload_after_data_length (CuTest *test)
+{
+	uint8_t data[16];
+	struct cmd_interface_msg msg = {
+		.data = data,
+		.length = sizeof (data) - 8
+	};
+	size_t length;
+
+	TEST_START;
+
+	msg.payload = &data[8];
+	msg.payload_length = sizeof (data) - 8;
+
+	length = cmd_interface_msg_get_protocol_length (&msg);
+	CuAssertIntEquals (test, 8, length);
+}
+
 static void cmd_interface_test_msg_get_protocol_length_null (CuTest *test)
 {
 	size_t length;
@@ -453,24 +531,6 @@ static void cmd_interface_test_msg_get_protocol_length_payload_before_data (CuTe
 	CuAssertIntEquals (test, 0, length);
 }
 
-static void cmd_interface_test_msg_get_protocol_length_payload_after_data (CuTest *test)
-{
-	uint8_t data[16];
-	struct cmd_interface_msg msg = {
-		.data = data,
-		.length = sizeof (data) - 8
-	};
-	size_t length;
-
-	TEST_START;
-
-	msg.payload = &data[8];
-	msg.payload_length = sizeof (data) - 8;
-
-	length = cmd_interface_msg_get_protocol_length (&msg);
-	CuAssertIntEquals (test, 0, length);
-}
-
 static void cmd_interface_test_msg_get_max_response (CuTest *test)
 {
 	uint8_t data[16];
@@ -505,6 +565,25 @@ static void cmd_interface_test_msg_get_max_response (CuTest *test)
 	CuAssertIntEquals (test, expected, length);
 }
 
+static void cmd_interface_test_msg_get_max_response_payload_after_data_length (CuTest *test)
+{
+	uint8_t data[16];
+	struct cmd_interface_msg msg = {
+		.data = data,
+		.length = 4,
+		.payload = &data[8],
+		.payload_length = 4,
+		.max_response = sizeof (data) - 2
+	};
+	size_t expected = sizeof (data) - 2 - 8;
+	size_t length;
+
+	TEST_START;
+
+	length = cmd_interface_msg_get_max_response (&msg);
+	CuAssertIntEquals (test, expected, length);
+}
+
 static void cmd_interface_test_msg_get_max_response_null (CuTest *test)
 {
 	size_t length;
@@ -522,6 +601,8 @@ TEST (cmd_interface_test_msg_new_message);
 TEST (cmd_interface_test_msg_new_message_null);
 TEST (cmd_interface_test_msg_add_payload_data);
 TEST (cmd_interface_test_msg_add_payload_data_multiple);
+TEST (cmd_interface_test_msg_add_payload_data_payload_offset);
+TEST (cmd_interface_test_msg_add_payload_data_existing_payload_data);
 TEST (cmd_interface_test_msg_add_payload_data_null);
 TEST (cmd_interface_test_msg_set_message_payload_length);
 TEST (cmd_interface_test_msg_set_message_payload_length_null);
@@ -534,11 +615,12 @@ TEST (cmd_interface_test_msg_add_protocol_header_different_payload_length);
 TEST (cmd_interface_test_msg_add_protocol_header_more_than_buffer_space);
 TEST (cmd_interface_test_msg_add_protocol_header_null);
 TEST (cmd_interface_test_msg_get_protocol_length);
+TEST (cmd_interface_test_msg_get_protocol_length_payload_after_data_length);
 TEST (cmd_interface_test_msg_get_protocol_length_null);
 TEST (cmd_interface_test_msg_get_protocol_length_payload_null);
 TEST (cmd_interface_test_msg_get_protocol_length_payload_before_data);
-TEST (cmd_interface_test_msg_get_protocol_length_payload_after_data);
 TEST (cmd_interface_test_msg_get_max_response);
+TEST (cmd_interface_test_msg_get_max_response_payload_after_data_length);
 TEST (cmd_interface_test_msg_get_max_response_null);
 
 TEST_SUITE_END;

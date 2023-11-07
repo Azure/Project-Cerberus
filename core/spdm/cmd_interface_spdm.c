@@ -35,18 +35,14 @@ static int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 static int cmd_interface_spdm_process_spdm_protocol_message (const struct cmd_interface_spdm *intf,
 	struct cmd_interface_msg *message, uint8_t *command_id)
 {
-	struct spdm_protocol_header *header = (struct spdm_protocol_header*) message->data;
+	struct spdm_protocol_header *header = (struct spdm_protocol_header*) message->payload;
 
 	UNUSED (intf);
 
 	message->crypto_timeout = false;
 
-	if (message->length < SPDM_PROTOCOL_MIN_MSG_LEN) {
+	if (message->payload_length < SPDM_PROTOCOL_MIN_MSG_LEN) {
 		return CMD_HANDLER_SPDM_PAYLOAD_TOO_SHORT;
-	}
-
-	if ((header->msg_type != MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM)) {
-		return CMD_HANDLER_SPDM_UNSUPPORTED_MSG;
 	}
 
 	if (header->spdm_major_version != SPDM_MAJOR_VERSION) {
@@ -153,9 +149,9 @@ static int cmd_interface_spdm_process_response (const struct cmd_interface *intf
 			}
 
 		case SPDM_RESPONSE_ERROR:
-			if (response->length >= sizeof (struct spdm_error_response)) {
+			if (response->payload_length >= sizeof (struct spdm_error_response)) {
 				struct spdm_error_response *error_msg =
-					(struct spdm_error_response*) response->data;
+					(struct spdm_error_response*) response->payload;
 
 				if (error_msg->error_code == SPDM_ERROR_RESPONSE_NOT_READY) {
 					return observable_notify_observers_with_ptr (&interface->observable,
@@ -165,8 +161,9 @@ static int cmd_interface_spdm_process_response (const struct cmd_interface *intf
 				else {
 					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
 						DEBUG_LOG_COMPONENT_CMD_INTERFACE, CMD_LOGGING_ERROR_MESSAGE,
-						(error_msg->error_code << 24 | response->source_eid << 16 |
-						response->target_eid << 8),	error_msg->error_data);
+						((error_msg->error_code << 24) | (response->source_eid << 16) |
+							(response->target_eid << 8)),
+						error_msg->error_data);
 				}
 			}
 

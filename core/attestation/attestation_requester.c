@@ -30,6 +30,12 @@
 #define SPDM_GET_MEASUREMENTS_SIGNATURE_CONTEXT_STR "responder-measurements signing"
 
 /**
+ * Maximum length for an SPDM message.
+ */
+#define	ATTESTATION_REQUESTER_MAX_SPDM_REQUEST		\
+	(MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - sizeof (struct spdm_protocol_mctp_header))
+
+/**
  * Check to see if response received is for pending Cerberus request
  *
  * @param attestation Attestation requester instance to utilize
@@ -86,8 +92,7 @@ static int attestation_requester_send_request_and_get_response (
 	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_IDLE;
 	attestation->state->txn.requested_command = command;
 
-	if (mctp_ctrl_cmd)
-	{
+	if (mctp_ctrl_cmd) {
 		timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
 	}
 	else {
@@ -140,12 +145,15 @@ static int attestation_requester_send_request_and_get_response (
 			attestation->state->txn.sleep_duration_ms = 0;
 
 			request_len = spdm_generate_respond_if_ready_request (
-				attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer),
+				attestation->state->spdm_msg_buffer, ATTESTATION_REQUESTER_MAX_SPDM_REQUEST,
 				attestation->state->txn.requested_command,
 				attestation->state->txn.respond_if_ready_token, attestation->state->txn.protocol);
 			if (ROT_IS_ERROR ((int) request_len)) {
 				return request_len;
 			}
+
+			spdm_populate_mctp_header (attestation->state->spdm_mctp);
+			request_len += sizeof (struct spdm_protocol_mctp_header);
 		}
 		else {
 			rsp_ready = true;
@@ -786,14 +794,15 @@ static int attestation_requester_get_digests_rsp_post_processing (
 		else {
 			status = device_manager_compare_cert_chain_digest (attestation->device_mgr, device_eid,
 				digest, transcript_hash_len);
-			if ((status == DEVICE_MGR_DIGEST_MISMATCH) || (status == DEVICE_MGR_DIGEST_LEN_MISMATCH)) {
+			if ((status == DEVICE_MGR_DIGEST_MISMATCH) ||
+				(status == DEVICE_MGR_DIGEST_LEN_MISMATCH)) {
 				status = device_manager_clear_alias_key (attestation->device_mgr, device_eid);
 				if (status != 0) {
 					return status;
 				}
 
-				status = device_manager_update_cert_chain_digest (attestation->device_mgr, device_eid,
-					attestation->state->txn.slot_num, digest, transcript_hash_len);
+				status = device_manager_update_cert_chain_digest (attestation->device_mgr,
+					device_eid, attestation->state->txn.slot_num, digest, transcript_hash_len);
 				if (status != 0) {
 					return status;
 				}
@@ -957,7 +966,7 @@ static int attestation_requester_spdm_get_measurements_rsp_post_processing (
 	}
 
 	if (attestation->state->txn.measurement_operation_requested ==
-			SPDM_MEASUREMENT_OPERATION_GET_NUM_BLOCKS) {
+		SPDM_MEASUREMENT_OPERATION_GET_NUM_BLOCKS) {
 		attestation->state->txn.msg_buffer[0] = rsp->num_measurement_indices;
 		attestation->state->txn.msg_buffer_len = 1;
 	}
@@ -966,9 +975,11 @@ static int attestation_requester_spdm_get_measurements_rsp_post_processing (
 }
 
 /**
- * Function to send SPDM request and wait for a response. This function assumes a pregenerated
- * request is in attestation_requester's msg_buffer. If request is not part of device discovery,
- * the request is added to the transcript hash.
+ * Function to send SPDM request and wait for a response.  This function assumes a pregenerated
+ * request is in attestation_requester's spdm_msg_buffer.  If request is not part of device
+ * discovery, the request is added to the transcript hash.
+ *
+ * The MCTP header will be added to the message before sending the request.
  *
  * @param attestation Attestation requester instance to utilize.
  * @param request_len Length of request to send.
@@ -995,14 +1006,16 @@ static int attestation_requester_send_spdm_request_and_get_response (
 	/* If performing device discovery, Get Measurements is not required to provide a signed response
 	 * thus transcript hashing is not necessary. */
 	if (!attestation->state->txn.device_discovery) {
-		// Transcript hashing should not include the MCTP message type byte
+		// Transcript hashing should not include the MCTP message header.
 		status = attestation->secondary_hash->update (attestation->secondary_hash,
-			spdm_get_spdm_rsp_payload (attestation->state->txn.msg_buffer),
-			spdm_get_spdm_rsp_length (request_len));
+			attestation->state->spdm_msg_buffer, request_len);
 		if (ROT_IS_ERROR (status)) {
 			return status;
 		}
 	}
+
+	spdm_populate_mctp_header (attestation->state->spdm_mctp);
+	request_len += 1;
 
 	status = attestation_requester_send_request_and_get_response (attestation, request_len,
 		dest_addr, dest_eid, crypto_timeout, false, command);
@@ -1063,8 +1076,7 @@ static int attestation_requester_send_spdm_request_and_get_response (
 	}
 
 	return attestation->secondary_hash->update (attestation->secondary_hash,
-		spdm_get_spdm_rsp_payload (attestation->state->txn.msg_buffer),
-		spdm_get_spdm_rsp_length (rsp_to_hash_len));
+		attestation->state->txn.msg_buffer, rsp_to_hash_len);
 }
 #endif
 
@@ -1094,8 +1106,8 @@ static void attestation_requester_copy_spdm_response (const struct spdm_protocol
 		return;
 	}
 
-	memcpy (attestation->state->txn.msg_buffer, response->data, response->length);
-	attestation->state->txn.msg_buffer_len = response->length;
+	memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
+	attestation->state->txn.msg_buffer_len = response->payload_length;
 	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
 }
 
@@ -1189,7 +1201,7 @@ void attestation_requester_on_spdm_response_not_ready (
 {
 	const struct attestation_requester *attestation =
 		TO_DERIVED_TYPE (observer, const struct attestation_requester, spdm_rsp_observer);
-	struct spdm_error_response *rsp = (struct spdm_error_response*) response->data;
+	struct spdm_error_response *rsp = (struct spdm_error_response*) response->payload;
 	struct spdm_error_response_not_ready *rsp_not_ready =
 		(struct spdm_error_response_not_ready*) spdm_get_spdm_error_rsp_optional_data (rsp);
 	uint8_t rdt_exponent;
@@ -1257,7 +1269,7 @@ void attestation_requester_on_cerberus_get_digest_response (
 	const struct attestation_requester *attestation =
 		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
 	struct cerberus_protocol_get_certificate_digest_response *rsp =
-		(struct cerberus_protocol_get_certificate_digest_response*) response->data;
+		(struct cerberus_protocol_get_certificate_digest_response*) response->payload;
 
 	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
 		CERBERUS_PROTOCOL_GET_DIGEST)) {
@@ -1290,7 +1302,7 @@ void attestation_requester_on_cerberus_get_certificate_response (
 	const struct attestation_requester *attestation =
 		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
 	struct cerberus_protocol_get_certificate_response *rsp =
-		(struct cerberus_protocol_get_certificate_response*) response->data;
+		(struct cerberus_protocol_get_certificate_response*) response->payload;
 	size_t cert_portion_len;
 
 	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
@@ -1319,7 +1331,7 @@ void attestation_requester_on_cerberus_get_certificate_response (
 		}
 
 		cert_portion_len =
-			cerberus_protocol_get_certificate_response_cert_length (response->length);
+			cerberus_protocol_get_certificate_response_cert_length (response->payload_length);
 
 		if ((attestation->state->txn.cert_buffer_len + cert_portion_len) >
 			CERBERUS_PROTOCOL_MAX_CERT_CHAIN_LEN) {
@@ -1351,7 +1363,7 @@ void attestation_requester_on_cerberus_challenge_response (
 	const struct attestation_requester *attestation =
 		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
 	struct cerberus_protocol_challenge_response *rsp =
-		(struct cerberus_protocol_challenge_response*) response->data;
+		(struct cerberus_protocol_challenge_response*) response->payload;
 
 	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
 		CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE)) {
@@ -1381,8 +1393,8 @@ void attestation_requester_on_cerberus_challenge_response (
 				(rsp->challenge.min_protocol_version << 8) | CERBERUS_PROTOCOL_PROTOCOL_VERSION);
 	}
 	else {
-		memcpy (attestation->state->txn.msg_buffer, response->data, response->length);
-		attestation->state->txn.msg_buffer_len = response->length;
+		memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
+		attestation->state->txn.msg_buffer_len = response->payload_length;
 		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
 
 		return;
@@ -1444,8 +1456,8 @@ void attestation_requester_on_mctp_get_message_type_response (
 	}
 
 	// msg_buffer is sized to hold maximum response lengths
-	memcpy (attestation->state->txn.msg_buffer, response->data, response->length);
-	attestation->state->txn.msg_buffer_len = response->length;
+	memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
+	attestation->state->txn.msg_buffer_len = response->payload_length;
 }
 
 /**
@@ -1489,8 +1501,8 @@ void attestation_requester_on_mctp_get_routing_table_entries_response (
 	}
 
 	// msg_buffer is sized to hold maximum response lengths
-	memcpy (attestation->state->txn.msg_buffer, response->data, response->length);
-	attestation->state->txn.msg_buffer_len = response->length;
+	memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
+	attestation->state->txn.msg_buffer_len = response->payload_length;
 }
 
 /**
@@ -1618,6 +1630,12 @@ int attestation_requester_init_state (const struct attestation_requester *attest
 	}
 
 	memset (attestation->state, 0, sizeof (struct attestation_requester_state));
+
+	/* Set up buffer pointers for generating SPDM requests. */
+	attestation->state->spdm_mctp =
+		(struct spdm_protocol_mctp_header*) attestation->state->txn.msg_buffer;
+	attestation->state->spdm_msg_buffer =
+		&attestation->state->txn.msg_buffer[sizeof (struct spdm_protocol_mctp_header)];
 
 	attestation->state->mctp_bridge_wait = true;
 
@@ -1848,8 +1866,8 @@ static int attestation_requester_setup_spdm_device (const struct attestation_req
 	int rq_len;
 	int status;
 
-	rq_len = spdm_generate_get_version_request (attestation->state->txn.msg_buffer,
-		sizeof (attestation->state->txn.msg_buffer));
+	rq_len = spdm_generate_get_version_request (attestation->state->spdm_msg_buffer,
+		ATTESTATION_REQUESTER_MAX_SPDM_REQUEST);
 	if (ROT_IS_ERROR (rq_len)) {
 		return rq_len;
 	}
@@ -1860,8 +1878,8 @@ static int attestation_requester_setup_spdm_device (const struct attestation_req
 		return status;
 	}
 
-	rq_len = spdm_generate_get_capabilities_request (attestation->state->txn.msg_buffer,
-		sizeof (attestation->state->txn.msg_buffer), attestation->state->txn.protocol);
+	rq_len = spdm_generate_get_capabilities_request (attestation->state->spdm_msg_buffer,
+		ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.protocol);
 	if (ROT_IS_ERROR (rq_len)) {
 		return rq_len;
 	}
@@ -1937,8 +1955,8 @@ static int attestation_requester_setup_spdm_device (const struct attestation_req
 	base_asym_algo |= SPDM_TPM_ALG_ECDSA_ECC_NIST_P521;
 #endif
 
-	rq_len = spdm_generate_negotiate_algorithms_request (attestation->state->txn.msg_buffer,
-		sizeof (attestation->state->txn.msg_buffer), base_asym_algo, base_hash_algo,
+	rq_len = spdm_generate_negotiate_algorithms_request (attestation->state->spdm_msg_buffer,
+		ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, base_asym_algo, base_hash_algo,
 		attestation->state->txn.protocol);
 	if (ROT_IS_ERROR (rq_len)) {
 		return rq_len;
@@ -2096,8 +2114,8 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 			return status;
 		}
 
-		rq_len = spdm_generate_get_measurements_request (attestation->state->txn.msg_buffer,
-			sizeof (attestation->state->txn.msg_buffer), attestation->state->txn.slot_num,
+		rq_len = spdm_generate_get_measurements_request (attestation->state->spdm_msg_buffer,
+			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
 			measurement_operation, true, raw_bitstream_requested, nonce,
 			attestation->state->txn.protocol);
 		if (ROT_IS_ERROR (rq_len)) {
@@ -2113,8 +2131,8 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 		 * no longer have the contiguity requirement so instead use index 0xEF which is dedicated to
 		 * device IDs. */
 		if (attestation->state->txn.protocol == ATTESTATION_PROTOCOL_DMTF_SPDM_1_1) {
-			rq_len = spdm_generate_get_measurements_request (attestation->state->txn.msg_buffer,
-				sizeof (attestation->state->txn.msg_buffer), attestation->state->txn.slot_num,
+			rq_len = spdm_generate_get_measurements_request (attestation->state->spdm_msg_buffer,
+				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
 				SPDM_MEASUREMENT_OPERATION_GET_NUM_BLOCKS, false, raw_bitstream_requested, NULL,
 				attestation->state->txn.protocol);
 			if (ROT_IS_ERROR (rq_len)) {
@@ -2140,8 +2158,8 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 			measurement_operation = attestation->state->txn.msg_buffer[0];
 		}
 
-		rq_len = spdm_generate_get_measurements_request (attestation->state->txn.msg_buffer,
-			sizeof (attestation->state->txn.msg_buffer), attestation->state->txn.slot_num,
+		rq_len = spdm_generate_get_measurements_request (attestation->state->spdm_msg_buffer,
+			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
 			measurement_operation, false, raw_bitstream_requested, NULL,
 			attestation->state->txn.protocol);
 		if (ROT_IS_ERROR (rq_len)) {
@@ -2616,8 +2634,8 @@ static int attestation_requester_attest_device_spdm (
 		goto hash_cancel;
 	}
 
-	rq_len = spdm_generate_get_digests_request (attestation->state->txn.msg_buffer,
-		sizeof (attestation->state->txn.msg_buffer), attestation->state->txn.protocol);
+	rq_len = spdm_generate_get_digests_request (attestation->state->spdm_msg_buffer,
+		ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.protocol);
 	if (ROT_IS_ERROR (rq_len)) {
 		status = rq_len;
 		goto hash_cancel;
@@ -2636,8 +2654,8 @@ static int attestation_requester_attest_device_spdm (
 		attestation->state->txn.cert_total_len = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
 
 		 while ((attestation->state->txn.cert_total_len - attestation->state->txn.cert_buffer_len) > 0) {
-			rq_len = spdm_generate_get_certificate_request (attestation->state->txn.msg_buffer,
-				sizeof (attestation->state->txn.msg_buffer), attestation->state->txn.slot_num,
+			rq_len = spdm_generate_get_certificate_request (attestation->state->spdm_msg_buffer,
+				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
 				attestation->state->txn.cert_buffer_len,
 				attestation->state->txn.cert_total_len - attestation->state->txn.cert_buffer_len,
 				attestation->state->txn.protocol);
@@ -2669,8 +2687,8 @@ static int attestation_requester_attest_device_spdm (
 			goto hash_cancel;
 		}
 
-		rq_len = spdm_generate_challenge_request (attestation->state->txn.msg_buffer,
-			sizeof (attestation->state->txn.msg_buffer), attestation->state->txn.slot_num,
+		rq_len = spdm_generate_challenge_request (attestation->state->spdm_msg_buffer,
+			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
 			SPDM_MEASUREMENT_SUMMARY_HASH_ALL, nonce, attestation->state->txn.protocol);
 		if (ROT_IS_ERROR (rq_len)) {
 			status = rq_len;
@@ -2869,7 +2887,7 @@ static int attestation_requester_discover_device_spdm_protocol (
 	const struct attestation_requester *attestation, uint8_t eid, uint8_t device_addr)
 {
 	struct spdm_measurements_device_id_block *block =
-		(struct spdm_measurements_device_id_block *) attestation->state->txn.msg_buffer;
+		(struct spdm_measurements_device_id_block*) attestation->state->txn.msg_buffer;
 	struct spdm_measurements_device_id_descriptor *descriptor;
 	uint16_t pci_vid = 0;
 	uint16_t pci_device_id = 0;
