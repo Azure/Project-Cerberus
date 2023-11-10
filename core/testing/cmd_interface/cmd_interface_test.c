@@ -584,6 +584,25 @@ static void cmd_interface_test_msg_get_max_response_payload_after_data_length (C
 	CuAssertIntEquals (test, expected, length);
 }
 
+static void cmd_interface_test_msg_get_max_response_shorter_than_protocol_length (CuTest *test)
+{
+	uint8_t data[16];
+	struct cmd_interface_msg msg = {
+		.data = data,
+		.length = sizeof (data),
+		.payload = &data[5],
+		.payload_length = sizeof (data) - 5,
+		.max_response = 4
+	};
+	size_t expected = 0;
+	size_t length;
+
+	TEST_START;
+
+	length = cmd_interface_msg_get_max_response (&msg);
+	CuAssertIntEquals (test, expected, length);
+}
+
 static void cmd_interface_test_msg_get_max_response_null (CuTest *test)
 {
 	size_t length;
@@ -621,6 +640,7 @@ TEST (cmd_interface_test_msg_get_protocol_length_payload_null);
 TEST (cmd_interface_test_msg_get_protocol_length_payload_before_data);
 TEST (cmd_interface_test_msg_get_max_response);
 TEST (cmd_interface_test_msg_get_max_response_payload_after_data_length);
+TEST (cmd_interface_test_msg_get_max_response_shorter_than_protocol_length);
 TEST (cmd_interface_test_msg_get_max_response_null);
 
 TEST_SUITE_END;

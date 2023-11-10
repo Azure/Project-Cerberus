@@ -164,11 +164,24 @@ size_t cmd_interface_msg_get_protocol_length (const struct cmd_interface_msg *me
  */
 size_t cmd_interface_msg_get_max_response (const struct cmd_interface_msg *message)
 {
+	size_t length;
+
 	if (message == NULL) {
 		return 0;
 	}
 
-	return message->max_response - cmd_interface_msg_get_protocol_length (message);
+	length = cmd_interface_msg_get_protocol_length (message);
+	if (message->max_response >= length) {
+		length = message->max_response - length;
+	}
+	else {
+		/* This should never happen.  This condition represents an improperly constructed message
+		 * descriptor, since there should always at least be room for the protocol headers in the
+		 * response message. */
+		length = 0;
+	}
+
+	return length;
 }
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
