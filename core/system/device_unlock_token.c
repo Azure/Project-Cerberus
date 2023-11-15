@@ -7,6 +7,7 @@
 #include "device_unlock_token.h"
 #include "platform_api.h"
 #include "asn1/asn1_util.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
 
 
@@ -59,12 +60,18 @@ struct device_unlock_token_auth_data {
  * this amount after the field has been saved.
  */
 #define	device_unlock_token_parse_auth_data_field(data, length, offset, field, field_length) \
-	if (length < (offset + (field_length))) { \
-		return DEVICE_UNLOCK_TOKEN_BAD_AUTH_DATA; \
-	} \
-	\
-	field = (void*) &data[offset]; \
-	offset += (field_length);
+	{ \
+		size_t temp_off = offset; \
+		uint16_t temp_len = field_length; \
+		\
+		if (length < (temp_off + (temp_len))) { \
+			return DEVICE_UNLOCK_TOKEN_BAD_AUTH_DATA; \
+		} \
+		\
+		field = (void*) &data[temp_off]; \
+		temp_off += (temp_len); \
+		offset = temp_off; \
+	}
 
 /**
  * Parse authorized unlock data to determine where each component exists in the data buffer.  Only
@@ -85,12 +92,12 @@ static int device_unlock_token_parse_authorized_data (const uint8_t *auth_data, 
 	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->token_length,
 		sizeof (*parsed->token_length));
 	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->token_data,
-		*parsed->token_length);
+		buffer_unaligned_read16 (parsed->token_length));
 
 	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->policy_length,
 		sizeof (*parsed->policy_length));
 	device_unlock_token_parse_auth_data_field (auth_data, length, offset, parsed->policy_data,
-		*parsed->policy_length);
+		buffer_unaligned_read16 (parsed->policy_length));
 
 	// parsed->data_signature = &auth_data[offset];
 
@@ -123,7 +130,7 @@ static int device_unlock_token_parse_authorized_data_and_token (const uint8_t *a
 
 	/* Parse token contents. */
 	auth_data = parsed->token_data;
-	length = *parsed->token_length;
+	length = buffer_unaligned_read16 (parsed->token_length);
 
 	oid_length = asn1_get_der_item_len (&auth_data[offset], length - offset);
 	if ((oid_length == ASN1_UTIL_NOT_VALID) || (length < (size_t) oid_length)) {
@@ -262,7 +269,7 @@ int device_unlock_token_generate (const struct device_unlock_token *token,
 
 	pos = &data[status];
 
-	*((uint16_t*) pos) = DEVICE_UNLOCK_TOKEN_FORMAT;
+	buffer_unaligned_write16 ((uint16_t*) pos, DEVICE_UNLOCK_TOKEN_FORMAT);
 	pos += sizeof (uint16_t);
 
 	/* The UUID size in the token is fixed, regardless of how much data is provided by the device.
@@ -320,7 +327,8 @@ int device_unlock_token_authenicate (const struct device_unlock_token *token, co
 	}
 
 	return token->auth->verify_data (token->auth, data, length, sizeof (*parsed.token_length),
-		sizeof (*parsed.policy_length) + *parsed.policy_length, token->auth_hash);
+		sizeof (*parsed.policy_length) + buffer_unaligned_read16 (parsed.policy_length),
+		token->auth_hash);
 }
 
 /**
@@ -433,7 +441,7 @@ int device_unlock_token_get_unlock_policy (const uint8_t *auth_data, size_t leng
 	}
 
 	*policy = parsed.policy_data;
-	*policy_length = *parsed.policy_length;
+	*policy_length = buffer_unaligned_read16 (parsed.policy_length);
 
 	return 0;
 }
