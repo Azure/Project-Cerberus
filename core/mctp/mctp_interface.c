@@ -30,8 +30,8 @@
  *
  * @return Initialization status, 0 if success or an error code.
  */
-int mctp_interface_init (struct mctp_interface *mctp, struct cmd_interface *cmd_cerberus,
-	struct cmd_interface *cmd_mctp, struct cmd_interface *cmd_spdm,
+int mctp_interface_init (struct mctp_interface *mctp, const struct cmd_interface *cmd_cerberus,
+	const struct cmd_interface *cmd_mctp, const struct cmd_interface *cmd_spdm,
 	struct device_manager *device_mgr)
 {
 #ifdef CMD_ENABLE_ISSUE_REQUEST

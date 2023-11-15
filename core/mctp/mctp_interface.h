@@ -28,9 +28,9 @@ enum mctp_interface_response_state {
  * MCTP interface context
  */
 struct mctp_interface {
-	struct cmd_interface *cmd_cerberus;						/**< Command interface instance to handle Cerberus protocol messages */
-	struct cmd_interface *cmd_mctp;							/**< Command interface instance to handle MCTP control protocol messages */
-	struct cmd_interface *cmd_spdm;							/**< Command interface instance to handle SPDM protocol messages */
+	const struct cmd_interface *cmd_cerberus;				/**< Command interface instance to handle Cerberus protocol messages */
+	const struct cmd_interface *cmd_mctp;					/**< Command interface instance to handle MCTP control protocol messages */
+	const struct cmd_interface *cmd_spdm;					/**< Command interface instance to handle SPDM protocol messages */
 	struct device_manager *device_manager;					/**< Device manager linked to command interface */
 	uint8_t msg_buffer[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN];	/**< Buffer for MCTP messages */
 	struct cmd_message resp_buffer;							/**< Buffer for transmitting responses */
@@ -50,8 +50,8 @@ struct mctp_interface {
 };
 
 
-int mctp_interface_init (struct mctp_interface *mctp, struct cmd_interface *cmd_cerberus,
-	struct cmd_interface *cmd_mctp, struct cmd_interface *cmd_spdm,
+int mctp_interface_init (struct mctp_interface *mctp, const struct cmd_interface *cmd_cerberus,
+	const struct cmd_interface *cmd_mctp, const struct cmd_interface *cmd_spdm,
 	struct device_manager *device_mgr);
 void mctp_interface_deinit (struct mctp_interface *mctp);
 
