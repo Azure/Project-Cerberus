@@ -48,5 +48,7 @@ int logging_memory_init_state_append_existing (const struct logging_memory *logg
 
 void logging_memory_release (struct logging_memory *logging);
 
+int logging_memory_copy_entries (const struct logging_memory *logging, const struct logging *dest);
+
 
 #endif /* LOGGING_MEMORY_H_ */

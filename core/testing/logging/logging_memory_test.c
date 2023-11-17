@@ -8,6 +8,7 @@
 #include "testing.h"
 #include "logging/logging_memory.h"
 #include "logging/logging_memory_static.h"
+#include "testing/mock/logging/logging_mock.h"
 
 
 TEST_SUITE_LABEL ("logging_memory");
@@ -2274,6 +2275,31 @@ static void logging_memory_test_read_contents_partial_read_with_offset_across_wr
 	logging_memory_release (&logging);
 }
 
+static void logging_memory_test_read_contents_empty (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t output[entry_full];
+
+	TEST_START;
+
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.read_contents (&logging.base, 0, output, sizeof (output));
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
 static void logging_memory_test_clear (CuTest *test)
 {
 	struct logging_memory logging;
@@ -2628,6 +2654,716 @@ static void logging_memory_test_clear_null (CuTest *test)
 	logging_memory_release (&logging);
 }
 
+static void logging_memory_test_copy_entries (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	uint8_t entry[entry_size];
+	size_t log_len = entry_len;
+
+
+	TEST_START;
+
+	memset (entry, 0, sizeof (entry));
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry, entry_size), MOCK_ARG (entry_size));
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_from_buffer (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	uint8_t entry[entry_size];
+	size_t log_len = entry_len;
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+	memset (entry, 0, sizeof (entry));
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry, entry_size), MOCK_ARG (entry_size));
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_append_existing_empty (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	uint8_t entry[entry_size];
+	size_t log_len = entry_len;
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+	memset (entry, 0, sizeof (entry));
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry, entry_size), MOCK_ARG (entry_size));
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_multiple (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	uint8_t entry[3][entry_size];
+	size_t log_len = entry_len * 3;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < 3; i++) {
+		memset (entry[i], i, entry_size);
+	}
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry[0], entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry[1], entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry[2], entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry[0], entry_size), MOCK_ARG (entry_size));
+
+	status |= mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry[1], entry_size), MOCK_ARG (entry_size));
+
+	status |= mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry[2], entry_size), MOCK_ARG (entry_size));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_full_log (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t entry[entry_count][entry_size];
+	size_t log_len = entry_full;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < entry_count; i++) {
+		memset (entry[i], i, entry_size);
+	}
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < entry_count; i++) {
+		status = logging.base.create_entry (&logging.base, entry[i], entry_size);
+		CuAssertIntEquals (test, 0, status);
+
+		status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+			MOCK_ARG_PTR_CONTAINS (entry[i], entry_size), MOCK_ARG (entry_size));
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_log_wrap (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t entry[entry_count + 1][entry_size];
+	size_t log_len = entry_full;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < entry_count + 1; i++) {
+		memset (entry[i], i, entry_size);
+	}
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < entry_count + 1; i++) {
+		status = logging.base.create_entry (&logging.base, entry[i], entry_size);
+		CuAssertIntEquals (test, 0, status);
+
+		if (i != 0) {
+			status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+				MOCK_ARG_PTR_CONTAINS (entry[i], entry_size), MOCK_ARG (entry_size));
+			CuAssertIntEquals (test, 0, status);
+		}
+	}
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_log_wrap_from_buffer_not_entry_aligned (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t  buffer[entry_full + entry_size];
+	uint8_t entry[entry_count + 1][entry_size];
+	size_t log_len = entry_full;
+	int i;
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+
+	for (i = 0; i < entry_count + 1; i++) {
+		memset (entry[i], i, entry_size);
+	}
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init_from_buffer (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < entry_count + 1; i++) {
+		status = logging.base.create_entry (&logging.base, entry[i], entry_size);
+		CuAssertIntEquals (test, 0, status);
+
+		if (i != 0) {
+			status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+				MOCK_ARG_PTR_CONTAINS (entry[i], entry_size), MOCK_ARG (entry_size));
+			CuAssertIntEquals (test, 0, status);
+		}
+	}
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_log_wrap_appending_existing_empty_not_entry_aligned (
+	CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t  buffer[entry_full + entry_size];
+	uint8_t entry[entry_count + 1][entry_size];
+	size_t log_len = entry_full;
+	int i;
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+
+	for (i = 0; i < entry_count + 1; i++) {
+		memset (entry[i], i, entry_size);
+	}
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init_append_existing (&logging, &state, buffer, sizeof (buffer),
+		entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < entry_count + 1; i++) {
+		status = logging.base.create_entry (&logging.base, entry[i], entry_size);
+		CuAssertIntEquals (test, 0, status);
+
+		if (i != 0) {
+			status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+				MOCK_ARG_PTR_CONTAINS (entry[i], entry_size), MOCK_ARG (entry_size));
+			CuAssertIntEquals (test, 0, status);
+		}
+	}
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_log_wrap_twice (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t entry[(entry_count * 2) + 2][entry_size];
+	size_t log_len = entry_full;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < (entry_count * 2) + 2; i++) {
+		memset (entry[i], i, entry_size);
+	}
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < (entry_count * 2) + 2; i++) {
+		status = logging.base.create_entry (&logging.base, entry[i], entry_size);
+		CuAssertIntEquals (test, 0, status);
+
+		if (i > (entry_count + 1)) {
+			status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+				MOCK_ARG_PTR_CONTAINS (entry[i], entry_size), MOCK_ARG (entry_size));
+			CuAssertIntEquals (test, 0, status);
+		}
+	}
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_empty (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_count = 32;
+
+
+	TEST_START;
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_dynamic_buffer_static_init (CuTest *test)
+{
+	struct logging_memory_state state;
+	struct logging_mock target;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	struct logging_memory logging = logging_memory_dynamic_buffer_static_init (&state, entry_count,
+		entry_size);
+	int status;
+	uint8_t entry[entry_size];
+	size_t log_len = entry_len;
+
+	TEST_START;
+
+	memset (entry, 0, sizeof (entry));
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init_dynamic_state (&logging);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry, entry_size), MOCK_ARG (entry_size));
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_static_init (CuTest *test)
+{
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_full,
+		entry_size);
+	uint8_t entry[entry_size];
+	size_t log_len = entry_len;
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+	memset (entry, 0, sizeof (entry));
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init_state (&logging);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry, entry_size), MOCK_ARG (entry_size));
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_static_init_append_existing (CuTest *test)
+{
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_len = entry_size + sizeof (struct logging_entry_header);
+	const int entry_count = 32;
+	const int entry_full = entry_len * entry_count;
+	uint8_t buffer[entry_full];
+	struct logging_memory logging = logging_memory_static_init (&state, buffer, entry_full,
+		entry_size);
+	uint8_t entry[3][entry_size];
+	size_t log_len = entry_len * 3;
+	struct logging_entry_header *header;
+	int i;
+
+	TEST_START;
+
+	memset (buffer, 0, sizeof (buffer));
+
+	for (i = 0; i < 3; i++) {
+		memset (entry[i], i, entry_size);
+	}
+
+	header = (struct logging_entry_header*) buffer;
+	header->log_magic = 0xCB;
+	header->length = entry_len;
+	header->entry_id = 0;
+	memcpy (&buffer[sizeof (struct logging_entry_header)], entry[0], entry_size);
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init_state_append_existing (&logging);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry[1], entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry[2], entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry[0], entry_size), MOCK_ARG (entry_size));
+
+	status |= mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry[1], entry_size), MOCK_ARG (entry_size));
+
+	status |= mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry[2], entry_size), MOCK_ARG (entry_size));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.get_size (&logging.base);
+	CuAssertIntEquals (test, log_len, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_null (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_count = 32;
+	uint8_t entry[entry_size];
+
+
+	TEST_START;
+
+	memset (entry, 0, sizeof (entry));
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_copy_entries (NULL, &target.base);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+
+	status = logging_memory_copy_entries (&logging, NULL);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
+static void logging_memory_test_copy_entries_error (CuTest *test)
+{
+	struct logging_memory logging;
+	struct logging_memory_state state;
+	struct logging_mock target;
+	int status;
+	const int entry_size = 11;
+	const int entry_count = 32;
+	uint8_t entry[3][entry_size];
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < 3; i++) {
+		memset (entry[i], i, entry_size);
+	}
+
+	status = logging_mock_init (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_init (&logging, &state, entry_count, entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry[0], entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry[1], entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging.base.create_entry (&logging.base, entry[2], entry_size);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&target.mock, target.base.create_entry, &target, 0,
+		MOCK_ARG_PTR_CONTAINS (entry[0], entry_size), MOCK_ARG (entry_size));
+
+	status |= mock_expect (&target.mock, target.base.create_entry, &target,
+		LOGGING_CREATE_ENTRY_FAILED, MOCK_ARG_PTR_CONTAINS (entry[1], entry_size),
+		MOCK_ARG (entry_size));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_memory_copy_entries (&logging, &target.base);
+	CuAssertIntEquals (test, LOGGING_CREATE_ENTRY_FAILED, status);
+
+	status = logging_mock_validate_and_release (&target);
+	CuAssertIntEquals (test, 0, status);
+
+	logging_memory_release (&logging);
+}
+
 
 TEST_SUITE_START (logging_memory);
 
@@ -2683,6 +3419,7 @@ TEST (logging_memory_test_read_contents_offset_across_wrap);
 TEST (logging_memory_test_read_contents_offset_past_end);
 TEST (logging_memory_test_read_contents_partial_read_with_offset);
 TEST (logging_memory_test_read_contents_partial_read_with_offset_across_wrap);
+TEST (logging_memory_test_read_contents_empty);
 TEST (logging_memory_test_clear);
 TEST (logging_memory_test_clear_from_buffer);
 TEST (logging_memory_test_clear_append_existing);
@@ -2690,5 +3427,20 @@ TEST (logging_memory_test_clear_log_wrap);
 TEST (logging_memory_test_clear_add_after_clear);
 TEST (logging_memory_test_clear_static_init);
 TEST (logging_memory_test_clear_null);
+TEST (logging_memory_test_copy_entries);
+TEST (logging_memory_test_copy_entries_from_buffer);
+TEST (logging_memory_test_copy_entries_append_existing_empty);
+TEST (logging_memory_test_copy_entries_multiple);
+TEST (logging_memory_test_copy_entries_full_log);
+TEST (logging_memory_test_copy_entries_log_wrap);
+TEST (logging_memory_test_copy_entries_log_wrap_from_buffer_not_entry_aligned);
+TEST (logging_memory_test_copy_entries_log_wrap_appending_existing_empty_not_entry_aligned);
+TEST (logging_memory_test_copy_entries_log_wrap_twice);
+TEST (logging_memory_test_copy_entries_empty);
+TEST (logging_memory_test_copy_entries_dynamic_buffer_static_init);
+TEST (logging_memory_test_copy_entries_static_init);
+TEST (logging_memory_test_copy_entries_static_init_append_existing);
+TEST (logging_memory_test_copy_entries_null);
+TEST (logging_memory_test_copy_entries_error);
 
 TEST_SUITE_END;

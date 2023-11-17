@@ -386,3 +386,50 @@ void logging_memory_release (struct logging_memory *logging)
 		}
 	}
 }
+
+/**
+ * Copy all entries in the log to another log instance.  The entries will remain unchanged in the
+ * source log.
+ *
+ * @param logging The source log to copy entries from.
+ * @param dest The destination log for the entries.  This cannot be the same as the source.
+ *
+ * @return 0 if all entries were copied successfully or an error code.
+ */
+int logging_memory_copy_entries (const struct logging_memory *logging, const struct logging *dest)
+{
+	struct logging_entry_header *header;
+	uint8_t *pos;
+	uint8_t *end;
+	int status = 0;
+
+	if ((logging == NULL) || (dest == NULL)) {
+		return LOGGING_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&logging->state->lock);
+
+	pos = &logging->log_buffer[logging->state->log_start];
+	end = &logging->log_buffer[logging->state->log_end];
+
+	if ((pos != end) || logging->state->is_full) {
+		do {
+			header = (struct logging_entry_header*) pos;
+
+			status = dest->create_entry (dest, &pos[sizeof (*header)],
+				header->length - sizeof (*header));
+			if (status != 0) {
+				goto exit;
+			}
+
+			pos += header->length;
+			if (pos >= &logging->log_buffer[logging->log_size]) {
+				pos = logging->log_buffer;
+			}
+		} while (pos != end);
+	}
+
+exit:
+	platform_mutex_unlock (&logging->state->lock);
+	return status;
+}

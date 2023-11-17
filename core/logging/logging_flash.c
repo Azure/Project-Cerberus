@@ -317,7 +317,9 @@ int logging_flash_init (struct logging_flash *logging, struct logging_flash_stat
 	memset (logging, 0, sizeof (struct logging_flash));
 
 	logging->base.create_entry = logging_flash_create_entry;
+#ifndef LOGGING_DISABLE_FLUSH
 	logging->base.flush = logging_flash_flush;
+#endif
 	logging->base.clear = logging_flash_clear;
 	logging->base.get_size = logging_flash_get_size;
 	logging->base.read_contents = logging_flash_read_contents;
