@@ -361,7 +361,7 @@ int cmd_interface_generate_error_packet (const struct cmd_interface *intf,
 
 	request->length = sizeof (struct cerberus_protocol_error);
 
-#if CMD_SUPPORT_ENCRYPTED_SESSIONS
+#ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 	if (request->is_encrypted) {
 		int status = intf->session->encrypt_message (intf->session, request);
 		if (status != 0) {
