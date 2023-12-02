@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
 #ifndef INTRUSION_MANAGER_ASYNC_H_
 #define INTRUSION_MANAGER_ASYNC_H_
 

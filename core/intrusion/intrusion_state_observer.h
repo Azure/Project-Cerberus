@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
 #ifndef INTRUSION_STATE_OBSERVER_H_
 #define INTRUSION_STATE_OBSERVER_H_
 
