@@ -51,7 +51,7 @@ static void cmd_channel_handler_testing_init_dependencies (CuTest *test,
 	status = cmd_interface_mock_init (&handler->cmd_mctp);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&handler->device_mgr, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&handler->device_mgr, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 

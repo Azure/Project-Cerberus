@@ -40,7 +40,7 @@ static void setup_cmd_interface_mctp_control_test (CuTest *test,
 {
 	int status;
 
-	status = device_manager_init (&cmd->device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&cmd->device_manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -102,7 +102,7 @@ static void cmd_interface_mctp_control_test_init (CuTest *test)
 	status = mctp_control_protocol_observer_mock_init (&cmd.observer);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&cmd.device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&cmd.device_manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -122,7 +122,7 @@ static void cmd_interface_mctp_control_test_init_null (CuTest *test)
 
 	TEST_START;
 
-	status = device_manager_init (&cmd.device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&cmd.device_manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 

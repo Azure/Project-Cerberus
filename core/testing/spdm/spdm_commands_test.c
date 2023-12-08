@@ -1330,7 +1330,7 @@ static void spdm_test_get_capabilities (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1474,7 +1474,7 @@ static void spdm_test_get_capabilities_1_1 (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1558,7 +1558,7 @@ static void spdm_test_get_capabilities_null (CuTest *test)
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1649,7 +1649,7 @@ static void spdm_test_get_capabilities_ct_too_large (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1778,7 +1778,7 @@ static void spdm_test_get_capabilities_unknown_device (CuTest *test)
 	status = mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1868,7 +1868,7 @@ static void spdm_test_get_capabilities_hash_update_rq_fail (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1994,7 +1994,7 @@ static void spdm_test_get_capabilities_hash_update_rsp_fail (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 

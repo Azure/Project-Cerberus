@@ -108,7 +108,7 @@ static void setup_mctp_interface_with_interface_mock_test (CuTest *test,
 	struct device_manager_full_capabilities capabilities;
 	int status;
 
-	status = device_manager_init (&mctp->device_mgr, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&mctp->device_mgr, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -142,7 +142,7 @@ static void setup_mctp_interface_with_interface_mock_test_no_mctp_bridge (CuTest
 {
 	int status;
 
-	status = device_manager_init (&mctp->device_mgr, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&mctp->device_mgr, 1, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -282,7 +282,7 @@ static void mctp_interface_test_init (CuTest *test)
 	status = cmd_interface_mock_init (&mctp.cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&mctp.device_mgr, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&mctp.device_mgr, 1, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -316,7 +316,7 @@ static void mctp_interface_test_init_spdm_not_supported (CuTest *test)
 	status = cmd_interface_mock_init (&mctp.cmd_mctp);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&mctp.device_mgr, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&mctp.device_mgr, 1, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -344,7 +344,7 @@ static void mctp_interface_test_init_null (CuTest *test)
 	status = cmd_interface_mock_init (&mctp.cmd_cerberus);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&mctp.device_mgr, 1, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&mctp.device_mgr, 1, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 

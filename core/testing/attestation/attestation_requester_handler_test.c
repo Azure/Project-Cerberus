@@ -35,7 +35,7 @@ static void attestation_requester_handler_testing_init_dependencies (CuTest *tes
 	uint8_t pcrs[] = {1};
 	int status;
 
-	status = device_manager_init (&handler->device_mgr, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&handler->device_mgr, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 

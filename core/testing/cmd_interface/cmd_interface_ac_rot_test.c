@@ -76,7 +76,7 @@ static void cmd_interface_ac_rot_testing_init_dependencies (CuTest *test,
 	uint8_t *dev_id_der = NULL;
 	int status;
 
-	status = device_manager_init (&cmd->device_manager, 2, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&cmd->device_manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 

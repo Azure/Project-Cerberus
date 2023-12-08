@@ -6,9 +6,15 @@
 #include <string.h>
 #include "platform_api.h"
 #include "device_manager.h"
+#include "common/buffer_util.h"
 #include "common/common_math.h"
+#include "manifest/pcd/pcd.h"
 #include "mctp/mctp_base_protocol.h"
 #include "crypto/hash.h"
+
+
+// Attestation status component header length
+#define DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN		(sizeof (struct pcd_supported_component))
 
 /**
  * Determine if device is undergoing or failed attestation and should use the unauthenticated
@@ -81,6 +87,7 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
  * @param mgr Device manager instance to initialize.
  * @param num_requester_devices Number of requester devices to manage. This must be at least 1 to
  * 	support the local device.
+ * @param num_unique_responder_devices Number of unique responder devices to manage.
  * @param num_responder_devices Number of responder devices to manage.
  * @param hierarchy Role of the local device in the Cerberus hierarchy (PA vs. AC RoT).
  * @param bus_role Role the local device will take on the I2C bus.
@@ -95,8 +102,8 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
  * @return Initialization status, 0 if success or an error code.
  */
 int device_manager_init (struct device_manager *mgr, int num_requester_devices,
-	int num_responder_devices, uint8_t hierarchy, uint8_t bus_role,
-	uint32_t unauthenticated_cadence_ms, uint32_t authenticated_cadence_ms,
+	int num_unique_responder_devices, int num_responder_devices, uint8_t hierarchy,
+	uint8_t bus_role, uint32_t unauthenticated_cadence_ms, uint32_t authenticated_cadence_ms,
 	uint32_t unidentified_timeout_ms, uint32_t mctp_ctrl_timeout_ms,
 	uint32_t mctp_bridge_additional_timeout_ms, uint32_t attestation_rsp_not_ready_max_duration_ms,
 	uint8_t attestation_rsp_not_ready_max_retry)
@@ -109,6 +116,10 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
+	if (num_unique_responder_devices > num_responder_devices) {
+		return DEVICE_MGR_INVALID_RESPONDER_COUNT;
+	}
+
 	memset (mgr, 0, sizeof (struct device_manager));
 
 	mgr->entries = platform_calloc (total_num_devices, sizeof (struct device_manager_entry));
@@ -117,7 +128,8 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 	}
 
 	if (num_responder_devices != 0) {
-		mgr->attestation_status = platform_malloc (num_responder_devices);
+		mgr->attestation_status = platform_malloc (num_responder_devices +
+			(num_unique_responder_devices * DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN));
 		if (mgr->attestation_status == NULL) {
 			status = DEVICE_MGR_NO_MEMORY;
 			goto free_entries;
@@ -126,6 +138,7 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 
 	mgr->num_devices = total_num_devices;
 	mgr->num_requester_devices = num_requester_devices;
+	mgr->num_unique_responder_devices = num_unique_responder_devices;
 	mgr->num_responder_devices = num_responder_devices;
 	mgr->unauthenticated_cadence_ms = unauthenticated_cadence_ms;
 	mgr->authenticated_cadence_ms = authenticated_cadence_ms;
@@ -186,7 +199,7 @@ free_entries:
 int device_manager_init_ac_rot (struct device_manager *mgr, int num_requester_devices,
 	uint8_t bus_role)
 {
-	return device_manager_init (mgr, num_requester_devices, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	return device_manager_init (mgr, num_requester_devices, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		bus_role, 0, 0, 0, 0, 0, 0, 0);
 }
 
@@ -1534,24 +1547,43 @@ int device_manager_get_attestation_status (struct device_manager *mgr,
 {
 	size_t attestation_status_len;
 	int i_device;
-	int i_entry;
+	size_t i_entry = 0;
+	struct pcd_supported_component *supported_component;
 
 	if ((mgr == NULL) || (attestation_status == NULL)) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	attestation_status_len = mgr->num_responder_devices;
+	attestation_status_len = mgr->num_responder_devices +
+		(mgr->num_unique_responder_devices * DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN);
+
 	*attestation_status = mgr->attestation_status;
 
 	if (mgr->num_responder_devices != 0) {
-		memset (mgr->attestation_status, 0xFF, attestation_status_len);
-
-		if (!mgr->attestable_components_list_invalid) {
-			// Skip the requester devices in the beginning of the list
-			for (i_device = mgr->num_requester_devices, i_entry = 0; i_device < mgr->num_devices;
-				++i_device, ++i_entry) {
-				mgr->attestation_status[i_entry] = mgr->entries[i_device].state;
+		// Skip the requester devices in the beginning of the list
+		for (i_device = mgr->num_requester_devices; i_device < mgr->num_devices; ++i_device) {
+			// If first entry or (supported_component->component_id != component_id)
+			if ((i_device == mgr->num_requester_devices) ||
+				(supported_component->component_id != mgr->entries[i_device].component_id)) {
+				supported_component = (struct pcd_supported_component*) &mgr->attestation_status[i_entry];
+				supported_component->component_id = mgr->entries[i_device].component_id;
+				supported_component->component_count = 1;
+				i_entry += DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN;
 			}
+			else {
+				// Increment component_count of component_id
+				supported_component->component_count++;
+			}
+
+			// Copy state to attestation_status
+			if (!mgr->attestable_components_list_invalid) {
+				mgr->attestation_status[i_entry] = (uint8_t) mgr->entries[i_device].state;
+			}
+			else {
+				mgr->attestation_status[i_entry] = 0xFF;
+			}
+
+			i_entry += 1;
 		}
 	}
 

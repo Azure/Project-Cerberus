@@ -5673,7 +5673,7 @@ static void cerberus_protocol_master_commands_test_generate_get_device_capabilit
 
 	TEST_START;
 
-	status = device_manager_init (&device_mgr, 2, 0, DEVICE_MANAGER_PA_ROT_MODE,
+	status = device_manager_init (&device_mgr, 2, 0, 0, DEVICE_MANAGER_PA_ROT_MODE,
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5709,7 +5709,7 @@ static void cerberus_protocol_master_commands_test_generate_get_device_capabilit
 
 	TEST_START;
 
-	status = device_manager_init (&device_mgr, 2, 0, DEVICE_MANAGER_PA_ROT_MODE,
+	status = device_manager_init (&device_mgr, 2, 0, 0, DEVICE_MANAGER_PA_ROT_MODE,
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5733,7 +5733,7 @@ static void cerberus_protocol_master_commands_test_generate_get_device_capabilit
 
 	TEST_START;
 
-	status = device_manager_init (&device_mgr, 2, 0, DEVICE_MANAGER_PA_ROT_MODE,
+	status = device_manager_init (&device_mgr, 2, 0, 0, DEVICE_MANAGER_PA_ROT_MODE,
 		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
