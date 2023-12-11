@@ -14,7 +14,8 @@
 
 
 // Attestation status component header length
-#define DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN		(sizeof (struct pcd_supported_component))
+#define DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN		\
+	(sizeof (struct pcd_supported_component))
 
 /**
  * Determine if device is undergoing or failed attestation and should use the unauthenticated
@@ -32,7 +33,7 @@
  * @param state Device state
  */
 #define device_manager_can_device_be_attested(state)			\
-	(device_manager_is_device_unauthenticated(state) || (state == DEVICE_MANAGER_AUTHENTICATED) ||\
+	(device_manager_is_device_unauthenticated(state) || (state == DEVICE_MANAGER_AUTHENTICATED) || \
 	 (state == DEVICE_MANAGER_NEVER_ATTESTED))
 
 
@@ -1548,7 +1549,7 @@ int device_manager_get_attestation_status (struct device_manager *mgr,
 	size_t attestation_status_len;
 	int i_device;
 	size_t i_entry = 0;
-	struct pcd_supported_component *supported_component;
+	struct pcd_supported_component *supported_component = NULL;
 
 	if ((mgr == NULL) || (attestation_status == NULL)) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
@@ -1562,20 +1563,22 @@ int device_manager_get_attestation_status (struct device_manager *mgr,
 	if (mgr->num_responder_devices != 0) {
 		// Skip the requester devices in the beginning of the list
 		for (i_device = mgr->num_requester_devices; i_device < mgr->num_devices; ++i_device) {
-			// If first entry or (supported_component->component_id != component_id)
 			if ((i_device == mgr->num_requester_devices) ||
 				(supported_component->component_id != mgr->entries[i_device].component_id)) {
-				supported_component = (struct pcd_supported_component*) &mgr->attestation_status[i_entry];
+				// Add a new header if this is the first entry in the list or a new component type.
+				supported_component =
+					(struct pcd_supported_component*) &mgr->attestation_status[i_entry];
 				supported_component->component_id = mgr->entries[i_device].component_id;
 				supported_component->component_count = 1;
+
 				i_entry += DEVICE_MANAGER_ATTESTATION_STATUS_COMPONENT_HEADER_LEN;
 			}
 			else {
-				// Increment component_count of component_id
+				// Otherwise, increment the total count for the current component type.
 				supported_component->component_count++;
 			}
 
-			// Copy state to attestation_status
+			// Copy current attestation state for the component to the status output.
 			if (!mgr->attestable_components_list_invalid) {
 				mgr->attestation_status[i_entry] = (uint8_t) mgr->entries[i_device].state;
 			}

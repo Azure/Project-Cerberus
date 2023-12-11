@@ -1383,7 +1383,8 @@ static void device_manager_test_update_device_eid_notify_observers_others (CuTes
 	status = device_manager_add_observer (&manager, &observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_eid (&manager, DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, eid);
+	status = device_manager_update_device_eid (&manager, DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM,
+		eid);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_eid (&manager, DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
@@ -1454,7 +1455,8 @@ static void device_manager_test_update_device_eid_removed_observer_others (CuTes
 	status = device_manager_remove_observer (&manager, &observer.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_eid (&manager, DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, eid);
+	status = device_manager_update_device_eid (&manager, DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM,
+		eid);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_eid (&manager, DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
@@ -5386,13 +5388,15 @@ static void device_manager_test_get_attestation_status (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1, i_pcd = 0; i_device < 255; ++i_device, ++i_pcd) {
-		supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+		supported_component =
+			(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 		supported_component->component_id = component_id + i_device;
 		supported_component->component_count = 1;
 		i_entry += sizeof (struct pcd_supported_component);
 
-		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-			supported_component->component_count, supported_component->component_id, i_pcd);
+		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+			0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+			i_pcd);
 		CuAssertIntEquals (test, 0, status);
 
 		switch (i_pcd % 5) {
@@ -5477,13 +5481,15 @@ static void device_manager_test_get_attestation_status_all_unauthenticated (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1, i_pcd = 0; i_device < 255; ++i_device, ++i_pcd) {
-		supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+		supported_component =
+			(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 		supported_component->component_id = component_id + i_device;
 		supported_component->component_count = 1;
 		i_entry += sizeof (struct pcd_supported_component);
 
-		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-			supported_component->component_count, supported_component->component_id, i_pcd);
+		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+			0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+			i_pcd);
 		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_READY_FOR_ATTESTATION);
 		CuAssertIntEquals (test, 0, status);
@@ -5520,13 +5526,15 @@ static void device_manager_test_get_attestation_status_all_unauthenticated_not_m
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1, i_pcd = 0; i_device < 11; ++i_device, ++i_pcd) {
-		supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+		supported_component =
+			(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 		supported_component->component_id = component_id + i_device;
 		supported_component->component_count = 1;
 		i_entry += sizeof (struct pcd_supported_component);
 
-		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-			supported_component->component_count, supported_component->component_id, i_pcd);
+		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+			0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+			i_pcd);
 		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_READY_FOR_ATTESTATION);
 		CuAssertIntEquals (test, 0, status);
@@ -5562,13 +5570,15 @@ static void device_manager_test_get_attestation_status_all_authenticated (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1; i_device < 255; ++i_device) {
-		supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+		supported_component =
+			(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 		supported_component->component_id = component_id + i_device;
 		supported_component->component_count = 1;
 		i_entry += sizeof (struct pcd_supported_component);
 
-		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-			supported_component->component_count, supported_component->component_id, i_device);
+		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+			0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+			i_device);
 		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_AUTHENTICATED);
 		CuAssertIntEquals (test, 0, status);
@@ -5604,13 +5614,15 @@ static void device_manager_test_get_attestation_status_all_authenticated_not_max
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1; i_device < 11; ++i_device) {
-		supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+		supported_component =
+			(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 		supported_component->component_id = component_id + i_device;
 		supported_component->component_count = 1;
 		i_entry += sizeof (struct pcd_supported_component);
 
-		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-			supported_component->component_count, supported_component->component_id, i_device);
+		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+			0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+			i_device);
 		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_AUTHENTICATED);
 		CuAssertIntEquals (test, 0, status);
@@ -5648,14 +5660,17 @@ static void device_manager_test_get_attestation_status_non_unique_components (Cu
 
 	for (i_device = 1, i_pcd = 0; i_device < 255; ++i_device) {
 		if (i_device % 2) {
-			supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+			supported_component =
+				(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 			supported_component->component_id = component_id + i_device;
 			supported_component->component_count = 2;
 			i_entry += sizeof (struct pcd_supported_component);
 
-			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-				supported_component->component_count, supported_component->component_id, i_pcd);
+			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+				0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+				i_pcd);
 			CuAssertIntEquals (test, 0, status);
+
 			++i_pcd;
 		}
 
@@ -5702,7 +5717,8 @@ static void device_manager_test_get_attestation_status_non_unique_components (Cu
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_get_attestation_status_all_unauthenticated_non_unique_components (CuTest *test)
+static void device_manager_test_get_attestation_status_all_unauthenticated_non_unique_components (
+	CuTest *test)
 {
 	struct device_manager manager;
 	const uint8_t *attestation_status;
@@ -5722,14 +5738,17 @@ static void device_manager_test_get_attestation_status_all_unauthenticated_non_u
 
 	for (i_device = 1, i_pcd = 0; i_device < 255; ++i_device) {
 		if (i_device % 2) {
-			supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+			supported_component =
+				(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 			supported_component->component_id = component_id + i_device;
 			supported_component->component_count = 2;
 			i_entry += sizeof (struct pcd_supported_component);
 
-			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-				supported_component->component_count, supported_component->component_id, i_pcd);
+			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+				0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+				i_pcd);
 			CuAssertIntEquals (test, 0, status);
+
 			++i_pcd;
 		}
 
@@ -5750,7 +5769,8 @@ static void device_manager_test_get_attestation_status_all_unauthenticated_non_u
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_get_attestation_status_all_unauthenticated_not_max_non_unique_components (CuTest *test)
+static void device_manager_test_get_attestation_status_all_unauthenticated_not_max_non_unique_components (
+	CuTest *test)
 {
 	struct device_manager manager;
 	const uint8_t *attestation_status;
@@ -5770,14 +5790,17 @@ static void device_manager_test_get_attestation_status_all_unauthenticated_not_m
 
 	for (i_device = 1, i_pcd = 0; i_device < 11; ++i_device) {
 		if (i_device % 2) {
-			supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+			supported_component =
+				(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 			supported_component->component_id = component_id + i_device;
 			supported_component->component_count = 2;
 			i_entry += sizeof (struct pcd_supported_component);
 
-			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-				supported_component->component_count, supported_component->component_id, i_pcd);
+			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+				0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+				i_pcd);
 			CuAssertIntEquals (test, 0, status);
+
 			++i_pcd;
 		}
 
@@ -5798,103 +5821,8 @@ static void device_manager_test_get_attestation_status_all_unauthenticated_not_m
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_get_attestation_status_all_authenticated_non_unique_components (CuTest *test)
-{
-	struct device_manager manager;
-	const uint8_t *attestation_status;
-	int i_device;
-	int i_pcd;
-	int status;
-	uint32_t component_id = 50;
-	uint8_t attestation_status_expected[889];
-	struct pcd_supported_component *supported_component;
-	int i_entry = 0;
-
-	TEST_START;
-
-	status = device_manager_init (&manager, 1, 127, 254, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	for (i_device = 1; i_device < 255; ++i_device) {
-		if (i_device % 2) {
-			supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
-			supported_component->component_id = component_id + i_device;
-			supported_component->component_count = 2;
-			i_entry += sizeof (struct pcd_supported_component);
-
-			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-				supported_component->component_count, supported_component->component_id, i_pcd);
-			CuAssertIntEquals (test, 0, status);
-			++i_pcd;
-		}
-
-		status = device_manager_update_device_state (&manager, i_device,
-			DEVICE_MANAGER_AUTHENTICATED);
-		CuAssertIntEquals (test, 0, status);
-
-		attestation_status_expected[i_entry++] = DEVICE_MANAGER_AUTHENTICATED;
-	}
-
-	status = device_manager_get_attestation_status (&manager, &attestation_status);
-	CuAssertIntEquals (test, sizeof (attestation_status_expected), status);
-
-	status = testing_validate_array (attestation_status_expected, attestation_status,
-		sizeof (attestation_status_expected));
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&manager);
-}
-
-static void device_manager_test_get_attestation_status_all_authenticated_not_max_non_unique_components (CuTest *test)
-{
-	struct device_manager manager;
-	const uint8_t *attestation_status;
-	int i_device;
-	int i_pcd;
-	int status;
-	uint32_t component_id = 50;
-	uint8_t attestation_status_expected[35];
-	struct pcd_supported_component *supported_component;
-	int i_entry = 0;
-
-	TEST_START;
-
-	status = device_manager_init (&manager, 1, 5, 10, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	for (i_device = 1, i_pcd = 0; i_device < 11; ++i_device) {
-		if (i_device % 2) {
-			supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
-			supported_component->component_id = component_id + i_device;
-			supported_component->component_count = 2;
-			i_entry += sizeof (struct pcd_supported_component);
-
-			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-				supported_component->component_count, supported_component->component_id, i_pcd);
-			CuAssertIntEquals (test, 0, status);
-			++i_pcd;
-		}
-
-		status = device_manager_update_device_state (&manager, i_device,
-			DEVICE_MANAGER_AUTHENTICATED);
-		CuAssertIntEquals (test, 0, status);
-
-		attestation_status_expected[i_entry++] = DEVICE_MANAGER_AUTHENTICATED;
-	}
-
-	status = device_manager_get_attestation_status (&manager, &attestation_status);
-	CuAssertIntEquals (test, sizeof (attestation_status_expected), status);
-
-	status = testing_validate_array (attestation_status_expected, attestation_status,
-		sizeof (attestation_status_expected));
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&manager);
-}
-
-static void device_manager_test_mark_component_attestation_invalid_non_unique_components (CuTest *test)
+static void device_manager_test_get_attestation_status_all_authenticated_non_unique_components (
+	CuTest *test)
 {
 	struct device_manager manager;
 	const uint8_t *attestation_status;
@@ -5914,14 +5842,121 @@ static void device_manager_test_mark_component_attestation_invalid_non_unique_co
 
 	for (i_device = 1, i_pcd = 0; i_device < 255; ++i_device) {
 		if (i_device % 2) {
-			supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+			supported_component =
+				(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 			supported_component->component_id = component_id + i_device;
 			supported_component->component_count = 2;
 			i_entry += sizeof (struct pcd_supported_component);
 
-			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-				supported_component->component_count, supported_component->component_id, i_pcd);
+			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+				0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+				i_pcd);
 			CuAssertIntEquals (test, 0, status);
+
+			++i_pcd;
+		}
+
+		status = device_manager_update_device_state (&manager, i_device,
+			DEVICE_MANAGER_AUTHENTICATED);
+		CuAssertIntEquals (test, 0, status);
+
+		attestation_status_expected[i_entry++] = DEVICE_MANAGER_AUTHENTICATED;
+	}
+
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, sizeof (attestation_status_expected), status);
+
+	status = testing_validate_array (attestation_status_expected, attestation_status,
+		sizeof (attestation_status_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_attestation_status_all_authenticated_not_max_non_unique_components (
+	CuTest *test)
+{
+	struct device_manager manager;
+	const uint8_t *attestation_status;
+	int i_device;
+	int i_pcd;
+	int status;
+	uint32_t component_id = 50;
+	uint8_t attestation_status_expected[35];
+	struct pcd_supported_component *supported_component;
+	int i_entry = 0;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 5, 10, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i_device = 1, i_pcd = 0; i_device < 11; ++i_device) {
+		if (i_device % 2) {
+			supported_component =
+				(struct pcd_supported_component*) &attestation_status_expected[i_entry];
+			supported_component->component_id = component_id + i_device;
+			supported_component->component_count = 2;
+			i_entry += sizeof (struct pcd_supported_component);
+
+			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+				0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+				i_pcd);
+			CuAssertIntEquals (test, 0, status);
+
+			++i_pcd;
+		}
+
+		status = device_manager_update_device_state (&manager, i_device,
+			DEVICE_MANAGER_AUTHENTICATED);
+		CuAssertIntEquals (test, 0, status);
+
+		attestation_status_expected[i_entry++] = DEVICE_MANAGER_AUTHENTICATED;
+	}
+
+	status = device_manager_get_attestation_status (&manager, &attestation_status);
+	CuAssertIntEquals (test, sizeof (attestation_status_expected), status);
+
+	status = testing_validate_array (attestation_status_expected, attestation_status,
+		sizeof (attestation_status_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_mark_component_attestation_invalid_non_unique_components (
+	CuTest *test)
+{
+	struct device_manager manager;
+	const uint8_t *attestation_status;
+	int i_device;
+	int i_pcd;
+	int status;
+	uint32_t component_id = 50;
+	uint8_t attestation_status_expected[889];
+	struct pcd_supported_component *supported_component;
+	int i_entry = 0;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 127, 254, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i_device = 1, i_pcd = 0; i_device < 255; ++i_device) {
+		if (i_device % 2) {
+			supported_component =
+				(struct pcd_supported_component*) &attestation_status_expected[i_entry];
+			supported_component->component_id = component_id + i_device;
+			supported_component->component_count = 2;
+			i_entry += sizeof (struct pcd_supported_component);
+
+			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+				0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+				i_pcd);
+			CuAssertIntEquals (test, 0, status);
+
 			++i_pcd;
 		}
 
@@ -5945,7 +5980,8 @@ static void device_manager_test_mark_component_attestation_invalid_non_unique_co
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_mark_component_attestation_invalid_not_max_non_unique_components (CuTest *test)
+static void device_manager_test_mark_component_attestation_invalid_not_max_non_unique_components (
+	CuTest *test)
 {
 	struct device_manager manager;
 	const uint8_t *attestation_status;
@@ -5965,14 +6001,17 @@ static void device_manager_test_mark_component_attestation_invalid_not_max_non_u
 
 	for (i_device = 1, i_pcd = 0; i_device < 11; ++i_device) {
 		if (i_device % 2) {
-			supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+			supported_component =
+				(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 			supported_component->component_id = component_id + i_device;
 			supported_component->component_count = 2;
 			i_entry += sizeof (struct pcd_supported_component);
 
-			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-				supported_component->component_count, supported_component->component_id, i_pcd);
+			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+				0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+				i_pcd);
 			CuAssertIntEquals (test, 0, status);
+
 			++i_pcd;
 		}
 
@@ -5996,7 +6035,8 @@ static void device_manager_test_mark_component_attestation_invalid_not_max_non_u
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_get_attestation_status_all_unauthenticated_non_unique_components_different_ratio (CuTest *test)
+static void device_manager_test_get_attestation_status_all_unauthenticated_non_unique_components_different_ratio (
+	CuTest *test)
 {
 	struct device_manager manager;
 	const uint8_t *attestation_status;
@@ -6016,14 +6056,17 @@ static void device_manager_test_get_attestation_status_all_unauthenticated_non_u
 
 	for (i_device = 1, i_pcd = 0; i_device < 253; ++i_device) {
 		if ((i_device - 1) % 3 == 0) {
-			supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+			supported_component =
+				(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 			supported_component->component_id = component_id + i_device;
 			supported_component->component_count = 3;
 			i_entry += sizeof (struct pcd_supported_component);
 
-			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-				supported_component->component_count, supported_component->component_id, i_pcd);
+			status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+				0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+				i_pcd);
 			CuAssertIntEquals (test, 0, status);
+
 			++i_pcd;
 		}
 
@@ -6073,13 +6116,15 @@ static void device_manager_test_mark_component_attestation_invalid (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1, i_pcd = 0; i_device < 255; ++i_device, ++i_pcd) {
-		supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+		supported_component =
+			(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 		supported_component->component_id = component_id + i_device;
 		supported_component->component_count = 1;
 		i_entry += sizeof (struct pcd_supported_component);
 
-		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-			supported_component->component_count, supported_component->component_id, i_pcd);
+		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+			0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+			i_pcd);
 		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_AUTHENTICATED);
 		CuAssertIntEquals (test, 0, status);
@@ -6119,13 +6164,15 @@ static void device_manager_test_mark_component_attestation_invalid_not_max (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_device = 1, i_pcd = 0; i_device < 11; ++i_device, ++i_pcd) {
-		supported_component = (struct pcd_supported_component*) &attestation_status_expected[i_entry];
+		supported_component =
+			(struct pcd_supported_component*) &attestation_status_expected[i_entry];
 		supported_component->component_id = component_id + i_device;
 		supported_component->component_count = 1;
 		i_entry += sizeof (struct pcd_supported_component);
 
-		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA, 0xCC, 0xDD,
-			supported_component->component_count, supported_component->component_id, i_pcd);
+		status = device_manager_update_mctp_bridge_device_entry (&manager, i_device, 0xBB, 0xAA,
+			0xCC, 0xDD, supported_component->component_count, supported_component->component_id,
+			i_pcd);
 		status |= device_manager_update_device_state (&manager, i_device,
 			DEVICE_MANAGER_AUTHENTICATED);
 		CuAssertIntEquals (test, 0, status);
