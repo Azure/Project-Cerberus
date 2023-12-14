@@ -49,6 +49,8 @@ enum {
 	ATTESTATION_LOGGING_PCR_UPDATE_ERROR,							/**< Error while updating a PCR entry. */
 	ATTESTATION_LOGGING_GET_ATTESTATION_STATUS_ERROR,				/**< Failed to get attestation status. */
 	ATTESTATION_LOGGING_GET_MCTP_ROUTING_TABLE_ERROR,				/**< Failed to get MCTP routing table. */
+	ATTESTATION_LOGGING_GET_MEASUREMENT_CAP_MISMATCH_ERROR,			/**< Target device support mismatched measurement response capabilities. */
+	ATTESTATION_LOGGING_CHALLENGE_CAP_MISMATCH_ERROR,				/**< Target device support mismatched challenege response capabilities. */
 };
 
 

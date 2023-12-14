@@ -37,6 +37,7 @@
  * SPDM measurement response capabilities values for the Get Capabilities command, from section 10.3
  * in DSP0274 SPDM spec.
  */
+#define SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITHOUT_SIG		(0x01)
 #define SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITH_SIG			(0x02)
 
 /**

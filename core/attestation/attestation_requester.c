@@ -455,6 +455,12 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 
 	attestation->state->txn.hash_finish = true;
 
+	// Skip signature verification for SPDM protocol when cert is not supported.
+	if ((attestation->state->txn.protocol != ATTESTATION_PROTOCOL_CERBERUS) &&
+		!attestation->state->txn.cert_supported) {
+		return 0;
+	}
+
 #ifdef ATTESTATION_SUPPORT_SPDM
 	if (attestation->state->txn.protocol >= ATTESTATION_PROTOCOL_DMTF_SPDM_1_2) {
 		status = spdm_format_signature_digest (hash, attestation->state->txn.transcript_hash_type,
@@ -589,20 +595,41 @@ static int attestation_requester_get_capabilities_rsp_post_processing (
 	 * attestation will fail but will continue to retry until an expected FW adds required
 	 * support. */
 
-	if (rsp->base_capabilities.flags.cert_cap == 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_GET_CERT_NOT_SUPPORTED, device_eid,
-			*((uint32_t*) &rsp->base_capabilities.flags));
+	attestation->state->txn.cert_supported = rsp->base_capabilities.flags.cert_cap;
 
-		return ATTESTATION_GET_CERT_NOT_SUPPORTED_BY_DEVICE;
-	}
-
-	if (rsp->base_capabilities.flags.meas_cap != SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITH_SIG) {
+	if (!rsp->base_capabilities.flags.meas_cap) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_MEASUREMENT_CAP_NOT_SUPPORTED, device_eid,
 			*((uint32_t*) &rsp->base_capabilities.flags));
 
 		return ATTESTATION_GET_MEAS_NOT_SUPPORTED_BY_DEVICE;
+	}
+
+	if (attestation->state->txn.cert_supported) {
+		if (rsp->base_capabilities.flags.meas_cap != SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITH_SIG) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_GET_MEASUREMENT_CAP_MISMATCH_ERROR, device_eid,
+				*((uint32_t*) &rsp->base_capabilities.flags));
+
+			return ATTESTATION_GET_MEAS_CAP_MISMATCH_BY_DEVICE;
+		}
+	}
+	else {
+		if (rsp->base_capabilities.flags.meas_cap != SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITHOUT_SIG) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_GET_MEASUREMENT_CAP_MISMATCH_ERROR, device_eid,
+				*((uint32_t*) &rsp->base_capabilities.flags));
+
+			return ATTESTATION_GET_MEAS_CAP_MISMATCH_BY_DEVICE;
+		}
+
+		if (rsp->base_capabilities.flags.chal_cap) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_CHALLENGE_CAP_MISMATCH_ERROR, device_eid,
+				*((uint32_t*) &rsp->base_capabilities.flags));
+
+			return ATTESTATION_CHAL_CAP_MISMATCH_BY_DEVICE;
+		}
 	}
 
 	attestation->state->txn.challenge_supported = rsp->base_capabilities.flags.chal_cap;
@@ -664,40 +691,63 @@ static int attestation_requester_negotiate_algorithms_rsp_post_processing (
 		return ATTESTATION_UNSUPPORTED_MEASUREMENT_SPEC;
 	}
 
-	if (rsp->base_asym_sel == SPDM_TPM_ALG_ECDSA_ECC_NIST_P256) {
-		attestation->state->txn.alias_signature_len = ECC_KEY_LENGTH_256;
-	}
+	if (attestation->state->txn.cert_supported) {
+		if (rsp->base_asym_sel == SPDM_TPM_ALG_ECDSA_ECC_NIST_P256) {
+			attestation->state->txn.alias_signature_len = ECC_KEY_LENGTH_256;
+		}
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
-	else if (rsp->base_asym_sel == SPDM_TPM_ALG_ECDSA_ECC_NIST_P384) {
-		attestation->state->txn.alias_signature_len = ECC_KEY_LENGTH_384;
-	}
+		else if (rsp->base_asym_sel == SPDM_TPM_ALG_ECDSA_ECC_NIST_P384) {
+			attestation->state->txn.alias_signature_len = ECC_KEY_LENGTH_384;
+		}
 #endif
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
-	else if (rsp->base_asym_sel == SPDM_TPM_ALG_ECDSA_ECC_NIST_P521) {
-		attestation->state->txn.alias_signature_len = ECC_KEY_LENGTH_521;
-	}
+		else if (rsp->base_asym_sel == SPDM_TPM_ALG_ECDSA_ECC_NIST_P521) {
+			attestation->state->txn.alias_signature_len = ECC_KEY_LENGTH_521;
+		}
 #endif
-	else {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_BASE_ASYM_KEY_SIG_ALG_UNSUPPORTED, device_eid,
-			rsp->base_asym_sel);
+		else {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_BASE_ASYM_KEY_SIG_ALG_UNSUPPORTED, device_eid,
+				rsp->base_asym_sel);
 
-		return ATTESTATION_UNSUPPORTED_ALGORITHM;
-	}
+			return ATTESTATION_UNSUPPORTED_ALGORITHM;
+		}
 
-	if ((rsp->base_hash_sel != SPDM_TPM_ALG_SHA_256)
+		if ((rsp->base_hash_sel != SPDM_TPM_ALG_SHA_256)
 #ifdef HASH_ENABLE_SHA384
-		&& (rsp->base_hash_sel != SPDM_TPM_ALG_SHA_384)
+			&& (rsp->base_hash_sel != SPDM_TPM_ALG_SHA_384)
 #endif
 #ifdef HASH_ENABLE_SHA512
-		&& (rsp->base_hash_sel != SPDM_TPM_ALG_SHA_512)
+			&& (rsp->base_hash_sel != SPDM_TPM_ALG_SHA_512)
 #endif
-		) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_HASHING_ALGORITHM_UNSUPPORTED, device_eid,
-			rsp->base_hash_sel);
+			) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_HASHING_ALGORITHM_UNSUPPORTED, device_eid,
+				rsp->base_hash_sel);
 
-		return ATTESTATION_UNSUPPORTED_ALGORITHM;
+			return ATTESTATION_UNSUPPORTED_ALGORITHM;
+		}
+	}
+	else {
+		/*
+		 * DSP0274 SPDM spec indicates base_asym_sel and base_hash_sel shall be 0 if they are not supported
+		 * by the device.
+		 */
+		if (rsp->base_asym_sel != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_BASE_ASYM_KEY_SIG_ALG_UNSUPPORTED, device_eid,
+				rsp->base_asym_sel);
+
+			return ATTESTATION_UNSUPPORTED_ALGORITHM;
+		}
+
+		if (rsp->base_hash_sel != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_HASHING_ALGORITHM_UNSUPPORTED, device_eid,
+				rsp->base_hash_sel);
+
+			return ATTESTATION_UNSUPPORTED_ALGORITHM;
+		}
 	}
 
 	if ((rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA_256) &&
@@ -711,16 +761,18 @@ static int attestation_requester_negotiate_algorithms_rsp_post_processing (
 	}
 
 	if (!attestation->state->txn.device_discovery) {
-		if (((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_256) &&
-				(attestation->state->txn.transcript_hash_type != HASH_TYPE_SHA256)) ||
-			((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_384) &&
-				(attestation->state->txn.transcript_hash_type != HASH_TYPE_SHA384)) ||
-			((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_512) &&
-				(attestation->state->txn.transcript_hash_type != HASH_TYPE_SHA512))) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_UNEXPECTED_HASH_ALGO_IN_RSP, device_eid, rsp->base_hash_sel);
+		if (attestation->state->txn.cert_supported) {
+			if (((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_256) &&
+					(attestation->state->txn.transcript_hash_type != HASH_TYPE_SHA256)) ||
+				((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_384) &&
+					(attestation->state->txn.transcript_hash_type != HASH_TYPE_SHA384)) ||
+				((rsp->base_hash_sel == SPDM_TPM_ALG_SHA_512) &&
+					(attestation->state->txn.transcript_hash_type != HASH_TYPE_SHA512))) {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_UNEXPECTED_HASH_ALGO_IN_RSP, device_eid, rsp->base_hash_sel);
 
-			return ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE;
+				return ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE;
+			}
 		}
 
 		if (((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA_256) &&
@@ -911,7 +963,7 @@ static int attestation_requester_spdm_challenge_rsp_post_processing (
 	}
 
 	if (attestation->state->txn.msg_buffer_len <=
-			spdm_get_challenge_resp_length (rsp, transcript_hash_len, transcript_hash_len)) {
+		spdm_get_challenge_resp_length (rsp, transcript_hash_len, transcript_hash_len)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN,
 			(device_eid << 8) | SPDM_RESPONSE_CHALLENGE,
@@ -2634,48 +2686,50 @@ static int attestation_requester_attest_device_spdm (
 		goto hash_cancel;
 	}
 
-	rq_len = spdm_generate_get_digests_request (attestation->state->spdm_msg_buffer,
-		ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.protocol);
-	if (ROT_IS_ERROR (rq_len)) {
-		status = rq_len;
-		goto hash_cancel;
-	}
-
-	status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
-		device_addr, eid, true, SPDM_REQUEST_GET_DIGESTS);
-	if (status != 0) {
-		goto hash_cancel;
-	}
-
-	// If certificate chain digest retrieved does not match cached certificate, refresh chain
-	alias_key = device_manager_get_alias_key (attestation->device_mgr, eid);
-	if (alias_key == NULL) {
-		attestation->state->txn.cert_buffer_len = 0;
-		attestation->state->txn.cert_total_len = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
-
-		 while ((attestation->state->txn.cert_total_len - attestation->state->txn.cert_buffer_len) > 0) {
-			rq_len = spdm_generate_get_certificate_request (attestation->state->spdm_msg_buffer,
-				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
-				attestation->state->txn.cert_buffer_len,
-				attestation->state->txn.cert_total_len - attestation->state->txn.cert_buffer_len,
-				attestation->state->txn.protocol);
-			if (ROT_IS_ERROR (rq_len)) {
-				status = rq_len;
-				goto clear_cert_chain;
-			}
-
-			status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
-				device_addr, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
-			if (status != 0) {
-				platform_free (attestation->state->txn.cert_buffer);
-				goto clear_cert_chain;
-			}
+	if (attestation->state->txn.cert_supported) {
+		rq_len = spdm_generate_get_digests_request (attestation->state->spdm_msg_buffer,
+			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.protocol);
+		if (ROT_IS_ERROR (rq_len)) {
+			status = rq_len;
+			goto hash_cancel;
 		}
 
-		status = attestation_requester_verify_and_load_leaf_key (attestation, eid, active_cfm,
-			component_id);
+		status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
+			device_addr, eid, true, SPDM_REQUEST_GET_DIGESTS);
 		if (status != 0) {
-			goto clear_cert_chain;
+			goto hash_cancel;
+		}
+
+		// If certificate chain digest retrieved does not match cached certificate, refresh chain
+		alias_key = device_manager_get_alias_key (attestation->device_mgr, eid);
+		if (alias_key == NULL) {
+			attestation->state->txn.cert_buffer_len = 0;
+			attestation->state->txn.cert_total_len = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
+
+			while ((attestation->state->txn.cert_total_len - attestation->state->txn.cert_buffer_len) > 0) {
+				rq_len = spdm_generate_get_certificate_request (attestation->state->spdm_msg_buffer,
+					ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
+					attestation->state->txn.cert_buffer_len,
+					attestation->state->txn.cert_total_len - attestation->state->txn.cert_buffer_len,
+					attestation->state->txn.protocol);
+				if (ROT_IS_ERROR (rq_len)) {
+					status = rq_len;
+					goto clear_cert_chain;
+				}
+
+				status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
+					device_addr, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
+				if (status != 0) {
+					platform_free (attestation->state->txn.cert_buffer);
+					goto clear_cert_chain;
+				}
+			}
+
+			status = attestation_requester_verify_and_load_leaf_key (attestation, eid, active_cfm,
+				component_id);
+			if (status != 0) {
+				goto clear_cert_chain;
+			}
 		}
 	}
 
@@ -2841,8 +2895,15 @@ free_cfm:
 	attestation->cfm_manager->free_cfm (attestation->cfm_manager, active_cfm);
 
 	if (status == 0) {
-		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-			DEVICE_MANAGER_AUTHENTICATED);
+		if (attestation_protocol == CFM_ATTESTATION_DMTF_SPDM) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+				attestation->state->txn.cert_supported ?
+					DEVICE_MANAGER_AUTHENTICATED : DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS);
+		}
+		else {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+				DEVICE_MANAGER_AUTHENTICATED);
+		}
 	}
 	else {
 		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,

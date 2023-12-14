@@ -56,6 +56,7 @@ struct attestation_requester_transaction_state {
 	bool challenge_supported;									/**< Challenge command supported. */
 	bool raw_bitstream_requested;								/**< Requested raw measurement data from device. */
 	bool device_discovery;										/**< Performing device discovery. */
+	bool cert_supported;										/**< Certificate command supported. */
 };
 
 /**

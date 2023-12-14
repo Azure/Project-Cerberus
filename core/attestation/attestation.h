@@ -108,13 +108,15 @@ enum {
 	ATTESTATION_DEVICE_NOT_INTEROPERABLE = ATTESTATION_ERROR (0x1C),		/**< Device SPDM version not supported. */
 	ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE = ATTESTATION_ERROR (0x1D),		/**< Device response utilizes unexpected algorithm. */
 	ATTESTATION_UNSUPPORTED_MEASUREMENT_SPEC = ATTESTATION_ERROR (0x1E),	/**< Unsupported measurement spec utilized by device. */
-	ATTESTATION_GET_CERT_NOT_SUPPORTED_BY_DEVICE = ATTESTATION_ERROR (0x1F),/**< Device does not support required Get Certificates command.*/
+	// ATTESTATION_GET_CERT_NOT_SUPPORTED_BY_DEVICE = ATTESTATION_ERROR (0x1F),/**< Device does not support required Get Certificates command.*/
 	ATTESTATION_GET_MEAS_NOT_SUPPORTED_BY_DEVICE = ATTESTATION_ERROR (0x20),/**< Device does not support required Get Measurements command.*/
 	ATTESTATION_REQUESTED_SLOT_NUM_EMPTY = ATTESTATION_ERROR (0x21),		/**< Requested certificate slot number empty in response. */
 	ATTESTATION_UNEXPECTED_SLOT_NUM = ATTESTATION_ERROR (0x22),				/**< Certificate slot number in response unexpected. */
 	ATTESTATION_UNEXPECTED_NUM_MEAS_BLOCKS = ATTESTATION_ERROR (0x23),		/**< Unexpected number of measurement blocks in response. */
 	ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID = ATTESTATION_ERROR (0x24),/**< CFM version set selector entry invalid. */
 	ATTESTATION_FAILED_TO_SELECT_VERSION_SET = ATTESTATION_ERROR (0x25),	/**< Failed to determine device version set using CFM version set selector entry. */
+	ATTESTATION_GET_MEAS_CAP_MISMATCH_BY_DEVICE = ATTESTATION_ERROR (0x26),	/**< Target device support mismatched measurement response capabilities. */
+	ATTESTATION_CHAL_CAP_MISMATCH_BY_DEVICE = ATTESTATION_ERROR (0x27),		/**< Target device support mismatched challenge response capabilities. */
 };
 
 

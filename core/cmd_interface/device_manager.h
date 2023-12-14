@@ -59,6 +59,7 @@ enum device_manager_device_state {
 	DEVICE_MANAGER_READY_FOR_ATTESTATION,						/**< Device ready for attestation start */
 	DEVICE_MANAGER_ATTESTATION_FAILED,							/**< Previous attestation attempt failed */
 	DEVICE_MANAGER_NOT_ATTESTABLE,								/**< Not an attestable device */
+	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS,					/**< Authenticated without state */
 	NUM_DEVICE_MANAGER_STATES									/**< Number of device states */
 };
 

@@ -120,8 +120,10 @@ struct attestation_requester_testing {
 	bool get_cert_unsupported;									/**< Flag indicating whether target doesn't support get certificate command */
 	bool challenge_unsupported;									/**< Flag indicating whether target doesn't support challenge command */
 	bool meas_cap_unsupported;									/**< Flag indicating whether target doesn't support measurement capabilities */
+	bool meas_cap_sign_unsupported;								/**< Flag indicating whether target support measurement capabilities with signature */
 	bool measurement_spec_unsupported;							/**< Flag indicating whether target doesn't support DMTF measurement spec */
 	bool asymmetric_key_signature_alg_unsupported;				/**< Flag indicating whether target doesn't support expected asymmetric key signature algorithms  */
+	bool asymmetric_key_signature_alg_mismatched;				/**< Flag indicating whether target doesn't support expected asymmetric key signature algorithms  */
 	bool rsp_len_invalid[2];									/**< Flag indicating whether target sends response with invalid length */
 	bool unsupported_operation;									/**< Flag indicating whether target requests unsupported operation */
 	bool expected_slot_num_empty;								/**< Flag indicating whether target sends response with empty expected slot number */
@@ -1897,7 +1899,7 @@ static int64_t attestation_requester_testing_spdm_get_capabilities_rsp_callback 
 	capabilities_response->base_capabilities.flags.cert_cap = !testing->get_cert_unsupported;
 	capabilities_response->base_capabilities.flags.chal_cap = !testing->challenge_unsupported;
 	capabilities_response->base_capabilities.flags.meas_cap =
-		(testing->meas_cap_unsupported ? 0 : 2);
+		(testing->meas_cap_unsupported ? 0 : (testing->meas_cap_sign_unsupported ? 1 : 2));
 	capabilities_response->base_capabilities.flags.meas_fresh_cap = 0;
 	capabilities_response->base_capabilities.flags.encrypt_cap = 0;
 	capabilities_response->base_capabilities.flags.mac_cap = 0;
@@ -1991,7 +1993,8 @@ static int64_t attestation_requester_testing_spdm_negotiate_algorithms_rsp_callb
 	algorithms_response->measurement_specification = testing->measurement_spec_unsupported ?
 		(SPDM_MEASUREMENT_SPEC_DMTF + 1) : SPDM_MEASUREMENT_SPEC_DMTF;
 	algorithms_response->base_asym_sel = testing->asymmetric_key_signature_alg_unsupported ?
-		SPDM_TPM_ALG_RSASSA_2048 : SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
+		0 : (testing->asymmetric_key_signature_alg_mismatched ?
+			SPDM_TPM_ALG_RSASSA_2048 : SPDM_TPM_ALG_ECDSA_ECC_NIST_P256);
 	algorithms_response->base_hash_sel = testing->hashing_alg_supported;
 	algorithms_response->measurement_hash_algo = testing->meas_hashing_alg_supported;
 
@@ -2350,10 +2353,10 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 
 	UNUSED (called);
 
-	if (testing->hashing_alg_supported == SPDM_TPM_ALG_SHA_256) {
+	if (testing->meas_hashing_alg_supported == SPDM_MEAS_RSP_TPM_ALG_SHA_256) {
 		hash_len = SHA256_HASH_LENGTH;
 	}
-	else if (testing->hashing_alg_supported == SPDM_TPM_ALG_SHA_384) {
+	else if (testing->meas_hashing_alg_supported == SPDM_MEAS_RSP_TPM_ALG_SHA_384) {
 		hash_len = SHA384_HASH_LENGTH;
 	}
 	else {
@@ -3143,9 +3146,10 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 
 	rsp.base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
 	rsp.base_capabilities.flags.cache_cap = 0;
-	rsp.base_capabilities.flags.cert_cap = 1;
+	rsp.base_capabilities.flags.cert_cap = !testing->get_cert_unsupported;
 	rsp.base_capabilities.flags.chal_cap = !testing->challenge_unsupported;
-	rsp.base_capabilities.flags.meas_cap = 2;
+	rsp.base_capabilities.flags.meas_cap = (testing->meas_cap_unsupported ?
+		0 : (testing->meas_cap_sign_unsupported ? 1 : 2));
 	rsp.base_capabilities.flags.meas_fresh_cap = 0;
 	rsp.base_capabilities.flags.encrypt_cap = 0;
 	rsp.base_capabilities.flags.mac_cap = 0;
@@ -3330,7 +3334,9 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 
 	rsp.length = sizeof (struct spdm_negotiate_algorithms_response);
 	rsp.measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	rsp.base_asym_sel = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
+	rsp.base_asym_sel = testing->asymmetric_key_signature_alg_unsupported ?
+		0 : (testing->asymmetric_key_signature_alg_mismatched ?
+			SPDM_TPM_ALG_RSASSA_2048 : SPDM_TPM_ALG_ECDSA_ECC_NIST_P256);
 	rsp.base_hash_sel = testing->hashing_alg_supported;
 	rsp.measurement_hash_algo = testing->meas_hashing_alg_supported;
 
@@ -4243,10 +4249,10 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	int status;
 	size_t i;
 
-	if (testing->hashing_alg_supported == SPDM_TPM_ALG_SHA_256) {
+	if (testing->meas_hashing_alg_supported == SPDM_MEAS_RSP_TPM_ALG_SHA_256) {
 		hash_len = SHA256_HASH_LENGTH;
 	}
-	else if (testing->hashing_alg_supported == SPDM_TPM_ALG_SHA_384) {
+	else if (testing->meas_hashing_alg_supported == SPDM_MEAS_RSP_TPM_ALG_SHA_384) {
 		hash_len = SHA384_HASH_LENGTH;
 	}
 	else {
@@ -7835,6 +7841,105 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_cert_unsupported (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-measurements signing";
+	struct cfm_pmr_digest pmr_digest;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest3[SHA256_HASH_LENGTH];
+	uint8_t measurement[SHA256_HASH_LENGTH * 2];
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	int status;
+	size_t i;
+
+	pmr_digest.pmr_id = 0;
+	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
+	pmr_digest.digests.digest_count = 1;
+	pmr_digest.digests.digests = digest3;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		measurement[i] = 50 + i;
+		measurement[i + SHA256_HASH_LENGTH] = 100 - i;
+		digest3[i] = i * 4;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	TEST_START;
+
+	status = ecc_der_encode_ecdsa_signature (signature,
+		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
+	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = true;
+	testing.meas_cap_sign_unsupported = true;
+	testing.hashing_alg_supported = 0;
+	testing.asymmetric_key_signature_alg_unsupported = true;
+	testing.get_cert_unsupported = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
+		false, &testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 3,
+		false, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, false,
+		false, &testing, 6, SPDM_MEASUREMENT_OPERATION_GET_ALL_BLOCKS);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha256,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (measurement, sizeof (measurement)),
+		MOCK_ARG (sizeof (measurement)), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 2, digest3, sizeof (digest3), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
+		sizeof (struct cfm_pmr_digest), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7937,6 +8042,99 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_get_cert_unsupported (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_pmr_digest pmr_digest;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest3[SHA256_HASH_LENGTH];
+	uint8_t measurement[SHA256_HASH_LENGTH * 2];
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	int status;
+	size_t i;
+
+	pmr_digest.pmr_id = 0;
+	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
+	pmr_digest.digests.digest_count = 1;
+	pmr_digest.digests.digests = digest3;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		measurement[i] = 50 + i;
+		measurement[i + SHA256_HASH_LENGTH] = 100 - i;
+		digest3[i] = i * 4;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	TEST_START;
+
+	status = ecc_der_encode_ecdsa_signature (signature,
+		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = true;
+	testing.spdm_version = 1;
+	testing.spdm_max_version = 1;
+	testing.meas_cap_sign_unsupported = true;
+	testing.hashing_alg_supported = 0;
+	testing.asymmetric_key_signature_alg_unsupported = true;
+	testing.get_cert_unsupported = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, 0,
+		false, &testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, false,
+		false, &testing, 3, SPDM_MEASUREMENT_OPERATION_GET_ALL_BLOCKS);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha256,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (measurement, sizeof (measurement)),
+		MOCK_ARG (sizeof (measurement)), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 2, digest3, sizeof (digest3), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
+		sizeof (struct cfm_pmr_digest), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0A);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -20849,68 +21047,6 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_capabilities_get_cert_not_supported (
-	CuTest *test)
-{
-	struct attestation_requester_testing testing;
-	struct spdm_get_capabilities req;
-	int status;
-
-	memset (&req, 0, sizeof (struct spdm_get_capabilities));
-
-	TEST_START;
-
-	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
-		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
-		0);
-
-	req.base_capabilities.header.spdm_minor_version = testing.spdm_version;
-	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
-	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
-
-	req.base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
-	req.base_capabilities.flags.cache_cap = 0;
-	req.base_capabilities.flags.cert_cap = 0;
-	req.base_capabilities.flags.chal_cap = 0;
-	req.base_capabilities.flags.meas_cap = 0;
-	req.base_capabilities.flags.meas_fresh_cap = 0;
-	req.base_capabilities.flags.encrypt_cap = 0;
-	req.base_capabilities.flags.mac_cap = 0;
-	req.base_capabilities.flags.mut_auth_cap = 0;
-	req.base_capabilities.flags.key_ex_cap = 0;
-	req.base_capabilities.flags.psk_cap = 0;
-	req.base_capabilities.flags.encap_cap = 0;
-	req.base_capabilities.flags.hbeat_cap = 0;
-	req.base_capabilities.flags.key_upd_cap = 0;
-	req.base_capabilities.flags.handshake_in_the_clear_cap = 0;
-	req.base_capabilities.flags.pub_key_id_cap = 0;
-	req.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	req.max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-
-	testing.get_cert_unsupported = true;
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_spdm_get_version_with_mocks (test, 0, false,
-		&testing);
-	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
-		1, &testing);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (&req, sizeof (req)),
-		MOCK_ARG (sizeof (req)));
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = attestation_requester_attest_device (&testing.test, 0x0A);
-	CuAssertIntEquals (test, ATTESTATION_GET_CERT_NOT_SUPPORTED_BY_DEVICE, status);
-
-	complete_attestation_requester_mock_test (test, &testing, true);
-}
-
 static void attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_not_supported (
 	CuTest *test)
 {
@@ -20969,6 +21105,193 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 
 	status = attestation_requester_attest_device (&testing.test, 0x0A);
 	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_NOT_SUPPORTED_BY_DEVICE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_supported_without_sig (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct spdm_get_capabilities req;
+	int status;
+
+	memset (&req, 0, sizeof (struct spdm_get_capabilities));
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		0);
+
+	req.base_capabilities.header.spdm_minor_version = testing.spdm_version;
+	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+
+	req.base_capabilities.ct_exponent = 20;
+	req.base_capabilities.flags.cache_cap = 0;
+	req.base_capabilities.flags.cert_cap = 0;
+	req.base_capabilities.flags.chal_cap = 0;
+	req.base_capabilities.flags.meas_cap = 0;
+	req.base_capabilities.flags.meas_fresh_cap = 0;
+	req.base_capabilities.flags.encrypt_cap = 0;
+	req.base_capabilities.flags.mac_cap = 0;
+	req.base_capabilities.flags.mut_auth_cap = 0;
+	req.base_capabilities.flags.key_ex_cap = 0;
+	req.base_capabilities.flags.psk_cap = 0;
+	req.base_capabilities.flags.encap_cap = 0;
+	req.base_capabilities.flags.hbeat_cap = 0;
+	req.base_capabilities.flags.key_upd_cap = 0;
+	req.base_capabilities.flags.handshake_in_the_clear_cap = 0;
+	req.base_capabilities.flags.pub_key_id_cap = 0;
+	req.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	req.max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+
+	testing.meas_cap_sign_unsupported = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_get_version_with_mocks (test, 0, false,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		1, &testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (&req, sizeof (req)),
+		MOCK_ARG (sizeof (req)));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_CAP_MISMATCH_BY_DEVICE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_supported_with_sig_get_cert_unsupported (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct spdm_get_capabilities req;
+	int status;
+
+	memset (&req, 0, sizeof (struct spdm_get_capabilities));
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		0);
+
+	req.base_capabilities.header.spdm_minor_version = testing.spdm_version;
+	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+
+	req.base_capabilities.ct_exponent = 20;
+	req.base_capabilities.flags.cache_cap = 0;
+	req.base_capabilities.flags.cert_cap = 0;
+	req.base_capabilities.flags.chal_cap = 0;
+	req.base_capabilities.flags.meas_cap = 0;
+	req.base_capabilities.flags.meas_fresh_cap = 0;
+	req.base_capabilities.flags.encrypt_cap = 0;
+	req.base_capabilities.flags.mac_cap = 0;
+	req.base_capabilities.flags.mut_auth_cap = 0;
+	req.base_capabilities.flags.key_ex_cap = 0;
+	req.base_capabilities.flags.psk_cap = 0;
+	req.base_capabilities.flags.encap_cap = 0;
+	req.base_capabilities.flags.hbeat_cap = 0;
+	req.base_capabilities.flags.key_upd_cap = 0;
+	req.base_capabilities.flags.handshake_in_the_clear_cap = 0;
+	req.base_capabilities.flags.pub_key_id_cap = 0;
+	req.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	req.max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+
+	testing.get_cert_unsupported = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_get_version_with_mocks (test, 0, false,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		1, &testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (&req, sizeof (req)),
+		MOCK_ARG (sizeof (req)));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_GET_MEAS_CAP_MISMATCH_BY_DEVICE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_get_capabilities_challenge_supported_get_cert_unsupported (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct spdm_get_capabilities req;
+	int status;
+
+	memset (&req, 0, sizeof (struct spdm_get_capabilities));
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		0);
+
+	req.base_capabilities.header.spdm_minor_version = testing.spdm_version;
+	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+
+	req.base_capabilities.ct_exponent = 20;
+	req.base_capabilities.flags.cache_cap = 0;
+	req.base_capabilities.flags.cert_cap = 0;
+	req.base_capabilities.flags.chal_cap = 0;
+	req.base_capabilities.flags.meas_cap = 0;
+	req.base_capabilities.flags.meas_fresh_cap = 0;
+	req.base_capabilities.flags.encrypt_cap = 0;
+	req.base_capabilities.flags.mac_cap = 0;
+	req.base_capabilities.flags.mut_auth_cap = 0;
+	req.base_capabilities.flags.key_ex_cap = 0;
+	req.base_capabilities.flags.psk_cap = 0;
+	req.base_capabilities.flags.encap_cap = 0;
+	req.base_capabilities.flags.hbeat_cap = 0;
+	req.base_capabilities.flags.key_upd_cap = 0;
+	req.base_capabilities.flags.handshake_in_the_clear_cap = 0;
+	req.base_capabilities.flags.pub_key_id_cap = 0;
+	req.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	req.max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+
+	testing.meas_cap_sign_unsupported = true;
+	testing.get_cert_unsupported = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_get_version_with_mocks (test, 0, false,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		1, &testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (&req, sizeof (req)),
+		MOCK_ARG (sizeof (req)));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_CHAL_CAP_MISMATCH_BY_DEVICE, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
@@ -21281,7 +21604,7 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_base_asym_key_sig_alg (
+static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_mismatched_base_asym_key_sig_alg (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -21306,7 +21629,111 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384 | SPDM_TPM_ALG_ECDSA_ECC_NIST_P521;
 	req.base_hash_algo = SPDM_TPM_ALG_SHA_384;
 
-	testing.asymmetric_key_signature_alg_unsupported = true;
+	testing.asymmetric_key_signature_alg_mismatched = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities_with_mocks (test, 0, false,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, 2, &testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (&req, sizeof (req)),
+		MOCK_ARG (sizeof (req)));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_supported_base_asym_key_sig_alg_get_cert_unsupported (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct spdm_negotiate_algorithms_request req;
+	int status;
+
+	memset (&req, 0, sizeof (struct spdm_negotiate_algorithms_request));
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		0);
+
+	req.header.spdm_minor_version = testing.spdm_version;
+	req.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	req.header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	req.length = sizeof (struct spdm_negotiate_algorithms_request);
+	req.measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
+	req.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256 |
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384 | SPDM_TPM_ALG_ECDSA_ECC_NIST_P521;
+	req.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+
+	testing.meas_cap_sign_unsupported = true;
+	testing.challenge_unsupported = true;
+	testing.hashing_alg_supported = 0;
+	testing.get_cert_unsupported = true;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities_with_mocks (test, 0, false,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, 2, &testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (&req, sizeof (req)),
+		MOCK_ARG (sizeof (req)));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0x0A);
+	CuAssertIntEquals (test, ATTESTATION_UNSUPPORTED_ALGORITHM, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_supported_hash_alg_get_cert_unsupported (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct spdm_negotiate_algorithms_request req;
+	int status;
+
+	memset (&req, 0, sizeof (struct spdm_negotiate_algorithms_request));
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
+		HASH_TYPE_SHA384, HASH_TYPE_SHA384, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		0);
+
+	req.header.spdm_minor_version = testing.spdm_version;
+	req.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	req.header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	req.length = sizeof (struct spdm_negotiate_algorithms_request);
+	req.measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
+	req.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256 |
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384 | SPDM_TPM_ALG_ECDSA_ECC_NIST_P521;
+	req.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+
+	testing.meas_cap_sign_unsupported = true;
+	testing.challenge_unsupported = true;
+	testing.asymmetric_key_signature_alg_unsupported = 1;
+	testing.get_cert_unsupported = true;
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
@@ -30773,7 +31200,9 @@ TEST (attestation_requester_test_attest_device_spdm_sha384_1_1_only_challenge);
 TEST (attestation_requester_test_attest_device_spdm_sha512_only_challenge);
 TEST (attestation_requester_test_attest_device_spdm_sha512_1_1_only_challenge);
 TEST (attestation_requester_test_attest_device_spdm_sha256_only_pmr0);
+TEST (attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_cert_unsupported);
 TEST (attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0);
+TEST (attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_get_cert_unsupported);
 TEST (attestation_requester_test_attest_device_spdm_sha384_only_pmr0);
 TEST (attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0);
 TEST (attestation_requester_test_attest_device_spdm_sha512_only_pmr0);
@@ -30876,8 +31305,10 @@ TEST (attestation_requester_test_attest_device_spdm_get_capabilities_fail);
 TEST (attestation_requester_test_attest_device_spdm_get_capabilities_response_not_ready);
 TEST (attestation_requester_test_attest_device_spdm_get_capabilities_unexpected_rsp);
 TEST (attestation_requester_test_attest_device_spdm_get_capabilities_no_rsp);
-TEST (attestation_requester_test_attest_device_spdm_get_capabilities_get_cert_not_supported);
 TEST (attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_not_supported);
+TEST (attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_supported_without_sig);
+TEST (attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_supported_with_sig_get_cert_unsupported);
+TEST (attestation_requester_test_attest_device_spdm_get_capabilities_challenge_supported_get_cert_unsupported);
 TEST (attestation_requester_test_attest_device_spdm_get_capabilities_rsp_hash_update_fail);
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_req_hash_update_fail);
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_fail);
@@ -30885,7 +31316,9 @@ TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_respons
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_unexpected_rsp);
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_no_rsp);
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_measurement_spec);
-TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_base_asym_key_sig_alg);
+TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_mismatched_base_asym_key_sig_alg);
+TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_supported_base_asym_key_sig_alg_get_cert_unsupported);
+TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_supported_hash_alg_get_cert_unsupported);
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_hash_alg);
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_unexpected_hash_alg);
 TEST (attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_meas_hash_alg);

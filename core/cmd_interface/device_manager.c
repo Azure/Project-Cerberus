@@ -34,7 +34,8 @@
  */
 #define device_manager_can_device_be_attested(state)			\
 	(device_manager_is_device_unauthenticated(state) || (state == DEVICE_MANAGER_AUTHENTICATED) || \
-	 (state == DEVICE_MANAGER_NEVER_ATTESTED))
+	(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) || \
+	(state == DEVICE_MANAGER_NEVER_ATTESTED))
 
 
 /**
@@ -63,7 +64,8 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 	prev_state = mgr->entries[device_num].state;
 	mgr->entries[device_num].state = state;
 
-	if (state == DEVICE_MANAGER_AUTHENTICATED) {
+	if ((state == DEVICE_MANAGER_AUTHENTICATED) ||
+		(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
 		timeout = mgr->authenticated_cadence_ms;
 	}
 	else if ((device_manager_is_device_unauthenticated (state)) &&
@@ -1158,7 +1160,8 @@ int device_manager_reset_authenticated_devices (struct device_manager *mgr)
 	}
 
 	for (i_device = 0; i_device < mgr->num_devices; ++i_device) {
-		if (mgr->entries[i_device].state == DEVICE_MANAGER_AUTHENTICATED) {
+		if ((mgr->entries[i_device].state == DEVICE_MANAGER_AUTHENTICATED) ||
+			(mgr->entries[i_device].state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
 			status = device_manager_update_device_state (mgr, i_device,
 				DEVICE_MANAGER_NEVER_ATTESTED);
 			if (status != 0) {
