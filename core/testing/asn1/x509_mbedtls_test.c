@@ -967,7 +967,7 @@ static void x509_mbedtls_test_create_csr_ca_critical_extension (CuTest *test)
 	int status;
 	struct x509_extension_builder_mock tcb;
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
-	struct x509_extension critical_ext;
+	struct x509_extension critical_ext = {0};
 	uint8_t *csr = NULL;
 	size_t length;
 
@@ -2295,7 +2295,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_critical_extensi
 	int status;
 	struct x509_extension_builder_mock tcb;
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
-	struct x509_extension critical_ext;
+	struct x509_extension critical_ext = {0};
 	uint8_t *der = NULL;
 	size_t length;
 
@@ -4639,7 +4639,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_critical_extension
 	int status;
 	struct x509_extension_builder_mock tcb;
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
-	struct x509_extension critical_ext;
+	struct x509_extension critical_ext = {0};
 	uint8_t *der = NULL;
 	size_t length;
 

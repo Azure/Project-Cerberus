@@ -299,7 +299,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build (CuTest *test)
 	struct x509_extension_builder_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -339,7 +339,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_sha1 (CuTest *test)
 	struct x509_extension_builder_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -379,7 +379,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_sha384 (CuTest *test)
 	struct x509_extension_builder_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -419,7 +419,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_sha512 (CuTest *test)
 	struct x509_extension_builder_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -459,7 +459,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_svn_zero (CuTest *tes
 	struct x509_extension_builder_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -500,7 +500,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_static_init (CuTest *
 	struct x509_extension_builder_dice_tcbinfo builder =
 		x509_extension_builder_dice_tcbinfo_static_init (&tcb);
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -537,7 +537,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_null (CuTest *test)
 	struct x509_extension_builder_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -563,7 +563,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_static_init_null_tcb 
 	struct x509_extension_builder_dice_tcbinfo builder =
 		x509_extension_builder_dice_tcbinfo_static_init (NULL);
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -578,7 +578,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_unknown_fwid (CuTest 
 	struct x509_extension_builder_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -601,7 +601,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_no_fwid (CuTest *test
 	struct x509_extension_builder_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -624,7 +624,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_no_version (CuTest *t
 	struct x509_extension_builder_dice_tcbinfo builder;
 	struct tcg_dice_tcbinfo tcb;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -648,7 +648,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer (CuTest *
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -690,7 +690,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_sha1 (CuT
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA1)];
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -732,7 +732,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_sha384 (C
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA384)];
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -774,7 +774,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_sha512 (C
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA512)];
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -816,7 +816,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_svn_zero 
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SVN_ZERO)];
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -858,7 +858,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_extra_spa
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256) + 32];
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -902,7 +902,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_static_in
 		x509_extension_builder_dice_tcbinfo_static_init_with_buffer (&tcb, ext_buffer,
 			sizeof (ext_buffer));
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -940,7 +940,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_null (CuT
 	struct tcg_dice_tcbinfo tcb;
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256)];
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -970,7 +970,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_static_in
 		x509_extension_builder_dice_tcbinfo_static_init_with_buffer (&tcb, NULL,
 			X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_BUFFER_LENGTH (SHA256));
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -993,7 +993,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_static_in
 		x509_extension_builder_dice_tcbinfo_static_init_with_buffer (NULL, ext_buffer,
 			sizeof (ext_buffer));
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -1009,7 +1009,7 @@ static void x509_extension_builder_dice_tcbinfo_test_build_with_buffer_small_buf
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_DICE_TCBINFO_TESTING_DATA_SHA256_LEN - 1];
 	struct x509_extension_builder_dice_tcbinfo builder;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 

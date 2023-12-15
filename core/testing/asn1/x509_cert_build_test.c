@@ -1167,7 +1167,7 @@ static void x509_cert_build_test_create_csr_ca_critical_extension (CuTest *test)
 	int status;
 	struct x509_extension_builder_mock tcb;
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
-	struct x509_extension critical_ext;
+	struct x509_extension critical_ext = {0};
 	uint8_t *csr = NULL;
 	size_t length;
 	HASH_TESTING_ENGINE hash;
@@ -2727,7 +2727,7 @@ static void x509_cert_build_test_create_self_signed_certificate_ca_critical_exte
 	int status;
 	struct x509_extension_builder_mock tcb;
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
-	struct x509_extension critical_ext;
+	struct x509_extension critical_ext = {0};
 	uint8_t *der = NULL;
 	size_t length;
 	HASH_TESTING_ENGINE hash;
@@ -5558,7 +5558,7 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_critical_extens
 	int status;
 	struct x509_extension_builder_mock tcb;
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
-	struct x509_extension critical_ext;
+	struct x509_extension critical_ext = {0};
 	uint8_t *der = NULL;
 	size_t length;
 	HASH_TESTING_ENGINE hash;

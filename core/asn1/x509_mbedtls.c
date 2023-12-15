@@ -230,7 +230,7 @@ static int x509_mbedtls_add_basic_constraints_extension (mbedtls_asn1_named_data
 static int x509_mbedtls_add_custom_extension (const struct x509_extension_builder *builder,
 	mbedtls_asn1_named_data **extensions)
 {
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 	int status;
 
 	if (builder == NULL) {

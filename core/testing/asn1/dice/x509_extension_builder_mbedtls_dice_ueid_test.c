@@ -153,7 +153,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build (CuTest *test)
 {
 	struct x509_extension_builder_mbedtls_dice_ueid builder;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -189,7 +189,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build_static_init (CuT
 	struct x509_extension_builder_mbedtls_dice_ueid builder =
 		x509_extension_builder_mbedtls_dice_ueid_static_init (X509_RIOT_UEID, X509_RIOT_UEID_LEN);
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -220,7 +220,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build_null (CuTest *te
 {
 	struct x509_extension_builder_mbedtls_dice_ueid builder;
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -242,7 +242,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build_with_buffer (CuT
 	struct x509_extension_builder_mbedtls_dice_ueid builder;
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_UEID_TESTING_BUFFER_LENGTH];
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -279,7 +279,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build_with_buffer_extr
 	struct x509_extension_builder_mbedtls_dice_ueid builder;
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_UEID_TESTING_BUFFER_LENGTH + 32];
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -318,7 +318,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build_with_buffer_stat
 		x509_extension_builder_mbedtls_dice_ueid_static_init_with_buffer (X509_RIOT_UEID,
 			X509_RIOT_UEID_LEN, ext_buffer, sizeof (ext_buffer));
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -350,7 +350,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build_with_buffer_null
 	struct x509_extension_builder_mbedtls_dice_ueid builder;
 	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DICE_UEID_TESTING_BUFFER_LENGTH];
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -375,7 +375,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build_with_buffer_stat
 			X509_RIOT_UEID_LEN, NULL,
 			X509_EXTENSION_BUILDER_MBEDTLS_DICE_UEID_TESTING_BUFFER_LENGTH);
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -393,7 +393,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build_with_buffer_stat
 		x509_extension_builder_mbedtls_dice_ueid_static_init_with_buffer (X509_RIOT_UEID,
 			X509_RIOT_UEID_LEN, ext_buffer, sizeof (ext_buffer));
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -411,7 +411,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build_with_buffer_stat
 		x509_extension_builder_mbedtls_dice_ueid_static_init_with_buffer (X509_RIOT_UEID,
 			X509_RIOT_UEID_LEN, ext_buffer, sizeof (ext_buffer));
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 
@@ -429,7 +429,7 @@ static void x509_extension_builder_mbedtls_dice_ueid_test_build_with_buffer_stat
 		x509_extension_builder_mbedtls_dice_ueid_static_init_with_buffer (X509_RIOT_UEID,
 			X509_RIOT_UEID_LEN, ext_buffer, sizeof (ext_buffer));
 	int status;
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 
 	TEST_START;
 

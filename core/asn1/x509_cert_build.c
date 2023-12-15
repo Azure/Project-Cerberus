@@ -253,7 +253,7 @@ error:
 static int x509_cert_build_add_custom_extension (DERBuilderContext *der,
 	const struct x509_extension_builder *builder)
 {
-	struct x509_extension extension;
+	struct x509_extension extension = {0};
 	int status;
 
 	if (builder == NULL) {
