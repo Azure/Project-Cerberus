@@ -130,6 +130,8 @@ enum {
 	ROT_MODULE_SECURITY_POLICY = 0x0076,				/**< The device security policy. */
 	ROT_MODULE_AUTH_TOKEN = 0x0077,						/**< Authorization token handler. */
 	ROT_MODULE_DEVICE_UNLOCK_TOKEN = 0x0078,			/**< Handler for device unlock tokens. */
+	ROT_MODULE_DOE_CMD_CHANNEL = 0x0079,				/**< Communication channel for DOE commands. */
+	ROT_MODULE_DOE_INTERFACE = 0x007a,					/**< DOE interface. */
 };
 
 

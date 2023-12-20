@@ -20,6 +20,7 @@
 #include "manifest/manifest_all_tests.h"
 #include "mctp/mctp_all_tests.h"
 #include "memory_mgmt/memory_mgmt_all_tests.h"
+#include "pcisig/pcisig_all_tests.h"
 #include "recovery/recovery_all_tests.h"
 #include "riot/riot_all_tests.h"
 #include "spi_filter/spi_filter_all_tests.h"
@@ -51,6 +52,7 @@ void add_all_core_tests (CuSuite *suite)
 	add_all_manifest_tests (suite);
 	add_all_mctp_tests (suite);
 	add_all_memory_mgmt_tests (suite);
+	add_all_pcisig_tests (suite);
 	add_all_recovery_tests (suite);
 	add_all_riot_tests (suite);
 	add_all_spi_filter_tests (suite);

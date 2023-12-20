@@ -113,4 +113,14 @@
 // #define CERBERUS_VID_SET_RESPONSE							0xFF
 
 
+/********************
+ * DOE protocol
+ ********************/
+
+/**
+ * Maximum platform supported size of a DOE message.
+ */
+// #define DOE_MESSAGE_PLATFORM_MAX_SIZE_IN_BYTES		0x00100000
+
+
 #endif /* PLATFORM_CONFIG_H_ */
