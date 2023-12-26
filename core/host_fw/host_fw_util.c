@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+#include "common/buffer_util.h"
 #include "platform_api.h"
 #include "host_fw_util.h"
 #include "flash/flash_util.h"
@@ -281,7 +282,7 @@ bool host_fw_are_images_different (const struct pfm_image_list *img_list1,
 				return true;
 			}
 
-			if (memcmp (img_list1->images_sig[i].signature, img_list2->images_sig[i].signature,
+			if (buffer_compare (img_list1->images_sig[i].signature, img_list2->images_sig[i].signature,
 				img_list1->images_sig->sig_length) != 0) {
 				return true;
 			}
@@ -300,7 +301,7 @@ bool host_fw_are_images_different (const struct pfm_image_list *img_list1,
 				return true;
 			}
 
-			if (memcmp (img_list1->images_hash[i].hash, img_list2->images_hash[i].hash,
+			if (buffer_compare (img_list1->images_hash[i].hash, img_list2->images_hash[i].hash,
 				img_list1->images_hash->hash_length) != 0) {
 				return true;
 			}
@@ -358,7 +359,7 @@ static int host_fw_verify_images_on_flash (const struct spi_flash *flash,
 				return status;
 			}
 
-			if (memcmp (img_list->images_hash[i].hash, img_hash,
+			if (buffer_compare (img_list->images_hash[i].hash, img_hash,
 				img_list->images_hash[i].hash_length) != 0) {
 				return HOST_FW_UTIL_BAD_IMAGE_HASH;
 			}

@@ -11,6 +11,7 @@
 #include "flash/flash_common.h"
 #include "crypto/ecc.h"
 #include "crypto/rsa.h"
+#include "common/buffer_util.h"
 #include "common/common_math.h"
 
 
@@ -785,7 +786,7 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest, struct ha
 		goto error;
 	}
 
-	if (memcmp (validate_hash, manifest->toc_hash, manifest->toc_hash_length) != 0) {
+	if (buffer_compare (validate_hash, manifest->toc_hash, manifest->toc_hash_length) != 0) {
 		return MANIFEST_TOC_INVALID;
 	}
 
@@ -863,7 +864,7 @@ int manifest_flash_read_element_data (struct manifest_flash *manifest, struct ha
 				goto error;
 			}
 
-			if (memcmp (validate_hash, entry_hash, manifest->toc_hash_length) != 0) {
+			if (buffer_compare (validate_hash, entry_hash, manifest->toc_hash_length) != 0) {
 				return MANIFEST_ELEMENT_INVALID;
 			}
 		}
@@ -1020,7 +1021,7 @@ int manifest_flash_get_child_elements_info (struct manifest_flash *manifest,
 		goto error;
 	}
 
-	if (memcmp (validate_hash, manifest->toc_hash, manifest->toc_hash_length) != 0) {
+	if (buffer_compare (validate_hash, manifest->toc_hash, manifest->toc_hash_length) != 0) {
 		return MANIFEST_TOC_INVALID;
 	}
 

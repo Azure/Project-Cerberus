@@ -909,7 +909,7 @@ int device_manager_compare_cert_chain_digest (struct device_manager *mgr, uint8_
 		return DEVICE_MGR_DIGEST_LEN_MISMATCH;
 	}
 
-	status = memcmp (digest, mgr->cert_chain_digest, mgr->hash_len);
+	status = buffer_compare (digest, mgr->cert_chain_digest, mgr->hash_len);
 	if (status != 0) {
 		return DEVICE_MGR_DIGEST_MISMATCH;
 	}

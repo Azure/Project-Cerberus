@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "authorization_challenge.h"
+#include "common/buffer_util.h"
 #include "crypto/rsa.h"
 
 
@@ -60,7 +61,7 @@ static int authorization_challenge_authorize (struct authorization *auth, uint8_
 			SHA256_HASH_LENGTH, (*token) + challenge->token_length,
 			*length - challenge->token_length);
 		if (status == 0) {
-			if (memcmp (*token, challenge->token, challenge->token_length) == 0) {
+			if (buffer_compare (*token, challenge->token, challenge->token_length) == 0) {
 				challenge->token_length = 0;
 			}
 			else {

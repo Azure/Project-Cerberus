@@ -6,6 +6,7 @@
 #include <string.h>
 #include "flash_store_contiguous_blocks.h"
 #include "flash_util.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
 
 
@@ -435,7 +436,7 @@ int flash_store_contiguous_blocks_read_with_hash (const struct flash_store *flas
 		return status;
 	}
 
-	if (memcmp (hash_mem, hash_flash, SHA256_HASH_LENGTH) != 0) {
+	if (buffer_compare (hash_mem, hash_flash, SHA256_HASH_LENGTH) != 0) {
 		return FLASH_STORE_CORRUPT_DATA;
 	}
 

@@ -5,6 +5,7 @@
 #include <string.h>
 #include "asn1/asn1_util.h"
 #include "asn1/ecc_der_util.h"
+#include "common/buffer_util.h"
 #include "common/common_math.h"
 #include "common/type_cast.h"
 #include "common/unused.h"
@@ -194,7 +195,7 @@ static int attestation_requester_verify_digest_in_allowable_list (
 		digest_len = hash_get_hash_length (digest_type);
 
 		for (i_digest = 0; i_digest < allowable_digests->digest_count; ++i_digest) {
-			status = memcmp (digest, &allowable_digests->digests[offset], digest_len);
+			status = buffer_compare (digest, &allowable_digests->digests[offset], digest_len);
 			if (status == 0) {
 				break;
 			}

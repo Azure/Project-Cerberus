@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
+#include "common/buffer_util.h"
 #include "rsa.h"
 
 
@@ -29,7 +30,7 @@ bool rsa_same_public_key (const struct rsa_public_key *key1, const struct rsa_pu
 		return false;
 	}
 
-	if (memcmp (key1->modulus, key2->modulus, key1->mod_length) != 0) {
+	if (buffer_compare (key1->modulus, key2->modulus, key1->mod_length) != 0) {
 		return false;
 	}
 
