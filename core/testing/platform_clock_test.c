@@ -285,28 +285,6 @@ static void platform_clock_test_init_current_tick_null (CuTest *test)
 	CuAssertIntEquals (test, ROT_MODULE_PLATFORM_TIMEOUT, ROT_GET_MODULE (status));
 }
 
-static void platform_clock_test_get_time (CuTest *test)
-{
-	uint64_t start;
-	uint64_t end;
-	uint64_t diff;
-
-	TEST_START;
-
-	start = platform_get_time ();
-	CuAssertTrue (test, (start != 0));
-
-	platform_msleep (300);
-
-	end = platform_get_time ();
-	CuAssertTrue (test, (start != 0));
-
-	diff = end - start;
-	CuAssertTrue (test, (diff >= 300));
-	/* There shouldn't be much else going on, so bound this for testing. */
-	CuAssertTrue (test, (diff < 350));
-}
-
 
 TEST_SUITE_START (platform_clock);
 
@@ -323,6 +301,5 @@ TEST (platform_clock_test_get_duration_between_two_timeouts_one_second);
 TEST (platform_clock_test_get_duration_between_two_timeouts_more_than_one_second);
 TEST (platform_clock_test_get_duration_null);
 TEST (platform_clock_test_init_current_tick_null);
-TEST (platform_clock_test_get_time);
 
 TEST_SUITE_END;

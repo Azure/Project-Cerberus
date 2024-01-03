@@ -9,6 +9,7 @@
 #include "platform_all_tests.h"
 #include "asn1/linux_asn1_all_tests.h"
 #include "crypto/linux_crypto_all_tests.h"
+#include "system/linux_system_all_tests.h"
 
 
 TEST_SUITE_LABEL ("linux");
@@ -34,6 +35,7 @@ void add_all_linux_tests (CuSuite *suite)
 
 	add_all_linux_asn1_tests (suite);
 	add_all_linux_crypto_tests (suite);
+	add_all_linux_system_tests (suite);
 
 	SUITE_ADD_TEST (suite, linux_teardown);
 }

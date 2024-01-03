@@ -20,24 +20,6 @@ void platform_msleep (uint32_t msec)
 	nanosleep (&sleep_time, NULL);
 }
 
-uint64_t platform_get_time (void)
-{
-	struct timespec now;
-	uint64_t time;
-	int status;
-
-	status = clock_gettime (CLOCK_REALTIME, &now);
-	if (status != 0) {
-		time = 0;
-	}
-	else {
-		/* Round to the nearest millisecond. */
-		time = (now.tv_sec * 1000) + ((now.tv_nsec + 500000) / 1000000ULL);
-	}
-
-	return time;
-}
-
 /**
  * Initialize a timeout based on a specific clock source.
  *

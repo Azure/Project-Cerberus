@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include "logging.h"
+#include "system/real_time_clock.h"
 
 
 /**
@@ -15,6 +16,15 @@
 extern const struct logging *debug_log;
 #else
 extern const struct logging *const debug_log;
+#endif
+
+/**
+ * Global singleton for the debug log timestamp.
+ */
+#ifndef LOGGING_DEBUG_TIMESTAMP_CONST_INSTANCE
+extern const struct real_time_clock *debug_timestamp;
+#else
+extern const struct real_time_clock *const debug_timestamp;
 #endif
 
 

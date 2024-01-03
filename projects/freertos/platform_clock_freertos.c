@@ -7,22 +7,6 @@
 #include "platform_clock_freertos.h"
 
 
-uint64_t platform_get_time (void)
-{
-	/* If there is no RTC available in the system, just get the elapsed time in milliseconds since
-	 * last boot using the OS tick.  This doesn't manage wrap-around of the system tick, so that
-	 * would look the same as a reboot event.
-	 *
-	 * If there is an RTC, it can be called by defining PLATFORM_RTC_GET_TIME to a function that
-	 * will return the current RTC value, in milliseconds. */
-
-#ifndef PLATFORM_RTC_GET_TIME
-	return (uint64_t) xTaskGetTickCount () * portTICK_PERIOD_MS;
-#else
-	return PLATFORM_RTC_GET_TIME ();
-#endif
-}
-
 int platform_init_timeout (uint32_t msec, platform_clock *timeout)
 {
 	TickType_t now = xTaskGetTickCount ();

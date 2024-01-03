@@ -7,11 +7,15 @@
 #include "common/unused.h"
 
 
-/* By default, the global singleton for the debug log is defined here.  However, if the target
- * project wants to define this to be a constant instance, it needs to be defined and initialized
- * in that scope. */
+/* By default, the global singleton for the debug log and timestamp is defined here.  However, if
+ * the target project wants to define this to be a constant instance, it needs to be defined and
+ * initialized in that scope. */
 #ifndef LOGGING_DEBUG_LOG_CONST_INSTANCE
 const struct logging *debug_log = NULL;
+#endif
+
+#ifndef LOGGING_DEBUG_TIMESTAMP_CONST_INSTANCE
+const struct real_time_clock *debug_timestamp = NULL;
 #endif
 
 
@@ -46,7 +50,10 @@ int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_ind
 	entry.msg_index = msg_index;
 	entry.arg1 = arg1;
 	entry.arg2 = arg2;
-	entry.time = platform_get_time ();
+	entry.time = 0;
+	if (debug_timestamp != NULL) {
+		debug_timestamp->get_time (debug_timestamp, &entry.time);
+	}
 
 	return debug_log->create_entry (debug_log, (uint8_t*) &entry, sizeof (entry));
 #else

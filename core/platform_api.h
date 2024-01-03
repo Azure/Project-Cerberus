@@ -153,29 +153,6 @@ uint32_t platform_htons (uint32_t hostshort);
 void platform_msleep (uint32_t msec);
 #endif
 
-#ifndef platform_get_time
-/**
- * Get the current system time.
- *
- * What this ultimately represents depends on what time source is available to the platform.  Some
- * possibilities include:
- * 		- A monotonic counter that runs from the time the system boots.
- * 		- A reading from an RTC.
- * 		- The current OS tick which is generally monotonic but could be subject to rollover.
- *
- * Due to the variability of time sources, this should only be used to get a single snapshot of the
- * current time.  No decisions should be made based on this time since it cannot be known what the
- * time really represents.
- *
- * This time should not be relied on for determining timeouts or execution durations.  There are
- * other APIs more appropriate for those use cases that account for any platform details.
- *
- * @return The current time, in milliseconds.
- */
-uint64_t platform_get_time (void);
-#endif
-
-
 #ifndef platform_init_timeout
 /**
  * Initialize a clock structure to represent the time at which a timeout expires.
@@ -239,8 +216,7 @@ int platform_get_timeout_remaining (const platform_clock *timeout, uint32_t *mse
 #ifndef platform_init_current_tick
 /**
  * Initialize a clock structure to represent the current time in way that can be compared against.
- * This will use the same time source that used to manage timeouts, which could be different then
- * the representation of time returned by {@link platform_get_time}.
+ * This will use the same time source that used to manage timeouts.
  *
  * @param currtime Output for the current system time.
  *

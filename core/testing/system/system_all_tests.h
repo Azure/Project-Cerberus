@@ -39,6 +39,12 @@ static void add_all_system_tests (CuSuite *suite)
 	!defined TESTING_SKIP_PERIODIC_TASK_SUITE
 	TESTING_RUN_SUITE (periodic_task);
 #endif
+#if (defined TESTING_RUN_REAL_TIME_CLOCK_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_REAL_TIME_CLOCK_SUITE
+	TESTING_RUN_SUITE (real_time_clock);
+#endif
 #if (defined TESTING_RUN_SECURE_DEVICE_UNLOCK_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
