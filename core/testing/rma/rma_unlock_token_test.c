@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-// #include "asn1/asn1_util.h"
 #include "common/buffer_util.h"
 #include "rma/rma_unlock_token.h"
 #include "rma/rma_unlock_token_static.h"

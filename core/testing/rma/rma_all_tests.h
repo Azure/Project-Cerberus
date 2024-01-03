@@ -27,6 +27,12 @@ static void add_all_rma_tests (CuSuite *suite)
 	!defined TESTING_SKIP_RMA_UNLOCK_TOKEN_SUITE
 	TESTING_RUN_SUITE (rma_unlock_token);
 #endif
+#if (defined TESTING_RUN_SECURE_DEVICE_UNLOCK_RMA_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SECURE_DEVICE_UNLOCK_RMA_SUITE
+	TESTING_RUN_SUITE (secure_device_unlock_rma);
+#endif
 }
 
 

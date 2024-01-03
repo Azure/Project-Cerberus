@@ -134,6 +134,7 @@ enum {
 	ROT_MODULE_DOE_INTERFACE = 0x007a,					/**< DOE interface. */
 	ROT_MODULE_REAL_TIME_CLOCK = 0x007b,				/**< The real time clock interface. */
 	ROT_MODULE_RMA_UNLOCK_TOKEN = 0x007c,				/**< Handler for device RMA unlock tokens. */
+	ROT_MODULE_DEVICE_RMA_TRANSITION = 0x007d,			/**< Device interface for RMA configuration. */
 };
 
 

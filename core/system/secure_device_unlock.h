@@ -69,6 +69,7 @@ enum {
 	SECURE_DEVICE_UNLOCK_NOT_LOCKED = SECURE_DEVICE_UNLOCK_ERROR (0x05),			/**< Attempt to unlock an unlocked device. */
 	SECURE_DEVICE_UNLOCK_COUNTER_EXHAUSTED = SECURE_DEVICE_UNLOCK_ERROR (0x06),		/**< The device unlock counter has reached the max value. */
 	SECURE_DEVICE_UNLOCK_UNSUPPORTED = SECURE_DEVICE_UNLOCK_ERROR (0x07),			/**< The requested operation is not supported. */
+	SECURE_DEVICE_UNLOCK_SMALL_BUFFER = SECURE_DEVICE_UNLOCK_ERROR (0x08),			/**< An output buffer was too small for the data. */
 };
 
 
