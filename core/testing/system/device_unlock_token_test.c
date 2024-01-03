@@ -1884,7 +1884,7 @@ static void device_unlock_token_test_get_unlock_counter_short_data_version (CuTe
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_BAD_AUTH_DATA, status);
 }
 
-static void device_unlock_token_test_get_unlock_counter_short_data_socid (CuTest *test)
+static void device_unlock_token_test_get_unlock_counter_short_data_uuid (CuTest *test)
 {
 	uint8_t token[2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 +
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN + DEVICE_UNLOCK_TOKEN_TESTING_NONCE_LEN +
@@ -2305,7 +2305,7 @@ static void device_unlock_token_test_get_nonce_short_data_version (CuTest *test)
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_BAD_AUTH_DATA, status);
 }
 
-static void device_unlock_token_test_get_nonce_short_data_socid (CuTest *test)
+static void device_unlock_token_test_get_nonce_short_data_uuid (CuTest *test)
 {
 	uint8_t token[2 + RIOT_CORE_DEVICE_ID_OID_LEN + 2 + DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN + 1 +
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN + DEVICE_UNLOCK_TOKEN_TESTING_NONCE_LEN +
@@ -2807,7 +2807,7 @@ TEST (device_unlock_token_test_get_unlock_counter_short_data_no_der);
 TEST (device_unlock_token_test_get_unlock_counter_short_data_oid_more_than_length);
 TEST (device_unlock_token_test_get_unlock_counter_short_data_oid);
 TEST (device_unlock_token_test_get_unlock_counter_short_data_version);
-TEST (device_unlock_token_test_get_unlock_counter_short_data_socid);
+TEST (device_unlock_token_test_get_unlock_counter_short_data_uuid);
 TEST (device_unlock_token_test_get_unlock_counter_short_data_counter_len);
 TEST (device_unlock_token_test_get_unlock_counter_short_data_no_counter);
 TEST (device_unlock_token_test_get_unlock_counter_short_data_counter);
@@ -2821,7 +2821,7 @@ TEST (device_unlock_token_test_get_nonce_short_data_no_der);
 TEST (device_unlock_token_test_get_nonce_short_data_oid_more_than_length);
 TEST (device_unlock_token_test_get_nonce_short_data_oid);
 TEST (device_unlock_token_test_get_nonce_short_data_version);
-TEST (device_unlock_token_test_get_nonce_short_data_socid);
+TEST (device_unlock_token_test_get_nonce_short_data_uuid);
 TEST (device_unlock_token_test_get_nonce_short_data_counter_len);
 TEST (device_unlock_token_test_get_nonce_short_data_no_counter);
 TEST (device_unlock_token_test_get_nonce_short_data_counter);

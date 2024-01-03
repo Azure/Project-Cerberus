@@ -133,6 +133,7 @@ enum {
 	ROT_MODULE_DOE_CMD_CHANNEL = 0x0079,				/**< Communication channel for DOE commands. */
 	ROT_MODULE_DOE_INTERFACE = 0x007a,					/**< DOE interface. */
 	ROT_MODULE_REAL_TIME_CLOCK = 0x007b,				/**< The real time clock interface. */
+	ROT_MODULE_RMA_UNLOCK_TOKEN = 0x007c,				/**< Handler for device RMA unlock tokens. */
 };
 
 
