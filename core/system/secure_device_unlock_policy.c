@@ -4,31 +4,34 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#include "secure_device_unlock.h"
+#include "secure_device_unlock_policy.h"
 #include "common/common_math.h"
 #include "common/unused.h"
 #include "system/system_logging.h"
 
 
-int secure_device_unlock_get_unlock_token (const struct secure_device_unlock *unlock,
+int secure_device_unlock_policy_get_unlock_token (const struct secure_device_unlock *unlock,
 	uint8_t *token, size_t length)
 {
+	const struct secure_device_unlock_policy *dbg_unlock =
+		(const struct secure_device_unlock_policy*) unlock;
 	uint8_t *counter;
 	int counter_length;
 	int status;
 
-	if ((unlock == NULL) || (token == NULL)) {
+	if ((dbg_unlock == NULL) || (token == NULL)) {
 		return SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT;
 	}
 
 	/* Get the current unlock counter value from the device. */
-	counter_length = device_unlock_token_get_counter_length (unlock->token);
+	counter_length = device_unlock_token_get_counter_length (dbg_unlock->token);
 	counter = platform_malloc (counter_length);
 	if (counter == NULL) {
 		return SECURE_DEVICE_UNLOCK_NO_MEMORY;
 	}
 
-	counter_length = unlock->manager->get_unlock_counter (unlock->manager, counter, counter_length);
+	counter_length = dbg_unlock->manager->get_unlock_counter (dbg_unlock->manager, counter,
+		counter_length);
 	if (ROT_IS_ERROR (counter_length)) {
 		status = counter_length;
 		goto exit;
@@ -48,33 +51,36 @@ int secure_device_unlock_get_unlock_token (const struct secure_device_unlock *un
 		goto exit;
 	}
 
-	status = device_unlock_token_generate (unlock->token, counter, counter_length, token, length);
+	status = device_unlock_token_generate (dbg_unlock->token, counter, counter_length, token,
+		length);
 
 exit:
 	platform_free (counter);
 	return status;
 }
 
-int secure_device_unlock_apply_unlock_policy (const struct secure_device_unlock *unlock,
+int secure_device_unlock_policy_apply_unlock_policy (const struct secure_device_unlock *unlock,
 	const uint8_t *policy, size_t length)
 {
+	const struct secure_device_unlock_policy *dbg_unlock =
+		(const struct secure_device_unlock_policy*) unlock;
 	int status;
 
-	if ((unlock == NULL) || (policy == NULL)) {
+	if ((dbg_unlock == NULL) || (policy == NULL)) {
 		return SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT;
 	}
 
-	status = device_unlock_token_authenicate (unlock->token, policy, length);
+	status = device_unlock_token_authenicate (dbg_unlock->token, policy, length);
 	if (status != 0) {
 		return status;
 	}
 
-	status = unlock->manager->unlock_device (unlock->manager, policy, length);
+	status = dbg_unlock->manager->unlock_device (dbg_unlock->manager, policy, length);
 	if (status != 0) {
 		return status;
 	}
 
-	status = device_unlock_token_invalidate (unlock->token);
+	status = device_unlock_token_invalidate (dbg_unlock->token);
 	if (status != 0) {
 		/* The device has already been unlocked, so the operation shouldn't report a failure when
 		 * the unlock token couldn't be invalidated.  Just log the error.  The token will naturally
@@ -86,22 +92,24 @@ int secure_device_unlock_apply_unlock_policy (const struct secure_device_unlock 
 	return 0;
 }
 
-int secure_device_unlock_clear_unlock_policy (const struct secure_device_unlock *unlock)
+int secure_device_unlock_policy_clear_unlock_policy (const struct secure_device_unlock *unlock)
 {
+	const struct secure_device_unlock_policy *dbg_unlock =
+		(const struct secure_device_unlock_policy*) unlock;
 	int status;
 
-	if (unlock == NULL) {
+	if (dbg_unlock == NULL) {
 		return SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT;
 	}
 
 	/* Since the device state is being updated, invalidate any active unlock token.  Once there is
 	 * no longer an active unlock token, put the device into a locked state. */
-	status = device_unlock_token_invalidate (unlock->token);
+	status = device_unlock_token_invalidate (dbg_unlock->token);
 	if (status != 0) {
 		return status;
 	}
 
-	return unlock->manager->lock_device (unlock->manager);
+	return dbg_unlock->manager->lock_device (dbg_unlock->manager);
 }
 
 /**
@@ -113,18 +121,18 @@ int secure_device_unlock_clear_unlock_policy (const struct secure_device_unlock 
  *
  * @return 0 if the unlock handler was initialized successfully or an error code.
  */
-int secure_device_unlock_init (struct secure_device_unlock *unlock,
+int secure_device_unlock_policy_init (struct secure_device_unlock_policy *unlock,
 	const struct device_unlock_token *token, const struct security_manager *manager)
 {
 	if ((unlock == NULL) || (token == NULL) || (manager == NULL)) {
 		return SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT;
 	}
 
-	memset (unlock, 0, sizeof (struct secure_device_unlock));
+	memset (unlock, 0, sizeof (struct secure_device_unlock_policy));
 
-	unlock->get_unlock_token = secure_device_unlock_get_unlock_token;
-	unlock->apply_unlock_policy = secure_device_unlock_apply_unlock_policy;
-	unlock->clear_unlock_policy = secure_device_unlock_clear_unlock_policy;
+	unlock->base.get_unlock_token = secure_device_unlock_policy_get_unlock_token;
+	unlock->base.apply_unlock_policy = secure_device_unlock_policy_apply_unlock_policy;
+	unlock->base.clear_unlock_policy = secure_device_unlock_policy_clear_unlock_policy;
 
 	unlock->token = token;
 	unlock->manager = manager;
@@ -137,7 +145,7 @@ int secure_device_unlock_init (struct secure_device_unlock *unlock,
  *
  * @param unlock The unlock handler to release.
  */
-void secure_device_unlock_release (const struct secure_device_unlock *unlock)
+void secure_device_unlock_policy_release (const struct secure_device_unlock_policy *unlock)
 {
 	UNUSED (unlock);
 }

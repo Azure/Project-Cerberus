@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
-#include "system/secure_device_unlock.h"
-#include "system/secure_device_unlock_static.h"
+#include "system/secure_device_unlock_policy.h"
+#include "system/secure_device_unlock_policy_static.h"
 #include "system/system_logging.h"
 #include "testing/mock/cmd_interface/cmd_device_mock.h"
 #include "testing/mock/common/auth_token_mock.h"
@@ -17,36 +17,36 @@
 #include "testing/system/device_unlock_token_testing.h"
 
 
-TEST_SUITE_LABEL ("secure_device_unlock");
+TEST_SUITE_LABEL ("secure_device_unlock_policy");
 
 
 /**
  * Size of the token buffer to use for testing.
  */
-#define	SECURE_DEVICE_UNLOCK_TESTING_BUFFER_LENGTH		512
+#define	SECURE_DEVICE_UNLOCK_POLICY_TESTING_BUFFER_LENGTH		512
 
 
 /**
  * An unlock counter value that has used all the counter bits.
  */
-const uint8_t SECURE_DEVICE_UNLOCK_TESTING_COUNTER_EXHAUSTED[] = {
+const uint8_t SECURE_DEVICE_UNLOCK_POLICY_TESTING_COUNTER_EXHAUSTED[] = {
 	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff
 };
 
-const size_t SECURE_DEVICE_UNLOCK_TESTING_COUNTER_EXHAUSTED_LEN =
-	sizeof (SECURE_DEVICE_UNLOCK_TESTING_COUNTER_EXHAUSTED);
+const size_t SECURE_DEVICE_UNLOCK_POLICY_TESTING_COUNTER_EXHAUSTED_LEN =
+	sizeof (SECURE_DEVICE_UNLOCK_POLICY_TESTING_COUNTER_EXHAUSTED);
 
 
 /**
  * Dependencies for testing.
  */
-struct secure_device_unlock_testing {
-	struct auth_token_mock auth;			/**< Mock for the authorization token. */
-	struct cmd_device_mock uuid;			/**< Mock for the device UUID interface. */
-	struct device_unlock_token token;		/**< Unlock token handler for testing. */
-	struct security_manager_mock manager;	/**< Mock for the security manager. */
-	struct logging_mock log;				/**< Mock for the debug log. */
-	struct secure_device_unlock test;		/**< Unlock handler being tested. */
+struct secure_device_unlock_policy_testing {
+	struct auth_token_mock auth;				/**< Mock for the authorization token. */
+	struct cmd_device_mock uuid;				/**< Mock for the device UUID interface. */
+	struct device_unlock_token token;			/**< Unlock token handler for testing. */
+	struct security_manager_mock manager;		/**< Mock for the security manager. */
+	struct logging_mock log;					/**< Mock for the debug log. */
+	struct secure_device_unlock_policy test;	/**< Unlock handler being tested. */
 };
 
 
@@ -57,8 +57,8 @@ struct secure_device_unlock_testing {
  * @param unlock The testing components to initialize.
  * @param counter_len Length of the unlock counter.
  */
-static void secure_device_unlock_testing_init_dependencies (CuTest *test,
-	struct secure_device_unlock_testing *unlock, size_t counter_len)
+static void secure_device_unlock_policy_testing_init_dependencies (CuTest *test,
+	struct secure_device_unlock_policy_testing *unlock, size_t counter_len)
 {
 	int status;
 
@@ -87,8 +87,8 @@ static void secure_device_unlock_testing_init_dependencies (CuTest *test,
  * @param test The testing framework.
  * @param unlock The testing components to release.
  */
-static void secure_device_unlock_testing_release_dependencies (CuTest *test,
-	struct secure_device_unlock_testing *unlock)
+static void secure_device_unlock_policy_testing_release_dependencies (CuTest *test,
+	struct secure_device_unlock_policy_testing *unlock)
 {
 	int status;
 
@@ -111,14 +111,15 @@ static void secure_device_unlock_testing_release_dependencies (CuTest *test,
  * @param unlock Testing components to initialize.
  * @param counter_len Length of the unlock counter.
  */
-static void secure_device_unlock_testing_init (CuTest *test,
-	struct secure_device_unlock_testing *unlock, size_t counter_len)
+static void secure_device_unlock_policy_testing_init (CuTest *test,
+	struct secure_device_unlock_policy_testing *unlock, size_t counter_len)
 {
 	int status;
 
-	secure_device_unlock_testing_init_dependencies (test, unlock, counter_len);
+	secure_device_unlock_policy_testing_init_dependencies (test, unlock, counter_len);
 
-	status = secure_device_unlock_init (&unlock->test, &unlock->token, &unlock->manager.base);
+	status = secure_device_unlock_policy_init (&unlock->test, &unlock->token,
+		&unlock->manager.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -129,11 +130,12 @@ static void secure_device_unlock_testing_init (CuTest *test,
  * @param unlock Testing components to release.
  * @param test_unlock The test handler to release.
  */
-static void secure_device_unlock_testing_release (CuTest *test,
-	struct secure_device_unlock_testing *unlock, struct secure_device_unlock *test_unlock)
+static void secure_device_unlock_policy_testing_release (CuTest *test,
+	struct secure_device_unlock_policy_testing *unlock,
+	struct secure_device_unlock_policy *test_unlock)
 {
-	secure_device_unlock_release (test_unlock);
-	secure_device_unlock_testing_release_dependencies (test, unlock);
+	secure_device_unlock_policy_release (test_unlock);
+	secure_device_unlock_policy_testing_release_dependencies (test, unlock);
 }
 
 
@@ -141,81 +143,81 @@ static void secure_device_unlock_testing_release (CuTest *test,
  * Test cases
  *******************/
 
-static void secure_device_unlock_test_init (CuTest *test)
+static void secure_device_unlock_policy_test_init (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
 
 	TEST_START;
 
-	secure_device_unlock_testing_init_dependencies (test, &unlock,
+	secure_device_unlock_policy_testing_init_dependencies (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
-	status = secure_device_unlock_init (&unlock.test, &unlock.token, &unlock.manager.base);
+	status = secure_device_unlock_policy_init (&unlock.test, &unlock.token, &unlock.manager.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, unlock.test.get_unlock_token);
-	CuAssertPtrNotNull (test, unlock.test.apply_unlock_policy);
-	CuAssertPtrNotNull (test, unlock.test.clear_unlock_policy);
+	CuAssertPtrNotNull (test, unlock.test.base.get_unlock_token);
+	CuAssertPtrNotNull (test, unlock.test.base.apply_unlock_policy);
+	CuAssertPtrNotNull (test, unlock.test.base.clear_unlock_policy);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_init_null (CuTest *test)
+static void secure_device_unlock_policy_test_init_null (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
 
 	TEST_START;
 
-	secure_device_unlock_testing_init_dependencies (test, &unlock,
+	secure_device_unlock_policy_testing_init_dependencies (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
-	status = secure_device_unlock_init (NULL, &unlock.token, &unlock.manager.base);
+	status = secure_device_unlock_policy_init (NULL, &unlock.token, &unlock.manager.base);
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
 
-	status = secure_device_unlock_init (&unlock.test, NULL, &unlock.manager.base);
+	status = secure_device_unlock_policy_init (&unlock.test, NULL, &unlock.manager.base);
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
 
-	status = secure_device_unlock_init (&unlock.test, &unlock.token, NULL);
+	status = secure_device_unlock_policy_init (&unlock.test, &unlock.token, NULL);
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_static_init (CuTest *test)
+static void secure_device_unlock_policy_test_static_init (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
-	struct secure_device_unlock test_static = secure_device_unlock_static_init (&unlock.token,
-		&unlock.manager.base);
+	struct secure_device_unlock_policy_testing unlock;
+	struct secure_device_unlock_policy test_static =
+		secure_device_unlock_policy_static_init (&unlock.token, &unlock.manager.base);
 
 	TEST_START;
 
-	CuAssertPtrNotNull (test, test_static.get_unlock_token);
-	CuAssertPtrNotNull (test, test_static.apply_unlock_policy);
-	CuAssertPtrNotNull (test, test_static.clear_unlock_policy);
+	CuAssertPtrNotNull (test, test_static.base.get_unlock_token);
+	CuAssertPtrNotNull (test, test_static.base.apply_unlock_policy);
+	CuAssertPtrNotNull (test, test_static.base.clear_unlock_policy);
 
-	secure_device_unlock_testing_init_dependencies (test, &unlock,
+	secure_device_unlock_policy_testing_init_dependencies (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
-	secure_device_unlock_testing_release (test, &unlock, &test_static);
+	secure_device_unlock_policy_testing_release (test, &unlock, &test_static);
 }
 
-static void secure_device_unlock_test_release_null (CuTest *test)
+static void secure_device_unlock_policy_test_release_null (CuTest *test)
 {
 	TEST_START;
 
-	secure_device_unlock_release (NULL);
+	secure_device_unlock_policy_release (NULL);
 }
 
-static void secure_device_unlock_test_get_unlock_token (CuTest *test)
+static void secure_device_unlock_policy_test_get_unlock_token (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	uint8_t *token;
 	size_t token_length;
 	size_t context_length;
 	int status;
-	uint8_t out[SECURE_DEVICE_UNLOCK_TESTING_BUFFER_LENGTH];
+	uint8_t out[SECURE_DEVICE_UNLOCK_POLICY_TESTING_BUFFER_LENGTH];
 
 	TEST_START;
 
@@ -224,7 +226,7 @@ static void secure_device_unlock_test_get_unlock_token (CuTest *test)
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, &token, &token_length, &context_length);
 	CuAssertTrue (test, (token_length < sizeof (out)));
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
@@ -250,25 +252,25 @@ static void secure_device_unlock_test_get_unlock_token (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.get_unlock_token (&unlock.test, out, sizeof (out));
+	status = unlock.test.base.get_unlock_token (&unlock.test.base, out, sizeof (out));
 	CuAssertIntEquals (test, token_length, status);
 
 	status = testing_validate_array (token, out, token_length);
 	CuAssertIntEquals (test, 0, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 
 	platform_free (token);
 }
 
-static void secure_device_unlock_test_get_unlock_token_different_counter (CuTest *test)
+static void secure_device_unlock_policy_test_get_unlock_token_different_counter (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	uint8_t *token;
 	size_t token_length;
 	size_t context_length;
 	int status;
-	uint8_t out[SECURE_DEVICE_UNLOCK_TESTING_BUFFER_LENGTH];
+	uint8_t out[SECURE_DEVICE_UNLOCK_POLICY_TESTING_BUFFER_LENGTH];
 
 	TEST_START;
 
@@ -277,7 +279,7 @@ static void secure_device_unlock_test_get_unlock_token_different_counter (CuTest
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, &token, &token_length, &context_length);
 	CuAssertTrue (test, (token_length < sizeof (out)));
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Get the current unlock counter. */
@@ -303,27 +305,27 @@ static void secure_device_unlock_test_get_unlock_token_different_counter (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.get_unlock_token (&unlock.test, out, sizeof (out));
+	status = unlock.test.base.get_unlock_token (&unlock.test.base, out, sizeof (out));
 	CuAssertIntEquals (test, token_length, status);
 
 	status = testing_validate_array (token, out, token_length);
 	CuAssertIntEquals (test, 0, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 
 	platform_free (token);
 }
 
-static void secure_device_unlock_test_get_unlock_token_static_init (CuTest *test)
+static void secure_device_unlock_policy_test_get_unlock_token_static_init (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
-	struct secure_device_unlock test_static = secure_device_unlock_static_init (&unlock.token,
-		&unlock.manager.base);
+	struct secure_device_unlock_policy_testing unlock;
+	struct secure_device_unlock_policy test_static =
+		secure_device_unlock_policy_static_init (&unlock.token, &unlock.manager.base);
 	uint8_t *token;
 	size_t token_length;
 	size_t context_length;
 	int status;
-	uint8_t out[SECURE_DEVICE_UNLOCK_TESTING_BUFFER_LENGTH];
+	uint8_t out[SECURE_DEVICE_UNLOCK_POLICY_TESTING_BUFFER_LENGTH];
 
 	TEST_START;
 
@@ -332,7 +334,7 @@ static void secure_device_unlock_test_get_unlock_token_static_init (CuTest *test
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN, &token, &token_length, &context_length);
 	CuAssertTrue (test, (token_length < sizeof (out)));
 
-	secure_device_unlock_testing_init_dependencies (test, &unlock,
+	secure_device_unlock_policy_testing_init_dependencies (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
@@ -358,46 +360,46 @@ static void secure_device_unlock_test_get_unlock_token_static_init (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.get_unlock_token (&test_static, out, sizeof (out));
+	status = test_static.base.get_unlock_token (&test_static.base, out, sizeof (out));
 	CuAssertIntEquals (test, token_length, status);
 
 	status = testing_validate_array (token, out, token_length);
 	CuAssertIntEquals (test, 0, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &test_static);
+	secure_device_unlock_policy_testing_release (test, &unlock, &test_static);
 
 	platform_free (token);
 }
 
-static void secure_device_unlock_test_get_unlock_token_null (CuTest *test)
+static void secure_device_unlock_policy_test_get_unlock_token_null (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
-	uint8_t out[SECURE_DEVICE_UNLOCK_TESTING_BUFFER_LENGTH];
+	uint8_t out[SECURE_DEVICE_UNLOCK_POLICY_TESTING_BUFFER_LENGTH];
 
 	TEST_START;
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
-	status = unlock.test.get_unlock_token (NULL, out, sizeof (out));
+	status = unlock.test.base.get_unlock_token (NULL, out, sizeof (out));
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
 
-	status = unlock.test.get_unlock_token (&unlock.test, NULL, sizeof (out));
+	status = unlock.test.base.get_unlock_token (&unlock.test.base, NULL, sizeof (out));
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_get_unlock_token_counter_error (CuTest *test)
+static void secure_device_unlock_policy_test_get_unlock_token_counter_error (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
-	uint8_t out[SECURE_DEVICE_UNLOCK_TESTING_BUFFER_LENGTH];
+	uint8_t out[SECURE_DEVICE_UNLOCK_POLICY_TESTING_BUFFER_LENGTH];
 
 	TEST_START;
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
@@ -407,21 +409,21 @@ static void secure_device_unlock_test_get_unlock_token_counter_error (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.get_unlock_token (&unlock.test, out, sizeof (out));
+	status = unlock.test.base.get_unlock_token (&unlock.test.base, out, sizeof (out));
 	CuAssertIntEquals (test, SECURITY_MANAGER_GET_COUNTER_FAILED, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_get_unlock_token_unlocked (CuTest *test)
+static void secure_device_unlock_policy_test_get_unlock_token_unlocked (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
-	uint8_t out[SECURE_DEVICE_UNLOCK_TESTING_BUFFER_LENGTH];
+	uint8_t out[SECURE_DEVICE_UNLOCK_POLICY_TESTING_BUFFER_LENGTH];
 
 	TEST_START;
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
@@ -434,48 +436,49 @@ static void secure_device_unlock_test_get_unlock_token_unlocked (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.get_unlock_token (&unlock.test, out, sizeof (out));
+	status = unlock.test.base.get_unlock_token (&unlock.test.base, out, sizeof (out));
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_NOT_LOCKED, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_get_unlock_token_counter_exhausted (CuTest *test)
+static void secure_device_unlock_policy_test_get_unlock_token_counter_exhausted (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
-	uint8_t out[SECURE_DEVICE_UNLOCK_TESTING_BUFFER_LENGTH];
+	uint8_t out[SECURE_DEVICE_UNLOCK_POLICY_TESTING_BUFFER_LENGTH];
 
 	TEST_START;
 
-	secure_device_unlock_testing_init (test, &unlock,
-		SECURE_DEVICE_UNLOCK_TESTING_COUNTER_EXHAUSTED_LEN);
+	secure_device_unlock_policy_testing_init (test, &unlock,
+		SECURE_DEVICE_UNLOCK_POLICY_TESTING_COUNTER_EXHAUSTED_LEN);
 
 	/* Get the current unlock counter. */
 	status = mock_expect (&unlock.manager.mock, unlock.manager.base.get_unlock_counter,
-		&unlock.manager, SECURE_DEVICE_UNLOCK_TESTING_COUNTER_EXHAUSTED_LEN, MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SECURE_DEVICE_UNLOCK_TESTING_COUNTER_EXHAUSTED_LEN));
+		&unlock.manager, SECURE_DEVICE_UNLOCK_POLICY_TESTING_COUNTER_EXHAUSTED_LEN,
+		MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SECURE_DEVICE_UNLOCK_POLICY_TESTING_COUNTER_EXHAUSTED_LEN));
 	status |= mock_expect_output (&unlock.manager.mock, 0,
-		SECURE_DEVICE_UNLOCK_TESTING_COUNTER_EXHAUSTED,
-		SECURE_DEVICE_UNLOCK_TESTING_COUNTER_EXHAUSTED_LEN, 1);
+		SECURE_DEVICE_UNLOCK_POLICY_TESTING_COUNTER_EXHAUSTED,
+		SECURE_DEVICE_UNLOCK_POLICY_TESTING_COUNTER_EXHAUSTED_LEN, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.get_unlock_token (&unlock.test, out, sizeof (out));
+	status = unlock.test.base.get_unlock_token (&unlock.test.base, out, sizeof (out));
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_COUNTER_EXHAUSTED, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_get_unlock_token_generate_error (CuTest *test)
+static void secure_device_unlock_policy_test_get_unlock_token_generate_error (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
-	uint8_t out[SECURE_DEVICE_UNLOCK_TESTING_BUFFER_LENGTH];
+	uint8_t out[SECURE_DEVICE_UNLOCK_POLICY_TESTING_BUFFER_LENGTH];
 
 	TEST_START;
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
@@ -492,21 +495,22 @@ static void secure_device_unlock_test_get_unlock_token_generate_error (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.get_unlock_token (&unlock.test, out, sizeof (out));
+	status = unlock.test.base.get_unlock_token (&unlock.test.base, out, sizeof (out));
 	CuAssertIntEquals (test, CMD_DEVICE_UUID_FAILED, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_get_unlock_token_mismatch_counter_lengths (CuTest *test)
+static void secure_device_unlock_policy_test_get_unlock_token_mismatch_counter_lengths (
+	CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
-	uint8_t out[SECURE_DEVICE_UNLOCK_TESTING_BUFFER_LENGTH];
+	uint8_t out[SECURE_DEVICE_UNLOCK_POLICY_TESTING_BUFFER_LENGTH];
 
 	TEST_START;
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_LOCKED_LEN);
 
 	/* Get the current unlock counter. */
@@ -519,15 +523,15 @@ static void secure_device_unlock_test_get_unlock_token_mismatch_counter_lengths 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.get_unlock_token (&unlock.test, out, sizeof (out));
+	status = unlock.test.base.get_unlock_token (&unlock.test.base, out, sizeof (out));
 	CuAssertIntEquals (test, DEVICE_UNLOCK_TOKEN_INVALID_COUNTER, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_apply_unlock_policy (CuTest *test)
+static void secure_device_unlock_policy_test_apply_unlock_policy (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	uint8_t *unlock_policy;
 	size_t unlock_length;
 	size_t token_offset;
@@ -540,7 +544,7 @@ static void secure_device_unlock_test_apply_unlock_policy (CuTest *test)
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Authenticate the unlock policy. */
@@ -558,19 +562,19 @@ static void secure_device_unlock_test_apply_unlock_policy (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.apply_unlock_policy (&unlock.test, unlock_policy, unlock_length);
+	status = unlock.test.base.apply_unlock_policy (&unlock.test.base, unlock_policy, unlock_length);
 	CuAssertIntEquals (test, 0, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 
 	platform_free (unlock_policy);
 }
 
-static void secure_device_unlock_test_apply_unlock_policy_static_init (CuTest *test)
+static void secure_device_unlock_policy_test_apply_unlock_policy_static_init (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
-	struct secure_device_unlock test_static = secure_device_unlock_static_init (&unlock.token,
-		&unlock.manager.base);
+	struct secure_device_unlock_policy_testing unlock;
+	struct secure_device_unlock_policy test_static =
+		secure_device_unlock_policy_static_init (&unlock.token, &unlock.manager.base);
 	uint8_t *unlock_policy;
 	size_t unlock_length;
 	size_t token_offset;
@@ -583,7 +587,7 @@ static void secure_device_unlock_test_apply_unlock_policy_static_init (CuTest *t
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
-	secure_device_unlock_testing_init_dependencies (test, &unlock,
+	secure_device_unlock_policy_testing_init_dependencies (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Authenticate the unlock policy. */
@@ -601,17 +605,17 @@ static void secure_device_unlock_test_apply_unlock_policy_static_init (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.apply_unlock_policy (&test_static, unlock_policy, unlock_length);
+	status = test_static.base.apply_unlock_policy (&test_static.base, unlock_policy, unlock_length);
 	CuAssertIntEquals (test, 0, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &test_static);
+	secure_device_unlock_policy_testing_release (test, &unlock, &test_static);
 
 	platform_free (unlock_policy);
 }
 
-static void secure_device_unlock_test_apply_unlock_policy_null (CuTest *test)
+static void secure_device_unlock_policy_test_apply_unlock_policy_null (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	uint8_t *unlock_policy;
 	size_t unlock_length;
 	size_t token_offset;
@@ -624,23 +628,23 @@ static void secure_device_unlock_test_apply_unlock_policy_null (CuTest *test)
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
-	status = unlock.test.apply_unlock_policy (NULL, unlock_policy, unlock_length);
+	status = unlock.test.base.apply_unlock_policy (NULL, unlock_policy, unlock_length);
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
 
-	status = unlock.test.apply_unlock_policy (&unlock.test, NULL, unlock_length);
+	status = unlock.test.base.apply_unlock_policy (&unlock.test.base, NULL, unlock_length);
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 
 	platform_free (unlock_policy);
 }
 
-static void secure_device_unlock_test_apply_unlock_policy_authenticate_error (CuTest *test)
+static void secure_device_unlock_policy_test_apply_unlock_policy_authenticate_error (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	uint8_t *unlock_policy;
 	size_t unlock_length;
 	size_t token_offset;
@@ -653,7 +657,7 @@ static void secure_device_unlock_test_apply_unlock_policy_authenticate_error (Cu
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Authenticate the unlock policy. */
@@ -664,17 +668,17 @@ static void secure_device_unlock_test_apply_unlock_policy_authenticate_error (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.apply_unlock_policy (&unlock.test, unlock_policy, unlock_length);
+	status = unlock.test.base.apply_unlock_policy (&unlock.test.base, unlock_policy, unlock_length);
 	CuAssertIntEquals (test, AUTH_TOKEN_NOT_VALID, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 
 	platform_free (unlock_policy);
 }
 
-static void secure_device_unlock_test_apply_unlock_policy_unlock_error (CuTest *test)
+static void secure_device_unlock_policy_test_apply_unlock_policy_unlock_error (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	uint8_t *unlock_policy;
 	size_t unlock_length;
 	size_t token_offset;
@@ -687,7 +691,7 @@ static void secure_device_unlock_test_apply_unlock_policy_unlock_error (CuTest *
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Authenticate the unlock policy. */
@@ -703,17 +707,17 @@ static void secure_device_unlock_test_apply_unlock_policy_unlock_error (CuTest *
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.apply_unlock_policy (&unlock.test, unlock_policy, unlock_length);
+	status = unlock.test.base.apply_unlock_policy (&unlock.test.base, unlock_policy, unlock_length);
 	CuAssertIntEquals (test, SECURITY_MANAGER_UNLOCK_FAILED, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 
 	platform_free (unlock_policy);
 }
 
-static void secure_device_unlock_test_apply_unlock_policy_invalidate_error (CuTest *test)
+static void secure_device_unlock_policy_test_apply_unlock_policy_invalidate_error (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	uint8_t *unlock_policy;
 	size_t unlock_length;
 	size_t token_offset;
@@ -734,7 +738,7 @@ static void secure_device_unlock_test_apply_unlock_policy_invalidate_error (CuTe
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN, 0, &unlock_policy, &unlock_length,
 		&token_offset, NULL);
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	/* Authenticate the unlock policy. */
@@ -757,22 +761,22 @@ static void secure_device_unlock_test_apply_unlock_policy_invalidate_error (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.apply_unlock_policy (&unlock.test, unlock_policy, unlock_length);
+	status = unlock.test.base.apply_unlock_policy (&unlock.test.base, unlock_policy, unlock_length);
 	CuAssertIntEquals (test, 0, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 
 	platform_free (unlock_policy);
 }
 
-static void secure_device_unlock_test_clear_unlock_policy (CuTest *test)
+static void secure_device_unlock_policy_test_clear_unlock_policy (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
 
 	TEST_START;
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.invalidate, &unlock.auth, 0);
@@ -781,22 +785,22 @@ static void secure_device_unlock_test_clear_unlock_policy (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.clear_unlock_policy (&unlock.test);
+	status = unlock.test.base.clear_unlock_policy (&unlock.test.base);
 	CuAssertIntEquals (test, 0, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_clear_unlock_policy_static_init (CuTest *test)
+static void secure_device_unlock_policy_test_clear_unlock_policy_static_init (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
-	struct secure_device_unlock test_static = secure_device_unlock_static_init (&unlock.token,
-		&unlock.manager.base);
+	struct secure_device_unlock_policy_testing unlock;
+	struct secure_device_unlock_policy test_static =
+		secure_device_unlock_policy_static_init (&unlock.token, &unlock.manager.base);
 	int status;
 
 	TEST_START;
 
-	secure_device_unlock_testing_init_dependencies (test, &unlock,
+	secure_device_unlock_policy_testing_init_dependencies (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.invalidate, &unlock.auth, 0);
@@ -805,36 +809,36 @@ static void secure_device_unlock_test_clear_unlock_policy_static_init (CuTest *t
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = test_static.clear_unlock_policy (&test_static);
+	status = test_static.base.clear_unlock_policy (&test_static.base);
 	CuAssertIntEquals (test, 0, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &test_static);
+	secure_device_unlock_policy_testing_release (test, &unlock, &test_static);
 }
 
-static void secure_device_unlock_test_clear_unlock_policy_null (CuTest *test)
+static void secure_device_unlock_policy_test_clear_unlock_policy_null (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
 
 	TEST_START;
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
-	status = unlock.test.clear_unlock_policy (NULL);
+	status = unlock.test.base.clear_unlock_policy (NULL);
 	CuAssertIntEquals (test, SECURE_DEVICE_UNLOCK_INVALID_ARGUMENT, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_clear_unlock_policy_invalidate_error (CuTest *test)
+static void secure_device_unlock_policy_test_clear_unlock_policy_invalidate_error (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
 
 	TEST_START;
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.invalidate, &unlock.auth,
@@ -842,20 +846,20 @@ static void secure_device_unlock_test_clear_unlock_policy_invalidate_error (CuTe
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.clear_unlock_policy (&unlock.test);
+	status = unlock.test.base.clear_unlock_policy (&unlock.test.base);
 	CuAssertIntEquals (test, AUTH_TOKEN_INVALIDATE_FAILED, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
-static void secure_device_unlock_test_clear_unlock_policy_lock_error (CuTest *test)
+static void secure_device_unlock_policy_test_clear_unlock_policy_lock_error (CuTest *test)
 {
-	struct secure_device_unlock_testing unlock;
+	struct secure_device_unlock_policy_testing unlock;
 	int status;
 
 	TEST_START;
 
-	secure_device_unlock_testing_init (test, &unlock,
+	secure_device_unlock_policy_testing_init (test, &unlock,
 		DEVICE_UNLOCK_TOKEN_TESTING_COUNTER_UNLOCKED_LEN);
 
 	status = mock_expect (&unlock.auth.mock, unlock.auth.base.invalidate, &unlock.auth, 0);
@@ -864,38 +868,38 @@ static void secure_device_unlock_test_clear_unlock_policy_lock_error (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = unlock.test.clear_unlock_policy (&unlock.test);
+	status = unlock.test.base.clear_unlock_policy (&unlock.test.base);
 	CuAssertIntEquals (test, SECURITY_MANAGER_LOCK_FAILED, status);
 
-	secure_device_unlock_testing_release (test, &unlock, &unlock.test);
+	secure_device_unlock_policy_testing_release (test, &unlock, &unlock.test);
 }
 
 
-TEST_SUITE_START (secure_device_unlock);
+TEST_SUITE_START (secure_device_unlock_policy);
 
-TEST (secure_device_unlock_test_init);
-TEST (secure_device_unlock_test_init_null);
-TEST (secure_device_unlock_test_static_init);
-TEST (secure_device_unlock_test_release_null);
-TEST (secure_device_unlock_test_get_unlock_token);
-TEST (secure_device_unlock_test_get_unlock_token_different_counter);
-TEST (secure_device_unlock_test_get_unlock_token_static_init);
-TEST (secure_device_unlock_test_get_unlock_token_null);
-TEST (secure_device_unlock_test_get_unlock_token_counter_error);
-TEST (secure_device_unlock_test_get_unlock_token_unlocked);
-TEST (secure_device_unlock_test_get_unlock_token_counter_exhausted);
-TEST (secure_device_unlock_test_get_unlock_token_generate_error);
-TEST (secure_device_unlock_test_get_unlock_token_mismatch_counter_lengths);
-TEST (secure_device_unlock_test_apply_unlock_policy);
-TEST (secure_device_unlock_test_apply_unlock_policy_static_init);
-TEST (secure_device_unlock_test_apply_unlock_policy_null);
-TEST (secure_device_unlock_test_apply_unlock_policy_authenticate_error);
-TEST (secure_device_unlock_test_apply_unlock_policy_unlock_error);
-TEST (secure_device_unlock_test_apply_unlock_policy_invalidate_error);
-TEST (secure_device_unlock_test_clear_unlock_policy);
-TEST (secure_device_unlock_test_clear_unlock_policy_static_init);
-TEST (secure_device_unlock_test_clear_unlock_policy_null);
-TEST (secure_device_unlock_test_clear_unlock_policy_invalidate_error);
-TEST (secure_device_unlock_test_clear_unlock_policy_lock_error);
+TEST (secure_device_unlock_policy_test_init);
+TEST (secure_device_unlock_policy_test_init_null);
+TEST (secure_device_unlock_policy_test_static_init);
+TEST (secure_device_unlock_policy_test_release_null);
+TEST (secure_device_unlock_policy_test_get_unlock_token);
+TEST (secure_device_unlock_policy_test_get_unlock_token_different_counter);
+TEST (secure_device_unlock_policy_test_get_unlock_token_static_init);
+TEST (secure_device_unlock_policy_test_get_unlock_token_null);
+TEST (secure_device_unlock_policy_test_get_unlock_token_counter_error);
+TEST (secure_device_unlock_policy_test_get_unlock_token_unlocked);
+TEST (secure_device_unlock_policy_test_get_unlock_token_counter_exhausted);
+TEST (secure_device_unlock_policy_test_get_unlock_token_generate_error);
+TEST (secure_device_unlock_policy_test_get_unlock_token_mismatch_counter_lengths);
+TEST (secure_device_unlock_policy_test_apply_unlock_policy);
+TEST (secure_device_unlock_policy_test_apply_unlock_policy_static_init);
+TEST (secure_device_unlock_policy_test_apply_unlock_policy_null);
+TEST (secure_device_unlock_policy_test_apply_unlock_policy_authenticate_error);
+TEST (secure_device_unlock_policy_test_apply_unlock_policy_unlock_error);
+TEST (secure_device_unlock_policy_test_apply_unlock_policy_invalidate_error);
+TEST (secure_device_unlock_policy_test_clear_unlock_policy);
+TEST (secure_device_unlock_policy_test_clear_unlock_policy_static_init);
+TEST (secure_device_unlock_policy_test_clear_unlock_policy_null);
+TEST (secure_device_unlock_policy_test_clear_unlock_policy_invalidate_error);
+TEST (secure_device_unlock_policy_test_clear_unlock_policy_lock_error);
 
 TEST_SUITE_END;

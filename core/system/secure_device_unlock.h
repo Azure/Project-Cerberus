@@ -7,19 +7,17 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
-#include "system/device_unlock_token.h"
-#include "system/security_manager.h"
 
 
 /**
- * Handles requests to unlock the device for development or debug through application of an unlock
- * policy.
+ * Handles requests for authenticated device unlock flows.  What functionality is being unlocked
+ * depends on the context in which the requests are being executed.
  */
 struct secure_device_unlock {
 	/**
-	 * Get an authorization token that can be used to unlock the device.  Only one authorization
-	 * token will be valid at a time.  Requesting a new token will invalidate any previously
-	 * requested token.
+	 * Get an authorization token that can be used to unlock the device.  This token will generally
+	 * be used by an external entity to validate that the operation is allowed to be executed on the
+	 * device.
 	 *
 	 * @param unlock The device unlock handler to query.
 	 * @param token Output buffer for the unlock authorization token.
@@ -32,8 +30,10 @@ struct secure_device_unlock {
 		size_t length);
 
 	/**
-	 * Apply an authenticated unlock policy to a device.  The authenticated policy must include the
-	 * current authorization token and be signed by a trusted key for it to be considered valid.
+	 * Apply an authenticated unlock policy to a device.  The contents of the unlock policy will be
+	 * determined by the functionality that is being unlocked.  Policy authentication will generally
+	 * require signing with a trusted key by an external entity and will typically additionally
+	 * require information from the unlock token.
 	 *
 	 * @param unlock The device unlock handler for the unlock policy.
 	 * @param policy The unlock policy that should be authenticated and applied.
@@ -52,15 +52,7 @@ struct secure_device_unlock {
 	 * @param 0 if the unlock policy has been cleared successfully or an error code.
 	 */
 	int (*clear_unlock_policy) (const struct secure_device_unlock *unlock);
-
-	const struct device_unlock_token *token;	/**< Token handler for authenticating unlock operations. */
-	const struct security_manager *manager;		/**< Security manager for executing unlock operations. */
 };
-
-
-int secure_device_unlock_init (struct secure_device_unlock *unlock,
-	const struct device_unlock_token *token, const struct security_manager *manager);
-void secure_device_unlock_release (const struct secure_device_unlock *unlock);
 
 
 #define	SECURE_DEVICE_UNLOCK_ERROR(code)		ROT_ERROR (ROT_MODULE_SECURE_DEVICE_UNLOCK, code)
@@ -76,6 +68,7 @@ enum {
 	SECURE_DEVICE_UNLOCK_CLEAR_POLICY_FAILED = SECURE_DEVICE_UNLOCK_ERROR (0x04),	/**< Failed to clear an unlock policy. */
 	SECURE_DEVICE_UNLOCK_NOT_LOCKED = SECURE_DEVICE_UNLOCK_ERROR (0x05),			/**< Attempt to unlock an unlocked device. */
 	SECURE_DEVICE_UNLOCK_COUNTER_EXHAUSTED = SECURE_DEVICE_UNLOCK_ERROR (0x06),		/**< The device unlock counter has reached the max value. */
+	SECURE_DEVICE_UNLOCK_UNSUPPORTED = SECURE_DEVICE_UNLOCK_ERROR (0x07),			/**< The requested operation is not supported. */
 };
 
 

@@ -45,11 +45,11 @@ static void add_all_system_tests (CuSuite *suite)
 	!defined TESTING_SKIP_REAL_TIME_CLOCK_SUITE
 	TESTING_RUN_SUITE (real_time_clock);
 #endif
-#if (defined TESTING_RUN_SECURE_DEVICE_UNLOCK_SUITE || \
+#if (defined TESTING_RUN_SECURE_DEVICE_UNLOCK_POLICY_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_SECURE_DEVICE_UNLOCK_SUITE
-	TESTING_RUN_SUITE (secure_device_unlock);
+	!defined TESTING_SKIP_SECURE_DEVICE_UNLOCK_POLICY_SUITE
+	TESTING_RUN_SUITE (secure_device_unlock_policy);
 #endif
 #if (defined TESTING_RUN_SECURITY_MANAGER_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
