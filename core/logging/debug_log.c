@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "debug_log.h"
 #include "platform_api.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
 
 
@@ -35,6 +36,7 @@ int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_ind
 {
 #ifdef LOGGING_SUPPORT_DEBUG_LOG
 	struct debug_log_entry_info entry;
+	uint64_t msg_time = 0;
 
 	if (debug_log == NULL) {
 		return LOGGING_NO_LOG_AVAILABLE;
@@ -44,16 +46,17 @@ int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_ind
 		return LOGGING_UNSUPPORTED_SEVERITY;
 	}
 
-	entry.format = DEBUG_LOG_ENTRY_FORMAT;
+	if (debug_timestamp != NULL) {
+		debug_timestamp->get_time (debug_timestamp, &msg_time);
+	}
+
+	buffer_unaligned_write16 (&entry.format, DEBUG_LOG_ENTRY_FORMAT);
 	entry.severity = severity;
 	entry.component = component;
 	entry.msg_index = msg_index;
-	entry.arg1 = arg1;
-	entry.arg2 = arg2;
-	entry.time = 0;
-	if (debug_timestamp != NULL) {
-		debug_timestamp->get_time (debug_timestamp, &entry.time);
-	}
+	buffer_unaligned_write32 (&entry.arg1, arg1);
+	buffer_unaligned_write32 (&entry.arg2, arg2);
+	buffer_unaligned_write64 (&entry.time, msg_time);
 
 	return debug_log->create_entry (debug_log, (uint8_t*) &entry, sizeof (entry));
 #else

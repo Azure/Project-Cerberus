@@ -15,7 +15,7 @@ TEST_SUITE_LABEL ("buffer_util");
  * Data block containing sequential bytes to evaluate unaligned data access at different offsets.
  */
 static const uint8_t BUFFER_TESTING_UNALIGNED_DATA[] = {
-	0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+	0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
 };
 
 
@@ -1141,6 +1141,132 @@ static void buffer_unaligned_test_copy32_unaligned_dst (CuTest *test)
 	CuAssertIntEquals (test, 0x04, value[6]);
 }
 
+static void buffer_unaligned_test_copy64_unaligned_src (CuTest *test)
+{
+	uint64_t value = 0;
+
+	TEST_START;
+
+	buffer_unaligned_copy64 (&value, (const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[0]);
+	CuAssertInt64Equals (test, 0x0807060504030201, value);
+
+	buffer_unaligned_copy64 (&value, (const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[1]);
+	CuAssertInt64Equals (test, 0x0908070605040302, value);
+
+	buffer_unaligned_copy64 (&value, (const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[2]);
+	CuAssertInt64Equals (test, 0x0a09080706050403, value);
+
+	buffer_unaligned_copy64 (&value, (const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[3]);
+	CuAssertInt64Equals (test, 0x0b0a090807060504, value);
+
+	buffer_unaligned_copy64 (&value, (const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[4]);
+	CuAssertInt64Equals (test, 0x0c0b0a0908070605, value);
+
+	buffer_unaligned_copy64 (&value, (const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[5]);
+	CuAssertInt64Equals (test, 0x0d0c0b0a09080706, value);
+
+	buffer_unaligned_copy64 (&value, (const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[6]);
+	CuAssertInt64Equals (test, 0x0e0d0c0b0a090807, value);
+
+	buffer_unaligned_copy64 (&value, (const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[7]);
+	CuAssertInt64Equals (test, 0x0f0e0d0c0b0a0908, value);
+}
+
+static void buffer_unaligned_test_copy64_unaligned_dst (CuTest *test)
+{
+	uint8_t value[15] = {0};
+
+	TEST_START;
+
+	buffer_unaligned_copy64 ((uint64_t*) &value[0],
+		(const uint64_t*) BUFFER_TESTING_UNALIGNED_DATA);
+	CuAssertIntEquals (test, 0x01, value[0]);
+	CuAssertIntEquals (test, 0x02, value[1]);
+	CuAssertIntEquals (test, 0x03, value[2]);
+	CuAssertIntEquals (test, 0x04, value[3]);
+	CuAssertIntEquals (test, 0x05, value[4]);
+	CuAssertIntEquals (test, 0x06, value[5]);
+	CuAssertIntEquals (test, 0x07, value[6]);
+	CuAssertIntEquals (test, 0x08, value[7]);
+
+	buffer_unaligned_copy64 ((uint64_t*) &value[1],
+		(const uint64_t*) BUFFER_TESTING_UNALIGNED_DATA);
+	CuAssertIntEquals (test, 0x01, value[1]);
+	CuAssertIntEquals (test, 0x02, value[2]);
+	CuAssertIntEquals (test, 0x03, value[3]);
+	CuAssertIntEquals (test, 0x04, value[4]);
+	CuAssertIntEquals (test, 0x05, value[5]);
+	CuAssertIntEquals (test, 0x06, value[6]);
+	CuAssertIntEquals (test, 0x07, value[7]);
+	CuAssertIntEquals (test, 0x08, value[8]);
+
+	buffer_unaligned_copy64 ((uint64_t*) &value[2],
+		(const uint64_t*) BUFFER_TESTING_UNALIGNED_DATA);
+	CuAssertIntEquals (test, 0x01, value[2]);
+	CuAssertIntEquals (test, 0x02, value[3]);
+	CuAssertIntEquals (test, 0x03, value[4]);
+	CuAssertIntEquals (test, 0x04, value[5]);
+	CuAssertIntEquals (test, 0x05, value[6]);
+	CuAssertIntEquals (test, 0x06, value[7]);
+	CuAssertIntEquals (test, 0x07, value[8]);
+	CuAssertIntEquals (test, 0x08, value[9]);
+
+	buffer_unaligned_copy64 ((uint64_t*) &value[3],
+		(const uint64_t*) BUFFER_TESTING_UNALIGNED_DATA);
+	CuAssertIntEquals (test, 0x01, value[3]);
+	CuAssertIntEquals (test, 0x02, value[4]);
+	CuAssertIntEquals (test, 0x03, value[5]);
+	CuAssertIntEquals (test, 0x04, value[6]);
+	CuAssertIntEquals (test, 0x05, value[7]);
+	CuAssertIntEquals (test, 0x06, value[8]);
+	CuAssertIntEquals (test, 0x07, value[9]);
+	CuAssertIntEquals (test, 0x08, value[10]);
+
+	buffer_unaligned_copy64 ((uint64_t*) &value[4],
+		(const uint64_t*) BUFFER_TESTING_UNALIGNED_DATA);
+	CuAssertIntEquals (test, 0x01, value[4]);
+	CuAssertIntEquals (test, 0x02, value[5]);
+	CuAssertIntEquals (test, 0x03, value[6]);
+	CuAssertIntEquals (test, 0x04, value[7]);
+	CuAssertIntEquals (test, 0x05, value[8]);
+	CuAssertIntEquals (test, 0x06, value[9]);
+	CuAssertIntEquals (test, 0x07, value[10]);
+	CuAssertIntEquals (test, 0x08, value[11]);
+
+	buffer_unaligned_copy64 ((uint64_t*) &value[5],
+		(const uint64_t*) BUFFER_TESTING_UNALIGNED_DATA);
+	CuAssertIntEquals (test, 0x01, value[5]);
+	CuAssertIntEquals (test, 0x02, value[6]);
+	CuAssertIntEquals (test, 0x03, value[7]);
+	CuAssertIntEquals (test, 0x04, value[8]);
+	CuAssertIntEquals (test, 0x05, value[9]);
+	CuAssertIntEquals (test, 0x06, value[10]);
+	CuAssertIntEquals (test, 0x07, value[11]);
+	CuAssertIntEquals (test, 0x08, value[12]);
+
+	buffer_unaligned_copy64 ((uint64_t*) &value[6],
+		(const uint64_t*) BUFFER_TESTING_UNALIGNED_DATA);
+	CuAssertIntEquals (test, 0x01, value[6]);
+	CuAssertIntEquals (test, 0x02, value[7]);
+	CuAssertIntEquals (test, 0x03, value[8]);
+	CuAssertIntEquals (test, 0x04, value[9]);
+	CuAssertIntEquals (test, 0x05, value[10]);
+	CuAssertIntEquals (test, 0x06, value[11]);
+	CuAssertIntEquals (test, 0x07, value[12]);
+	CuAssertIntEquals (test, 0x08, value[13]);
+
+	buffer_unaligned_copy64 ((uint64_t*) &value[7],
+		(const uint64_t*) BUFFER_TESTING_UNALIGNED_DATA);
+	CuAssertIntEquals (test, 0x01, value[7]);
+	CuAssertIntEquals (test, 0x02, value[8]);
+	CuAssertIntEquals (test, 0x03, value[9]);
+	CuAssertIntEquals (test, 0x04, value[10]);
+	CuAssertIntEquals (test, 0x05, value[11]);
+	CuAssertIntEquals (test, 0x06, value[12]);
+	CuAssertIntEquals (test, 0x07, value[13]);
+	CuAssertIntEquals (test, 0x08, value[14]);
+}
+
 static void buffer_unaligned_test_read16 (CuTest *test)
 {
 	uint16_t value;
@@ -1171,6 +1297,37 @@ static void buffer_unaligned_test_read32 (CuTest *test)
 
 	value = buffer_unaligned_read32 ((const uint32_t*) &BUFFER_TESTING_UNALIGNED_DATA[3]);
 	CuAssertIntEquals (test, 0x07060504, value);
+}
+
+static void buffer_unaligned_test_read64 (CuTest *test)
+{
+	uint64_t value;
+
+	TEST_START;
+
+	value = buffer_unaligned_read64 ((const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[0]);
+	CuAssertInt64Equals (test, 0x0807060504030201, value);
+
+	value = buffer_unaligned_read64 ((const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[1]);
+	CuAssertInt64Equals (test, 0x0908070605040302, value);
+
+	value = buffer_unaligned_read64 ((const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[2]);
+	CuAssertInt64Equals (test, 0x0a09080706050403, value);
+
+	value = buffer_unaligned_read64 ((const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[3]);
+	CuAssertInt64Equals (test, 0x0b0a090807060504, value);
+
+	value = buffer_unaligned_read64 ((const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[4]);
+	CuAssertInt64Equals (test, 0x0c0b0a0908070605, value);
+
+	value = buffer_unaligned_read64 ((const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[5]);
+	CuAssertInt64Equals (test, 0x0d0c0b0a09080706, value);
+
+	value = buffer_unaligned_read64 ((const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[6]);
+	CuAssertInt64Equals (test, 0x0e0d0c0b0a090807, value);
+
+	value = buffer_unaligned_read64 ((const uint64_t*) &BUFFER_TESTING_UNALIGNED_DATA[7]);
+	CuAssertInt64Equals (test, 0x0f0e0d0c0b0a0908, value);
 }
 
 static void buffer_unaligned_test_write16 (CuTest *test)
@@ -1217,6 +1374,93 @@ static void buffer_unaligned_test_write32 (CuTest *test)
 	CuAssertIntEquals (test, 0x02, value[4]);
 	CuAssertIntEquals (test, 0x03, value[5]);
 	CuAssertIntEquals (test, 0x04, value[6]);
+}
+
+static void buffer_unaligned_test_write64 (CuTest *test)
+{
+	uint8_t value[15] = {0};
+
+	TEST_START;
+
+	buffer_unaligned_write64 ((uint64_t*) &value[0], 0x0807060504030201);
+	CuAssertIntEquals (test, 0x01, value[0]);
+	CuAssertIntEquals (test, 0x02, value[1]);
+	CuAssertIntEquals (test, 0x03, value[2]);
+	CuAssertIntEquals (test, 0x04, value[3]);
+	CuAssertIntEquals (test, 0x05, value[4]);
+	CuAssertIntEquals (test, 0x06, value[5]);
+	CuAssertIntEquals (test, 0x07, value[6]);
+	CuAssertIntEquals (test, 0x08, value[7]);
+
+	buffer_unaligned_write64 ((uint64_t*) &value[1], 0x0807060504030201);
+	CuAssertIntEquals (test, 0x01, value[1]);
+	CuAssertIntEquals (test, 0x02, value[2]);
+	CuAssertIntEquals (test, 0x03, value[3]);
+	CuAssertIntEquals (test, 0x04, value[4]);
+	CuAssertIntEquals (test, 0x05, value[5]);
+	CuAssertIntEquals (test, 0x06, value[6]);
+	CuAssertIntEquals (test, 0x07, value[7]);
+	CuAssertIntEquals (test, 0x08, value[8]);
+
+	buffer_unaligned_write64 ((uint64_t*) &value[2], 0x0807060504030201);
+	CuAssertIntEquals (test, 0x01, value[2]);
+	CuAssertIntEquals (test, 0x02, value[3]);
+	CuAssertIntEquals (test, 0x03, value[4]);
+	CuAssertIntEquals (test, 0x04, value[5]);
+	CuAssertIntEquals (test, 0x05, value[6]);
+	CuAssertIntEquals (test, 0x06, value[7]);
+	CuAssertIntEquals (test, 0x07, value[8]);
+	CuAssertIntEquals (test, 0x08, value[9]);
+
+	buffer_unaligned_write64 ((uint64_t*) &value[3], 0x0807060504030201);
+	CuAssertIntEquals (test, 0x01, value[3]);
+	CuAssertIntEquals (test, 0x02, value[4]);
+	CuAssertIntEquals (test, 0x03, value[5]);
+	CuAssertIntEquals (test, 0x04, value[6]);
+	CuAssertIntEquals (test, 0x05, value[7]);
+	CuAssertIntEquals (test, 0x06, value[8]);
+	CuAssertIntEquals (test, 0x07, value[9]);
+	CuAssertIntEquals (test, 0x08, value[10]);
+
+	buffer_unaligned_write64 ((uint64_t*) &value[4], 0x0807060504030201);
+	CuAssertIntEquals (test, 0x01, value[4]);
+	CuAssertIntEquals (test, 0x02, value[5]);
+	CuAssertIntEquals (test, 0x03, value[6]);
+	CuAssertIntEquals (test, 0x04, value[7]);
+	CuAssertIntEquals (test, 0x05, value[8]);
+	CuAssertIntEquals (test, 0x06, value[9]);
+	CuAssertIntEquals (test, 0x07, value[10]);
+	CuAssertIntEquals (test, 0x08, value[11]);
+
+	buffer_unaligned_write64 ((uint64_t*) &value[5], 0x0807060504030201);
+	CuAssertIntEquals (test, 0x01, value[5]);
+	CuAssertIntEquals (test, 0x02, value[6]);
+	CuAssertIntEquals (test, 0x03, value[7]);
+	CuAssertIntEquals (test, 0x04, value[8]);
+	CuAssertIntEquals (test, 0x05, value[9]);
+	CuAssertIntEquals (test, 0x06, value[10]);
+	CuAssertIntEquals (test, 0x07, value[11]);
+	CuAssertIntEquals (test, 0x08, value[12]);
+
+	buffer_unaligned_write64 ((uint64_t*) &value[6], 0x0807060504030201);
+	CuAssertIntEquals (test, 0x01, value[6]);
+	CuAssertIntEquals (test, 0x02, value[7]);
+	CuAssertIntEquals (test, 0x03, value[8]);
+	CuAssertIntEquals (test, 0x04, value[9]);
+	CuAssertIntEquals (test, 0x05, value[10]);
+	CuAssertIntEquals (test, 0x06, value[11]);
+	CuAssertIntEquals (test, 0x07, value[12]);
+	CuAssertIntEquals (test, 0x08, value[13]);
+
+	buffer_unaligned_write64 ((uint64_t*) &value[7], 0x0807060504030201);
+	CuAssertIntEquals (test, 0x01, value[7]);
+	CuAssertIntEquals (test, 0x02, value[8]);
+	CuAssertIntEquals (test, 0x03, value[9]);
+	CuAssertIntEquals (test, 0x04, value[10]);
+	CuAssertIntEquals (test, 0x05, value[11]);
+	CuAssertIntEquals (test, 0x06, value[12]);
+	CuAssertIntEquals (test, 0x07, value[13]);
+	CuAssertIntEquals (test, 0x08, value[14]);
 }
 
 
@@ -1278,9 +1522,13 @@ TEST (buffer_unaligned_test_copy16_unaligned_src);
 TEST (buffer_unaligned_test_copy16_unaligned_dst);
 TEST (buffer_unaligned_test_copy32_unaligned_src);
 TEST (buffer_unaligned_test_copy32_unaligned_dst);
+TEST (buffer_unaligned_test_copy64_unaligned_src);
+TEST (buffer_unaligned_test_copy64_unaligned_dst);
 TEST (buffer_unaligned_test_read16);
 TEST (buffer_unaligned_test_read32);
+TEST (buffer_unaligned_test_read64);
 TEST (buffer_unaligned_test_write16);
 TEST (buffer_unaligned_test_write32);
+TEST (buffer_unaligned_test_write64);
 
 TEST_SUITE_END;
