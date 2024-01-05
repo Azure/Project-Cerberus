@@ -7,6 +7,7 @@
 #include "secure_device_unlock_rma.h"
 
 
+/* Internal functions declared to allow for static initialization. */
 int secure_device_unlock_rma_get_unlock_token (const struct secure_device_unlock *unlock,
 	uint8_t *token, size_t length);
 int secure_device_unlock_rma_apply_unlock_policy (const struct secure_device_unlock *unlock,
