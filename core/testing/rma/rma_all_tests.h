@@ -21,6 +21,12 @@ static void add_all_rma_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
+#if (defined TESTING_RUN_CMD_INTERFACE_RMA_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_INTERFACE_RMA_SUITE
+	TESTING_RUN_SUITE (cmd_interface_rma);
+#endif
 #if (defined TESTING_RUN_RMA_UNLOCK_TOKEN_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

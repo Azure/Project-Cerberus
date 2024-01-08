@@ -93,6 +93,12 @@ static void add_all_cmd_interface_tests (CuSuite *suite)
 	!defined TESTING_SKIP_CMD_INTERFACE_DUAL_CMD_SET_SUITE
 	TESTING_RUN_SUITE (cmd_interface_dual_cmd_set);
 #endif
+#if (defined TESTING_RUN_CMD_INTERFACE_NULL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_INTERFACE_NULL_SUITE
+	TESTING_RUN_SUITE (cmd_interface_null);
+#endif
 #if (defined TESTING_RUN_CMD_INTERFACE_SPDM_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
