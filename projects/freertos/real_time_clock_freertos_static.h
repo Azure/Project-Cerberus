@@ -21,7 +21,8 @@ int real_time_clock_freertos_get_time (const struct real_time_clock *rtc, uint64
  * There is no validation done on the arguments.
  */
 #define real_time_clock_freertos_static_init() { \
-		.base = real_time_clock_static_init (real_time_clock_freertos_get_time, NULL), \
+		.base = real_time_clock_static_init (real_time_clock_freertos_get_time, \
+			real_time_clock_set_time_unsupported), \
 	}
 
 
