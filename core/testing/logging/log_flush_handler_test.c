@@ -15,6 +15,12 @@ TEST_SUITE_LABEL ("log_flush_handler");
 
 
 /**
+ * Maximum expected length of time consumed until the next handler can execute.
+ */
+#define LOG_FLUSH_HANDLER_TESTING_NEXT_THRESHOLD_MS		100
+
+
+/**
  * Dependencies for testing.
  */
 struct log_flush_handler_testing {
@@ -256,7 +262,7 @@ static void log_flush_handler_test_get_next_execution (CuTest *test)
 	status = platform_get_timeout_remaining (next_time, &msec);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertTrue (test, (msec <= 1000));
-	CuAssertTrue (test, (msec > 950));	/* Apply reasonable bounds for testing. */
+	CuAssertTrue (test, (msec > (1000 - LOG_FLUSH_HANDLER_TESTING_NEXT_THRESHOLD_MS)));	/* Apply reasonable bounds for testing. */
 
 	log_flush_handler_testing_validate_and_release (test, &handler);
 }
@@ -336,7 +342,7 @@ static void log_flush_handler_test_execute (CuTest *test)
 	status = platform_get_timeout_remaining (next_time, &msec);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertTrue (test, (msec <= 1000));
-	CuAssertTrue (test, (msec > 950));	/* Apply reasonable bounds for testing. */
+	CuAssertTrue (test, (msec > (1000 - LOG_FLUSH_HANDLER_TESTING_NEXT_THRESHOLD_MS)));	/* Apply reasonable bounds for testing. */
 
 	log_flush_handler_testing_validate_and_release (test, &handler);
 }
@@ -373,7 +379,7 @@ static void log_flush_handler_test_execute_multiple_logs (CuTest *test)
 	status = platform_get_timeout_remaining (next_time, &msec);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertTrue (test, (msec <= 1000));
-	CuAssertTrue (test, (msec > 950));	/* Apply reasonable bounds for testing. */
+	CuAssertTrue (test, (msec > (1000 - LOG_FLUSH_HANDLER_TESTING_NEXT_THRESHOLD_MS)));	/* Apply reasonable bounds for testing. */
 
 	log_flush_handler_testing_validate_and_release (test, &handler);
 }
