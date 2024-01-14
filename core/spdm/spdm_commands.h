@@ -10,7 +10,17 @@
 #include "cmd_interface/cmd_interface.h"
 #include "crypto/hash.h"
 #include "spdm_protocol.h"
+#include "platform_config.h"
 
+
+/* Configurable parameters. Defaults can be overridden in platform_config.h. */
+
+/**
+ * Maximum number of SPDM sessions supported.
+ */
+#ifndef SPDM_MAX_SESSION_COUNT
+#define SPDM_MAX_SESSION_COUNT	1
+#endif
 
 /**
  * Capabilities of SPDM requester. Capabilities described in section 10.3 in DSP0274 SPDM spec.

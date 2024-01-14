@@ -39,6 +39,7 @@ enum hash_type {
 	HASH_TYPE_SHA256,					/**< SHA2-256 hash */
 	HASH_TYPE_SHA384,					/**< SHA2-384 hash */
 	HASH_TYPE_SHA512,					/**< SHA2-512 hash */
+	HASH_TYPE_INVALID,					/**< Invalid hash type. */
 };
 
 /* Definitions of hash engine state for internal implementation use, as necessary.  These map to

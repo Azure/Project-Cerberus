@@ -24,6 +24,7 @@
 #include "recovery/recovery_all_tests.h"
 #include "riot/riot_all_tests.h"
 #include "rma/rma_all_tests.h"
+#include "spdm/spdm_all_tests.h"
 #include "spi_filter/spi_filter_all_tests.h"
 #include "state_manager/state_manager_all_tests.h"
 #include "system/system_all_tests.h"
@@ -57,6 +58,7 @@ void add_all_core_tests (CuSuite *suite)
 	add_all_recovery_tests (suite);
 	add_all_riot_tests (suite);
 	add_all_rma_tests (suite);
+	add_all_spdm_tests (suite);
 	add_all_spi_filter_tests (suite);
 	add_all_state_manager_tests (suite);
 	add_all_system_tests (suite);

@@ -123,4 +123,19 @@
 // #define DOE_MESSAGE_PLATFORM_MAX_SIZE_IN_BYTES		0x00100000
 
 
+/********************
+ * SPDM protocol
+ ********************/
+
+/**
+ * Maximum number of SPDM sessions supported.
+ */
+// #define SPDM_MAX_SESSION_COUNT		1
+
+/**
+ * Buffer size for storing Version, Capabilities, Algorithms SPDM messages.
+ */
+// #define SPDM_TRANSCRIPT_MANAGER_VCA_BUFFER_MAX_SIZE		0x100
+
+
 #endif /* PLATFORM_CONFIG_H_ */

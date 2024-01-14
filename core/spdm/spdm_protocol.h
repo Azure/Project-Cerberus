@@ -27,6 +27,19 @@
 
 #define SPDM_MAX_RESPONSE_TIMEOUT_MS				100
 
+/**
+ * Create an SPDM version from major and minor versions.
+ *
+ * @param max_ver SPDM major version.
+ * @param min_ver SPDM minor version.
+ */
+#define SPDM_MAKE_VERSION(major, minor)		((major << 4) | minor)
+
+/**
+ * Supported SPDM versions.
+ */
+#define SPDM_VERSION_1_1		SPDM_MAKE_VERSION (1, 1)
+#define SPDM_VERSION_1_2		SPDM_MAKE_VERSION (1, 2)
 
 #pragma pack(push, 1)
 /**
