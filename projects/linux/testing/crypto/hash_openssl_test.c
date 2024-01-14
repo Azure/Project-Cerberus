@@ -44,6 +44,7 @@ static void hash_openssl_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.update);
 	CuAssertPtrNotNull (test, engine.base.finish);
 	CuAssertPtrNotNull (test, engine.base.cancel);
+	CuAssertPtrNotNull (test, engine.base.get_hash);
 
 	hash_openssl_release (&engine);
 }
@@ -680,6 +681,26 @@ static void hash_openssl_test_sha1_finish_small_hash_buffer (CuTest *test)
 
 	hash_openssl_release (&engine);
 }
+
+static void hash_openssl_test_sha1_get_hash (CuTest *test)
+{
+	struct hash_engine_openssl engine;
+	int status;
+	uint8_t hash[SHA1_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha1 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_OPERATION, status);
+
+	hash_openssl_release (&engine);
+}
 #endif
 
 static void hash_openssl_test_sha256_incremental (CuTest *test)
@@ -1293,6 +1314,26 @@ static void hash_openssl_test_sha256_finish_small_hash_buffer (CuTest *test)
 
 	status = testing_validate_array (SHA256_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	hash_openssl_release (&engine);
+}
+
+static void hash_openssl_test_sha256_get_hash (CuTest *test)
+{
+	struct hash_engine_openssl engine;
+	int status;
+	uint8_t hash[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_OPERATION, status);
 
 	hash_openssl_release (&engine);
 }
@@ -1912,6 +1953,26 @@ static void hash_openssl_test_sha384_finish_small_hash_buffer (CuTest *test)
 
 	hash_openssl_release (&engine);
 }
+
+static void hash_openssl_test_sha384_get_hash (CuTest *test)
+{
+	struct hash_engine_openssl engine;
+	int status;
+	uint8_t hash[SHA384_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha384 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_OPERATION, status);
+
+	hash_openssl_release (&engine);
+}
 #endif
 
 #ifdef HASH_ENABLE_SHA512
@@ -2526,6 +2587,26 @@ static void hash_openssl_test_sha512_finish_small_hash_buffer (CuTest *test)
 
 	status = testing_validate_array (SHA512_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	hash_openssl_release (&engine);
+}
+
+static void hash_openssl_test_sha512_get_hash (CuTest *test)
+{
+	struct hash_engine_openssl engine;
+	int status;
+	uint8_t hash[SHA512_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_openssl_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha512 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_OPERATION, status);
 
 	hash_openssl_release (&engine);
 }
@@ -3334,6 +3415,7 @@ TEST (hash_openssl_test_sha1_start_without_finish);
 TEST (hash_openssl_test_sha1_update_after_finish);
 TEST (hash_openssl_test_sha1_finish_after_finish);
 TEST (hash_openssl_test_sha1_finish_small_hash_buffer);
+TEST (hash_openssl_test_sha1_get_hash);
 #endif
 TEST (hash_openssl_test_sha256_incremental);
 TEST (hash_openssl_test_sha256_incremental_multi);
@@ -3356,6 +3438,7 @@ TEST (hash_openssl_test_sha256_start_without_finish);
 TEST (hash_openssl_test_sha256_update_after_finish);
 TEST (hash_openssl_test_sha256_finish_after_finish);
 TEST (hash_openssl_test_sha256_finish_small_hash_buffer);
+TEST (hash_openssl_test_sha256_get_hash);
 #ifdef HASH_ENABLE_SHA384
 TEST (hash_openssl_test_sha384_incremental);
 TEST (hash_openssl_test_sha384_incremental_multi);
@@ -3378,6 +3461,7 @@ TEST (hash_openssl_test_sha384_start_without_finish);
 TEST (hash_openssl_test_sha384_update_after_finish);
 TEST (hash_openssl_test_sha384_finish_after_finish);
 TEST (hash_openssl_test_sha384_finish_small_hash_buffer);
+TEST (hash_openssl_test_sha384_get_hash);
 #endif
 #ifdef HASH_ENABLE_SHA512
 TEST (hash_openssl_test_sha512_incremental);
@@ -3401,6 +3485,7 @@ TEST (hash_openssl_test_sha512_start_without_finish);
 TEST (hash_openssl_test_sha512_update_after_finish);
 TEST (hash_openssl_test_sha512_finish_after_finish);
 TEST (hash_openssl_test_sha512_finish_small_hash_buffer);
+TEST (hash_openssl_test_sha512_get_hash);
 #endif
 TEST (hash_openssl_test_incremental_update_null);
 TEST (hash_openssl_test_incremental_update_no_start);

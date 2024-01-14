@@ -42,6 +42,7 @@ static void hash_thread_safe_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.update);
 	CuAssertPtrNotNull (test, engine.base.finish);
 	CuAssertPtrNotNull (test, engine.base.cancel);
+	CuAssertPtrNotNull (test, engine.base.get_hash);
 
 	status = hash_mock_validate_and_release (&mock);
 	CuAssertIntEquals (test, 0, status);
@@ -1092,6 +1093,124 @@ static void hash_thread_safe_test_cancel_null (CuTest *test)
 	hash_thread_safe_release (&engine);
 }
 
+static void hash_thread_safe_test_get_hash (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+	uint8_t hash[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.start_sha256, &mock, 0);
+	status |= mock_expect (&mock.mock, mock.base.get_hash, &mock, 0, MOCK_ARG_PTR (hash),
+		MOCK_ARG (sizeof (hash)));
+	status |= mock_expect (&mock.mock, mock.base.cancel, &mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.cancel (&engine.base);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_get_hash_error (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+	uint8_t hash[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.start_sha256, &mock, 0);
+	status = mock_expect (&mock.mock, mock.base.get_hash, &mock, HASH_ENGINE_GET_HASH_FAILED,
+		MOCK_ARG_PTR (hash), MOCK_ARG (sizeof (hash)));
+	status |= mock_expect (&mock.mock, mock.base.cancel, &mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_GET_HASH_FAILED, status);
+
+	engine.base.cancel (&engine.base);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
+static void hash_thread_safe_test_get_hash_null (CuTest *test)
+{
+	struct hash_engine_thread_safe engine;
+	struct hash_engine_mock mock;
+	int status;
+	uint8_t hash[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mock_init (&mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_thread_safe_init (&engine, &mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mock.mock, mock.base.start_sha256, &mock, 0);
+	status |= mock_expect (&mock.mock, mock.base.cancel, &mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_hash (NULL, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	engine.base.cancel (&engine.base);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Check lock has been released. */
+	engine.base.start_sha256 (&engine.base);
+
+	hash_mock_release (&mock);
+	hash_thread_safe_release (&engine);
+}
+
 
 TEST_SUITE_START (hash_thread_safe);
 
@@ -1129,5 +1248,8 @@ TEST (hash_thread_safe_test_finish);
 TEST (hash_thread_safe_test_finish_error);
 TEST (hash_thread_safe_test_finish_null);
 TEST (hash_thread_safe_test_cancel_null);
+TEST (hash_thread_safe_test_get_hash);
+TEST (hash_thread_safe_test_get_hash_error);
+TEST (hash_thread_safe_test_get_hash_null);
 
 TEST_SUITE_END;

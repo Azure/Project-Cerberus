@@ -247,6 +247,62 @@ static int hash_mbedtls_update (struct hash_engine *engine, const uint8_t *data,
 	return status;
 }
 
+static int hash_mbedtls_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+{
+	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
+	int status;
+	struct hash_engine_mbedtls mbedtls_clone;
+
+	if ((mbedtls == NULL) || (hash == NULL)) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	switch (mbedtls->active) {
+#ifdef HASH_ENABLE_SHA1
+		case HASH_ACTIVE_SHA1:
+			if (hash_length < SHA1_HASH_LENGTH) {
+				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+			}
+
+			mbedtls_sha1_init (&mbedtls_clone.context.sha1);
+			mbedtls_sha1_clone (&mbedtls_clone.context.sha1, &mbedtls->context.sha1);
+			status = mbedtls_sha1_finish_ret (&mbedtls_clone.context.sha1, hash);
+			break;
+#endif
+
+		case HASH_ACTIVE_SHA256:
+			if (hash_length < SHA256_HASH_LENGTH) {
+				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+			}
+
+			mbedtls_sha256_init (&mbedtls_clone.context.sha256);
+			mbedtls_sha256_clone (&mbedtls_clone.context.sha256, &mbedtls->context.sha256);
+			status = mbedtls_sha256_finish_ret (&mbedtls_clone.context.sha256, hash);
+			break;
+
+#if defined HASH_ENABLE_SHA384 || defined HASH_ENABLE_SHA512
+		case HASH_ACTIVE_SHA384:
+		case HASH_ACTIVE_SHA512:
+			if (((mbedtls->active == HASH_ACTIVE_SHA512) && (hash_length < SHA512_HASH_LENGTH))||
+				((mbedtls->active == HASH_ACTIVE_SHA384) && (hash_length < SHA384_HASH_LENGTH))) {
+				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+			}
+
+			mbedtls_sha512_init (&mbedtls_clone.context.sha512);
+			mbedtls_sha512_clone (&mbedtls_clone.context.sha512, &mbedtls->context.sha512);
+			status = mbedtls_sha512_finish_ret (&mbedtls_clone.context.sha512, hash);
+			break;
+#endif
+
+		default:
+			return HASH_ENGINE_NO_ACTIVE_HASH;
+	}
+
+	hash_mbedtls_free_context (&mbedtls_clone);
+
+	return status;
+}
+
 static int hash_mbedtls_finish (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
 {
 	struct hash_engine_mbedtls *mbedtls = (struct hash_engine_mbedtls*) engine;
@@ -344,6 +400,7 @@ int hash_mbedtls_init (struct hash_engine_mbedtls *engine)
 	engine->base.start_sha512 = hash_mbedtls_start_sha512;
 #endif
 	engine->base.update = hash_mbedtls_update;
+	engine->base.get_hash = hash_mbedtls_get_hash;
 	engine->base.finish = hash_mbedtls_finish;
 	engine->base.cancel = hash_mbedtls_cancel;
 

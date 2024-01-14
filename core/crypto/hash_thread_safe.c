@@ -195,6 +195,20 @@ static void hash_thread_safe_cancel (struct hash_engine *engine)
 	platform_mutex_unlock (&sha->lock);
 }
 
+static int hash_thread_safe_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+{
+	struct hash_engine_thread_safe *sha = (struct hash_engine_thread_safe*) engine;
+	int status;
+
+	if (sha == NULL) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	status = sha->engine->get_hash (sha->engine, hash, hash_length);
+
+	return status;
+}
+
 /**
  * Initialize a thread-safe wrapper for a hash engine.
  *
@@ -226,6 +240,7 @@ int hash_thread_safe_init (struct hash_engine_thread_safe *engine, struct hash_e
 	engine->base.start_sha512 = hash_thread_safe_start_sha512;
 #endif
 	engine->base.update = hash_thread_safe_update;
+	engine->base.get_hash = hash_thread_safe_get_hash;
 	engine->base.finish = hash_thread_safe_finish;
 	engine->base.cancel = hash_thread_safe_cancel;
 

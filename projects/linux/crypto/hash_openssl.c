@@ -306,6 +306,12 @@ static void hash_openssl_cancel (struct hash_engine *engine)
 	}
 }
 
+static int hash_openssl_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+{
+	/* [TODO] This operation is currently not supported and will be implemented at a later time. */
+	return HASH_ENGINE_UNSUPPORTED_OPERATION;
+}
+
 /**
  * Initialize an OpenSSL engine for calculating hashes.
  *
@@ -338,6 +344,7 @@ int hash_openssl_init (struct hash_engine_openssl *engine)
 	engine->base.update = hash_openssl_update;
 	engine->base.finish = hash_openssl_finish;
 	engine->base.cancel = hash_openssl_cancel;
+	engine->base.get_hash = hash_openssl_get_hash;
 
 	engine->active = HASH_ACTIVE_NONE;
 

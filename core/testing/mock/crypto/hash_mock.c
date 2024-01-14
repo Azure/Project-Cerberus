@@ -138,13 +138,26 @@ static void hash_mock_cancel (struct hash_engine *engine)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, hash_mock_cancel, engine);
 }
 
+static int hash_mock_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+{
+	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, hash_mock_get_hash, engine, MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_CALL (hash_length));
+}
+
 static int hash_mock_func_arg_count (void *func)
 {
 	if ((func == hash_mock_calculate_sha1) || (func == hash_mock_calculate_sha256) ||
 		(func == hash_mock_calculate_sha384) || (func == hash_mock_calculate_sha512)) {
 		return 4;
 	}
-	else if ((func == hash_mock_update) || (func == hash_mock_finish)) {
+	else if ((func == hash_mock_update) || (func == hash_mock_finish) ||
+		(func == hash_mock_get_hash)) {
 		return 2;
 	}
 	else {
@@ -186,6 +199,9 @@ static const char* hash_mock_func_name_map (void *func)
 	}
 	else if (func == hash_mock_cancel) {
 		return "cancel";
+	}
+	else if (func == hash_mock_get_hash) {
+		return "get_hash";
 	}
 	else {
 		return "unknown";
@@ -263,7 +279,7 @@ static const char* hash_mock_arg_name_map (void *func, int arg)
 				return "length";
 		}
 	}
-	else if (func == hash_mock_finish) {
+	else if ((func == hash_mock_finish) || (func == hash_mock_get_hash)) {
 		switch (arg) {
 			case 0:
 				return "hash";
@@ -317,6 +333,7 @@ int hash_mock_init (struct hash_engine_mock *mock)
 	mock->base.update = hash_mock_update;
 	mock->base.finish = hash_mock_finish;
 	mock->base.cancel = hash_mock_cancel;
+	mock->base.get_hash = hash_mock_get_hash;
 
 	mock->mock.func_arg_count = hash_mock_func_arg_count;
 	mock->mock.func_name_map = hash_mock_func_name_map;

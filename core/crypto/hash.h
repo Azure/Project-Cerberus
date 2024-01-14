@@ -184,6 +184,20 @@ struct hash_engine {
 	int (*update) (struct hash_engine *engine, const uint8_t *data, size_t length);
 
 	/**
+	 * Get the current hash.
+	 *
+	 * The hash engine is still in-progress after the call and must be either finished or 
+	 * canceled later.
+	 *
+	 * @param engine The hash engine to get the current hash from.
+	 * @param hash The buffer to hold the current hash.
+	 * @param hash_length The length of the hash buffer.
+	 *
+	 * @return 0 if the hash was retrieved successfully or an error code.
+	 */
+	int (*get_hash) (struct hash_engine *engine, uint8_t *hash, size_t hash_length);
+
+	/**
 	 * Complete the current hash operation and get the calculated digest.
 	 *
 	 * If a call to finish fails, finish MUST be called until it succeeds or the operation can be
@@ -286,6 +300,8 @@ enum {
 	HASH_ENGINE_UNKNOWN_HASH = HASH_ENGINE_ERROR (0x10),			/**< An unknown hash type was requested. */
 	HASH_ENGINE_HASH_IN_PROGRESS = HASH_ENGINE_ERROR (0x11),		/**< Attempt to start a new hash before finishing the previous one. */
 	HASH_ENGINE_SELF_TEST_FAILED = HASH_ENGINE_ERROR (0x12),		/**< An internal self-test of the hash engine failed. */
+	HASH_ENGINE_GET_HASH_FAILED = HASH_ENGINE_ERROR (0x13),			/**< Getting the hash failed. */
+	HASH_ENGINE_UNSUPPORTED_OPERATION = HASH_ENGINE_ERROR (0x14)	/**< The requested operation is not supported by the engine. */
 };
 
 

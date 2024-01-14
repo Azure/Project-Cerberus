@@ -44,6 +44,7 @@ static void hash_riot_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.update);
 	CuAssertPtrNotNull (test, engine.base.finish);
 	CuAssertPtrNotNull (test, engine.base.cancel);
+	CuAssertPtrNotNull (test, engine.base.get_hash);
 
 	hash_riot_release (&engine);
 }
@@ -680,6 +681,26 @@ static void hash_riot_test_sha1_finish_small_hash_buffer (CuTest *test)
 
 	hash_riot_release (&engine);
 }
+
+static void hash_riot_test_sha1_get_hash (CuTest *test)
+{
+	struct hash_engine_riot engine;
+	int status;
+	uint8_t hash[SHA1_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_riot_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha1 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_OPERATION, status);
+
+	hash_riot_release (&engine);
+}
 #endif
 
 static void hash_riot_test_sha256_incremental (CuTest *test)
@@ -1297,6 +1318,26 @@ static void hash_riot_test_sha256_finish_small_hash_buffer (CuTest *test)
 	hash_riot_release (&engine);
 }
 
+static void hash_riot_test_sha256_get_hash (CuTest *test)
+{
+	struct hash_engine_riot engine;
+	int status;
+	uint8_t hash[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_riot_init (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_UNSUPPORTED_OPERATION, status);
+
+	hash_riot_release (&engine);
+}
+
 #ifdef HASH_ENABLE_SHA384
 static void hash_riot_test_sha384_incremental (CuTest *test)
 {
@@ -1848,6 +1889,7 @@ TEST (hash_riot_test_sha1_start_without_finish);
 TEST (hash_riot_test_sha1_update_after_finish);
 TEST (hash_riot_test_sha1_finish_after_finish);
 TEST (hash_riot_test_sha1_finish_small_hash_buffer);
+TEST (hash_riot_test_sha1_get_hash);
 #endif
 TEST (hash_riot_test_sha256_incremental);
 TEST (hash_riot_test_sha256_incremental_multi);
@@ -1870,6 +1912,7 @@ TEST (hash_riot_test_sha256_start_without_finish);
 TEST (hash_riot_test_sha256_update_after_finish);
 TEST (hash_riot_test_sha256_finish_after_finish);
 TEST (hash_riot_test_sha256_finish_small_hash_buffer);
+TEST (hash_riot_test_sha256_get_hash);
 #ifdef HASH_ENABLE_SHA384
 TEST (hash_riot_test_sha384_incremental);
 #endif

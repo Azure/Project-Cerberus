@@ -184,6 +184,12 @@ static void hash_riot_cancel (struct hash_engine *engine)
 	}
 }
 
+static int hash_riot_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+{
+	/* [TODO] This operation is currently not supported and will be implemented at a later time. */
+	return HASH_ENGINE_UNSUPPORTED_OPERATION;
+}
+
 /**
  * Initialize a riot hash engine.
  *
@@ -216,6 +222,7 @@ int hash_riot_init (struct hash_engine_riot *engine)
 	engine->base.update = hash_riot_update;
 	engine->base.finish = hash_riot_finish;
 	engine->base.cancel = hash_riot_cancel;
+	engine->base.get_hash = hash_riot_get_hash;
 
 	engine->active = HASH_ACTIVE_NONE;
 
