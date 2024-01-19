@@ -257,6 +257,8 @@ static int hash_mbedtls_get_hash (struct hash_engine *engine, uint8_t *hash, siz
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
+	mbedtls_clone.active = mbedtls->active;
+
 	switch (mbedtls->active) {
 #ifdef HASH_ENABLE_SHA1
 		case HASH_ACTIVE_SHA1:
