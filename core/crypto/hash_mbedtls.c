@@ -285,7 +285,7 @@ static int hash_mbedtls_get_hash (struct hash_engine *engine, uint8_t *hash, siz
 #if defined HASH_ENABLE_SHA384 || defined HASH_ENABLE_SHA512
 		case HASH_ACTIVE_SHA384:
 		case HASH_ACTIVE_SHA512:
-			if (((mbedtls->active == HASH_ACTIVE_SHA512) && (hash_length < SHA512_HASH_LENGTH))||
+			if (((mbedtls->active == HASH_ACTIVE_SHA512) && (hash_length < SHA512_HASH_LENGTH)) ||
 				((mbedtls->active == HASH_ACTIVE_SHA384) && (hash_length < SHA384_HASH_LENGTH))) {
 				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 			}

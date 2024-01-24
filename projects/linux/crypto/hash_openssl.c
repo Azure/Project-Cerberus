@@ -42,7 +42,7 @@ static int hash_openssl_start_sha1 (struct hash_engine *engine)
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
-	if (SHA1_Init (&openssl->sha1) == 1) {
+	if (EVP_DigestInit (openssl->sha, EVP_sha1 ()) == 1) {
 		openssl->active = HASH_ACTIVE_SHA1;
 		return 0;
 	}
@@ -86,7 +86,7 @@ static int hash_openssl_start_sha256 (struct hash_engine *engine)
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
-	if (SHA256_Init (&openssl->sha256) == 1) {
+	if (EVP_DigestInit (openssl->sha, EVP_sha256 ()) == 1) {
 		openssl->active = HASH_ACTIVE_SHA256;
 		return 0;
 	}
@@ -130,7 +130,7 @@ static int hash_openssl_start_sha384 (struct hash_engine *engine)
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
-	if (SHA384_Init (&openssl->sha512) == 1) {
+	if (EVP_DigestInit (openssl->sha, EVP_sha384 ()) == 1) {
 		openssl->active = HASH_ACTIVE_SHA384;
 		return 0;
 	}
@@ -175,12 +175,12 @@ static int hash_openssl_start_sha512 (struct hash_engine *engine)
 		return HASH_ENGINE_HASH_IN_PROGRESS;
 	}
 
-	if (SHA512_Init (&openssl->sha512) == 1) {
+	if (EVP_DigestInit (openssl->sha, EVP_sha512 ()) == 1) {
 		openssl->active = HASH_ACTIVE_SHA512;
 		return 0;
 	}
 	else {
-		return HASH_ENGINE_START_SHA384_FAILED;
+		return HASH_ENGINE_START_SHA512_FAILED;
 	}
 }
 #endif
@@ -194,34 +194,11 @@ static int hash_openssl_update (struct hash_engine *engine, const uint8_t *data,
 		return HASH_ENGINE_INVALID_ARGUMENT;
 	}
 
-	switch (openssl->active) {
-#ifdef HASH_ENABLE_SHA1
-		case HASH_ACTIVE_SHA1:
-			status = SHA1_Update (&openssl->sha1, data, length);
-			break;
-#endif
-
-		case HASH_ACTIVE_SHA256:
-			status = SHA256_Update (&openssl->sha256, data, length);
-			break;
-
-#ifdef HASH_ENABLE_SHA384
-		case HASH_ACTIVE_SHA384:
-			status = SHA384_Update (&openssl->sha512, data, length);
-			break;
-#endif
-
-#ifdef HASH_ENABLE_SHA512
-		case HASH_ACTIVE_SHA512:
-			status = SHA512_Update (&openssl->sha512, data, length);
-			break;
-#endif
-
-		default:
-			return HASH_ENGINE_NO_ACTIVE_HASH;
-			break;
+	if (openssl->active == HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_NO_ACTIVE_HASH;
 	}
 
+	status = EVP_DigestUpdate (openssl->sha, data, length);
 	if (status == 1) {
 		return 0;
 	}
@@ -230,62 +207,113 @@ static int hash_openssl_update (struct hash_engine *engine, const uint8_t *data,
 	}
 }
 
-static int hash_openssl_finish (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+/**
+ * Check the length of an output buffer to ensure it is large enough for the generated hash.
+ *
+ * @param openssl The hash instance that will be generating the output hash.
+ * @param hash_length Length of the output buffer to check.
+ *
+ * @return 0 if the buffer is large enough for the hash or an error code.
+ */
+static int hash_openssl_check_output_buffer_length (const struct hash_engine_openssl *openssl,
+	size_t hash_length)
 {
-	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
-	int status;
-
-	if ((openssl == NULL) || (hash == NULL)) {
-		return HASH_ENGINE_INVALID_ARGUMENT;
-	}
-
 	switch (openssl->active) {
 #ifdef HASH_ENABLE_SHA1
 		case HASH_ACTIVE_SHA1:
-			if (hash_length >= SHA1_HASH_LENGTH) {
-				status = SHA1_Final (hash, &openssl->sha1);
-			}
-			else {
-				status = HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+			if (hash_length < SHA1_HASH_LENGTH) {
+				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 			}
 			break;
 #endif
 
 		case HASH_ACTIVE_SHA256:
-			if (hash_length >= SHA256_HASH_LENGTH) {
-				status = SHA256_Final (hash, &openssl->sha256);
-			}
-			else {
-				status = HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+			if (hash_length < SHA256_HASH_LENGTH) {
+				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 			}
 			break;
 
 #ifdef HASH_ENABLE_SHA384
 		case HASH_ACTIVE_SHA384:
-			if (hash_length >= SHA384_HASH_LENGTH) {
-				status = SHA384_Final (hash, &openssl->sha512);
-			}
-			else {
-				status = HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+			if (hash_length < SHA384_HASH_LENGTH) {
+				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 			}
 			break;
 #endif
 
 #ifdef HASH_ENABLE_SHA512
 		case HASH_ACTIVE_SHA512:
-			if (hash_length >= SHA512_HASH_LENGTH) {
-				status = SHA512_Final (hash, &openssl->sha512);
-			}
-			else {
-				status = HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
+			if (hash_length < SHA512_HASH_LENGTH) {
+				return HASH_ENGINE_HASH_BUFFER_TOO_SMALL;
 			}
 			break;
 #endif
 
 		default:
-			status = HASH_ENGINE_NO_ACTIVE_HASH;
+			return HASH_ENGINE_NO_ACTIVE_HASH;
 	}
 
+	return 0;
+}
+
+static int hash_openssl_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+{
+	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	EVP_MD_CTX *clone;
+	int status;
+
+	if ((openssl == NULL) || (hash == NULL)) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	if (openssl->active == HASH_ACTIVE_NONE) {
+		return HASH_ENGINE_NO_ACTIVE_HASH;
+	}
+
+	status = hash_openssl_check_output_buffer_length (openssl, hash_length);
+	if (status != 0) {
+		return status;
+	}
+
+	clone = EVP_MD_CTX_new ();
+	if (clone == NULL) {
+		return HASH_ENGINE_NO_MEMORY;
+	}
+
+	status = EVP_MD_CTX_copy (clone, openssl->sha);
+	if (status == 0) {
+		status = HASH_ENGINE_GET_HASH_FAILED;
+		goto exit;
+	}
+
+	status = EVP_DigestFinal (clone, hash, NULL);
+	if (status == 1) {
+		status = 0;
+	}
+	else {
+		status = HASH_ENGINE_GET_HASH_FAILED;
+	}
+
+exit:
+	EVP_MD_CTX_free (clone);
+	return status;
+}
+
+static int hash_openssl_finish (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+{
+	struct hash_engine_openssl *openssl = (struct hash_engine_openssl*) engine;
+	int status = 0;
+
+	if ((openssl == NULL) || (hash == NULL)) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	status = hash_openssl_check_output_buffer_length (openssl, hash_length);
+	if (status != 0) {
+		return status;
+	}
+
+	status = EVP_DigestFinal (openssl->sha, hash, NULL);
 	if (status == 1) {
 		openssl->active = HASH_ACTIVE_NONE;
 		status = 0;
@@ -306,12 +334,6 @@ static void hash_openssl_cancel (struct hash_engine *engine)
 	}
 }
 
-static int hash_openssl_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
-{
-	/* [TODO] This operation is currently not supported and will be implemented at a later time. */
-	return HASH_ENGINE_UNSUPPORTED_OPERATION;
-}
-
 /**
  * Initialize an OpenSSL engine for calculating hashes.
  *
@@ -326,6 +348,11 @@ int hash_openssl_init (struct hash_engine_openssl *engine)
 	}
 
 	memset (engine, 0, sizeof (struct hash_engine_openssl));
+
+	engine->sha = EVP_MD_CTX_new ();
+	if (engine->sha == NULL) {
+		return HASH_ENGINE_NO_MEMORY;
+	}
 
 #ifdef HASH_ENABLE_SHA1
 	engine->base.calculate_sha1 = hash_openssl_calculate_sha1;
@@ -342,9 +369,9 @@ int hash_openssl_init (struct hash_engine_openssl *engine)
 	engine->base.start_sha512 = hash_openssl_start_sha512;
 #endif
 	engine->base.update = hash_openssl_update;
+	engine->base.get_hash = hash_openssl_get_hash;
 	engine->base.finish = hash_openssl_finish;
 	engine->base.cancel = hash_openssl_cancel;
-	engine->base.get_hash = hash_openssl_get_hash;
 
 	engine->active = HASH_ACTIVE_NONE;
 
@@ -358,5 +385,7 @@ int hash_openssl_init (struct hash_engine_openssl *engine)
  */
 void hash_openssl_release (struct hash_engine_openssl *engine)
 {
-
+	if (engine != NULL) {
+		EVP_MD_CTX_free (engine->sha);
+	}
 }

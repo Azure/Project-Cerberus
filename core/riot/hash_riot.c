@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "hash_riot.h"
+#include "common/unused.h"
 
 
 #ifdef HASH_ENABLE_SHA1
@@ -140,6 +141,22 @@ static int hash_riot_update (struct hash_engine *engine, const uint8_t *data, si
 	return 0;
 }
 
+static int hash_riot_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+{
+	struct hash_engine_riot *riot = (struct hash_engine_riot*) engine;
+	struct hash_engine_riot clone;
+
+	if ((riot == NULL) || (hash == NULL)) {
+		return HASH_ENGINE_INVALID_ARGUMENT;
+	}
+
+	/* Just make a complete copy of the input hash engine, which will include the active context.
+	 * Once we have a copy, just call finish on it to get the current digest. */
+	memcpy (&clone, riot, sizeof (clone));
+
+	return clone.base.finish (&clone.base, hash, hash_length);
+}
+
 static int hash_riot_finish (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
 {
 	struct hash_engine_riot *riot = (struct hash_engine_riot*) engine;
@@ -184,12 +201,6 @@ static void hash_riot_cancel (struct hash_engine *engine)
 	}
 }
 
-static int hash_riot_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
-{
-	/* [TODO] This operation is currently not supported and will be implemented at a later time. */
-	return HASH_ENGINE_UNSUPPORTED_OPERATION;
-}
-
 /**
  * Initialize a riot hash engine.
  *
@@ -220,9 +231,9 @@ int hash_riot_init (struct hash_engine_riot *engine)
 	engine->base.start_sha512 = hash_riot_start_sha512;
 #endif
 	engine->base.update = hash_riot_update;
+	engine->base.get_hash = hash_riot_get_hash;
 	engine->base.finish = hash_riot_finish;
 	engine->base.cancel = hash_riot_cancel;
-	engine->base.get_hash = hash_riot_get_hash;
 
 	engine->active = HASH_ACTIVE_NONE;
 
@@ -236,5 +247,5 @@ int hash_riot_init (struct hash_engine_riot *engine)
  */
 void hash_riot_release (struct hash_engine_riot *engine)
 {
-
+	UNUSED (engine);
 }

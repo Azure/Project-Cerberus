@@ -4,6 +4,7 @@
 #ifndef HASH_OPENSSL_H_
 #define HASH_OPENSSL_H_
 
+#include <openssl/evp.h>
 #include <openssl/sha.h>
 #include "crypto/hash.h"
 
@@ -13,13 +14,7 @@
  */
 struct hash_engine_openssl {
 	struct hash_engine base;	/**< The base hash engine. */
-#ifdef HASH_ENABLE_SHA1
-	SHA_CTX	sha1;				/**< The context for calculating SHA1 incremental hashes. */
-#endif
-	SHA256_CTX sha256;			/**< The context for calculating SHA256 incremental hashes. */
-#if defined HASH_ENABLE_SHA384 || defined HASH_ENABLE_SHA512
-	SHA512_CTX sha512;			/**< The context for calculating SHA384/SHA512 incremental hashes. */
-#endif
+	EVP_MD_CTX *sha;			/**< The context for calculating incremental hashes. */
 	int active;					/**< The type of initialized context. */
 };
 
