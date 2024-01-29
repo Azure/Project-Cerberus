@@ -5,7 +5,7 @@
 #define CFM_TESTING_H_
 
 #include <stdint.h>
-#include "manifest_v2_testing.h"
+#include "testing/manifest/manifest_v2_testing.h"
 
 
 /**

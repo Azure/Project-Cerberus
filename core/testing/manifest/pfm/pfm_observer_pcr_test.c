@@ -7,11 +7,11 @@
 #include "testing.h"
 #include "manifest/pfm/pfm_observer_pcr.h"
 #include "attestation/pcr_store.h"
-#include "testing/mock/manifest/pfm_mock.h"
-#include "testing/mock/manifest/pfm_manager_mock.h"
+#include "testing/mock/manifest/pfm/pfm_mock.h"
+#include "testing/mock/manifest/pfm/pfm_manager_mock.h"
 #include "testing/engines/hash_testing_engine.h"
-#include "testing/manifest/pfm_testing.h"
 #include "testing/manifest/manifest_observer_pcr_testing.h"
+#include "testing/manifest/pfm/pfm_testing.h"
 
 
 TEST_SUITE_LABEL ("pfm_observer_pcr");

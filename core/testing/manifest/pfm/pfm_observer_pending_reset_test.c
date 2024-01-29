@@ -9,7 +9,7 @@
 #include "manifest/manifest_logging.h"
 #include "testing/mock/host_fw/host_control_mock.h"
 #include "testing/mock/logging/logging_mock.h"
-#include "testing/mock/manifest/pfm_mock.h"
+#include "testing/mock/manifest/pfm/pfm_mock.h"
 #include "testing/logging/debug_log_testing.h"
 
 

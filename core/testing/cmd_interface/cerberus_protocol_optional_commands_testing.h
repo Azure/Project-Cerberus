@@ -17,7 +17,7 @@
 #include "testing/mock/host_fw/host_control_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/manifest_cmd_interface_mock.h"
-#include "testing/mock/manifest/pfm_manager_mock.h"
+#include "testing/mock/manifest/pfm/pfm_manager_mock.h"
 #include "testing/mock/recovery/recovery_image_cmd_interface_mock.h"
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
 

@@ -13,8 +13,8 @@
 #include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/host_fw/host_processor_mock.h"
 #include "testing/mock/manifest/manifest_cmd_interface_mock.h"
-#include "testing/mock/manifest/cfm_manager_mock.h"
-#include "testing/mock/manifest/pcd_manager_mock.h"
+#include "testing/mock/manifest/cfm/cfm_manager_mock.h"
+#include "testing/mock/manifest/pcd/pcd_manager_mock.h"
 #include "testing/mock/recovery/recovery_image_cmd_interface_mock.h"
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
 

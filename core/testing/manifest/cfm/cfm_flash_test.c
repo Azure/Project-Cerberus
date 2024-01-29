@@ -9,7 +9,7 @@
 #include "manifest/cfm/cfm_format.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "flash/flash.h"
-#include "manifest_flash_v2_testing.h"
+#include "testing/manifest/manifest_flash_v2_testing.h"
 #include "cfm_testing.h"
 
 

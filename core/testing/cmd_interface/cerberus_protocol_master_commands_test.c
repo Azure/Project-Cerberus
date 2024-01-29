@@ -12,11 +12,11 @@
 #include "flash/flash_updater.h"
 #include "manifest/pcd/pcd_flash.h"
 #include "testing/mock/crypto/rng_mock.h"
-#include "testing/mock/manifest/cfm_mock.h"
-#include "testing/mock/manifest/pcd_mock.h"
+#include "testing/mock/manifest/cfm/cfm_mock.h"
+#include "testing/mock/manifest/pcd/pcd_mock.h"
 #include "testing/cmd_interface/cerberus_protocol_master_commands_testing.h"
-#include "testing/manifest/pcd_testing.h"
-#include "testing/manifest/cfm_testing.h"
+#include "testing/manifest/cfm/cfm_testing.h"
+#include "testing/manifest/pcd/pcd_testing.h"
 
 
 TEST_SUITE_LABEL ("cerberus_protocol_master_commands");

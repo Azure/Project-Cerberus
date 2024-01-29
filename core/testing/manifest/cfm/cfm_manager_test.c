@@ -6,10 +6,10 @@
 #include <string.h>
 #include "testing.h"
 #include "manifest/cfm/cfm_manager.h"
-#include "testing/mock/manifest/cfm_mock.h"
-#include "testing/mock/manifest/cfm_manager_mock.h"
-#include "testing/mock/manifest/cfm_observer_mock.h"
-#include "testing/manifest/cfm_testing.h"
+#include "testing/mock/manifest/cfm/cfm_mock.h"
+#include "testing/mock/manifest/cfm/cfm_manager_mock.h"
+#include "testing/mock/manifest/cfm/cfm_observer_mock.h"
+#include "testing/manifest/cfm/cfm_testing.h"
 
 
 TEST_SUITE_LABEL ("cfm_manager");

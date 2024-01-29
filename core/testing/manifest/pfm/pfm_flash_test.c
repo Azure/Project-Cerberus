@@ -13,7 +13,7 @@
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/engines/rsa_testing_engine.h"
 #include "testing/crypto/rsa_testing.h"
-#include "testing/manifest/pfm_testing.h"
+#include "testing/manifest/pfm/pfm_testing.h"
 
 
 TEST_SUITE_LABEL ("pfm_flash");

@@ -10,7 +10,7 @@
 #include "testing/mock/manifest/manifest_mock.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/crypto/hash_testing.h"
-#include "testing/manifest/pfm_testing.h"
+#include "testing/manifest/pfm/pfm_testing.h"
 
 
 TEST_SUITE_LABEL ("manifest_manager");

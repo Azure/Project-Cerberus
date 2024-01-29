@@ -17,12 +17,12 @@
 #include "attestation/aux_attestation.h"
 #include "testing/mock/cmd_interface/session_manager_mock.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
-#include "testing/mock/manifest/pfm_mock.h"
+#include "testing/mock/manifest/pfm/pfm_mock.h"
 #include "testing/mock/recovery/recovery_image_mock.h"
 #include "testing/attestation/aux_attestation_testing.h"
 #include "testing/cmd_interface/cerberus_protocol_optional_commands_testing.h"
 #include "testing/crypto/ecc_testing.h"
-#include "testing/manifest/pfm_testing.h"
+#include "testing/manifest/pfm/pfm_testing.h"
 #include "testing/recovery/recovery_image_header_testing.h"
 
 

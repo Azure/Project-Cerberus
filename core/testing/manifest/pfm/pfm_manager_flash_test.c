@@ -15,14 +15,14 @@
 #include "testing/mock/crypto/signature_verification_mock.h"
 #include "testing/mock/flash/flash_master_mock.h"
 #include "testing/mock/logging/logging_mock.h"
-#include "testing/mock/manifest/pfm_observer_mock.h"
+#include "testing/mock/manifest/pfm/pfm_observer_mock.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/engines/rsa_testing_engine.h"
 #include "testing/crypto/rsa_testing.h"
 #include "testing/logging/debug_log_testing.h"
 #include "testing/manifest/manifest_flash_v2_testing.h"
-#include "testing/manifest/pfm_flash_v2_testing.h"
-#include "testing/manifest/pfm_testing.h"
+#include "testing/manifest/pfm/pfm_flash_v2_testing.h"
+#include "testing/manifest/pfm/pfm_testing.h"
 
 
 TEST_SUITE_LABEL ("pfm_manager_flash");

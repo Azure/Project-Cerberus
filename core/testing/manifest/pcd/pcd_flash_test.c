@@ -12,8 +12,8 @@
 #include "flash/flash.h"
 #include "testing/mock/crypto/signature_verification_mock.h"
 #include "testing/engines/hash_testing_engine.h"
-#include "testing/manifest/pcd_testing.h"
 #include "testing/manifest/manifest_flash_v2_testing.h"
+#include "testing/manifest/pcd/pcd_testing.h"
 
 
 TEST_SUITE_LABEL ("pcd_flash");

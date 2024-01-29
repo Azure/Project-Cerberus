@@ -13,8 +13,8 @@
 #include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/ecc_testing.h"
 #include "testing/manifest/manifest_flash_v2_testing.h"
-#include "testing/manifest/pfm_flash_v2_testing.h"
-#include "testing/manifest/pfm_v2_testing.h"
+#include "testing/manifest/pfm/pfm_flash_v2_testing.h"
+#include "testing/manifest/pfm/pfm_v2_testing.h"
 
 
 TEST_SUITE_LABEL ("pfm_flash_v2");

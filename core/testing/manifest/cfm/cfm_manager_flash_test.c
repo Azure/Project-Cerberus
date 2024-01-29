@@ -12,9 +12,9 @@
 #include "system/system_state_manager.h"
 #include "testing/mock/crypto/signature_verification_mock.h"
 #include "testing/mock/flash/flash_master_mock.h"
-#include "testing/mock/manifest/cfm_observer_mock.h"
+#include "testing/mock/manifest/cfm/cfm_observer_mock.h"
 #include "testing/engines/hash_testing_engine.h"
-#include "testing/manifest/cfm_testing.h"
+#include "testing/manifest/cfm/cfm_testing.h"
 
 
 TEST_SUITE_LABEL ("cfm_manager_flash");

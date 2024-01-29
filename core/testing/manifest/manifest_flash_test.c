@@ -13,7 +13,7 @@
 #include "testing/mock/crypto/signature_verification_mock.h"
 #include "testing/mock/flash/flash_master_mock.h"
 #include "testing/engines/hash_testing_engine.h"
-#include "testing/manifest/pfm_testing.h"
+#include "testing/manifest/pfm/pfm_testing.h"
 
 
 TEST_SUITE_LABEL ("manifest_flash");

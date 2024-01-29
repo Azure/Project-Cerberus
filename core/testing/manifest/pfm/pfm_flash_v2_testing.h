@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include "pfm_v2_testing.h"
 #include "manifest/pfm/pfm_flash.h"
+#include "testing/manifest/manifest_flash_v2_testing.h"
 
 
 extern const struct pfm_v2_testing_data PFM_V2;

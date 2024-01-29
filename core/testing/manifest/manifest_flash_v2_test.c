@@ -12,10 +12,10 @@
 #include "manifest/pfm/pfm_format.h"
 #include "crypto/ecc.h"
 #include "crypto/rsa.h"
+#include "testing/manifest/cfm/cfm_testing.h"
+#include "testing/manifest/pcd/pcd_testing.h"
+#include "testing/manifest/pfm/pfm_flash_v2_testing.h"
 #include "manifest_flash_v2_testing.h"
-#include "pfm_flash_v2_testing.h"
-#include "pcd_testing.h"
-#include "cfm_testing.h"
 
 
 TEST_SUITE_LABEL ("manifest_flash_v2");

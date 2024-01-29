@@ -6,10 +6,10 @@
 #include <string.h>
 #include "testing.h"
 #include "manifest/pfm/pfm_manager.h"
-#include "testing/mock/manifest/pfm_mock.h"
-#include "testing/mock/manifest/pfm_manager_mock.h"
-#include "testing/mock/manifest/pfm_observer_mock.h"
-#include "testing/manifest/pfm_testing.h"
+#include "testing/mock/manifest/pfm/pfm_mock.h"
+#include "testing/mock/manifest/pfm/pfm_manager_mock.h"
+#include "testing/mock/manifest/pfm/pfm_observer_mock.h"
+#include "testing/manifest/pfm/pfm_testing.h"
 
 
 TEST_SUITE_LABEL ("pfm_manager");

@@ -6,10 +6,10 @@
 #include <string.h>
 #include "testing.h"
 #include "manifest/pcd/pcd_manager.h"
-#include "testing/mock/manifest/pcd_mock.h"
-#include "testing/mock/manifest/pcd_manager_mock.h"
-#include "testing/mock/manifest/pcd_observer_mock.h"
-#include "testing/manifest/pcd_testing.h"
+#include "testing/mock/manifest/pcd/pcd_mock.h"
+#include "testing/mock/manifest/pcd/pcd_manager_mock.h"
+#include "testing/mock/manifest/pcd/pcd_observer_mock.h"
+#include "testing/manifest/pcd/pcd_testing.h"
 
 
 TEST_SUITE_LABEL ("pcd_manager");
