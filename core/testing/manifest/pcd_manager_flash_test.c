@@ -763,6 +763,54 @@ static void pcd_manager_flash_test_init_region2_flash_error (CuTest *test)
 	pcd_manager_flash_testing_validate_and_release_dependencies (test, &manager);
 }
 
+static void pcd_manager_flash_test_init_small_signature_buffer (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	/* Re-initialize PCD handlers with smaller buffers. */
+	pcd_flash_release (&manager.pcd1);
+	pcd_flash_release (&manager.pcd2);
+
+	status = pcd_flash_init (&manager.pcd1, &manager.flash.base, &manager.hash.base, 0x10000,
+		manager.signature1, sizeof (manager.signature1) - 1, manager.platform_id1,
+		sizeof (manager.platform_id1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_flash_init (&manager.pcd2, &manager.flash.base, &manager.hash.base, 0x20000,
+		manager.signature2, sizeof (manager.signature2) - 1, manager.platform_id2,
+		sizeof (manager.platform_id2));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Region 1 */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PCD_TESTING.manifest.raw,
+		PCD_TESTING.manifest.length,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, MANIFEST_V2_HEADER_SIZE));
+
+	/* Region 2 */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PCD_TESTING.manifest.raw,
+		PCD_TESTING.manifest.length,
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, MANIFEST_V2_HEADER_SIZE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pcd (&manager.test.base));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void pcd_manager_flash_test_init_pcd_bad_signature (CuTest *test)
 {
 	struct pcd_manager_flash_testing manager;
@@ -772,13 +820,14 @@ static void pcd_manager_flash_test_init_pcd_bad_signature (CuTest *test)
 
 	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
+	/* Region 1 */
 	status = pcd_manager_flash_testing_verify_a_pcd (&manager, 0x10000, &PCD_TESTING,
 		SIG_VERIFICATION_BAD_SIGNATURE);
-	CuAssertIntEquals (test, 0, status);
 
-	/* Use blank check to simulate empty PCD regions. */
-	status = flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
-		MANIFEST_V2_HEADER_SIZE);
+	/* Region 2 */
+	status |= pcd_manager_flash_testing_verify_a_pcd (&manager, 0x20000, &PCD_TESTING,
+		SIG_VERIFICATION_BAD_SIGNATURE);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
@@ -803,15 +852,19 @@ static void pcd_manager_flash_test_init_bad_length (CuTest *test)
 
 	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
+	/* Region 1 */
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pcd_bad_data,
 		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1,
 		MANIFEST_V2_HEADER_SIZE));
 
-	/* Use blank check to simulate empty PCD regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
-		MANIFEST_V2_HEADER_SIZE);
+	/* Region 2 */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pcd_bad_data,
+		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1,
+		MANIFEST_V2_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -837,14 +890,20 @@ static void pcd_manager_flash_test_init_bad_magic_number (CuTest *test)
 
 	pcd_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
+	/* Region 1 */
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pcd_bad_data,
 		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1,
 		MANIFEST_V2_HEADER_SIZE));
-	/* Use blank check to simulate empty PCD regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000,
-		MANIFEST_V2_HEADER_SIZE);
+
+	/* Region 2 */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pcd_bad_data,
+		sizeof (pcd_bad_data), FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1,
+		MANIFEST_V2_HEADER_SIZE));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd_manager_flash_init (&manager.test, &manager.pcd1, &manager.pcd2,
@@ -2971,6 +3030,7 @@ TEST (pcd_manager_flash_test_init_active_and_pending_empty_manifest);
 TEST (pcd_manager_flash_test_init_null);
 TEST (pcd_manager_flash_test_init_region1_flash_error);
 TEST (pcd_manager_flash_test_init_region2_flash_error);
+TEST (pcd_manager_flash_test_init_small_signature_buffer);
 TEST (pcd_manager_flash_test_init_pcd_bad_signature);
 TEST (pcd_manager_flash_test_init_bad_length);
 TEST (pcd_manager_flash_test_init_bad_magic_number);

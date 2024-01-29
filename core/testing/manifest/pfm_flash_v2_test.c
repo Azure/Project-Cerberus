@@ -13,6 +13,7 @@
 #include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/ecc_testing.h"
 #include "testing/manifest/manifest_flash_v2_testing.h"
+#include "testing/manifest/pfm_flash_v2_testing.h"
 #include "testing/manifest/pfm_v2_testing.h"
 
 
@@ -5886,14 +5887,6 @@ const struct pfm_v2_testing_data PFM_V2_BAD_REGIONS = {
 
 
 /**
- * Dependencies for testing v2 PFMs.
- */
-struct pfm_flash_v2_testing {
-	struct manifest_flash_v2_testing manifest;	/**< Common dependencies for manifest testing. */
-	struct pfm_flash test;						/**< PFM instance under test. */
-};
-
-/**
  * Initialize PFM testing dependencies.
  *
  * @param test The testing framework.
@@ -5925,8 +5918,7 @@ static void pfm_flash_v2_testing_validate_and_release_dependencies (CuTest *test
  * @param pfm The testing components to initialize.
  * @param address The base address for the PFM data.
  */
-static void pfm_flash_v2_testing_init (CuTest *test, struct pfm_flash_v2_testing *pfm,
-	uint32_t address)
+void pfm_flash_v2_testing_init (CuTest *test, struct pfm_flash_v2_testing *pfm, uint32_t address)
 {
 	int status;
 
@@ -5966,8 +5958,7 @@ static void pfm_flash_v2_testing_init_mocked_hash (CuTest *test, struct pfm_flas
  * @param test The testing framework.
  * @param pfm The testing components to release.
  */
-static void pfm_flash_v2_testing_validate_and_release (CuTest *test,
-	struct pfm_flash_v2_testing *pfm)
+void pfm_flash_v2_testing_validate_and_release (CuTest *test, struct pfm_flash_v2_testing *pfm)
 {
 	pfm_flash_release (&pfm->test);
 
@@ -5975,7 +5966,7 @@ static void pfm_flash_v2_testing_validate_and_release (CuTest *test,
 }
 
 /**
- * Set expecations on mocks for v2 PFM verification.
+ * Set expectations on mocks for v2 PFM verification.
  *
  * @param test The testing framework.
  * @param pfm The components to test.
@@ -6417,7 +6408,7 @@ static void pfm_flash_v2_test_verify_img_test (CuTest *test)
 	pfm_flash_v2_testing_validate_and_release (test, &pfm);
 }
 
-static void pfm_flash_v2_test_bad_regions_test (CuTest *test)
+static void pfm_flash_v2_test_verify_bad_regions_test (CuTest *test)
 {
 	struct pfm_flash_v2_testing pfm;
 	int status;
@@ -12482,7 +12473,7 @@ TEST (pfm_flash_v2_test_verify_rw_test);
 TEST (pfm_flash_v2_test_verify_three_firmware);
 TEST (pfm_flash_v2_test_verify_multiple_image_regions);
 TEST (pfm_flash_v2_test_verify_img_test);
-TEST (pfm_flash_v2_test_bad_regions_test);
+TEST (pfm_flash_v2_test_verify_bad_regions_test);
 TEST (pfm_flash_v2_test_verify_null);
 TEST (pfm_flash_v2_test_verify_header_read_error);
 TEST (pfm_flash_v2_test_verify_flash_device_element_read_error);

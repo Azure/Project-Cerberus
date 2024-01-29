@@ -30,8 +30,12 @@ static int manifest_manager_flash_verify_manifest (struct manifest_manager_flash
 	if (status == 0) {
 		region->is_valid = true;
 	}
-	else if ((status == SIG_VERIFICATION_BAD_SIGNATURE) || (status == MANIFEST_BAD_MAGIC_NUMBER) ||
-		(status == MANIFEST_BAD_LENGTH) || (status == MANIFEST_MALFORMED)) {
+	else if ((status == SIG_VERIFICATION_BAD_SIGNATURE) ||
+		(ROT_GET_MODULE (status) == ROT_MODULE_MANIFEST) ||
+		(ROT_GET_MODULE (status) == ROT_MODULE_PFM) ||
+		(ROT_GET_MODULE (status) == ROT_MODULE_CFM) ||
+		(ROT_GET_MODULE (status) == ROT_MODULE_PCD)) {
+		/* Don't fail for any errors in the manifest data.  Just mark the region as invalid. */
 		region->is_valid = false;
 		status = 0;
 	}
@@ -152,8 +156,8 @@ int manifest_manager_flash_init (struct manifest_manager_flash *manager,
 	struct manifest_manager *base, struct manifest *region1, struct manifest *region2,
 	struct manifest_flash *region1_flash, struct manifest_flash *region2_flash,
 	struct state_manager *state, struct hash_engine *hash,
-	const struct signature_verification *verification, uint8_t manifest_index, uint8_t log_msg_empty,
-	bool sku_upgrade_permitted)
+	const struct signature_verification *verification, uint8_t manifest_index,
+	uint8_t log_msg_empty, bool sku_upgrade_permitted)
 {
 	int status;
 

@@ -20,6 +20,8 @@
 #include "testing/engines/rsa_testing_engine.h"
 #include "testing/crypto/rsa_testing.h"
 #include "testing/logging/debug_log_testing.h"
+#include "testing/manifest/manifest_flash_v2_testing.h"
+#include "testing/manifest/pfm_flash_v2_testing.h"
 #include "testing/manifest/pfm_testing.h"
 
 
@@ -307,7 +309,7 @@ static void pfm_manager_flash_testing_init_dependencies (CuTest *test,
  * Release test dependencies and validate all mocks.
  *
  * @param test The testing framework.
- * @param pfm The testing components to release.
+ * @param manager The testing components to release.
  */
 void pfm_manager_flash_testing_validate_and_release_dependencies (CuTest *test,
 	struct pfm_manager_flash_testing *manager)
@@ -1314,6 +1316,56 @@ static void pfm_manager_flash_test_init_region2_flash_error (CuTest *test)
 	pfm_manager_flash_testing_validate_and_release_dependencies (test, &manager);
 }
 
+static void pfm_manager_flash_test_init_small_signature_buffer (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	int status;
+
+	TEST_START;
+
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	/* Re-initialize PFM handlers with smaller buffers. */
+	pfm_flash_release (&manager.pfm1);
+	pfm_flash_release (&manager.pfm2);
+
+	status = pfm_flash_init (&manager.pfm1, &manager.flash.base, &manager.hash.base, 0x10000,
+		manager.signature1, sizeof (manager.signature1) - 1, manager.platform_id1,
+		sizeof (manager.platform_id1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_flash_init (&manager.pfm2, &manager.flash.base, &manager.hash.base, 0x20000,
+		manager.signature2, sizeof (manager.signature2) - 1, manager.platform_id2,
+		sizeof (manager.platform_id2));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Region 1 */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));;
+
+	/* Region 2 */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_flash_init (&manager.test, &manager.pfm1, &manager.pfm2,
+		&manager.state_mgr, &manager.hash.base, &manager.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void pfm_manager_flash_test_init_pfm_bad_signature (CuTest *test)
 {
 	struct pfm_manager_flash_testing manager;
@@ -1323,6 +1375,7 @@ static void pfm_manager_flash_test_init_pfm_bad_signature (CuTest *test)
 
 	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
+	/* Region 1 */
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
@@ -1341,8 +1394,24 @@ static void pfm_manager_flash_test_init_pfm_bad_signature (CuTest *test)
 		&manager.verification, SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
-	/* Use blank check to simulate empty PFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
+	/* Region 2 */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_SIGNATURE,
+		PFM_SIGNATURE_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM_SIGNATURE_OFFSET, 0, -1, PFM_SIGNATURE_LEN));
+
+	status |= flash_master_mock_expect_verify_flash (&manager.flash_mock, 0x20000, PFM_DATA,
+		PFM_DATA_LEN - PFM_SIGNATURE_LEN);
+
+	status |= mock_expect (&manager.verification.mock, manager.verification.base.verify_signature,
+		&manager.verification, SIG_VERIFICATION_BAD_SIGNATURE, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (PFM_HASH_LEN), MOCK_ARG_NOT_NULL, MOCK_ARG (PFM_SIGNATURE_LEN));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1372,14 +1441,19 @@ static void pfm_manager_flash_test_init_bad_length (CuTest *test)
 
 	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
+	/* Region 1 */
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_bad_data,
 		sizeof (pfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	/* Use blank check to simulate empty PFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
+	/* Region 2 */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_bad_data,
+		sizeof (pfm_bad_data),
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1409,14 +1483,19 @@ static void pfm_manager_flash_test_init_bad_magic_number (CuTest *test)
 
 	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
 
+	/* Region 1 */
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_bad_data,
 		sizeof (pfm_bad_data),
 		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_HEADER_SIZE));
 
-	/* Use blank check to simulate empty PFM regions. */
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
+	/* Region 2 */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_bad_data,
+		sizeof (pfm_bad_data),
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM_HEADER_SIZE));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1556,6 +1635,86 @@ static void pfm_manager_flash_test_init_malformed (CuTest *test)
 	CuAssertIntEquals (test, true, status);
 
 	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pfm_manager_flash_test_init_flash_device_element_bad_length (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	struct pfm_flash_v2_testing pfm;
+	int status;
+	uint32_t toc_entry_offset = MANIFEST_V2_TOC_ENTRY_OFFSET;
+	uint32_t last_entry = toc_entry_offset + MANIFEST_V2_TOC_ENTRY_SIZE;
+	struct manifest_toc_entry bad_entry;
+	uint8_t bad_data[3];
+
+	TEST_START;
+
+	bad_entry.type_id = 0x10;
+	bad_entry.parent = 0xff;
+	bad_entry.format = 0;
+	bad_entry.hash_id = 0xff;
+	bad_entry.offset = PFM_V2.flash_dev_offset;
+	bad_entry.length = sizeof (bad_data);
+
+	memset (bad_data, 0x55, sizeof (bad_data));
+
+	pfm_manager_flash_testing_init_dependencies (test, &manager, 0x10000, 0x20000);
+
+	/* Use a different set of testing dependencies to handle the v2 PFM in region 1. */
+	pfm_flash_v2_testing_init (test, &pfm, 0x10000);
+
+	manifest_flash_v2_testing_verify_manifest_mocked_hash (test, &pfm.manifest, &PFM_V2.manifest, 0,
+		0);
+
+	status = mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.start_sha256,
+		&pfm.manifest.hash_mock, 0);
+	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.update,
+		&pfm.manifest.hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (PFM_V2.manifest.toc, MANIFEST_V2_TOC_HEADER_SIZE),
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + toc_entry_offset), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, &bad_entry,
+		MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.update,
+		&pfm.manifest.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (&bad_entry, MANIFEST_V2_TOC_ENTRY_SIZE),
+		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+
+	status |= flash_mock_expect_verify_flash_and_hash (&pfm.manifest.flash, &pfm.manifest.hash_mock,
+		pfm.manifest.addr + last_entry, PFM_V2.manifest.raw + last_entry,
+		PFM_V2.manifest.toc_hash_offset - last_entry);
+
+	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.finish,
+		&pfm.manifest.hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&pfm.manifest.hash_mock.mock, 0, PFM_V2.manifest.toc_hash,
+		PFM_V2.manifest.toc_hash_len, 1);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + bad_entry.offset), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (bad_data)));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, bad_data, sizeof (bad_data), 2);
+
+	/* Use blank check to simulate empty PFM regions. */
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock, 0x20000, PFM_HEADER_SIZE);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_flash_init (&manager.test, &pfm.test, &manager.pfm2,
+		&manager.state_mgr, &pfm.manifest.hash_mock.base, &pfm.manifest.verification.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_active_pfm (&manager.test.base));
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pfm (&manager.test.base));
+
+	status = host_state_manager_is_pfm_dirty (&manager.state_mgr);
+	CuAssertIntEquals (test, true, status);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+
+	pfm_flash_v2_testing_validate_and_release (test, &pfm);
 }
 
 static void pfm_manager_flash_test_init_pending_versions_error (CuTest *test)
@@ -4887,10 +5046,12 @@ TEST (pfm_manager_flash_test_init_active_and_pending_empty_manifest);
 TEST (pfm_manager_flash_test_init_null);
 TEST (pfm_manager_flash_test_init_region1_flash_error);
 TEST (pfm_manager_flash_test_init_region2_flash_error);
+TEST (pfm_manager_flash_test_init_small_signature_buffer);
 TEST (pfm_manager_flash_test_init_pfm_bad_signature);
 TEST (pfm_manager_flash_test_init_bad_length);
 TEST (pfm_manager_flash_test_init_bad_magic_number);
 TEST (pfm_manager_flash_test_init_malformed);
+TEST (pfm_manager_flash_test_init_flash_device_element_bad_length);
 TEST (pfm_manager_flash_test_init_pending_versions_error);
 TEST (pfm_manager_flash_test_init_empty_manifest_pending_erase_error);
 TEST (pfm_manager_flash_test_init_empty_manifest_active_erase_error);
