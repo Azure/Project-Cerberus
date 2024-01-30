@@ -68,6 +68,23 @@ static int spdm_transcript_manager_mock_get_hash (
 		MOCK_ARG_CALL (session_idx), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_size));
 }
 
+static void spdm_transcript_manager_mock_reset_context (
+	const struct spdm_transcript_manager *transcript_manager,
+	enum spdm_transcript_manager_context_type context_type, bool use_session_context,
+	uint8_t session_idx)
+{
+	struct spdm_transcript_manager_mock *mock =
+		(struct spdm_transcript_manager_mock*) transcript_manager;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, spdm_transcript_manager_mock_reset_context,
+		transcript_manager, MOCK_ARG_CALL (context_type), MOCK_ARG_CALL (use_session_context),
+		MOCK_ARG_CALL (session_idx));
+}
+
 static void spdm_transcript_manager_mock_reset (
 	const struct spdm_transcript_manager *transcript_manager)
 {
@@ -108,6 +125,9 @@ static int spdm_transcript_manager_mock_func_arg_count (void *func)
 	}
 	else if (func == spdm_transcript_manager_mock_get_hash) {
 		return 5;
+	}
+	else if (func == spdm_transcript_manager_mock_reset_context) {
+		return 3;
 	}
 	else if (func == spdm_transcript_manager_mock_reset) {
 		return 0;
@@ -170,6 +190,24 @@ static const char* spdm_transcript_manager_mock_arg_name_map (void *func, int ar
 				return "hash_size";
 		}
 	}
+	else if (func == spdm_transcript_manager_mock_reset_context) {
+		switch (arg) {
+			case 0:
+				return "context_type";
+
+			case 1:
+				return "use_session_context";
+
+			case 2:
+				return "session_idx";
+		}
+	}
+	else if (func == spdm_transcript_manager_mock_reset) {
+		switch (arg) {
+			case 0:
+				return "transcript_manager";
+		}
+	}
 	else if (func == spdm_transcript_manager_mock_reset_session_transcript) {
 		switch (arg) {
 			case 0:
@@ -193,6 +231,9 @@ static const char* spdm_transcript_manager_mock_func_name_map (void *func)
 	}
 	else if (func == spdm_transcript_manager_mock_get_hash) {
 		return "get_hash";
+	}
+	else if (func == spdm_transcript_manager_mock_reset_context) {
+		return "reset_transcript";
 	}
 	else if (func == spdm_transcript_manager_mock_reset) {
 		return "reset";
@@ -229,12 +270,13 @@ int spdm_transcript_manager_mock_init (struct spdm_transcript_manager_mock *mock
 
 	mock_set_name (&mock->mock, "spdm_transcript_manager");
 
-	mock->base.get_hash = spdm_transcript_manager_mock_get_hash;
-	mock->base.reset = spdm_transcript_manager_mock_reset;
-	mock->base.update = spdm_transcript_manager_mock_update;
-	mock->base.reset_session_transcript = spdm_transcript_manager_mock_reset_session_transcript;
 	mock->base.set_hash_algo = spdm_transcript_manager_mock_set_hash_algo;
 	mock->base.set_spdm_version = spdm_transcript_manager_mock_set_spdm_version;
+	mock->base.update = spdm_transcript_manager_mock_update;
+	mock->base.get_hash = spdm_transcript_manager_mock_get_hash;
+	mock->base.reset_transcript = spdm_transcript_manager_mock_reset_context;
+	mock->base.reset = spdm_transcript_manager_mock_reset;
+	mock->base.reset_session_transcript = spdm_transcript_manager_mock_reset_session_transcript;	
 
 	mock->mock.func_arg_count = spdm_transcript_manager_mock_func_arg_count;
 	mock->mock.func_name_map = spdm_transcript_manager_mock_func_name_map;

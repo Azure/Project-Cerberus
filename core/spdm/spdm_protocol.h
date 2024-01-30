@@ -41,6 +41,36 @@
 #define SPDM_VERSION_1_1		SPDM_MAKE_VERSION (1, 1)
 #define SPDM_VERSION_1_2		SPDM_MAKE_VERSION (1, 2)
 
+/**
+ * GET_VERSION/VERSION SPDM message version.
+ */
+#define SPDM_VERSION_1_0		SPDM_MAKE_VERSION (1, 0)
+
+/**
+ * Supported SPDM versions.
+ */
+#ifndef SPDM_MIN_SUPPORTED_VERSION
+#define SPDM_MIN_SUPPORTED_VERSION	SPDM_VERSION_1_1
+#endif
+
+#ifndef SPDM_MAX_SUPPORTED_VERSION
+#define SPDM_MAX_SUPPORTED_VERSION	SPDM_VERSION_1_2
+#endif
+
+/**
+ * Get SPDM major version.
+ *
+ * @param version SPDM version.
+ */
+#define SPDM_GET_MAJOR_VERSION(version) ((((uint8_t) version) >> 4))
+
+/**
+ * Get SPDM minor version.
+ *
+ * @param version SPDM version.
+ */
+#define SPDM_GET_MINOR_VERSION(version) ((((uint8_t) version) & 0xF))
+
 #pragma pack(push, 1)
 /**
  * Header that is added to SPDM messages when using the MCTP binding.

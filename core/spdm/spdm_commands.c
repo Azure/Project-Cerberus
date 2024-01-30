@@ -13,7 +13,35 @@
 #include "cmd_interface_spdm.h"
 #include "spdm_logging.h"
 #include "spdm_commands.h"
+#include "cmd_interface_spdm_responder.h"
 
+
+/**
+ * Pre-process received SPDM protocol message and get the command Id.
+ *
+ * @param message The message being processed.
+ * @param command_id Pointer to hold command ID of incoming message.
+ *
+ * @return 0 if the message was successfully processed or an error code.
+ */
+int spdm_get_command_id (struct cmd_interface_msg *message, uint8_t *command_id)
+{
+	struct spdm_protocol_header *header = (struct spdm_protocol_header*) message->payload;
+
+	message->crypto_timeout = false;
+
+	if (message->payload_length < SPDM_PROTOCOL_MIN_MSG_LEN) {
+		return CMD_HANDLER_SPDM_PAYLOAD_TOO_SHORT;
+	}
+
+	if (header->spdm_major_version != SPDM_MAJOR_VERSION) {
+		return CMD_HANDLER_SPDM_NOT_INTEROPERABLE;
+	}
+
+	*command_id = header->req_rsp_code;
+
+	return 0;
+}
 
 /**
  * Generate the header segment of a SPDM protocol request
@@ -83,78 +111,161 @@ void spdm_generate_error_response (struct cmd_interface_msg *response, uint8_t s
 }
 
 /**
- * Process SPDM get version request
+ * Set the SPDM connection state.
  *
- * @param request Get version request to process
- * @param hash Hashing engine to utilize. Must be same engine used in other SPDM commands for
- * 	transcript hashing, and must be independent of other hash instances.
- *
- * @return 0 if request processed successfully or an error code.
+ * @param  state SPDM state.
+ * @param  connection_state SPDM connection state.
  */
-int spdm_get_version (struct cmd_interface_msg *request, struct hash_engine *hash)
+static void spdm_set_connection_state (struct spdm_state *state,
+	enum spdm_connection_state connection_state)
 {
+	state->connection_info.connection_state = connection_state;
+}
+
+/**
+ * Handle the erroneous response state and create a corresponding error message.
+ *
+ * @param state SPDM state.
+ * @param request SPDM request.
+ * @param req_code Request code.
+ */
+static void spdm_handle_response_state (struct spdm_state *state, struct cmd_interface_msg *request,
+	uint8_t req_code)
+{
+	switch (state->response_state) {
+		case SPDM_RESPONSE_STATE_BUSY:
+			spdm_generate_error_response (request, state->connection_info.version.minor_version,
+				SPDM_ERROR_BUSY, 0x00, NULL, 0, req_code, 0);
+			break;
+
+		case SPDM_RESPONSE_STATE_NEED_RESYNC:
+			spdm_generate_error_response (request, state->connection_info.version.minor_version,
+				SPDM_ERROR_REQUEST_RESYNCH, 0x00, NULL, 0, req_code, 0);
+
+			/* Reset connection state. */
+			spdm_set_connection_state (state, SPDM_CONNECTION_STATE_NOT_STARTED);
+			break;
+
+		case SPDM_RESPONSE_STATE_PROCESSING_ENCAP:
+			spdm_generate_error_response (request, state->connection_info.version.minor_version,
+				SPDM_ERROR_REQUEST_IN_FLIGHT, 0x00, NULL, 0, req_code, 0);
+			break;
+
+		case SPDM_RESPONSE_STATE_NOT_READY:
+		/* [TODO] Implement this case in later messages. */
+			break;
+
+		default:
+			spdm_generate_error_response (request, state->connection_info.version.minor_version,
+				SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, req_code, 0);
+			break;
+	}
+}
+
+/**
+ * Process SPDM GET_VERSION request.
+ *
+ * @param spdm_responder SPDM responder instance.
+ * @param request GET_VERSION request to process.
+ *
+ * @return 0 if request processed successfully (including SPDM error msg) or an error code.
+ */
+int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request)
+{
+	int status;
 	struct spdm_get_version_request *rq;
 	struct spdm_get_version_response *rsp;
-	struct spdm_version_num_entry *version_num;
-	uint8_t minor_version;
-	int i_version;
-	int status;
+	struct spdm_transcript_manager *transcript_manager;
+	struct spdm_state *state;
 
-	if ((request == NULL) || (hash == NULL)) {
-		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	if ((spdm_responder == NULL) || (request == NULL)) {
+		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
 	rq = (struct spdm_get_version_request*) request->payload;
+	state = spdm_responder->state;
+	transcript_manager = spdm_responder->transcript_manager;
+
+	if (request->payload_length < sizeof (struct spdm_get_version_request)) {
+		/* [TODO] Look into the possiblity of having a common place to encode the error msg. */
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, 
+			CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+		goto exit;
+	}
+
+	/*
+	 * If the GET_VERSION request is improperly formed, then the version of the error message
+	 * must be 1.0, regardless of what the negotiated version is. */
+	if (SPDM_MAKE_VERSION (rq->header.spdm_major_version, rq->header.spdm_minor_version) !=
+		SPDM_VERSION_1_0) {
+		spdm_generate_error_response (request, 0,
+			SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, 
+			CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH);
+		goto exit;
+	}
+
+	/* Receiving a GET_VERSION resets the need to resynchronize. */
+	if ((state->response_state == SPDM_RESPONSE_STATE_NEED_RESYNC) ||
+		(state->response_state == SPDM_RESPONSE_STATE_PROCESSING_ENCAP)) {
+		state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	}
+
+	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
+		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_VERSION);
+		goto exit;
+	}
+
+	/* Process the request. */
+
+	/* Reset transcript manager state. */
+	transcript_manager->reset (transcript_manager);
+
+	/* Append request to VCA buffer. */
+	status = transcript_manager->update (transcript_manager,
+		TRANSCRIPT_CONTEXT_TYPE_VCA, (const uint8_t*) rq, sizeof (struct spdm_get_version_request),
+		false, SPDM_MAX_SESSION_COUNT);
+	if (status != 0) {
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, status);
+		goto exit;
+	}
+
+	/* Initialize the SPDM state. No error check as this function call cannot fail. */
+	spdm_init_state (state);
+
+	/* [TODO] Reset the SPDM Session Manager when it is available. */
+
+	/* Contruct the response. */
 	rsp = (struct spdm_get_version_response*) request->payload;
-	version_num = spdm_get_version_resp_version_table (rsp);
-
-	if (request->payload_length != sizeof (struct spdm_get_version_request)) {
-		return CMD_HANDLER_SPDM_BAD_LENGTH;
-	}
-
-	status = hash->start_sha256 (hash);
-	if (status != 0) {
-		goto send_unspecified_error;
-	}
-
-	// TODO: Move hashing to a transcript hash manager.
-	status = hash->update (hash, (uint8_t*) rq, sizeof (struct spdm_get_version_request));
-	if (status != 0) {
-		goto hash_cancel;
-	}
-
 	rsp->header.req_rsp_code = SPDM_RESPONSE_GET_VERSION;
 	rsp->reserved = 0;
 	rsp->reserved2 = 0;
 	rsp->reserved3 = 0;
 
-	for (i_version = 0, minor_version = SPDM_MIN_MINOR_VERSION;
-		minor_version <= SPDM_MAX_MINOR_VERSION; ++i_version, ++minor_version) {
-		version_num[i_version].major_version = SPDM_MAJOR_VERSION;
-		version_num[i_version].minor_version = minor_version;
-		version_num[i_version].update_version = 0;
-		version_num[i_version].alpha = 0;
-	}
-
-	rsp->version_num_entry_count = i_version;
+	/* Copy the supported version(s) to the response buffer. */
+	rsp->version_num_entry_count = spdm_responder->version_num_count;
+	memcpy ((void *) spdm_get_version_resp_version_table (rsp),
+		(void *) spdm_responder->version_num,
+		spdm_responder->version_num_count * sizeof (struct spdm_version_num_entry));
 
 	cmd_interface_msg_set_message_payload_length (request, spdm_get_version_resp_length (rsp));
 
-	// TODO: Move hashing to a transcript hash manager.
-	status = hash->update (hash, (uint8_t*) rsp, request->payload_length);
+	/* Append response to the VCA buffer. */
+	status = transcript_manager->update (transcript_manager,
+		TRANSCRIPT_CONTEXT_TYPE_VCA, (const uint8_t*) rsp, request->payload_length, false,
+		SPDM_MAX_SESSION_COUNT);
 	if (status != 0) {
-		goto hash_cancel;
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, status);
+		goto exit;
 	}
 
-	return 0;
+	/* Update the connection state */
+	spdm_set_connection_state (state, SPDM_CONNECTION_STATE_AFTER_VERSION);
 
-hash_cancel:
-	hash->cancel (hash);
-
-send_unspecified_error:
-	spdm_generate_error_response (request, rq->header.spdm_minor_version, SPDM_ERROR_UNSPECIFIED,
-		0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, status);
-
+exit:
 	return 0;
 }
 
@@ -974,5 +1085,34 @@ int spdm_format_signature_digest (struct hash_engine *hash, enum hash_type hash_
 fail:
 	hash->cancel (hash);
 
+	return status;
+}
+
+/**
+ * Initialize the SPDM state.
+ *
+ * @param state SPDM state.
+ * 
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int spdm_init_state (struct spdm_state *state)
+{
+	int status = 0;
+
+	if (state == NULL) {
+		status = CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+		goto exit;
+	}
+
+	memset (state, 0, sizeof (struct spdm_state));
+
+	/* Initialize the state. */
+	state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+	memset (&state->connection_info.version, 0, sizeof (struct spdm_version_number));
+	state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	state->last_spdm_request_session_id = SPDM_INVALID_SESSION_ID;
+	state->last_spdm_request_session_id_valid = false;
+
+exit:
 	return status;
 }

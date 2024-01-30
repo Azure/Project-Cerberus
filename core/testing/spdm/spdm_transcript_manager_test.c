@@ -134,9 +134,14 @@ static void spdm_transcript_manager_test_static_init (CuTest *test)
 
 	status = spdm_transcript_manager_init_state (&transcript_manager);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrEquals (test, testing.hash_engine, transcript_manager.hash_engine);
-	CuAssertIntEquals (test, ARRAY_SIZE (testing.hash_engine), transcript_manager.hash_engine_count);
-	CuAssertPtrEquals (test, &testing.state, transcript_manager.state);
+
+	CuAssertPtrNotNull (test, transcript_manager.set_hash_algo);
+	CuAssertPtrNotNull (test, transcript_manager.set_spdm_version);
+	CuAssertPtrNotNull (test, transcript_manager.update);
+	CuAssertPtrNotNull (test, transcript_manager.get_hash);
+	CuAssertPtrNotNull (test, transcript_manager.reset_transcript);
+	CuAssertPtrNotNull (test, transcript_manager.reset);
+	CuAssertPtrNotNull (test, transcript_manager.reset_session_transcript);
 
 	spdm_transcript_manager_release (&transcript_manager);
 
@@ -189,76 +194,60 @@ static void spdm_transcript_manager_test_static_init_invalid_params (CuTest *tes
 
 static void spdm_transcript_manager_test_init (CuTest *test)
 {
-	struct spdm_transcript_manager_session_context *session_transcript;
-	struct spdm_transcript_manager_state *state;
-	uint32_t hash_engine_idx;
-	uint32_t session_idx;
 	struct spdm_transcript_manager_testing testing;
 
 	TEST_START;
 
-	spdm_transcript_manager_testing_init (test, &testing, true);
+	spdm_transcript_manager_testing_init (test, &testing, false);
 
-	state = testing.transcript_manager.state;
-	CuAssertIntEquals (test, HASH_TYPE_INVALID, state->hash_algo);
-	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_INDEX_M1M2,
-		state->m1m2.hash_engine_idx);
-	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_INDEX_L1L2,
-		state->l1l2.hash_engine_idx);
-	CuAssertIntEquals (test, false, state->m1m2.hash_started);
-	CuAssertIntEquals (test, false, state->l1l2.hash_started);
-
-	CuAssertIntEquals (test, SPDM_MAX_SESSION_COUNT,
-		state->session_transcript_count);
-
-	session_transcript = state->session_transcript;
-	for (session_idx = 0, hash_engine_idx = SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_REQUIRED_COUNT;
-		session_idx < SPDM_MAX_SESSION_COUNT; session_idx++,
-		hash_engine_idx++) {
-
-		CuAssertIntEquals (test, hash_engine_idx,
-			session_transcript[session_idx].l1l2.hash_engine_idx);
-		hash_engine_idx += 1;
-		CuAssertIntEquals (test, hash_engine_idx,
-			session_transcript[session_idx].th.hash_engine_idx);
-	}
+	CuAssertPtrNotNull (test, testing.transcript_manager.set_hash_algo);
+	CuAssertPtrNotNull (test, testing.transcript_manager.set_spdm_version);
+	CuAssertPtrNotNull (test, testing.transcript_manager.update);
+	CuAssertPtrNotNull (test, testing.transcript_manager.get_hash);
+	CuAssertPtrNotNull (test, testing.transcript_manager.reset_transcript);
+	CuAssertPtrNotNull (test, testing.transcript_manager.reset);
+	CuAssertPtrNotNull (test, testing.transcript_manager.reset_session_transcript);
 
 	spdm_transcript_manager_testing_release (test, &testing);
 }
 
 static void spdm_transcript_manager_test_init_invalid_params (CuTest *test)
 {
-	struct spdm_transcript_manager transcript_manager;
-	struct spdm_transcript_manager_state state;
 	int status;
-	struct hash_engine *hash_engine[SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_REQUIRED_COUNT +
-		(SPDM_MAX_SESSION_COUNT + 1) * SPDM_TRANSCRIPT_MANAGER_SESSION_HASH_ENGINE_REQUIRED_COUNT];
+	struct spdm_transcript_manager_testing testing;
+	struct hash_engine *backup;	
 
 	TEST_START;
 
+	spdm_transcript_manager_testing_init_dependencies (test, &testing, true);
+
 	/* transcript_manager = NULL */
-	status = spdm_transcript_manager_init (NULL, &state, hash_engine, 1);
+	status = spdm_transcript_manager_init (NULL, &testing.state, testing.hash_engine, 
+		ARRAY_SIZE (testing.hash_engine));
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
 
 	/* state = NULL */
-	status = spdm_transcript_manager_init (&transcript_manager, NULL, hash_engine, 1);
-	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
-
-	/* hash_engine_count < SPDM_TRANSCRIPT_MANAGER_MIN_HASH_ENGINES */
-	status = spdm_transcript_manager_init (&transcript_manager, &state,
-		hash_engine, SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_REQUIRED_COUNT - 1);
+	status = spdm_transcript_manager_init (&testing.transcript_manager, NULL, testing.hash_engine,
+		ARRAY_SIZE (testing.hash_engine));
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
 
 	/* hash_engine array = NULL */
-	status = spdm_transcript_manager_init (&transcript_manager, &state, NULL,
-		ARRAY_SIZE (hash_engine));
+	status = spdm_transcript_manager_init (&testing.transcript_manager, &testing.state, NULL,
+		ARRAY_SIZE (testing.hash_engine));
+	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
+
+	/* hash_engine_count < SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_REQUIRED_COUNT */
+	status = spdm_transcript_manager_init (&testing.transcript_manager, &testing.state,
+		testing.hash_engine, SPDM_TRANSCRIPT_MANAGER_HASH_ENGINE_REQUIRED_COUNT - 1);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
 
 	/* Hash engine = NULL */
-	hash_engine[0] = NULL;
-	status = spdm_transcript_manager_init (&transcript_manager, &state, hash_engine,
-		ARRAY_SIZE (hash_engine));
+	backup = testing.hash_engine[0];
+	testing.hash_engine[0] = NULL;
+	status = spdm_transcript_manager_init (&testing.transcript_manager, &testing.state,
+		testing.hash_engine, ARRAY_SIZE (testing.hash_engine));
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
+	testing.hash_engine[0] = backup;
 }
 
 static void spdm_transcript_manager_test_release_null (CuTest *test)
@@ -928,6 +917,326 @@ static void spdm_transcript_manager_test_update_unsupported_context_type (CuTest
 	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH + 1, 
 		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_UNSUPPORTED_CONTEXT_TYPE, status);
+
+	spdm_transcript_manager_testing_release (test, &testing);
+}
+
+static void spdm_transcript_manager_test_reset_context_vca (CuTest *test)
+{
+	int status;
+	struct spdm_transcript_manager_testing testing;
+	struct spdm_transcript_manager *transcript_manager;
+
+	TEST_START;
+
+	spdm_transcript_manager_testing_init (test, &testing, true);
+	transcript_manager = &testing.transcript_manager;
+
+	char* str = "Hello";
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
+		(const uint8_t*) str, strlen (str), false, SPDM_MAX_SESSION_COUNT);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, strlen (str), transcript_manager->state->message_vca.buffer_size);
+
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA, false,
+		SPDM_MAX_SESSION_COUNT);
+	CuAssertIntEquals (test, 0, transcript_manager->state->message_vca.buffer_size);
+
+	spdm_transcript_manager_testing_release (test, &testing);
+}
+
+static void spdm_transcript_manager_test_reset_context_vca_invalid_params (CuTest *test)
+{
+	int status;
+	struct spdm_transcript_manager_testing testing;
+	struct spdm_transcript_manager *transcript_manager;
+
+	TEST_START;
+
+	spdm_transcript_manager_testing_init (test, &testing, true);
+	transcript_manager = &testing.transcript_manager;
+
+	char* str = "Hello";
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
+		(const uint8_t*) str, strlen (str), false, SPDM_MAX_SESSION_COUNT);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, strlen (str), transcript_manager->state->message_vca.buffer_size);
+
+	/* transcript_manager = NULL */
+	transcript_manager->reset_transcript (NULL, TRANSCRIPT_CONTEXT_TYPE_VCA, false,
+		SPDM_MAX_SESSION_COUNT);
+	CuAssertIntEquals (test, strlen (str), transcript_manager->state->message_vca.buffer_size);
+
+	spdm_transcript_manager_testing_release (test, &testing);
+}
+
+static void spdm_transcript_manager_test_reset_context_m1m2 (CuTest *test)
+{
+	int status;
+	const uint32_t data = 0xDEADBEEF;
+	struct spdm_transcript_manager_testing testing;
+	struct spdm_transcript_manager *transcript_manager;
+
+	TEST_START;
+
+	spdm_transcript_manager_testing_init (test, &testing, false);
+	transcript_manager = &testing.transcript_manager;
+
+	status = testing.transcript_manager.set_hash_algo (transcript_manager, HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, 0, status);
+
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
+		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertTrue (test, transcript_manager->state->m1m2.hash_started);
+
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, false,
+		SPDM_MAX_SESSION_COUNT);
+	CuAssertTrue (test, transcript_manager->state->m1m2.hash_started == false);
+
+	spdm_transcript_manager_testing_release (test, &testing);
+}
+
+static void spdm_transcript_manager_test_reset_context_m1m2_invalid_params (CuTest *test)
+{
+	int status;
+	const uint32_t data = 0xDEADBEEF;
+	struct spdm_transcript_manager_testing testing;
+	struct spdm_transcript_manager *transcript_manager;
+
+	TEST_START;
+
+	spdm_transcript_manager_testing_init (test, &testing, false);
+	transcript_manager = &testing.transcript_manager;
+
+	status = testing.transcript_manager.set_hash_algo (transcript_manager, HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, 0, status);
+
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
+		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertTrue (test, transcript_manager->state->m1m2.hash_started);
+
+	/* transcript_manager = NULL */
+	transcript_manager->reset_transcript (NULL, TRANSCRIPT_CONTEXT_TYPE_M1M2, false,
+		SPDM_MAX_SESSION_COUNT);
+	CuAssertTrue (test, transcript_manager->state->m1m2.hash_started);
+
+	/* use_session_context = true */
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, true,
+		SPDM_MAX_SESSION_COUNT);
+	CuAssertTrue (test, transcript_manager->state->m1m2.hash_started);
+
+	/* Invalid context type */
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_MAX, false,
+		SPDM_MAX_SESSION_COUNT);
+	CuAssertTrue (test, transcript_manager->state->m1m2.hash_started);
+
+	spdm_transcript_manager_testing_release (test, &testing);
+}
+
+static void spdm_transcript_manager_test_reset_context_l1l2 (CuTest *test)
+{
+	int status;
+	const uint32_t data = 0xDEADBEEF;
+	struct spdm_transcript_manager_testing testing;
+	struct spdm_transcript_manager *transcript_manager;
+
+	TEST_START;
+
+	spdm_transcript_manager_testing_init (test, &testing, false);
+	transcript_manager = &testing.transcript_manager;
+
+	status = testing.transcript_manager.set_hash_algo (transcript_manager, HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, 0, status);
+
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertTrue (test, transcript_manager->state->l1l2.hash_started);
+
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+		false, SPDM_MAX_SESSION_COUNT);
+	CuAssertTrue (test, transcript_manager->state->l1l2.hash_started == false);
+
+	spdm_transcript_manager_testing_release (test, &testing);
+}
+
+static void spdm_transcript_manager_test_reset_context_l1l2_invalid_params (CuTest *test)
+{
+	int status;
+	const uint32_t data = 0xDEADBEEF;
+	struct spdm_transcript_manager_testing testing;
+	struct spdm_transcript_manager *transcript_manager;
+
+	TEST_START;
+
+	spdm_transcript_manager_testing_init (test, &testing, false);
+	transcript_manager = &testing.transcript_manager;
+
+	status = testing.transcript_manager.set_hash_algo (transcript_manager, HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, 0, status);
+
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertTrue (test, transcript_manager->state->l1l2.hash_started);
+
+	/* transcript_manager = NULL */
+	transcript_manager->reset_transcript (NULL, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+		false, SPDM_MAX_SESSION_COUNT);
+	CuAssertTrue (test, transcript_manager->state->l1l2.hash_started);
+
+	/* Invalid context type */
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_MAX,
+		false, SPDM_MAX_SESSION_COUNT);
+	CuAssertTrue (test, transcript_manager->state->l1l2.hash_started);
+
+	spdm_transcript_manager_testing_release (test, &testing);
+}
+
+static void spdm_transcript_manager_test_reset_context_session_l1l2 (CuTest *test)
+{
+	int status;
+	const uint32_t data = 0xDEADBEEF;
+	struct spdm_transcript_manager_testing testing;
+	struct spdm_transcript_manager *transcript_manager;
+	uint8_t session_index = 0;
+
+	TEST_START;
+
+	spdm_transcript_manager_testing_init (test, &testing, false);
+	transcript_manager = &testing.transcript_manager;
+
+	status = transcript_manager->set_hash_algo (transcript_manager, HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, 0, status);
+
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, 
+		(uint8_t*) &data, sizeof (data), true, session_index);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].l1l2.hash_started);
+
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+		true, session_index);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].l1l2.hash_started == false);
+
+	spdm_transcript_manager_testing_release (test, &testing);
+}
+
+static void spdm_transcript_manager_test_reset_context_session_l1l2_invalid_params (CuTest *test)
+{
+	int status;
+	const uint32_t data = 0xDEADBEEF;
+	struct spdm_transcript_manager_testing testing;
+	struct spdm_transcript_manager *transcript_manager;
+	uint8_t session_index = 0;
+
+	TEST_START;
+
+	spdm_transcript_manager_testing_init (test, &testing, false);
+	transcript_manager = &testing.transcript_manager;
+
+	status = transcript_manager->set_hash_algo (transcript_manager, HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, 0, status);
+
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, 
+		(uint8_t*) &data, sizeof (data), true, session_index);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].l1l2.hash_started);
+
+	/* Invalid session index */
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+		true, SPDM_MAX_SESSION_COUNT);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].l1l2.hash_started);
+
+	/* Invalid context type */
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_MAX,
+		true, session_index);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].l1l2.hash_started);
+
+	spdm_transcript_manager_testing_release (test, &testing);
+}
+
+static void spdm_transcript_manager_test_reset_context_th (CuTest *test)
+{
+	int status;
+	const uint32_t data = 0xDEADBEEF;
+	struct spdm_transcript_manager_testing testing;
+	struct spdm_transcript_manager *transcript_manager;
+	uint8_t session_index = 0;
+
+	TEST_START;
+
+	spdm_transcript_manager_testing_init (test, &testing, false);
+	transcript_manager = &testing.transcript_manager;
+
+	status = transcript_manager->set_hash_algo (transcript_manager, HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, 0, status);
+
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, 
+		(uint8_t*) &data, sizeof (data), true, session_index);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].th.hash_started);
+
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, true,
+		session_index);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].th.hash_started == false);
+
+	spdm_transcript_manager_testing_release (test, &testing);
+}
+
+static void spdm_transcript_manager_test_reset_context_th_invalid_params (CuTest *test)
+{
+	int status;
+	const uint32_t data = 0xDEADBEEF;
+	struct spdm_transcript_manager_testing testing;
+	struct spdm_transcript_manager *transcript_manager;
+	uint8_t session_index = 0;
+
+	TEST_START;
+
+	spdm_transcript_manager_testing_init (test, &testing, false);
+	transcript_manager = &testing.transcript_manager;
+
+	status = transcript_manager->set_hash_algo (transcript_manager, HASH_TYPE_SHA384);
+	CuAssertIntEquals (test, 0, status);
+
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, 
+		(uint8_t*) &data, sizeof (data), true, session_index);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].th.hash_started);
+
+	/* transcript_manager = NULL */
+	transcript_manager->reset_transcript (NULL, TRANSCRIPT_CONTEXT_TYPE_TH, true,
+		session_index);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].th.hash_started);
+
+	/* use_session_context = false */
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, false,
+		session_index);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].th.hash_started);
+
+	/* Invalid session index */
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, true,
+		SPDM_MAX_SESSION_COUNT);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].th.hash_started);
+
+	/* Invalid context type */
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_MAX, true,
+		session_index);
+	CuAssertTrue (test, 
+		transcript_manager->state->session_transcript[session_index].th.hash_started);
 
 	spdm_transcript_manager_testing_release (test, &testing);
 }
@@ -3274,6 +3583,16 @@ TEST (spdm_transcript_manager_test_update_l1l2_SHA512_v_1_1_start_hash_fail);
 TEST (spdm_transcript_manager_test_update_l1l2_SHA512_v_1_1_update_hash_fail);
 TEST (spdm_transcript_manager_test_update_unsupported_hash_algo);
 TEST (spdm_transcript_manager_test_update_unsupported_context_type);
+TEST (spdm_transcript_manager_test_reset_context_vca);
+TEST (spdm_transcript_manager_test_reset_context_vca_invalid_params);
+TEST (spdm_transcript_manager_test_reset_context_m1m2);
+TEST (spdm_transcript_manager_test_reset_context_m1m2_invalid_params);
+TEST (spdm_transcript_manager_test_reset_context_l1l2);
+TEST (spdm_transcript_manager_test_reset_context_l1l2_invalid_params);
+TEST (spdm_transcript_manager_test_reset_context_session_l1l2);
+TEST (spdm_transcript_manager_test_reset_context_session_l1l2_invalid_params);
+TEST (spdm_transcript_manager_test_reset_context_th);
+TEST (spdm_transcript_manager_test_reset_context_th_invalid_params);
 TEST (spdm_transcript_manager_test_session_update_l1l2_SHA256_v_1_2);
 TEST (spdm_transcript_manager_test_session_update_l1l2_SHA256_v_1_2_start_hash_fail);
 TEST (spdm_transcript_manager_test_session_update_l1l2_SHA256_v_1_2_update_hash_fail);

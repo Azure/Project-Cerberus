@@ -42,7 +42,7 @@ static int spdm_transcript_manager_add_msg (
 		}
 		hash_context->hash_started = true;
 
-		/* Add the VCA buffer to the hash context if requested by the caller 
+		/* Add the VCA buffer to the hash context if requested by the caller
 		 * and only if the hash was just started.
 		 */
 		if (add_vca == true) {
@@ -235,32 +235,59 @@ static void spdm_transcript_manager_reset_m1m2 (
 }
 
 /**
- * Reset the L1L2 hash engine context.
+ * Reset the L1L2 global or session hash engine context.
  *
  * There is no validation on the parameter since this is an internal function.
  *
  * @param transcript_manager	Transcript manager instance.
+ * @param use_session_context	Flag indicating if the session context should be used.
+ * @param session_idx			Index of the session transcript context to reset the hash for.
  */
 static void spdm_transcript_manager_reset_l1l2 (
-	const struct spdm_transcript_manager *transcript_manager)
+	const struct spdm_transcript_manager *transcript_manager, bool use_session_context,
+	uint8_t session_idx)
 {
 	struct hash_engine *l1l2;
+	struct spdm_transcript_manager_hash_context *hash_context;
 	struct spdm_transcript_manager_state *state = transcript_manager->state;
 
-	state = transcript_manager->state;
-	if (state->l1l2.hash_started == true) {
-		l1l2 = transcript_manager->hash_engine[state->l1l2.hash_engine_idx];
+	hash_context = (use_session_context == true) ?
+		&state->session_transcript[session_idx].l1l2 : &state->l1l2;
+
+	if (hash_context->hash_started == true) {
+		l1l2 = transcript_manager->hash_engine[hash_context->hash_engine_idx];
 		l1l2->cancel (l1l2);
-		state->l1l2.hash_started = false;
+		hash_context->hash_started = false;
+	}
+}
+
+/**
+ * Reset the TH hash engine context.
+ *
+ * There is no validation on the parameters since this is an internal function.
+ *
+ * @param transcript_manager	Transcript manager instance.
+ * @param session_idx			Index of the session transcript context to reset the hash for.
+ */
+static void spdm_transcript_manager_reset_th (
+	const struct spdm_transcript_manager *transcript_manager, uint8_t session_idx)
+{
+	struct hash_engine *th;
+	struct spdm_transcript_manager_hash_context *hash_context;
+	struct spdm_transcript_manager_state *state = transcript_manager->state;
+
+	hash_context = &state->session_transcript[session_idx].th;
+	if (hash_context->hash_started == true) {
+		th = transcript_manager->hash_engine[hash_context->hash_engine_idx];
+		th->cancel (th);
+		hash_context->hash_started = false;
 	}
 }
 
 void spdm_transcript_manager_reset_session_transcript (
 	const struct spdm_transcript_manager *transcript_manager, uint8_t session_idx)
 {
-	struct hash_engine *hash_engine;
 	struct spdm_transcript_manager_state *state;
-	struct spdm_transcript_manager_hash_context *hash_context;
 
 	if (transcript_manager == NULL) {
 		return;
@@ -271,19 +298,59 @@ void spdm_transcript_manager_reset_session_transcript (
 		return;
 	}
 
-	hash_context = &state->session_transcript[session_idx].l1l2;
-	if (hash_context->hash_started == true) {
-		hash_engine = transcript_manager->hash_engine[hash_context->hash_engine_idx];
-		hash_engine->cancel (hash_engine);
-		hash_context->hash_started = false;
+	spdm_transcript_manager_reset_l1l2 (transcript_manager, true, session_idx);
+
+	spdm_transcript_manager_reset_th (transcript_manager, session_idx);
+}
+
+void spdm_transcript_manager_reset_context (
+	const struct spdm_transcript_manager *transcript_manager,
+	enum spdm_transcript_manager_context_type context_type, bool use_session_context,
+	uint8_t session_idx)
+{
+	struct spdm_transcript_manager_state *state;
+
+	if (transcript_manager != NULL) {
+		state = transcript_manager->state;
+
+		/* M1/M2 hash is only valid for the global SPDM requester/responder. */
+		/* TH hash is only valid for an SPDM session. */
+		if (((use_session_context == true) && (context_type == TRANSCRIPT_CONTEXT_TYPE_M1M2)) ||
+			((use_session_context == false) && (context_type == TRANSCRIPT_CONTEXT_TYPE_TH))) {
+			return;
+		}
+
+		if ((use_session_context == true) && (session_idx >= state->session_transcript_count)) {
+			return;
+		}
+
+		switch (context_type) {
+			case TRANSCRIPT_CONTEXT_TYPE_VCA:
+				spdm_transcript_manager_reset_vca (transcript_manager);
+				break;
+
+			case TRANSCRIPT_CONTEXT_TYPE_M1M2:
+				spdm_transcript_manager_reset_m1m2 (transcript_manager);
+				break;
+
+			case TRANSCRIPT_CONTEXT_TYPE_L1L2:
+			case TRANSCRIPT_CONTEXT_TYPE_TH:
+				if (context_type == TRANSCRIPT_CONTEXT_TYPE_L1L2) {
+					spdm_transcript_manager_reset_l1l2 (transcript_manager,
+						use_session_context, session_idx);
+				}
+				else {
+					spdm_transcript_manager_reset_th (transcript_manager, session_idx);
+				}
+
+				break;
+
+			default:
+				break;
+		}
 	}
 
-	hash_context = &state->session_transcript[session_idx].th;
-	if (hash_context->hash_started == true) {
-		hash_engine = transcript_manager->hash_engine[hash_context->hash_engine_idx];
-		hash_engine->cancel (hash_engine);
-		hash_context->hash_started = false;
-	}
+	return;
 }
 
 void spdm_transcript_manager_reset (const struct spdm_transcript_manager *transcript_manager)
@@ -299,7 +366,7 @@ void spdm_transcript_manager_reset (const struct spdm_transcript_manager *transc
 		/* Reset global transcripts. */
 		spdm_transcript_manager_reset_vca (transcript_manager);
 		spdm_transcript_manager_reset_m1m2 (transcript_manager);
-		spdm_transcript_manager_reset_l1l2 (transcript_manager);
+		spdm_transcript_manager_reset_l1l2 (transcript_manager, false, SPDM_MAX_SESSION_COUNT);
 
 		/* Reset session transcript(s). */
 		for (session_idx = 0; session_idx < state->session_transcript_count; session_idx++) {
@@ -478,7 +545,7 @@ int spdm_transcript_manager_init (struct spdm_transcript_manager *transcript_man
 
 	memset (transcript_manager, 0, sizeof (struct spdm_transcript_manager));
 
-	/* Save the reference to the hash engine array. Validation of the hash engine array is done in 
+	/* Save the reference to the hash engine array. Validation of the hash engine array is done in
 	 * the spdm_transcript_manager_init_state function.
 	 */
 	transcript_manager->hash_engine = hash_engine;
@@ -492,6 +559,7 @@ int spdm_transcript_manager_init (struct spdm_transcript_manager *transcript_man
 	transcript_manager->set_spdm_version = spdm_transcript_manager_set_spdm_version;
 	transcript_manager->update = spdm_transcript_manager_update;
 	transcript_manager->get_hash = spdm_transcript_manager_get_hash;
+	transcript_manager->reset_transcript = spdm_transcript_manager_reset_context;
 	transcript_manager->reset = spdm_transcript_manager_reset;
 	transcript_manager->reset_session_transcript = spdm_transcript_manager_reset_session_transcript;
 

@@ -27,6 +27,12 @@ static void add_all_spdm_tests (CuSuite *suite)
 	!defined TESTING_SKIP_CMD_INTERFACE_SPDM_SUITE
 	TESTING_RUN_SUITE (cmd_interface_spdm);
 #endif
+#if (defined TESTING_RUN_CMD_INTERFACE_SPDM_RESPONDER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_INTERFACE_SPDM_RESPONDER_SUITE
+	TESTING_RUN_SUITE (cmd_interface_spdm_responder);
+#endif
 #if (defined TESTING_RUN_SPDM_COMMANDS_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

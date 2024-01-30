@@ -23,37 +23,6 @@ static int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 }
 
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-/**
- * Pre-process received SPDM protocol message.
- *
- * @param intf The command interface that will process the message.
- * @param message The message being processed.
- * @param command_id Pointer to hold command ID of incoming message.
- *
- * @return 0 if the message was successfully processed or an error code.
- */
-static int cmd_interface_spdm_process_spdm_protocol_message (const struct cmd_interface_spdm *intf,
-	struct cmd_interface_msg *message, uint8_t *command_id)
-{
-	struct spdm_protocol_header *header = (struct spdm_protocol_header*) message->payload;
-
-	UNUSED (intf);
-
-	message->crypto_timeout = false;
-
-	if (message->payload_length < SPDM_PROTOCOL_MIN_MSG_LEN) {
-		return CMD_HANDLER_SPDM_PAYLOAD_TOO_SHORT;
-	}
-
-	if (header->spdm_major_version != SPDM_MAJOR_VERSION) {
-		return CMD_HANDLER_SPDM_NOT_INTEROPERABLE;
-	}
-
-	*command_id = header->req_rsp_code;
-
-	return 0;
-}
-
 static int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
@@ -65,7 +34,7 @@ static int cmd_interface_spdm_process_response (const struct cmd_interface *intf
 		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
 	}
 
-	status = cmd_interface_spdm_process_spdm_protocol_message (interface, response, &rsp_code);
+	status = spdm_get_command_id (response, &rsp_code);
 	if (status != 0) {
 		return status;
 	}

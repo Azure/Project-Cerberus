@@ -6,7 +6,6 @@
 
 #include "crypto/hash.h"
 #include "cmd_interface/cmd_interface.h"
-#include "spdm_commands.h"
 #include "platform_config.h"
 
 
@@ -17,6 +16,14 @@
  */
 #ifndef SPDM_TRANSCRIPT_MANAGER_VCA_BUFFER_MAX_SIZE
 #define SPDM_TRANSCRIPT_MANAGER_VCA_BUFFER_MAX_SIZE				0x100
+#endif
+
+/**
+ * Maximum number of SPDM sessions supported.
+ * [TODO] Move this to spdm_commands.h in the connection object change.
+ */
+#ifndef SPDM_MAX_SESSION_COUNT
+#define SPDM_MAX_SESSION_COUNT	1
 #endif
 
 /**
@@ -193,6 +200,18 @@ struct spdm_transcript_manager {
 	int (*get_hash) (const struct spdm_transcript_manager *transcript_manager,
 		enum spdm_transcript_manager_context_type context_type, bool use_session_context,
 		uint8_t session_idx, uint8_t *hash, size_t hash_size);
+
+	/**
+	 * Reset a transcript context.
+	 *
+	 * @param transcript_manager	Transcript manager instance.
+	 * @param context_type			Transcript context to reset.
+	 * @param use_session_context	Use session context to update an SPDM session transcript.
+	 * @param session_idx			SPDM session index.
+	 */
+	void (*reset_transcript) (const struct spdm_transcript_manager *transcript_manager,
+		enum spdm_transcript_manager_context_type context_type, bool use_session_context,
+		uint8_t session_idx);
 
 	/**
 	 * Reset the transcript manager, including transcript context for all SPDM session(s).

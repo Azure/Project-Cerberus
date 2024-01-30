@@ -24,6 +24,11 @@ int spdm_transcript_manager_get_hash (
 	enum spdm_transcript_manager_context_type context_type, bool use_session_context,
 	uint8_t session_idx, uint8_t *hash, size_t hash_size);
 
+void spdm_transcript_manager_reset_context (
+	const struct spdm_transcript_manager *transcript_manager,
+	enum spdm_transcript_manager_context_type context_type, bool use_session_context,
+	uint8_t session_idx);
+
 void spdm_transcript_manager_reset (
 	const struct spdm_transcript_manager *transcript_manager);
 
@@ -38,6 +43,7 @@ void spdm_transcript_manager_reset_session_transcript (
 	.set_spdm_version = spdm_transcript_manager_set_spdm_version, \
 	.update = spdm_transcript_manager_update, \
 	.get_hash = spdm_transcript_manager_get_hash, \
+	.reset_transcript = spdm_transcript_manager_reset_context, \
 	.reset = spdm_transcript_manager_reset, \
 	.reset_session_transcript = spdm_transcript_manager_reset_session_transcript
 
@@ -46,9 +52,9 @@ void spdm_transcript_manager_reset_session_transcript (
  *
  * There is no validation done on the arguments.
  *
- * @param hash_engine		Array of hash engine instances.
- * @param hash_engine_count	Number of hash engine instances provided.
- * @param state				Pointer to the state to initialize.
+ * @param state_ptr				Transcript Manager state pointer.
+ * @param hash_engine_ptr		Array of hash engine instances.
+ * @param hash_engine_count_arg	Number of hash engine instances provided.
  */
 #define	spdm_transcript_manager_static_init(state_ptr, hash_engine_ptr, hash_engine_count_arg)	{ \
 		TRANSCRIPT_MANAGER_API_INIT, \

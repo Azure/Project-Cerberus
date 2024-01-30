@@ -8,19 +8,12 @@
 #include "attestation/attestation_responder.h"
 #include "cmd_interface/device_manager.h"
 #include "cmd_interface/cmd_interface.h"
+#include "cmd_interface_spdm.h"
+#include "cmd_interface_spdm_responder.h"
 #include "crypto/hash.h"
 #include "spdm_protocol.h"
-#include "platform_config.h"
+#include "spdm_transcript_manager.h"
 
-
-/* Configurable parameters. Defaults can be overridden in platform_config.h. */
-
-/**
- * Maximum number of SPDM sessions supported.
- */
-#ifndef SPDM_MAX_SESSION_COUNT
-#define SPDM_MAX_SESSION_COUNT	1
-#endif
 
 /**
  * Capabilities of SPDM requester. Capabilities described in section 10.3 in DSP0274 SPDM spec.
@@ -785,7 +778,7 @@ enum {
 	SPDM_ERROR_REQ_TOO_LARGE = 0x0E,							/**< Request is greater than responder maximum message size */
 	SPDM_ERROR_LARGE_RESPONSE = 0x0F,							/**< Response is greater than DataTransferSize of requesting SPDM endpoint */
 	SPDM_ERROR_MSG_LOST = 0x10,									/**< SPDM message lost */
-	SPDM_ERROR_MAJOR_VERSION_MISMATCH = 0x41,					/**< Requested SPDM major version not supported */
+	SPDM_ERROR_VERSION_MISMATCH = 0x41,							/**< Requested SPDM version is not supported or is a different version from the selected version. */
 	SPDM_ERROR_RESPONSE_NOT_READY = 0x42,						/**< Response not ready */
 	SPDM_ERROR_REQUEST_RESYNCH = 0x43,							/**< Responder is requesting Requester to reissue Get Version */
 	SPDM_ERROR_VENDOR_OR_OTHER_STANDARDS_DEFINED = 0xFF,		/**< Vendor or other standards defined */
@@ -828,6 +821,69 @@ struct spdm_respond_if_ready_request {
 
 #pragma pack(pop)
 
+/**
+ * Identifier for an invalid session Id.
+ */
+#define SPDM_INVALID_SESSION_ID		0
+
+/**
+ * SPDM connection states.
+ */
+enum spdm_connection_state {
+	SPDM_CONNECTION_STATE_NOT_STARTED,			/**< Before GET_VERSION/VERSION. */
+	SPDM_CONNECTION_STATE_AFTER_VERSION,		/**< After GET_VERSION/VERSION. */
+	SPDM_CONNECTION_STATE_AFTER_CAPABILITIES,	/**< After GET_CAPABILITIES/CAPABILITIES. */
+	SPDM_CONNECTION_STATE_NEGOTIATED,			/**< After NEGOTIATE_ALGORITHMS/ALGORITHMS. */
+	SPDM_CONNECTION_STATE_AFTER_DIGESTS,		/**< After GET_DIGESTS/DIGESTS. */
+	SPDM_CONNECTION_STATE_AFTER_CERTIFICATE,	/**< After GET_CERTIFICATE/CERTIFICATE. */
+	SPDM_CONNECTION_STATE_AUTHENTICATED,		/**< After CHALLENGE/CHALLENGE_AUTH, and ENCAP CHALLENGE/CHALLENGE_AUTH if MUT_AUTH is enabled. */
+	SPDM_CONNECTION_STATE_MAX					/**< MAX */
+};
+
+/**
+ * SPDM version info.
+ */
+struct spdm_version_number {
+	uint16_t alpha : 4;						/**< Pre-release version nubmer. */
+	uint16_t update_version_number : 4;		/**< Update version number. */
+	uint16_t minor_version: 4;				/**< Major version number. */
+	uint16_t major_version : 4;				/**< Minor version number. */
+};
+
+/**
+ * SPDM connection info.
+ */
+struct spdm_connection_info {
+	enum spdm_connection_state connection_state;	/**< State of the SPDM connection. */
+	struct spdm_version_number version; 			/**< Negotiated version */
+};
+
+/**
+ * Response states of the responder.
+ */
+enum spdm_response_state {
+	SPDM_RESPONSE_STATE_NORMAL,				/**< Normal response. */
+	SPDM_RESPONSE_STATE_BUSY,				/**< Other component is busy. */
+	SPDM_RESPONSE_STATE_NOT_READY,			/**< Hardware is not ready. */
+	SPDM_RESPONSE_STATE_NEED_RESYNC,		/**< Firmware Update is done. Need resync. */
+	SPDM_RESPONSE_STATE_PROCESSING_ENCAP,	/**< Processing Encapsulated message. */
+	SPDM_RESPONSE_STATE_MAX					/**< MAX */
+};
+
+/**
+ * SPDM context for a requester/responder.
+ */
+struct spdm_state {
+	uint32_t last_spdm_request_session_id;				/**< Session Id of last secured message. [TODO] This will be moved to the session manager */
+	bool last_spdm_request_session_id_valid; 			/**< Session Id validity. [TODO] This will be moved to the session manager */
+	struct spdm_connection_info connection_info;		/**< Connection info. */
+	enum spdm_response_state response_state; 			/**< Responder response state */
+};
+
+
+int spdm_init_state (struct spdm_state *state);
+
+int spdm_get_command_id (struct cmd_interface_msg *message, uint8_t *command_id);
 
 void spdm_populate_mctp_header (struct spdm_protocol_mctp_header *header);
 
@@ -835,7 +891,8 @@ void spdm_generate_error_response (struct cmd_interface_msg *response, uint8_t s
 	uint8_t error_code, uint8_t error_data, uint8_t *optional_data, size_t optional_data_len,
 	uint8_t req_code, int status);
 
-int spdm_get_version (struct cmd_interface_msg *request, struct hash_engine *hash);
+int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
 int spdm_generate_get_version_request (uint8_t *buf, size_t buf_len);
 int spdm_process_get_version_response (struct cmd_interface_msg *response);
 
@@ -870,7 +927,7 @@ int spdm_generate_respond_if_ready_request (uint8_t *buf, size_t buf_len,
 	uint8_t original_request_code, uint8_t token, uint8_t spdm_minor_version);
 
 int spdm_format_signature_digest (struct hash_engine *hash, enum hash_type hash_type,
-	uint8_t spdm_minor_version, char *spdm_context, uint8_t *digest);
+	uint8_t spdm_minor_version, char *spdm_state, uint8_t *digest);
 
 
 #endif /* SPDM_COMMANDS_H_ */

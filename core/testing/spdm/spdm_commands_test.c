@@ -8,9 +8,11 @@
 #include "logging/debug_log.h"
 #include "riot/riot_key_manager.h"
 #include "spdm/cmd_interface_spdm.h"
+#include "spdm/cmd_interface_spdm_responder.h"
 #include "spdm/spdm_commands.h"
 #include "spdm/spdm_logging.h"
 #include "spdm/spdm_protocol.h"
+#include "pcisig/doe/doe_base_protocol.h"
 #include "testing/engines/x509_testing_engine.h"
 #include "testing/mock/attestation/attestation_responder_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
@@ -19,10 +21,74 @@
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/logging/debug_log_testing.h"
 #include "testing/riot/riot_core_testing.h"
+#include "common/array_size.h"
+#include "testing/mock/spdm/spdm_transcript_manager_mock.h"
+#include "testing/engines/hash_testing_engine.h"
 
 
 TEST_SUITE_LABEL ("spdm_commands");
 
+
+/**
+ * Dependencies for testing.
+ */
+struct spdm_command_testing {
+	/* [TODO] Replace this with the connection object later. */
+	struct cmd_interface_spdm_responder spdm_responder;				/**< The SPDM responder being tested. */
+	struct spdm_state spdm_responder_state;							/**< The SPDM responder state. */
+	struct spdm_transcript_manager_state state;						/**< The transcript manager state. */
+	struct spdm_transcript_manager_mock transcript_manager_mock;	/**< The transcript manager. */
+	struct spdm_transcript_manager_state transcript_manager_state; 	/**< The transcript manager state. */
+	struct hash_engine_mock hash_engine_mock;						/**< Mock hash engine for the responder. */
+	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION];	/**< Version number entries. */
+};
+
+/**
+ * Helper to initialize all dependencies for testing.
+ *
+ * @param test The test framework.
+ * @param testing Testing dependencies to initialize.
+ */
+static void spdm_command_testing_init_dependencies (CuTest *test,
+	struct spdm_command_testing *testing)
+{
+	int status;
+	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION] =
+		{ {1, 1, 0, 0}, {1, 2, 0, 0} };
+
+	memcpy (testing->version_num, version_num, sizeof (version_num));
+
+	status = spdm_transcript_manager_mock_init (&testing->transcript_manager_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&testing->hash_engine_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_spdm_responder_init (&testing->spdm_responder,
+		&testing->spdm_responder_state, &testing->transcript_manager_mock.base,
+		&testing->hash_engine_mock.base, testing->version_num, ARRAY_SIZE (testing->version_num));
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Helper to validate mocks and release all testing dependencies.
+ *
+ * @param test The test framework.
+ * @param testing Testing dependencies to release.
+ */
+static void spdm_command_testing_release_dependencies (CuTest *test,
+	struct spdm_command_testing *testing)
+{
+	int status;
+
+	cmd_interface_spdm_responder_deinit (&testing->spdm_responder);
+
+	status = spdm_transcript_manager_mock_validate_and_release (&testing->transcript_manager_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&testing->hash_engine_mock);
+	CuAssertIntEquals (test, 0, status);
+}
 
 /*******************
  * Test cases
@@ -770,37 +836,62 @@ static void spdm_test_generate_error_response_with_optional_data_too_large (CuTe
 
 static void spdm_test_get_version (CuTest *test)
 {
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	uint8_t expected_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct hash_engine_mock hash;
-	struct cmd_interface_msg msg;
-	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) &buf[8];
-	struct spdm_get_version_response *resp = (struct spdm_get_version_response*) &buf[8];
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t expected_buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_get_version_request rq = {0};
+	struct spdm_get_version_response *resp = (struct spdm_get_version_response*) buf;
 	struct spdm_get_version_response *expected_rsp =
 		(struct spdm_get_version_response*) expected_buf;
-	size_t version_count = SPDM_MAX_MINOR_VERSION - SPDM_MIN_MINOR_VERSION + 1;
-	size_t version_length = version_count * sizeof (struct spdm_version_num_entry);
+	struct cmd_interface_msg msg;
+	size_t version_count;
+	size_t version_length;
 	struct spdm_version_num_entry *version_num =
 		spdm_get_version_resp_version_table (expected_rsp);
-	int minor_version;
-	int i_version;
 	int status;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_command_testing testing;
 
 	TEST_START;
 
-	memset (&msg, 0, sizeof (msg));
-	memset (buf, 0x55, sizeof (buf));
-	msg.data = buf;
-	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = sizeof (struct spdm_get_version_request);
-	msg.length = msg.payload_length + 8;
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	version_count = ARRAY_SIZE (testing.version_num);
+	version_length = version_count * sizeof (struct spdm_version_num_entry);
 
-	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
-	rq->reserved = 0;
-	rq->reserved2 = 0;
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset,
+		&testing.transcript_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_version_request)),
+		MOCK_ARG (sizeof (struct spdm_get_version_request)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (expected_rsp, sizeof (struct spdm_get_version_request) +
+			version_length),
+		MOCK_ARG (sizeof (struct spdm_get_version_response) + version_length),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_version_request);
+	msg.length = msg.payload_length;
+
+	rq.header.spdm_minor_version = 0;
+	rq.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq.reserved = 0;
+	rq.reserved2 = 0;
+	memcpy (msg.payload, &rq, sizeof (struct spdm_get_version_request));
 
 	expected_rsp->header.spdm_minor_version = 0;
 	expected_rsp->header.spdm_major_version = 1;
@@ -809,29 +900,11 @@ static void spdm_test_get_version (CuTest *test)
 	expected_rsp->reserved2 = 0;
 	expected_rsp->reserved3 = 0;
 	expected_rsp->version_num_entry_count = version_count;
+	memcpy (version_num, testing.version_num,
+		sizeof (struct spdm_version_num_entry) * ARRAY_SIZE (testing.version_num));
 
-	for (i_version = 0, minor_version = SPDM_MIN_MINOR_VERSION;
-		i_version < expected_rsp->version_num_entry_count; ++i_version, ++minor_version) {
-		version_num[i_version].major_version = 1;
-		version_num[i_version].minor_version = minor_version;
-		version_num[i_version].update_version = 0;
-		version_num[i_version].alpha = 0;
-	}
+	status = spdm_get_version (spdm_responder, &msg);
 
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, sizeof (struct spdm_get_version_request)),
-		MOCK_ARG (sizeof (struct spdm_get_version_request)));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS (expected_rsp, spdm_get_version_resp_length (expected_rsp)),
-		MOCK_ARG (spdm_get_version_resp_length (expected_rsp)));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_version (&msg, &hash.base);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (*resp) + version_length, msg.length);
 	CuAssertIntEquals (test, msg.length, msg.payload_length);
@@ -846,235 +919,71 @@ static void spdm_test_get_version (CuTest *test)
 	CuAssertIntEquals (test, 2, resp->version_num_entry_count);
 
 	version_num = spdm_get_version_resp_version_table (resp);
-
-	for (i_version = 0, minor_version = SPDM_MIN_MINOR_VERSION;
-		i_version < resp->version_num_entry_count; ++i_version, ++minor_version) {
-		CuAssertIntEquals (test, SPDM_MAJOR_VERSION, version_num[i_version].major_version);
-		CuAssertIntEquals (test, minor_version, version_num[i_version].minor_version);
-		CuAssertIntEquals (test, 0, version_num[i_version].update_version);
-		CuAssertIntEquals (test, 0, version_num[i_version].alpha);
-	}
-
-	status = hash_mock_validate_and_release (&hash);
+	status = memcmp (version_num, testing.version_num,
+		sizeof (struct spdm_version_num_entry) * ARRAY_SIZE (testing.version_num));
 	CuAssertIntEquals (test, 0, status);
+
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
-static void spdm_test_get_version_null (CuTest *test)
+static void spdm_test_get_version_response_state_need_resync (CuTest *test)
 {
-	struct hash_engine_mock hash;
-	struct cmd_interface_msg msg;
-	int status;
-
-	TEST_START;
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_version (NULL, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
-
-	status = spdm_get_version (&msg, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void spdm_test_get_version_bad_length (CuTest *test)
-{
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct hash_engine_mock hash;
-	struct cmd_interface_msg msg;
-	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) &buf[8];
-	int status;
-
-	TEST_START;
-
-	memset (&msg, 0, sizeof (msg));
-	memset (buf, 0x55, sizeof (buf));
-	msg.data = buf;
-	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = sizeof (struct spdm_get_version_request) - 1;
-	msg.length = msg.payload_length + 8;
-
-	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
-	rq->reserved = 0;
-	rq->reserved2 = 0;
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_version (&msg, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);
-
-	msg.payload_length = sizeof (struct spdm_get_version_request) + 1;
-
-	status = spdm_get_version (&msg, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void spdm_test_get_version_start_hash_fail (CuTest *test)
-{
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct hash_engine_mock hash;
-	struct cmd_interface_msg msg;
-	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) &buf[16];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[16];
-	struct logging_mock log;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_SPDM,
-		.msg_index = SPDM_LOGGING_ERR_MSG,
-		.arg1 = (((uint32_t) SPDM_REQUEST_GET_VERSION) << 24 | 0xcd << 16 |
-			SPDM_ERROR_UNSPECIFIED << 8 | 0),
-		.arg2 = HASH_ENGINE_NO_MEMORY
-	};
-	int status;
-
-	TEST_START;
-
-	memset (&msg, 0, sizeof (msg));
-	memset (buf, 0x55, sizeof (buf));
-	msg.data = buf;
-	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = sizeof (struct spdm_get_version_request);
-	msg.length = msg.payload_length + 16;
-	msg.source_eid = 0xcd;
-
-	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
-	rq->reserved = 0;
-	rq->reserved2 = 0;
-
-	status = logging_mock_init (&log);
-	CuAssertIntEquals (test, 0, status);
-
-	debug_log = &log.base;
-
-	status = mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, HASH_ENGINE_NO_MEMORY);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_version (&msg, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 0, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	debug_log = NULL;
-
-	status = logging_mock_validate_and_release (&log);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void spdm_test_get_version_hash_update_rq_fail (CuTest *test)
-{
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct hash_engine_mock hash;
-	struct cmd_interface_msg msg;
-	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) &buf[8];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[8];
-	int status;
-
-	TEST_START;
-
-	memset (&msg, 0, sizeof (msg));
-	memset (buf, 0x55, sizeof (buf));
-	msg.data = buf;
-	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = sizeof (struct spdm_get_version_request);
-	msg.length = msg.payload_length + 8;
-
-	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
-	rq->reserved = 0;
-	rq->reserved2 = 0;
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, sizeof (struct spdm_get_version_request)),
-		MOCK_ARG (sizeof (struct spdm_get_version_request)));
-	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_version (&msg, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 0, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void spdm_test_get_version_hash_update_rsp_fail (CuTest *test)
-{
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	uint8_t expected_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct hash_engine_mock hash;
-	struct cmd_interface_msg msg;
-	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) &buf[8];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[8];
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t expected_buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_get_version_request rq = {0};
+	struct spdm_get_version_response *resp = (struct spdm_get_version_response*) buf;
 	struct spdm_get_version_response *expected_rsp =
 		(struct spdm_get_version_response*) expected_buf;
+	struct cmd_interface_msg msg;
+	size_t version_count;
+	size_t version_length;
 	struct spdm_version_num_entry *version_num =
 		spdm_get_version_resp_version_table (expected_rsp);
-	int minor_version;
-	int i_version;
 	int status;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
 
 	TEST_START;
 
-	memset (&msg, 0, sizeof (msg));
-	memset (buf, 0x55, sizeof (buf));
-	msg.data = buf;
-	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = sizeof (struct spdm_get_version_request);
-	msg.length = msg.payload_length + 8;
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	version_count = ARRAY_SIZE (testing.version_num);
+	version_length = version_count * sizeof (struct spdm_version_num_entry);
 
-	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
-	rq->reserved = 0;
-	rq->reserved2 = 0;
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset,
+		&testing.transcript_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_version_request)),
+		MOCK_ARG (sizeof (struct spdm_get_version_request)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (expected_rsp, sizeof (struct spdm_get_version_request) +
+			version_length),
+		MOCK_ARG (sizeof (struct spdm_get_version_response) + version_length),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_version_request);
+	msg.length = msg.payload_length;
+
+	rq.header.spdm_minor_version = 0;
+	rq.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq.reserved = 0;
+	rq.reserved2 = 0;
+	memcpy (msg.payload, &rq, sizeof (struct spdm_get_version_request));
 
 	expected_rsp->header.spdm_minor_version = 0;
 	expected_rsp->header.spdm_major_version = 1;
@@ -1082,44 +991,424 @@ static void spdm_test_get_version_hash_update_rsp_fail (CuTest *test)
 	expected_rsp->reserved = 0;
 	expected_rsp->reserved2 = 0;
 	expected_rsp->reserved3 = 0;
-	expected_rsp->version_num_entry_count = SPDM_MAX_MINOR_VERSION - SPDM_MIN_MINOR_VERSION + 1;
+	expected_rsp->version_num_entry_count = version_count;
+	memcpy (version_num, testing.version_num,
+		sizeof (struct spdm_version_num_entry) * ARRAY_SIZE (testing.version_num));
 
-	for (i_version = 0, minor_version = SPDM_MIN_MINOR_VERSION;
-		i_version < expected_rsp->version_num_entry_count; ++i_version, ++minor_version) {
-		version_num[i_version].major_version = 1;
-		version_num[i_version].minor_version = minor_version;
-		version_num[i_version].update_version = 0;
-		version_num[i_version].alpha = 0;
-	}
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
-	status = hash_mock_init (&hash);
+	status = spdm_get_version (spdm_responder, &msg);
 	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, sizeof (struct spdm_get_version_request)),
-		MOCK_ARG (sizeof (struct spdm_get_version_request)));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS (expected_rsp, spdm_get_version_resp_length (expected_rsp)),
-		MOCK_ARG (spdm_get_version_resp_length (expected_rsp)));
-	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_version (&msg, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
+	CuAssertIntEquals (test, sizeof (*resp) + version_length, msg.length);
 	CuAssertIntEquals (test, msg.length, msg.payload_length);
 	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 0, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
+	CuAssertPtrEquals (test, resp, msg.payload);
+	CuAssertIntEquals (test, 0, resp->header.spdm_minor_version);
+	CuAssertIntEquals (test, 1, resp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_GET_VERSION, resp->header.req_rsp_code);
+	CuAssertIntEquals (test, 0, resp->reserved);
+	CuAssertIntEquals (test, 0, resp->reserved2);
+	CuAssertIntEquals (test, 0, resp->reserved3);
+	CuAssertIntEquals (test, 2, resp->version_num_entry_count);
 
-	status = hash_mock_validate_and_release (&hash);
+	version_num = spdm_get_version_resp_version_table (resp);
+	status = memcmp (version_num, testing.version_num,
+		sizeof (struct spdm_version_num_entry) * ARRAY_SIZE (testing.version_num));
 	CuAssertIntEquals (test, 0, status);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_version_response_state_processing_encap (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t expected_buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_get_version_request rq = {0};
+	struct spdm_get_version_response *resp = (struct spdm_get_version_response*) buf;
+	struct spdm_get_version_response *expected_rsp =
+		(struct spdm_get_version_response*) expected_buf;
+	struct cmd_interface_msg msg;
+	size_t version_count;
+	size_t version_length;
+	struct spdm_version_num_entry *version_num =
+		spdm_get_version_resp_version_table (expected_rsp);
+	int status;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	version_count = ARRAY_SIZE (testing.version_num);
+	version_length = version_count * sizeof (struct spdm_version_num_entry);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset,
+		&testing.transcript_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_version_request)),
+		MOCK_ARG (sizeof (struct spdm_get_version_request)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (expected_rsp, sizeof (struct spdm_get_version_request) +
+			version_length),
+		MOCK_ARG (sizeof (struct spdm_get_version_response) + version_length),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_version_request);
+	msg.length = msg.payload_length;
+
+	rq.header.spdm_minor_version = 0;
+	rq.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq.reserved = 0;
+	rq.reserved2 = 0;
+	memcpy (msg.payload, &rq, sizeof (struct spdm_get_version_request));
+
+	expected_rsp->header.spdm_minor_version = 0;
+	expected_rsp->header.spdm_major_version = 1;
+	expected_rsp->header.req_rsp_code = SPDM_RESPONSE_GET_VERSION;
+	expected_rsp->reserved = 0;
+	expected_rsp->reserved2 = 0;
+	expected_rsp->reserved3 = 0;
+	expected_rsp->version_num_entry_count = version_count;
+	memcpy (version_num, testing.version_num,
+		sizeof (struct spdm_version_num_entry) * ARRAY_SIZE (testing.version_num));
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
+
+	status = spdm_get_version (spdm_responder, &msg);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (*resp) + version_length, msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, resp, msg.payload);
+	CuAssertIntEquals (test, 0, resp->header.spdm_minor_version);
+	CuAssertIntEquals (test, 1, resp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_GET_VERSION, resp->header.req_rsp_code);
+	CuAssertIntEquals (test, 0, resp->reserved);
+	CuAssertIntEquals (test, 0, resp->reserved2);
+	CuAssertIntEquals (test, 0, resp->reserved3);
+	CuAssertIntEquals (test, 2, resp->version_num_entry_count);
+
+	version_num = spdm_get_version_resp_version_table (resp);
+	memcpy (version_num, testing.version_num,
+		sizeof (struct spdm_version_num_entry) * ARRAY_SIZE (testing.version_num));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_version_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = spdm_get_version (NULL, (struct cmd_interface_msg*) (0xBAADF00D));
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
+
+	status = spdm_get_version (((struct cmd_interface_spdm_responder*) (0xDEADBEEF)), NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
+}
+
+static void spdm_test_get_version_bad_length (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct cmd_interface_msg msg;
+	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_version_request) - 1;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 0;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq->reserved = 0;
+	rq->reserved2 = 0;
+
+	status = spdm_get_version (&testing.spdm_responder, &msg);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_version_incorrect_version (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct cmd_interface_msg msg;
+	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	/* Invalid major version. */
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_version_request);
+	msg.length = msg.payload_length;
+
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq->reserved = 0;
+	rq->reserved2 = 0;
+	rq->header.spdm_minor_version = 0;
+	rq->header.spdm_major_version = 0;
+
+	status = spdm_get_version (&testing.spdm_responder, &msg);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_VERSION_MISMATCH, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	/* Invalid minor version. */
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_version_request);
+	msg.length = msg.payload_length;
+
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq->reserved = 0;
+	rq->reserved2 = 0;
+	rq->header.spdm_minor_version = 1;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+
+	status = spdm_get_version (&testing.spdm_responder, &msg);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_VERSION_MISMATCH, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_version_response_state_not_normal (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct cmd_interface_msg msg;
+	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
+	int status;
+	struct spdm_state *spdm_state;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_state = testing.spdm_responder.state;
+
+	/* response_state = SPDM_RESPONSE_STATE_BUSY. */
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_version_request);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 0;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq->reserved = 0;
+	rq->reserved2 = 0;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = spdm_get_version (&testing.spdm_responder, &msg);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_BUSY, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	/* response_state = SPDM_RESPONSE_STATE_NOT_READY. */
+	memset (&msg, 0, sizeof (msg));
+	memset (buf, 0x55, sizeof (buf));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	msg.payload_length = sizeof (struct spdm_get_version_request);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 0;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq->reserved = 0;
+	rq->reserved2 = 0;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NOT_READY;
+
+	status = spdm_get_version (&testing.spdm_responder, &msg);
+	CuAssertIntEquals (test, 0, status);
+	/* [TODO] Check SPDM error message when SPDM_RESPONSE_STATE_NOT_READY is implemented. */
+
+	/* Invalid response_state. */
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	msg.payload_length = sizeof (struct spdm_get_version_request);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 0;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq->reserved = 0;
+	rq->reserved2 = 0;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_MAX;
+
+	status = spdm_get_version (&testing.spdm_responder, &msg);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_version_transcript_manager_add_request_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct cmd_interface_msg msg;
+	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset,
+		&testing.transcript_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, SPDM_TRANSCRIPT_MANAGER_UPDATE_FAILED,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_get_version_request)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_version_request);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 0;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq->reserved = 0;
+	rq->reserved2 = 0;
+
+	status = spdm_get_version (&testing.spdm_responder, &msg);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_version_transcript_manager_add_response_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct cmd_interface_msg msg;
+	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset,
+		&testing.transcript_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (rq_copy, sizeof (struct spdm_get_version_request)),
+		MOCK_ARG (sizeof (struct spdm_get_version_request)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, SPDM_TRANSCRIPT_MANAGER_UPDATE_FAILED,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (sizeof (struct spdm_get_version_response)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_version_request);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 0;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
+	rq->reserved = 0;
+	rq->reserved2 = 0;
+
+	memcpy (rq_copy, rq, sizeof (struct spdm_get_version_request));
+
+	status = spdm_get_version (&testing.spdm_responder, &msg);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
 static void spdm_test_generate_get_version_request (CuTest *test)
@@ -4298,11 +4587,14 @@ TEST (spdm_test_generate_error_response);
 TEST (spdm_test_generate_error_response_with_optional_data);
 TEST (spdm_test_generate_error_response_with_optional_data_too_large);
 TEST (spdm_test_get_version);
+TEST (spdm_test_get_version_response_state_need_resync);
+TEST (spdm_test_get_version_response_state_processing_encap);	
 TEST (spdm_test_get_version_null);
 TEST (spdm_test_get_version_bad_length);
-TEST (spdm_test_get_version_start_hash_fail);
-TEST (spdm_test_get_version_hash_update_rq_fail);
-TEST (spdm_test_get_version_hash_update_rsp_fail);
+TEST (spdm_test_get_version_incorrect_version);
+TEST (spdm_test_get_version_response_state_not_normal);
+TEST (spdm_test_get_version_transcript_manager_add_request_fail);
+TEST (spdm_test_get_version_transcript_manager_add_response_fail);
 TEST (spdm_test_generate_get_version_request);
 TEST (spdm_test_generate_get_version_request_null);
 TEST (spdm_test_generate_get_version_request_buf_too_small);
