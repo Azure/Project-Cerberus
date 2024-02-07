@@ -10,8 +10,6 @@
 #include "pcr.h"
 
 
-
-
 /**
  * Initialize a PCR with support for a fixed number of measurements.  Memory for managing the state
  * of each measurement will be dynamically allocated.

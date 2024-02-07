@@ -461,7 +461,7 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 		while (bypass && (j < 64)) {
 			if (sealing[i][j] != 0) {
 				if (j < (64 - pcr_length)) {
-					/* When the PCR length is longer than the sealing policy, the first sealing
+					/* When the PCR length is shorter than the sealing policy, the first sealing
 					 * bytes are unused and must be 0. */
 					return AUX_ATTESTATION_PCR_LENGTH_MISMATCH;
 				}
