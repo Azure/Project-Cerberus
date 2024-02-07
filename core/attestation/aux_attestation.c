@@ -348,11 +348,12 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 	struct hmac_engine run_hmac;
 	uint8_t signing_key[AUX_ATTESTATION_KEY_256BIT];
 	uint8_t payload_hmac[SHA256_HASH_LENGTH];
-	uint8_t pcr_value[SHA256_HASH_LENGTH];
+	uint8_t pcr_value[PCR_MAX_DIGEST_LENGTH];
+	int pcr_length;
 	bool bypass;
+	size_t i;
 	int j;
-	int k;
-	int status = 0;
+	int status;
 
 	if ((aux == NULL) || (hash == NULL) || (pcr == NULL) || (seed == NULL) || (seed_length == 0) ||
 		(hmac == NULL) || (ciphertext == NULL) || (cipher_length == 0) || (sealing == NULL) ||
@@ -448,26 +449,35 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 		return AUX_ATTESTATION_HMAC_MISMATCH;
 	}
 
-	for (k = 0; k < (int) pcr_count; k++) {
+	for (i = 0; i < pcr_count; i++) {
 		j = 0;
 		bypass = true;
+
+		pcr_length = pcr_store_get_pcr_digest_length (pcr, i);
+		if (ROT_IS_ERROR (pcr_length)) {
+			return pcr_length;
+		}
+
 		while (bypass && (j < 64)) {
-			if (sealing[k][j++] != 0) {
-				if (j < 32) {
-					/* The first 32-bytes are unused and must be 0. */
-					return AUX_ATTESTATION_PCR_MISMATCH;
+			if (sealing[i][j] != 0) {
+				if (j < (64 - pcr_length)) {
+					/* When the PCR length is longer than the sealing policy, the first sealing
+					 * bytes are unused and must be 0. */
+					return AUX_ATTESTATION_PCR_LENGTH_MISMATCH;
 				}
 				bypass = false;
 			}
+
+			j++;
 		}
 
 		if (!bypass) {
-			status = pcr_store_compute (pcr, hash, k, pcr_value);
+			status = pcr_store_compute_pcr (pcr, hash, i, pcr_value, sizeof (pcr_value));
 			if (ROT_IS_ERROR (status)) {
 				return status;
 			}
 
-			if (buffer_compare (pcr_value, &sealing[k][32], SHA256_HASH_LENGTH) != 0) {
+			if (buffer_compare (pcr_value, &sealing[i][(64 - pcr_length)], pcr_length) != 0) {
 				return AUX_ATTESTATION_PCR_MISMATCH;
 			}
 		}

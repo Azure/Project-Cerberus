@@ -5,9 +5,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include "common/unused.h"
-#include "crypto/checksum.h"
-#include "platform_io.h"
 #include "platform_api.h"
 #include "testing.h"
 #include "attestation/attestation_logging.h"
@@ -16,6 +13,9 @@
 #include "cmd_interface/cerberus_protocol_required_commands.h"
 #include "cmd_interface/cmd_interface_system.h"
 #include "cmd_interface/device_manager.h"
+#include "common/array_size.h"
+#include "common/unused.h"
+#include "crypto/checksum.h"
 #include "mctp/cmd_interface_mctp_control.h"
 #include "mctp/mctp_control_protocol_commands.h"
 #include "mctp/mctp_interface.h"
@@ -243,7 +243,16 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	struct attestation_requester_testing *testing, bool init_attestation, bool no_mctp_bridge,
 	bool x509_mock)
 {
-	uint8_t num_pcr_measurements[2] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct x509_engine *x509;
 	int status;
 
@@ -287,7 +296,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	status = attestation_responder_mock_init (&testing->attestation_responder);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&testing->store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&testing->store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_mock_init (&testing->background);
@@ -4677,7 +4686,12 @@ static void attestation_requester_test_init_invalid_arg (CuTest *test)
 static void attestation_requester_test_init_state (CuTest *test)
 {
 	struct attestation_requester_testing testing;
-	uint8_t num_pcr_measurements = 1;
+	const struct pcr_config pcr_config[1] = {
+		{
+			.num_measurements = 1,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct attestation_requester attestation = attestation_requester_static_init (&testing.state,
 		&testing.mctp, &testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base,
 		NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr, NULL);
@@ -4715,7 +4729,7 @@ static void attestation_requester_test_init_state (CuTest *test)
 	status = attestation_responder_mock_init (&testing.attestation_responder);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&testing.store, &num_pcr_measurements, 1);
+	status = pcr_store_init (&testing.store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_mock_init (&testing.background);
@@ -7101,7 +7115,7 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
 		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
-		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;
@@ -22258,7 +22272,6 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	uint8_t digest3[SHA384_HASH_LENGTH];
 	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
 	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
-	uint8_t num_pcr_measurements[2] = {6, 6};
 	struct attestation_requester_testing testing;
 	struct spdm_get_digests_request req;
 	struct cmd_packet tx_packet;
@@ -22271,6 +22284,16 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	size_t offset;
 	size_t i;
 	int status;
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 
 	pmr_digest.pmr_id = 0;
 	pmr_digest.digests.hash_type = HASH_TYPE_SHA384;
@@ -22344,7 +22367,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = attestation_responder_mock_init (&testing.attestation_responder);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&testing.store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&testing.store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_mock_init (&testing.background);
@@ -28765,7 +28788,12 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 {
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 50;
-	uint8_t num_pcr_measurements = 0;
+	const struct pcr_config pcr_config[1] = {
+		{
+			.num_measurements = 0,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 
 	memset (&testing, 0, sizeof (struct attestation_requester_testing));
@@ -28822,7 +28850,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	status = attestation_responder_mock_init (&testing.attestation_responder);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&testing.store, &num_pcr_measurements, 1);
+	status = pcr_store_init (&testing.store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_mock_init (&testing.background);
@@ -30421,7 +30449,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
 		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
-		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;
@@ -30483,9 +30511,14 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
 	uint8_t version[4] = {0};
 	uint8_t event = 0;
-	uint8_t num_pcr_measurements = 0;
 	int status;
 	size_t i;
+	const struct pcr_config pcr_config[1] = {
+		{
+			.num_measurements = 0,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 
 	TEST_START;
 
@@ -30565,7 +30598,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = attestation_responder_mock_init (&testing.attestation_responder);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&testing.store, &num_pcr_measurements, 1);
+	status = pcr_store_init (&testing.store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_background_mock_init (&testing.background);
@@ -30883,7 +30916,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
 		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
-		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;

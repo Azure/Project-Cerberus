@@ -7,101 +7,157 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "status/rot_status.h"
-#include "platform_api.h"
 #include "crypto/hash.h"
 #include "pcr_data.h"
+#include "platform_api.h"
+#include "platform_config.h"
 
 
-#define PCR_DIGEST_LENGTH 									SHA256_HASH_LENGTH
+/* Configurable PCR parameters.  Defaults can be overridden in platform_config.h. */
+#ifndef PCR_MAX_DIGEST_LENGTH
+#define PCR_MAX_DIGEST_LENGTH 								SHA512_HASH_LENGTH
+#endif
 
-/* PCR flag to include data in measurement calculations */
+#if PCR_MAX_DIGEST_LENGTH < SHA256_HASH_LENGTH
+#error "Invalid maximum PCR digest length."
+#endif
+
+
+/* PCR flag to include data included in the measurement calculations */
 #define PCR_MEASUREMENT_FLAG_EVENT							(1U << 0)
 #define PCR_MEASUREMENT_FLAG_VERSION						(1U << 1)
 
 /* TCG log definitions */
 #define PCR_TCG_SHA256_ALG_ID								0x0B
+#define PCR_TCG_SHA384_ALG_ID								0x0C
+#define PCR_TCG_SHA512_ALG_ID								0x0D
+#define PCR_TCG_SHA3_256_ALG_ID								0x27
+#define PCR_TCG_SHA3_384_ALG_ID								0x28
+#define PCR_TCG_SHA3_512_ALG_ID								0x29
+
 #define PCR_TCG_EFI_NO_ACTION_EVENT_TYPE					0x03
 #define PCR_TCG_SERVER_PLATFORM_CLASS						0x01
 #define PCR_TCG_UINT_SIZE_32								0x01
-#define PCR_TCG_LOG_SIGNATURE				 				"Spec ID Event03"
+#define PCR_TCG_LOG_SIGNATURE								"Spec ID Event03"
 
 
 /**
- * Container for a PCR measurement
+ * Configuration details for a set of measurements in a PCR.
  */
-struct pcr_measurement {
-	uint8_t digest[PCR_DIGEST_LENGTH];						/**< Digest buffer */
-	uint8_t measurement[PCR_DIGEST_LENGTH];					/**< Aggregated measurement buffer */
-	const struct pcr_measured_data *measured_data;			/**< Raw data used for measurement */
-	uint32_t event_type;									/**< TCG event type */
-	uint8_t version;										/**< Version associated with the measurement data */
-	uint8_t measurement_config;								/**< Indicates data to include in measurement calculations */
+struct pcr_config {
+	size_t num_measurements;			/**< The number of measurements in the PCR. */
+	enum hash_type measurement_algo;	/**< Hash algorithm used for measurements in the PCR. */
 };
 
 /**
- * List of measurements to be aggregated in a PCR
+ * Descriptor for a single measurement contained in a PCR.
+ */
+struct pcr_measurement {
+	uint8_t digest[PCR_MAX_DIGEST_LENGTH];			/**< Digest of the data for the measurement. */
+	uint8_t measurement[PCR_MAX_DIGEST_LENGTH];		/**< Extended value using the measurement digest. */
+	const struct pcr_measured_data *measured_data;	/**< Accessor for the raw data that was measured. */
+	uint32_t event_type;							/**< TCG event type identifier. */
+	uint8_t version;								/**< Version associated with the measurement data. */
+	uint8_t measurement_config;						/**< Indicates additional data to include in measurement digests. */
+};
+
+/**
+ * Descriptor for a single PCR managed by the device, which contains a list of individual
+ * measurements.
  */
 struct pcr_bank {
-	struct pcr_measurement *measurement_list;				/**< List of measurements */
-	size_t num_measurements;								/**< Number of measurements */
-	bool explicit_measurement;								/**< PCR bank contains an explicit measurement */
-	platform_mutex lock;									/**< Synchronization lock */
+	struct pcr_measurement *measurement_list;	/**< List of measurements in the PCR. */
+	struct pcr_config config;					/**< Configuration for the PCR and measurements. */
+	bool explicit_measurement;					/**< Flag to indicate that the PCR is an explicit measurement. */
+	platform_mutex lock;						/**< Synchronization lock. */
 };
 
 #pragma pack(push, 1)
 /**
- * TCG event entry.
+ * Header for the TCG_PCR_EVENT2 log structure.
  */
-struct pcr_tcg_event2 {
-	uint32_t pcr_bank;										/**< PCR bank */
-	uint32_t event_type;									/**< Type of event */
-	uint32_t digest_count;									/**< Number of digests */
-	uint16_t digest_algorithm_id;							/**< ID of hashing algorithm */
-	uint8_t digest[32];										/**< Digest extended to PCR */
-	uint32_t event_size;									/**< Event size */
+struct pcr_tcg_event2_header {
+	uint32_t pcr_index;						/**< Index for the PCR containing the measurement. */
+	uint32_t event_type;					/**< Event identifier for the measurement. */
+	uint32_t digest_count;					/**< Number of digests calculated for the event. */
+	uint16_t digest_algorithm_id;			/**< ID of hashing algorithm used to calculate the digest. */
 };
 
 /**
- * TCG event entry - old format.
+ * TCG event entry with a single SHA-256 digest.
+ */
+struct pcr_tcg_event2_sha256 {
+	struct pcr_tcg_event2_header header;	/**< Event entry header. */
+	uint8_t digest[SHA256_HASH_LENGTH];		/**< SHA-256 digest that was extended to PCR. */
+	uint32_t event_size;					/**< Length of the data that was measured. */
+};
+
+/**
+ * TCG event entry with a single SHA-384 digest.
+ */
+struct pcr_tcg_event2_sha384 {
+	struct pcr_tcg_event2_header header;	/**< Event entry header. */
+	uint8_t digest[SHA384_HASH_LENGTH];		/**< SHA-384 digest that was extended to PCR. */
+	uint32_t event_size;					/**< Length of the data that was measured. */
+};
+
+/**
+ * TCG event entry with a single SHA-512 digest.
+ */
+struct pcr_tcg_event2_sha512 {
+	struct pcr_tcg_event2_header header;	/**< Event entry header. */
+	uint8_t digest[SHA512_HASH_LENGTH];		/**< SHA-512 digest that was extended to PCR. */
+	uint32_t event_size;					/**< Length of the data that was measured. */
+};
+
+/**
+ * TCG event entry using the TCG_PCR_EVENT log structure.
  */
 struct pcr_tcg_event {
-	uint32_t pcr_bank;										/**< PCR bank */
-	uint32_t event_type;									/**< Type of event */
-	uint8_t pcr[20];										/**< PCR value */
-	uint32_t event_size;									/**< Event size */
-	//uint8_t event[0];										/**< Event. Commented out since not used by Cerberus */
+	uint32_t pcr_index;					/**< Index for the PCR containing the measurement. */
+	uint32_t event_type;				/**< Event identifier for the measurement. */
+	uint8_t digest[SHA1_HASH_LENGTH];	/**< SHA-1 digest for the event. */
+	uint32_t event_size;				/**< Length of the data that was measured. */
+	//uint8_t event[0];					/**< Event data. Commented out since not used by Cerberus. */
 };
 
 /**
  * TCG event log algorithm descriptor.
  */
 struct pcr_tcg_algorithm {
-	uint16_t digest_algorithm_id;							/**< Algorithm ID */
-	uint16_t digest_size;									/**< Algorithm digest size */
+	uint16_t digest_algorithm_id;	/**< Identifier for a hashing algorithm used in the log. */
+	uint16_t digest_size;			/**< Length of the digest that is generated by the specified algorithm. */
 };
 
 /**
  * TCG event log header.
  */
 struct pcr_tcg_log_header {
-	uint8_t signature[16];									/**< The null terminated ASCII string "Spec ID Event03" */
-	uint32_t platform_class;								/**< Platform class as defined in TCG spec */
-	uint8_t spec_version_minor;								/**< Spec minor version number */
-	uint8_t spec_version_major;								/**< Spec major version number */
-	uint8_t spec_errata;									/**< Spec errata supported */
-	uint8_t uintn_size;										/**< Size of uint fields */
-	uint32_t num_algorithms;								/**< Number of hashing algorithms used in log */
-	struct pcr_tcg_algorithm digest_size;					/**< Hashing algorithms descriptors */
-	uint8_t vendor_info_size;								/**< Size of vendorInfo */
-	//uint8_t vendor_info[0];								/**< Vendor-specific extra information. Commented out since not used by Cerberus */
+	uint8_t signature[16];						/**< The null terminated ASCII string "Spec ID Event03" */
+	uint32_t platform_class;					/**< Platform class as defined in TCG spec */
+	uint8_t spec_version_minor;					/**< Spec minor version number */
+	uint8_t spec_version_major;					/**< Spec major version number */
+	uint8_t spec_errata;						/**< Spec errata supported */
+	uint8_t uintn_size;							/**< Size of uint fields */
+	uint32_t num_algorithms;					/**< Number of hashing algorithms used in log */
+	struct pcr_tcg_algorithm digest_size[3];	/**< List of hashing algorithm descriptors */
+	uint8_t vendor_info_size;					/**< Size of vendorInfo */
+	//uint8_t vendor_info[0];					/**< Vendor-specific extra information. Commented out since not used by Cerberus */
 };
 #pragma pack(pop)
 
 
-int pcr_init (struct pcr_bank *pcr, uint8_t pcr_num_measurements);
+int pcr_init (struct pcr_bank *pcr, const struct pcr_config *config);
 void pcr_release (struct pcr_bank *pcr);
 
+int pcr_get_num_measurements (struct pcr_bank *pcr);
 int pcr_check_measurement_index (struct pcr_bank *pcr, uint8_t measurement_index);
+
+enum hash_type pcr_get_hash_algorithm (struct pcr_bank *pcr);
+int pcr_get_digest_length (struct pcr_bank *pcr);
+
+int pcr_set_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t event_type);
+int pcr_get_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t *event_type);
 
 int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const uint8_t *digest,
 	size_t digest_len);
@@ -110,23 +166,21 @@ int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t m
 int pcr_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
 	uint8_t version);
+int pcr_invalidate_measurement (struct pcr_bank *pcr, uint8_t measurement_index);
 
-int pcr_update_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t event_type);
-int pcr_get_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t *event_type);
-
-int pcr_compute (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t *measurement, bool lock);
+int pcr_compute (struct pcr_bank *pcr, struct hash_engine *hash, bool lock, uint8_t *measurement,
+	size_t length);
 int pcr_get_measurement (struct pcr_bank *pcr, uint8_t measurement_index,
 	struct pcr_measurement *measurement);
-int pcr_get_all_measurements (struct pcr_bank *pcr, const uint8_t **measurement_list);
-int pcr_get_num_measurements (struct pcr_bank *pcr);
-int pcr_invalidate_measurement_index (struct pcr_bank *pcr, uint8_t measurement_index);
+int pcr_get_all_measurements (struct pcr_bank *pcr,
+	const struct pcr_measurement **measurement_list);
 
 int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 	const struct pcr_measured_data *measurement_data);
 int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len);
 
-int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, uint8_t *buffer, size_t offset,
+int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, size_t offset, uint8_t *buffer,
 	size_t length, size_t *total_len);
 
 int pcr_lock (struct pcr_bank *pcr);
@@ -139,17 +193,19 @@ int pcr_unlock (struct pcr_bank *pcr);
  * Error codes that can be generated by the PCR management module.
  */
 enum {
-	PCR_INVALID_ARGUMENT = PCR_ERROR (0x00),						/**< Input parameter is null or not valid. */
-	PCR_NO_MEMORY = PCR_ERROR (0x01),								/**< Memory allocation failed. */
-	PCR_UNSUPPORTED_ALGO = PCR_ERROR (0x02),						/**< Unsupported hashing algorithm. */
-	PCR_INVALID_PCR = PCR_ERROR (0x03),								/**< Invalid PCR bank. */
-	PCR_INVALID_TYPE = PCR_ERROR (0x04),							/**< Invalid measurement type. */
-	PCR_INVALID_INDEX = PCR_ERROR (0x05),							/**< Invalid measurement index. */
-	PCR_INVALID_DATA_TYPE = PCR_ERROR (0x06),						/**< Invalid PCR measured data type. */
-	PCR_MEASURED_DATA_INVALID_MEMORY = PCR_ERROR (0x08),			/**< PCR Measured data memory location is null or invalid */
-	PCR_MEASURED_DATA_INVALID_FLASH_DEVICE = PCR_ERROR (0x09),		/**< Flash device storing PCR Measured data is null or invalid */
-	PCR_MEASURED_DATA_INVALID_CALLBACK = PCR_ERROR (0x0A),			/**< Callback to retrieve PCR Measured data is null or invalid */
+	PCR_INVALID_ARGUMENT = PCR_ERROR (0x00),					/**< Input parameter is null or not valid. */
+	PCR_NO_MEMORY = PCR_ERROR (0x01),							/**< Memory allocation failed. */
+	PCR_UNSUPPORTED_ALGO = PCR_ERROR (0x02),					/**< Unsupported hashing algorithm. */
+	PCR_INVALID_PCR = PCR_ERROR (0x03),							/**< Invalid PCR bank. */
+	PCR_INVALID_TYPE = PCR_ERROR (0x04),						/**< Invalid measurement type. */
+	PCR_INVALID_INDEX = PCR_ERROR (0x05),						/**< Invalid measurement index. */
+	PCR_INVALID_DATA_TYPE = PCR_ERROR (0x06),					/**< Invalid PCR measured data type. */
+	PCR_MEASURED_DATA_INVALID_MEMORY = PCR_ERROR (0x08),		/**< PCR Measured data memory location is null or invalid */
+	PCR_MEASURED_DATA_INVALID_FLASH_DEVICE = PCR_ERROR (0x09),	/**< Flash device storing PCR Measured data is null or invalid */
+	PCR_MEASURED_DATA_INVALID_CALLBACK = PCR_ERROR (0x0a),		/**< Callback to retrieve PCR Measured data is null or invalid */
+	PCR_INCORRECT_DIGEST_LENGTH = PCR_ERROR (0x0b),				/**< The digest length is not correct for the PCR. */
+	PCR_SMALL_OUTPUT_BUFFER = PCR_ERROR (0x0c),					/**< The output buffer is not large enough for the PCR. */
 };
 
 
-#endif //PCR_H_
+#endif /* PCR_H_ */

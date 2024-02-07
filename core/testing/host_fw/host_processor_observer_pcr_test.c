@@ -9,6 +9,7 @@
 #include "host_fw/host_logging.h"
 #include "host_fw/host_state_manager.h"
 #include "attestation/pcr_store.h"
+#include "common/array_size.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/logging/logging_mock.h"
@@ -114,7 +115,16 @@ static void host_processor_observer_pcr_test_init (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -126,10 +136,10 @@ static void host_processor_observer_pcr_test_init (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -150,7 +160,7 @@ static void host_processor_observer_pcr_test_init (CuTest *test)
 	CuAssertPtrEquals (test, NULL, observer.base_state.on_unsupported_flash);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (DIGEST_INIT, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -165,7 +175,16 @@ static void host_processor_observer_pcr_test_init_valid (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = 0;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -177,10 +196,10 @@ static void host_processor_observer_pcr_test_init_valid (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 2, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 2), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -193,7 +212,7 @@ static void host_processor_observer_pcr_test_init_valid (CuTest *test)
 	CuAssertPtrNotNull (test, observer.base.on_recovery);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 2), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (DIGEST_ACTIVE, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -208,7 +227,16 @@ static void host_processor_observer_pcr_test_init_null (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -218,7 +246,7 @@ static void host_processor_observer_pcr_test_init_null (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (NULL, &hash.base, &store,
@@ -247,7 +275,16 @@ static void host_processor_observer_pcr_test_init_invalid_measurement (CuTest *t
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -257,7 +294,7 @@ static void host_processor_observer_pcr_test_init_invalid_measurement (CuTest *t
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -274,7 +311,16 @@ static void host_processor_observer_pcr_test_on_bypass_mode (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -286,10 +332,10 @@ static void host_processor_observer_pcr_test_on_bypass_mode (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -300,7 +346,7 @@ static void host_processor_observer_pcr_test_on_bypass_mode (CuTest *test)
 	CuAssertIntEquals (test, HOST_PROCESSOR_OBSERVER_PCR_BYPASS, state);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (DIGEST_BYPASS, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -316,7 +362,16 @@ static void host_processor_observer_pcr_test_on_bypass_mode_error (CuTest *test)
 	struct hash_engine_mock hash;
 	struct logging_mock logger;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -339,10 +394,10 @@ static void host_processor_observer_pcr_test_on_bypass_mode_error (CuTest *test)
 	status = logging_mock_init (&logger);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
@@ -353,7 +408,7 @@ static void host_processor_observer_pcr_test_on_bypass_mode_error (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (sizeof (uint32_t)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -396,7 +451,16 @@ static void host_processor_observer_pcr_test_on_active_mode (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -408,10 +472,10 @@ static void host_processor_observer_pcr_test_on_active_mode (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -422,7 +486,7 @@ static void host_processor_observer_pcr_test_on_active_mode (CuTest *test)
 	CuAssertIntEquals (test, HOST_PROCESSOR_OBSERVER_PCR_VALID, state);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (DIGEST_ACTIVE, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -438,7 +502,16 @@ static void host_processor_observer_pcr_test_on_active_mode_error (CuTest *test)
 	struct hash_engine_mock hash;
 	struct logging_mock logger;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -461,10 +534,10 @@ static void host_processor_observer_pcr_test_on_active_mode_error (CuTest *test)
 	status = logging_mock_init (&logger);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
@@ -475,7 +548,7 @@ static void host_processor_observer_pcr_test_on_active_mode_error (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (sizeof (uint32_t)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -518,7 +591,16 @@ static void host_processor_observer_pcr_test_on_recovery (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -530,10 +612,10 @@ static void host_processor_observer_pcr_test_on_recovery (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -544,7 +626,7 @@ static void host_processor_observer_pcr_test_on_recovery (CuTest *test)
 	CuAssertIntEquals (test, HOST_PROCESSOR_OBSERVER_PCR_RECOVERY, state);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (DIGEST_RECOVERY, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -560,7 +642,16 @@ static void host_processor_observer_pcr_test_on_recovery_error (CuTest *test)
 	struct hash_engine_mock hash;
 	struct logging_mock logger;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -583,10 +674,10 @@ static void host_processor_observer_pcr_test_on_recovery_error (CuTest *test)
 	status = logging_mock_init (&logger);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
@@ -597,7 +688,7 @@ static void host_processor_observer_pcr_test_on_recovery_error (CuTest *test)
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (sizeof (uint32_t)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -640,7 +731,16 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_dirty (CuTest *te
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -658,10 +758,10 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_dirty (CuTest *te
 
 	host_state_manager_save_inactive_dirty (&host_state, true);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -672,7 +772,7 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_dirty (CuTest *te
 	CuAssertIntEquals (test, HOST_PROCESSOR_OBSERVER_PCR_NOT_VALIDATED, state);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (DIGEST_NOT_VALIDATED, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -690,7 +790,16 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_not_dirty (CuTest
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -708,10 +817,10 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_not_dirty (CuTest
 
 	host_state_manager_save_inactive_dirty (&host_state, false);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,
@@ -722,7 +831,7 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_not_dirty (CuTest
 	CuAssertIntEquals (test, HOST_PROCESSOR_OBSERVER_PCR_INIT, state);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (DIGEST_INIT, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -741,7 +850,16 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_error (CuTest *te
 	struct hash_engine_mock hash;
 	struct logging_mock logger;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint32_t state = HOST_PROCESSOR_OBSERVER_PCR_INIT;
 	struct host_processor_observer_pcr observer;
 	int status;
@@ -770,10 +888,10 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_error (CuTest *te
 
 	host_state_manager_save_inactive_dirty (&host_state, true);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash.mock, hash.base.start_sha256, &hash, 0);
@@ -784,7 +902,7 @@ static void host_processor_observer_pcr_test_on_inactive_dirty_error (CuTest *te
 	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (sizeof (uint32_t)));
 	status |= mock_expect (&hash.mock, hash.base.finish, &hash, 0, MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH));
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_processor_observer_pcr_init (&observer, &hash.base, &store,

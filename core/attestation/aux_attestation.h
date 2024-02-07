@@ -117,6 +117,7 @@ enum {
 	AUX_ATTESTATION_UNKNOWN_SEED = AUX_ATTESTATION_ERROR (0x08),			/**< Unknown seed algorithm. */
 	AUX_ATTESTATION_BUFFER_TOO_SMALL = AUX_ATTESTATION_ERROR (0x09),		/**< Output buffer too small. */
 	AUX_ATTESTATION_BAD_SEED_PARAM = AUX_ATTESTATION_ERROR (0x0a),			/**< Seed parameter option is invalid or unsupported. */
+	AUX_ATTESTATION_PCR_LENGTH_MISMATCH = AUX_ATTESTATION_ERROR (0x0b),		/**< The sealing policy doesn't match the local PCR length. */
 };
 
 

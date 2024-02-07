@@ -8,6 +8,7 @@
 #include "platform_api.h"
 #include "attestation/attestation_requester_handler.h"
 #include "attestation/attestation_requester_handler_static.h"
+#include "common/array_size.h"
 
 
 TEST_SUITE_LABEL ("attestation_requester_handler");
@@ -32,7 +33,12 @@ struct attestation_requester_handler_testing {
 static void attestation_requester_handler_testing_init_dependencies (CuTest *test,
 	struct attestation_requester_handler_testing *handler)
 {
-	uint8_t pcrs[] = {1};
+	const struct pcr_config pcrs[] = {
+		{
+			.num_measurements = 1,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 
 	status = device_manager_init (&handler->device_mgr, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
@@ -47,7 +53,7 @@ static void attestation_requester_handler_testing_init_dependencies (CuTest *tes
 		MCTP_BASE_PROTOCOL_BMC_EID, 0x51, DEVICE_MANAGER_NOT_PCD_COMPONENT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&handler->pcr, pcrs, sizeof (pcrs));
+	status = pcr_store_init (&handler->pcr, pcrs, ARRAY_SIZE (pcrs));
 	CuAssertIntEquals (test, 0, status);
 
 	/* Don't initialize the attestation requester.  Too many dependencies and complexity for this

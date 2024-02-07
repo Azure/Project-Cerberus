@@ -16,6 +16,7 @@
 #include "cmd_interface/cerberus_protocol_optional_commands.h"
 #include "cmd_interface/cerberus_protocol_diagnostic_commands.h"
 #include "cmd_interface/attestation_cmd_interface.h"
+#include "common/array_size.h"
 #include "logging/logging_flash.h"
 #include "logging/debug_log.h"
 #include "attestation/pcr_store.h"
@@ -194,7 +195,16 @@ static void cmd_interface_system_testing_init_host_state (CuTest *test,
 static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 	struct cmd_interface_system_testing *cmd)
 {
-	uint8_t num_pcr_measurements[2] = {6, 0};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 0,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	uint8_t *dev_id_der = NULL;
 	int status;
 
@@ -257,7 +267,7 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 	status = hash_mock_init (&cmd->hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&cmd->store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&cmd->store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = X509_TESTING_ENGINE_INIT (&cmd->x509);
@@ -599,7 +609,16 @@ static void cmd_interface_system_test_init (CuTest *test)
 	struct session_manager_mock session;
 	X509_TESTING_ENGINE x509;
 	uint8_t *dev_id_der = NULL;
-	uint8_t num_pcr_measurements[2] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	const char *id[FW_VERSION_COUNT] = {CERBERUS_FW_VERSION, RIOT_CORE_VERSION};
 	struct cmd_interface_fw_version fw_version = {
 		.count = FW_VERSION_COUNT,
@@ -674,7 +693,7 @@ static void cmd_interface_system_test_init (CuTest *test)
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&device_manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
@@ -810,7 +829,16 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	struct session_manager_mock session;
 	X509_TESTING_ENGINE x509;
 	uint8_t *dev_id_der = NULL;
-	uint8_t num_pcr_measurements[2] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	const char *id[FW_VERSION_COUNT] = {CERBERUS_FW_VERSION, RIOT_CORE_VERSION};
 	struct cmd_interface_fw_version fw_version = {
 		.count = FW_VERSION_COUNT,
@@ -885,7 +913,7 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_init (&device_manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
@@ -7065,7 +7093,16 @@ static void cmd_interface_system_test_process_get_attestation_data (CuTest *test
 static void cmd_interface_system_test_process_get_attestation_data_with_offset (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
-	uint8_t num_pcr_measurements[2] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 
 	TEST_START;
@@ -7075,7 +7112,7 @@ static void cmd_interface_system_test_process_get_attestation_data_with_offset (
 
 	pcr_store_release (&cmd.store);
 
-	status = pcr_store_init (&cmd.store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&cmd.store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_optional_commands_testing_process_get_attestation_data_with_offset (test,

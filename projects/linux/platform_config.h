@@ -16,7 +16,12 @@
 /**
  * The key bit length to use for auxiliary attestation.
  */
-// #define	AUX_ATTESTATION_KEY_BITS			3072
+// #define AUX_ATTESTATION_KEY_BITS				3072
+
+/**
+ * Maximum digest length supported for device measurements.
+ */
+// #define PCR_MAX_DIGEST_LENGTH 				SHA512_HASH_LENGTH
 
 
 /*****************************
@@ -73,12 +78,12 @@
 /**
  * The maximum key length supported by the RSA API.
  */
-// #define	RSA_MAX_KEY_LENGTH		RSA_KEY_LENGTH_4K
+// #define RSA_MAX_KEY_LENGTH		RSA_KEY_LENGTH_4K
 
 /**
  * The maximum elliptic curve size supported by the ECC API.
  */
-// #define	ECC_MAX_KEY_LENGTH		ECC_KEY_LENGTH_521
+// #define ECC_MAX_KEY_LENGTH		ECC_KEY_LENGTH_521
 
 
 /********************
@@ -130,7 +135,7 @@
 /**
  * Maximum number of SPDM sessions supported.
  */
-// #define SPDM_MAX_SESSION_COUNT		1
+// #define SPDM_MAX_SESSION_COUNT							1
 
 /**
  * Buffer size for storing Version, Capabilities, Algorithms SPDM messages.

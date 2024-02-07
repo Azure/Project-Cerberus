@@ -157,9 +157,9 @@ int hash_get_hash_length (enum hash_type hash_type)
 }
 
 /**
- * Determine if hashing algorithm is supported by device.
+ * Determine if a specific hashing algorithm is supported by the device.
  *
- * @param hash_type The type of hashing algorithm to test.
+ * @param hash_type The hashing algorithm to check.
  *
  * @return True if algorithm is supported, False otherwise.
  */

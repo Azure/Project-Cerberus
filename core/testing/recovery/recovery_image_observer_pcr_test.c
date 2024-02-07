@@ -4,6 +4,7 @@
 #include "testing.h"
 #include "recovery/recovery_image_observer_pcr.h"
 #include "attestation/pcr_store.h"
+#include "common/array_size.h"
 #include "state_manager/state_manager.h"
 #include "testing/mock/recovery/recovery_image_mock.h"
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
@@ -23,7 +24,16 @@ static void recovery_image_observer_pcr_test_init (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct recovery_image_observer_pcr observer;
 	int status;
 
@@ -32,7 +42,7 @@ static void recovery_image_observer_pcr_test_init (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_observer_pcr_init (&observer, &hash.base, &store,
@@ -51,7 +61,16 @@ static void recovery_image_observer_pcr_test_init_null (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct recovery_image_observer_pcr observer;
 	int status;
 
@@ -60,7 +79,7 @@ static void recovery_image_observer_pcr_test_init_null (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_observer_pcr_init (NULL, &hash.base, &store, PCR_MEASUREMENT (0, 0));
@@ -80,7 +99,16 @@ static void recovery_image_observer_pcr_test_init_bad_measurement_type (CuTest *
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct recovery_image_observer_pcr observer;
 	int status;
 
@@ -89,7 +117,7 @@ static void recovery_image_observer_pcr_test_init_bad_measurement_type (CuTest *
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_observer_pcr_init (&observer, &hash.base, &store,
@@ -111,7 +139,16 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct recovery_image_observer_pcr observer;
 	int status;
 	struct recovery_image_mock image;
@@ -124,7 +161,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_mock_init (&image);
@@ -134,11 +171,11 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest
 		PCR_MEASUREMENT (0, 0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -152,7 +189,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated (CuTest
 	observer.base.on_recovery_image_activated (&observer.base, &image.base);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (RECOVERY_IMAGE_HASH_DIGEST, measurement.digest,
 		RECOVERY_IMAGE_HASH_LEN);
@@ -171,7 +208,16 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated_hash_er
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct recovery_image_observer_pcr observer;
 	int status;
 	struct recovery_image_mock image;
@@ -183,7 +229,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated_hash_er
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_mock_init (&image);
@@ -194,7 +240,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated_hash_er
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -207,7 +253,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_activated_hash_er
 	observer.base.on_recovery_image_activated (&observer.base, &image.base);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -225,7 +271,16 @@ static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct recovery_image_observer_pcr observer;
 	int status;
 	struct recovery_image_mock image;
@@ -239,7 +294,7 @@ static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_mock_init (&image);
@@ -252,11 +307,11 @@ static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 		PCR_MEASUREMENT (0, 0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -276,7 +331,7 @@ static void recovery_image_observer_pcr_test_record_measurement (CuTest *test)
 	recovery_image_observer_pcr_record_measurement (&observer, &manager.base);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (RECOVERY_IMAGE_HASH_DIGEST, measurement.digest,
 		RECOVERY_IMAGE_HASH_LEN);
@@ -298,7 +353,16 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct recovery_image_observer_pcr observer;
 	int status;
 	struct pcr_measurement measurement;
@@ -311,10 +375,10 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_manager_mock_init (&manager);
@@ -325,7 +389,7 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -337,7 +401,7 @@ static void recovery_image_observer_pcr_test_record_measurement_no_active (CuTes
 	recovery_image_observer_pcr_record_measurement (&observer, &manager.base);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (ZERO_BUFFER_HASH, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -355,7 +419,16 @@ static void recovery_image_observer_pcr_test_record_measurement_null (CuTest *te
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct recovery_image_observer_pcr observer;
 	int status;
 	struct pcr_measurement measurement;
@@ -366,7 +439,7 @@ static void recovery_image_observer_pcr_test_record_measurement_null (CuTest *te
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_manager_mock_init (&manager);
@@ -377,7 +450,7 @@ static void recovery_image_observer_pcr_test_record_measurement_null (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -387,7 +460,7 @@ static void recovery_image_observer_pcr_test_record_measurement_null (CuTest *te
 	recovery_image_observer_pcr_record_measurement (NULL, &manager.base);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -405,7 +478,16 @@ static void recovery_image_observer_pcr_test_record_measurement_hash_error (CuTe
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct recovery_image_observer_pcr observer;
 	int status;
 	struct recovery_image_mock image;
@@ -418,7 +500,7 @@ static void recovery_image_observer_pcr_test_record_measurement_hash_error (CuTe
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_mock_init (&image);
@@ -432,7 +514,7 @@ static void recovery_image_observer_pcr_test_record_measurement_hash_error (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -452,7 +534,7 @@ static void recovery_image_observer_pcr_test_record_measurement_hash_error (CuTe
 	recovery_image_observer_pcr_record_measurement (&observer, &manager.base);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -473,7 +555,16 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 {
 	HASH_TESTING_ENGINE hash;
 	struct pcr_store store;
-	uint8_t num_pcr_measurements[] = {6, 6};
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	struct recovery_image_observer_pcr observer;
 	int status;
 	struct recovery_image_mock image;
@@ -486,7 +577,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 	status = HASH_TESTING_ENGINE_INIT (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&store, num_pcr_measurements, sizeof (num_pcr_measurements));
+	status = pcr_store_init (&store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	status = recovery_image_mock_init (&image);
@@ -496,11 +587,11 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 		PCR_MEASUREMENT (0, 0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_update_event_type (&store.banks[0], 0, event);
+	status = pcr_store_set_tcg_event_type (&store, PCR_MEASUREMENT (0, 0), event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
@@ -514,7 +605,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 	observer.base.on_recovery_image_activated (&observer.base, &image.base);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (RECOVERY_IMAGE_HASH_DIGEST, measurement.digest,
 		RECOVERY_IMAGE_HASH_LEN);
@@ -523,7 +614,7 @@ static void recovery_image_observer_pcr_test_on_recovery_image_deactivated (CuTe
 	observer.base.on_recovery_image_deactivated (&observer.base);
 
 	status = pcr_store_get_measurement (&store, PCR_MEASUREMENT (0, 0), &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (ZERO_BUFFER_HASH, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);

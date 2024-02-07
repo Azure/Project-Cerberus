@@ -7,6 +7,7 @@
 #include "testing.h"
 #include "intrusion/intrusion_manager.h"
 #include "attestation/pcr_store.h"
+#include "common/array_size.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/intrusion/intrusion_state_mock.h"
 #include "testing/engines/hash_testing_engine.h"
@@ -57,23 +58,28 @@ struct intrusion_manager_testing {
  * Helper to initialize all dependencies for testing.
  *
  * @param test The test framework.
- * @param manager Testing dependencies to initailize.
+ * @param manager Testing dependencies to initialize.
  * @param pcr_measurement The measurement ID to use.
  */
 static void intrusion_manager_testing_init_dependencies (CuTest *test,
 	struct intrusion_manager_testing *manager, uint16_t pcr_measurement)
 {
-	uint8_t num_measurements[1] = {2};
+	const struct pcr_config pcr_config[1] = {
+		{
+			.num_measurements = 2,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
 	int status;
 
 	status = intrusion_state_mock_init (&manager->state);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_init (&manager->store, num_measurements, sizeof (num_measurements));
+	status = pcr_store_init (&manager->store, pcr_config, ARRAY_SIZE (pcr_config));
 	CuAssertIntEquals (test, 0, status);
 
 	manager->pcr_id = pcr_measurement;
-	status = pcr_store_update_event_type (&manager->store, manager->pcr_id,
+	status = pcr_store_set_tcg_event_type (&manager->store, manager->pcr_id,
 		INTRUSION_MANAGER_TESTING_EVENT_ID);
 	CuAssertIntEquals (test, 0, status);
 
@@ -173,7 +179,7 @@ static void intrusion_manager_testing_init_with_hash_mock (CuTest *test,
 		MOCK_ARG (sizeof (value)));
 
 	status |= mock_expect (&manager->hash_mock.mock, manager->hash_mock.base.finish,
-		&manager->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+		&manager->hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&manager->hash_mock.mock, 0, INTRUSION_MANAGER_TESTING_UNKNOWN,
 		INTRUSION_MANAGER_TESTING_DIGEST_LEN, 1);
 
@@ -237,7 +243,7 @@ static void intrusion_manager_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, manager.test.check_state);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -271,7 +277,7 @@ static void intrusion_manager_test_init_second_measurement (CuTest *test)
 	CuAssertPtrNotNull (test, manager.test.check_state);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -314,7 +320,7 @@ static void intrusion_manager_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertPtrEquals (test, NULL, (void*) measurement.measured_data);
@@ -341,7 +347,7 @@ static void intrusion_manager_test_init_invalid_measurement (CuTest *test)
 	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertPtrEquals (test, NULL, (void*) measurement.measured_data);
@@ -372,7 +378,7 @@ static void intrusion_manager_test_init_hash_error (CuTest *test)
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertPtrEquals (test, NULL, (void*) measurement.measured_data);
@@ -407,7 +413,7 @@ static void intrusion_manager_test_handle_intrusion (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -441,7 +447,7 @@ static void intrusion_manager_test_handle_intrusion_null (CuTest *test)
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -482,7 +488,7 @@ static void intrusion_manager_test_handle_intrusion_hash_error (CuTest *test)
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -520,7 +526,7 @@ static void intrusion_manager_test_handle_intrusion_state_error (CuTest *test)
 	CuAssertIntEquals (test, INTRUSION_STATE_SET_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -562,7 +568,7 @@ static void intrusion_manager_test_handle_intrusion_hash_error_and_state_error (
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -599,7 +605,7 @@ static void intrusion_manager_test_reset_intrusion (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -633,7 +639,7 @@ static void intrusion_manager_test_reset_intrusion_null (CuTest *test)
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -671,7 +677,7 @@ static void intrusion_manager_test_reset_intrusion_state_error (CuTest *test)
 	CuAssertIntEquals (test, INTRUSION_STATE_CLEAR_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -712,7 +718,7 @@ static void intrusion_manager_test_reset_intrusion_hash_error (CuTest *test)
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -749,7 +755,7 @@ static void intrusion_manager_test_check_state_no_intrusion (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -786,7 +792,7 @@ static void intrusion_manager_test_check_state_intrusion (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -824,7 +830,7 @@ static void intrusion_manager_test_check_state_check_error (CuTest *test)
 	CuAssertIntEquals (test, INTRUSION_STATE_CHECK_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -862,7 +868,7 @@ static void intrusion_manager_test_check_state_check_error_from_intrusion (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -883,7 +889,7 @@ static void intrusion_manager_test_check_state_check_error_from_intrusion (CuTes
 	CuAssertIntEquals (test, INTRUSION_STATE_CHECK_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -921,7 +927,7 @@ static void intrusion_manager_test_check_state_check_error_from_no_intrusion (Cu
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -942,7 +948,7 @@ static void intrusion_manager_test_check_state_check_error_from_no_intrusion (Cu
 	CuAssertIntEquals (test, INTRUSION_STATE_CHECK_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -980,7 +986,7 @@ static void intrusion_manager_test_check_state_deferred (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -1001,7 +1007,7 @@ static void intrusion_manager_test_check_state_deferred (CuTest *test)
 	CuAssertIntEquals (test, INTRUSION_STATE_CHECK_DEFERRED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -1035,7 +1041,7 @@ static void intrusion_manager_test_check_state_null (CuTest *test)
 	CuAssertIntEquals (test, INTRUSION_MANAGER_INVALID_ARGUMENT, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -1076,7 +1082,7 @@ static void intrusion_manager_test_check_state_no_intrusion_hash_error (CuTest *
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -1117,7 +1123,7 @@ static void intrusion_manager_test_check_state_intrusion_hash_error (CuTest *tes
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -1167,7 +1173,7 @@ static void intrusion_manager_test_check_state_check_error_and_hash_error (CuTes
 		MOCK_ARG (sizeof (value)));
 
 	status |= mock_expect (&manager.hash_mock.mock, manager.hash_mock.base.finish,
-		&manager.hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+		&manager.hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	status |= mock_expect_output (&manager.hash_mock.mock, 0, INTRUSION_MANAGER_TESTING_INTRUSION,
 		INTRUSION_MANAGER_TESTING_DIGEST_LEN, 1);
 
@@ -1177,7 +1183,7 @@ static void intrusion_manager_test_check_state_check_error_and_hash_error (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);
@@ -1202,7 +1208,7 @@ static void intrusion_manager_test_check_state_check_error_and_hash_error (CuTes
 	CuAssertIntEquals (test, INTRUSION_STATE_CHECK_FAILED, status);
 
 	status = pcr_store_get_measurement (&manager.store, manager.pcr_id, &measurement);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_ID, measurement.event_type);
 	CuAssertIntEquals (test, INTRUSION_MANAGER_TESTING_EVENT_VERSION, measurement.version);

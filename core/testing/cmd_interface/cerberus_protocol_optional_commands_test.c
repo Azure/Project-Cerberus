@@ -4896,7 +4896,8 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info (CuTest *t
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_LOG_INFO, resp->header.command);
 	CuAssertIntEquals (test, debug_size, resp->debug_log_length);
-	CuAssertIntEquals (test, attestation_entries * sizeof (struct pcr_store_attestation_log_entry),
+	CuAssertIntEquals (test,
+		attestation_entries * sizeof (struct pcr_store_attestation_log_entry_sha256),
 		resp->attestation_log_length);
 	CuAssertIntEquals (test, 0, resp->tamper_log_length);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
@@ -4972,7 +4973,8 @@ void cerberus_protocol_optional_commands_testing_process_get_log_info_fail_debug
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_LOG_INFO, resp->header.command);
 	CuAssertIntEquals (test, debug_size, resp->debug_log_length);
-	CuAssertIntEquals (test, attestation_entries * sizeof (struct pcr_store_attestation_log_entry),
+	CuAssertIntEquals (test,
+		attestation_entries * sizeof (struct pcr_store_attestation_log_entry_sha256),
 		resp->attestation_log_length);
 	CuAssertIntEquals (test, 0, resp->tamper_log_length);
 	CuAssertIntEquals (test, false, request.crypto_timeout);
@@ -5183,9 +5185,9 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_limited_
 void cerberus_protocol_optional_commands_testing_process_log_read_attestation (CuTest *test,
 	struct cmd_interface *cmd, struct hash_engine_mock *hash, struct pcr_store *store)
 {
-	struct pcr_store_attestation_log_entry exp_buf[6];
-	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
-	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
+	struct pcr_store_attestation_log_entry_sha256 exp_buf[6];
+	uint8_t buffer0[SHA256_HASH_LENGTH] = {0};
+	uint8_t digests[6][SHA256_HASH_LENGTH] = {
 		{
 			0xab,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 			0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
@@ -5236,91 +5238,92 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation (C
 
 	memset (exp_buf, 0, sizeof (exp_buf));
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
-		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
-		exp_buf[i_measurement].header.entry_id = i_measurement;
-		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
-		exp_buf[i_measurement].entry.digest_count = 1;
-		exp_buf[i_measurement].entry.measurement_size = 32;
-		exp_buf[i_measurement].entry.event_type = 0xA + i_measurement;
-		exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
+		exp_buf[i_measurement].base.header.log_magic = 0xCB;
+		exp_buf[i_measurement].base.header.length =
+			sizeof (struct pcr_store_attestation_log_entry_sha256);
+		exp_buf[i_measurement].base.header.entry_id = i_measurement;
 
-		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
-			sizeof (exp_buf[i_measurement].entry.digest));
+		exp_buf[i_measurement].base.info.digest_algorithm_id = 0x0B;
+		exp_buf[i_measurement].base.info.digest_count = 1;
+		exp_buf[i_measurement].base.info.event_type = 0xA + i_measurement;
+		exp_buf[i_measurement].base.info.measurement_type = PCR_MEASUREMENT (0, i_measurement);
+
+		exp_buf[i_measurement].entry.measurement_size = SHA256_HASH_LENGTH;
+		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement], SHA256_HASH_LENGTH);
 		memcpy (exp_buf[i_measurement].entry.measurement, digests[5 - i_measurement],
-			sizeof (exp_buf[i_measurement].entry.measurement));
+			SHA256_HASH_LENGTH);
 	}
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (buffer0, PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (buffer0, SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[0], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[0], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[5], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[5], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[5], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[5], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[1], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[1], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[4], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[4], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[4], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[4], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[2], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[2], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[3], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[3], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[3], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[3], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[3], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[3], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[2], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[2], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[2], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[2], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[4], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[4], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[1], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[1], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[1], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[1], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[5], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[5], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[0], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST(SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[0], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		pcr_store_update_digest (store, PCR_MEASUREMENT (0, i_measurement),
-			digests[i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement),
+			digests[i_measurement], SHA256_HASH_LENGTH);
+		pcr_store_set_tcg_event_type (store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
@@ -5347,9 +5350,9 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation (C
 void cerberus_protocol_optional_commands_testing_process_log_read_attestation_limited_response (
 	CuTest *test, struct cmd_interface *cmd, struct hash_engine_mock *hash, struct pcr_store *store)
 {
-	struct pcr_store_attestation_log_entry exp_buf[6];
-	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
-	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
+	struct pcr_store_attestation_log_entry_sha256 exp_buf[6];
+	uint8_t buffer0[SHA256_HASH_LENGTH] = {0};
+	uint8_t digests[6][SHA256_HASH_LENGTH] = {
 		{
 			0xab,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 			0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
@@ -5401,91 +5404,92 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation_li
 
 	memset (exp_buf, 0, sizeof (exp_buf));
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
-		exp_buf[i_measurement].header.log_magic = 0xCB;
-		exp_buf[i_measurement].header.length = sizeof (struct pcr_store_attestation_log_entry);
-		exp_buf[i_measurement].header.entry_id = i_measurement;
-		exp_buf[i_measurement].entry.digest_algorithm_id = 0x0B;
-		exp_buf[i_measurement].entry.digest_count = 1;
-		exp_buf[i_measurement].entry.measurement_size = 32;
-		exp_buf[i_measurement].entry.event_type = 0xA + i_measurement;
-		exp_buf[i_measurement].entry.measurement_type = PCR_MEASUREMENT (0, i_measurement);
+		exp_buf[i_measurement].base.header.log_magic = 0xCB;
+		exp_buf[i_measurement].base.header.length =
+			sizeof (struct pcr_store_attestation_log_entry_sha256);
+		exp_buf[i_measurement].base.header.entry_id = i_measurement;
 
-		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement],
-			sizeof (exp_buf[i_measurement].entry.digest));
+		exp_buf[i_measurement].base.info.digest_algorithm_id = 0x0B;
+		exp_buf[i_measurement].base.info.digest_count = 1;
+		exp_buf[i_measurement].base.info.event_type = 0xA + i_measurement;
+		exp_buf[i_measurement].base.info.measurement_type = PCR_MEASUREMENT (0, i_measurement);
+
+		exp_buf[i_measurement].entry.measurement_size = SHA256_HASH_LENGTH;
+		memcpy (exp_buf[i_measurement].entry.digest, digests[i_measurement], SHA256_HASH_LENGTH);
 		memcpy (exp_buf[i_measurement].entry.measurement, digests[5 - i_measurement],
-			sizeof (exp_buf[i_measurement].entry.measurement));
+			SHA256_HASH_LENGTH);
 	}
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (buffer0, PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (buffer0, SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[0], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[0], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[5], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[5], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[5], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[5], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[1], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[1], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[4], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[4], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[4], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[4], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[2], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[2], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[3], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[3], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[3], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[3], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[3], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[3], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[2], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[2], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[2], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[2], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[4], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[4], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[1], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[1], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, 0);
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[1], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[1], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (digests[5], PCR_DIGEST_LENGTH), MOCK_ARG (PCR_DIGEST_LENGTH));
+		MOCK_ARG_PTR_CONTAINS_TMP (digests[5], SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH));
 	status |= mock_expect (&hash->mock, hash->base.finish, hash, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (PCR_DIGEST_LENGTH));
-	status |= mock_expect_output (&hash->mock, 0, digests[0], PCR_DIGEST_LENGTH, -1);
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&hash->mock, 0, digests[0], SHA256_HASH_LENGTH, -1);
 
 	CuAssertIntEquals (test, 0, status);
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		pcr_store_update_digest (store, PCR_MEASUREMENT (0, i_measurement),
-			digests[i_measurement], PCR_DIGEST_LENGTH);
-		pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement),
+			digests[i_measurement], SHA256_HASH_LENGTH);
+		pcr_store_set_tcg_event_type (store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 	}
 
@@ -5550,7 +5554,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_debug_fail (Cu
 void cerberus_protocol_optional_commands_testing_process_log_read_attestation_fail (CuTest *test,
 	struct cmd_interface *cmd, struct hash_engine_mock *hash, struct pcr_store *store)
 {
-	uint8_t buffer0[PCR_DIGEST_LENGTH] = {0};
+	uint8_t buffer0[SHA256_HASH_LENGTH] = {0};
 	uint32_t offset = 0;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg request;
@@ -5574,7 +5578,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_attestation_fa
 	status = mock_expect (&hash->mock, hash->base.start_sha256, hash, HASH_ENGINE_NO_MEMORY);
 	CuAssertIntEquals (test, 0, status);
 
-	pcr_store_update_digest (store, PCR_MEASUREMENT (0, 0), buffer0, PCR_DIGEST_LENGTH);
+	pcr_store_update_digest (store, PCR_MEASUREMENT (0, 0), buffer0, SHA256_HASH_LENGTH);
 
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
@@ -5698,7 +5702,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_invalid_len (C
 void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *test,
 	struct cmd_interface *cmd, struct pcr_store *store)
 {
-	uint8_t digests[6][PCR_DIGEST_LENGTH] = {
+	uint8_t digests[6][SHA256_HASH_LENGTH] = {
 		{
 			0xab,0xe6,0xe6,0x4f,0x38,0x13,0x4f,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 			0x7f,0xe6,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x7f,0x6e
@@ -5733,8 +5737,11 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 		(struct pcr_tcg_event*) (data + sizeof (struct cerberus_protocol_header));
 	struct pcr_tcg_log_header *header =
 		(struct pcr_tcg_log_header*) ((uint8_t*) v1_event + sizeof (struct pcr_tcg_event));
-	struct pcr_tcg_event2 *event =
-		(struct pcr_tcg_event2*) ((uint8_t*) header + sizeof (struct pcr_tcg_log_header));
+	const size_t header_len =
+		sizeof (struct pcr_tcg_log_header) - (sizeof (struct pcr_tcg_algorithm) * 2);
+	uint8_t *vendor_info_size = ((uint8_t*) header) + (header_len - 1);
+	struct pcr_tcg_event2_sha256 *event =
+		(struct pcr_tcg_event2_sha256*) ((uint8_t*) header + header_len);
 	struct pcr_measured_data measurement;
 	uint8_t v1_event_pcr[20] = {0};
 	int i_measurement;
@@ -5759,10 +5766,10 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
 		status = pcr_store_update_digest (store, PCR_MEASUREMENT (0, i_measurement),
-			digests[i_measurement], PCR_DIGEST_LENGTH);
+			digests[i_measurement], SHA256_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_store_update_event_type (store, PCR_MEASUREMENT (0, i_measurement),
+		status = pcr_store_set_tcg_event_type (store, PCR_MEASUREMENT (0, i_measurement),
 			0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
@@ -5774,9 +5781,10 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	request.crypto_timeout = true;
 	status = cmd->process_request (cmd, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_log_response) +
-		sizeof (struct pcr_tcg_event) + sizeof (struct pcr_tcg_log_header) +
-		sizeof (struct pcr_tcg_event2) * 6 + sizeof (uint8_t) * 6, request.length);
+	CuAssertIntEquals (test,
+		sizeof (struct cerberus_protocol_get_log_response) + sizeof (struct pcr_tcg_event) +
+			header_len + (sizeof (struct pcr_tcg_event2_sha256) * 6) + (sizeof (uint8_t) * 6),
+		request.length);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, resp->header.msg_type);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, resp->header.pci_vendor_id);
 	CuAssertIntEquals (test, 0, resp->header.crypt);
@@ -5788,10 +5796,10 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 
 	CuAssertIntEquals (test, PCR_TCG_EFI_NO_ACTION_EVENT_TYPE, v1_event->event_type);
-	CuAssertIntEquals (test, sizeof (struct pcr_tcg_log_header), v1_event->event_size);
-	CuAssertIntEquals (test, 0, v1_event->pcr_bank);
+	CuAssertIntEquals (test, header_len, v1_event->event_size);
+	CuAssertIntEquals (test, 0, v1_event->pcr_index);
 
-	status = testing_validate_array (v1_event_pcr, v1_event->pcr, sizeof (v1_event_pcr));
+	status = testing_validate_array (v1_event_pcr, v1_event->digest, sizeof (v1_event_pcr));
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array ((const uint8_t*) PCR_TCG_LOG_SIGNATURE, header->signature,
@@ -5804,23 +5812,23 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg (CuTest *t
 	CuAssertIntEquals (test, 0, header->spec_errata);
 	CuAssertIntEquals (test, PCR_TCG_UINT_SIZE_32, header->uintn_size);
 	CuAssertIntEquals (test, 1, header->num_algorithms);
-	CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, header->digest_size.digest_algorithm_id);
-	CuAssertIntEquals (test, SHA256_HASH_LENGTH, header->digest_size.digest_size);
-	CuAssertIntEquals (test, 0, header->vendor_info_size);
+	CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, header->digest_size[0].digest_algorithm_id);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, header->digest_size[0].digest_size);
+	CuAssertIntEquals (test, 0, *vendor_info_size);
 
 	for (i_measurement = 0; i_measurement < 6; ++i_measurement) {
-		CuAssertIntEquals (test, 0, event->pcr_bank);
-		CuAssertIntEquals (test, 0x0A + i_measurement, event->event_type);
-		CuAssertIntEquals (test, 1, event->digest_count);
-		CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, event->digest_algorithm_id);
+		CuAssertIntEquals (test, 0, event->header.pcr_index);
+		CuAssertIntEquals (test, 0x0A + i_measurement, event->header.event_type);
+		CuAssertIntEquals (test, 1, event->header.digest_count);
+		CuAssertIntEquals (test, PCR_TCG_SHA256_ALG_ID, event->header.digest_algorithm_id);
 		CuAssertIntEquals (test, 1, event->event_size);
 		CuAssertIntEquals (test, 0xAA,
-			(((uint8_t*) event) + sizeof (struct pcr_tcg_event2))[0]);
+			(((uint8_t*) event) + sizeof (struct pcr_tcg_event2_sha256))[0]);
 
-		status = testing_validate_array (digests[i_measurement], event->digest, PCR_DIGEST_LENGTH);
+		status = testing_validate_array (digests[i_measurement], event->digest, SHA256_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		event = (struct pcr_tcg_event2*) ((uint8_t*) (event + 1) + 1);
+		event = (struct pcr_tcg_event2_sha256*) ((uint8_t*) (event + 1) + 1);
 	}
 }
 
@@ -5855,7 +5863,7 @@ void cerberus_protocol_optional_commands_testing_process_log_read_tcg_fail (CuTe
 	status = pcr_store_set_measurement_data (store, PCR_MEASUREMENT (0, 0), &measurement);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_store_update_event_type (store, PCR_MEASUREMENT (0, 0), 0x0A);
+	status = pcr_store_set_tcg_event_type (store, PCR_MEASUREMENT (0, 0), 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
 	request.crypto_timeout = true;

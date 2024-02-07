@@ -259,11 +259,12 @@ static int attestation_responder_challenge_response (struct attestation_responde
 {
 	struct attestation_challenge *challenge = (struct attestation_challenge*) buf;
 	struct attestation_response *response = (struct attestation_response*) buf;
-	uint8_t measurement[PCR_DIGEST_LENGTH];
+	uint8_t measurement[PCR_MAX_DIGEST_LENGTH];
 	uint8_t buf_hash[SHA256_HASH_LENGTH];
 	uint16_t response_len;
 	uint8_t slot_num;
 	int num_measurements;
+	int measurement_length;
 	int status;
 
 	if ((attestation == NULL) || (buf == NULL)) {
@@ -282,14 +283,20 @@ static int attestation_responder_challenge_response (struct attestation_responde
 
 	platform_mutex_lock (&attestation->lock);
 
-	num_measurements = pcr_store_compute (attestation->pcr_store, attestation->hash, 0,
-		measurement);
-	if (ROT_IS_ERROR (num_measurements)) {
-		status = num_measurements;
+	num_measurements = pcr_store_get_num_pcr_measurements (attestation->pcr_store, 0);
+	if (num_measurements == 0) {
+		/* The PCR is just a single value, but report 1 measurement in the response payload. */
+		num_measurements = 1;
+	}
+
+	measurement_length = pcr_store_compute_pcr (attestation->pcr_store, attestation->hash, 0,
+		measurement, sizeof (measurement));
+	if (ROT_IS_ERROR (measurement_length)) {
+		status = measurement_length;
 		goto unlock;
 	}
 
-	response_len = sizeof (struct attestation_response) + sizeof (measurement);
+	response_len = sizeof (struct attestation_response) + measurement_length;
 
 	if (buf_len <= response_len) {
 		status = ATTESTATION_BUF_TOO_SMALL;
@@ -314,7 +321,7 @@ static int attestation_responder_challenge_response (struct attestation_responde
 	response->min_protocol_version = attestation->min_protocol_version;
 	response->max_protocol_version = attestation->max_protocol_version;
 	response->num_digests = num_measurements;
-	response->digests_size = sizeof (measurement);
+	response->digests_size = measurement_length;
 
 	status = attestation->rng->generate_random_buffer (attestation->rng, ATTESTATION_NONCE_LEN,
 		response->nonce);
@@ -322,7 +329,7 @@ static int attestation_responder_challenge_response (struct attestation_responde
 		goto cleanup;
 	}
 
-	memcpy (buf + sizeof (struct attestation_response), measurement, sizeof (measurement));
+	memcpy (buf + sizeof (struct attestation_response), measurement, measurement_length);
 
 	status = attestation->hash->update (attestation->hash, buf, response_len);
 	if (status != 0) {
