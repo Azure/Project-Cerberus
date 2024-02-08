@@ -163,6 +163,251 @@ static void spdm_handle_response_state (struct spdm_state *state, struct cmd_int
 }
 
 /**
+ * Check the compatibility of the capabilities in the flags.
+ * Some flags are mutually inclusive/exclusive.
+ *
+ * @param flags Capabilities to validate.
+ * @param version SPDM message version.
+ *
+ * @return true if the received capabilities are valid, false otherwise.
+ */
+static bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_flags_format flags,
+	uint8_t version)
+{
+	/* Illegal to return reserved values. */
+	if (flags.psk_cap >= SPDM_PSK_RESERVED) {
+		return false;
+	}
+
+	/* Key exchange capabilities checks. */
+	if ((flags.key_ex_cap == 1) || (flags.psk_cap == SPDM_PSK_SUPPORTED_NO_CONTEXT)) {
+		/**
+		 * While clearing MAC_CAP and setting ENCRYPT_CAP is legal according to DSP0274, the SPDM
+		 * responder also implements DSP0277 secure messages, which requires at least MAC_CAP
+		 * to be set. */
+		if (flags.mac_cap == 0) {
+			return false;
+		}
+	}
+	else {
+		/* mac_cap, encrypt_cap and key_upd_cap capabilities require either key exchange
+		 * or pre-shared key capability.
+		 *
+		 * heartbeat messages are sent in a secure session, the setup of which also require
+		 * either key exchange or pre-shared key capability.
+		 * 
+		 * handshake_in_the_clear_cap requires key_ex_cap.
+		 */
+		if ((flags.mac_cap == 1) || (flags.encrypt_cap == 1) ||
+			(flags.handshake_in_the_clear_cap == 1) || (flags.hbeat_cap == 1) ||
+			(flags.key_upd_cap == 1)) {
+			return false;
+		}
+	}
+	/* This is per libSPDM, so keeping this check. */
+	if ((flags.key_ex_cap == 0) && (flags.psk_cap == SPDM_PSK_SUPPORTED_NO_CONTEXT) &&
+		(flags.handshake_in_the_clear_cap == 1)) {
+		return false;
+	}
+
+	/* Certificate or public key capabilities checks. */
+	if ((flags.cert_cap == 1) || (flags.pub_key_id_cap == 1)) {
+		/* Certificate capabilities and public key capabilities cannot both be set. */
+		if ((flags.cert_cap == 1) && (flags.pub_key_id_cap == 1)) {
+			return false;
+		}
+		/** 
+		 * cert_cap and/or pub_key_id_cap are not needed if both chal_cap and key_ex_cap are 0.
+		 * Theoretically, this might be ok, but libSPDM has this check, so keeping it.
+		 */
+		if ((flags.chal_cap == 0) && (flags.key_ex_cap == 0)) {
+			return false;
+		}
+	}
+	else {
+		/**
+		 * If certificates or public keys are not enabled, then these capabilities
+		 * cannot be enabled. */
+		if ((flags.chal_cap == 1) || (flags.mut_auth_cap == 1)) {
+			return false;
+		}
+	}
+
+	/* Checks specific to v1.1. */
+	if (version == SPDM_VERSION_1_1) {
+		/* Having mut_auth_cap requires encap_cap to be available. */
+		if ((flags.mut_auth_cap == 1) && (flags.encap_cap == 0)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Get the maximum supported version from the version number table.
+ *
+ * @param version_num Version number table.
+ * @param version_num_count Number of entries in the version number table.
+ *
+ * @return Maximum supported version.
+ */
+static uint8_t spdm_get_max_supported_version (
+	const struct spdm_version_num_entry *version_num, const uint8_t version_num_count) 
+{
+	uint8_t max_version = 0;
+	uint8_t temp_version;
+	uint8_t i;
+
+	for (i = 0; i < version_num_count; i++) {
+		temp_version = 
+			SPDM_MAKE_VERSION (version_num[i].major_version, version_num[i].minor_version);
+		if (temp_version > max_version) {
+			max_version = temp_version;
+		}
+	}
+
+	return max_version;
+}
+
+/**
+ * Check if the received SPDM version is supported.
+ *
+ * @param peer_version SPDM message version in <major.minor> format.
+ * @param version_num Version number table.
+ * @param version_num_count Number of entries in the version number table.
+ *
+ * @return true if the received SPDM version is supported, false otherwise.
+ */
+static bool spdm_is_version_supported (uint8_t peer_version,
+	const struct spdm_version_num_entry *version_num, const uint8_t version_num_count)
+{
+	uint8_t i;
+
+	for (i = 0; i < version_num_count; i++) {
+		if (SPDM_MAKE_VERSION (version_num[i].major_version, version_num[i].minor_version) == 
+			peer_version) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Validate the capabilites of the local SPDM device.
+ *
+ * @param local_capabilities Local SPDM device capabilities.
+ *
+ * @return 0 if capabilities are valid or an error code.
+ */
+int spdm_validate_local_capabilities (const struct cmd_interface_spdm_responder *spdm_responder)
+{
+	int status = 0;
+	const struct spdm_device_capability *local_capabilities;
+
+	if (spdm_responder == NULL) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+		goto exit;
+	}
+	local_capabilities = spdm_responder->local_capabilities;
+
+	if (spdm_check_request_flag_compatibility (spdm_responder->local_capabilities->flags, 
+			spdm_get_max_supported_version (spdm_responder->version_num,
+				spdm_responder->version_num_count)) == false) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INCOMPATIBLE_CAPABILITIES;
+		goto exit;
+	}
+
+	if (local_capabilities->ct_exponent > SPDM_MAX_CT_EXPONENT) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
+		goto exit;
+	}
+
+	if ((local_capabilities->data_transfer_size < SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2) ||
+		(local_capabilities->data_transfer_size > local_capabilities->max_spdm_msg_size) ||
+		((local_capabilities->flags.chunk_cap == 0) &&
+		 (local_capabilities->data_transfer_size != local_capabilities->max_spdm_msg_size))) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
+		goto exit;
+	}
+
+exit:
+	return status;
+}
+
+/**
+ * Check the compatibility of the received SPDM version.
+ * If the received version is valid, subsequent SPDM communication will use this version.
+ *
+ * @param state SPDM state.
+ * @param peer_version SPDM message version in <major.minor> format.
+ *
+ * @return true if the received SPDM version is valid, else false.
+ */
+static bool spdm_check_request_version_compatibility (struct spdm_state *state,
+	const struct spdm_version_num_entry *version_num, const uint8_t version_num_count,
+	uint8_t peer_version)
+{
+	if (spdm_is_version_supported (peer_version, version_num, version_num_count) 
+		== true) {
+		state->connection_info.version.major_version = SPDM_GET_MAJOR_VERSION (peer_version);
+		state->connection_info.version.minor_version = SPDM_GET_MINOR_VERSION (peer_version);
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Reset transcript(s) in the Transcript Manager according to the request/response code.
+ *
+ * @param state SPDM state.
+ * @param transcript_manager SPDM transcript manager.
+ * @param req_rsp_code The SPDM request/response code.
+ */
+static void spdm_reset_transcript_via_request_code (struct spdm_state *state,
+	struct spdm_transcript_manager *transcript_manager,	uint8_t req_rsp_code)
+{
+	/* Any requests other than SPDM_GET_MEASUREMENTS resets L1/L2 */
+	if (req_rsp_code != SPDM_REQUEST_GET_MEASUREMENTS) {
+		transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+			false, SPDM_MAX_SESSION_COUNT);
+	}
+
+	/**
+	 * If the Requester issued GET_MEASUREMENTS or KEY_EXCHANGE or FINISH or PSK_EXCHANGE
+	 * or PSK_FINISH or KEY_UPDATE or HEARTBEAT or GET_ENCAPSULATED_REQUEST or
+	 * DELIVER_ENCAPSULATED_RESPONSE or END_SESSION request(s) and skipped CHALLENGE completion,
+	 * M1 and M2 are reset to null. */
+	switch (req_rsp_code) {
+		case SPDM_REQUEST_KEY_EXCHANGE:
+		case SPDM_REQUEST_GET_MEASUREMENTS:
+		case SPDM_REQUEST_FINISH:
+		case SPDM_REQUEST_PSK_EXCHANGE:
+		case SPDM_REQUEST_PSK_FINISH:
+		case SPDM_REQUEST_KEY_UPDATE:
+		case SPDM_REQUEST_HEARTBEAT:
+		case SPDM_REQUEST_GET_ENCAPSULATED_REQUEST:
+		case SPDM_REQUEST_END_SESSION:
+		case SPDM_REQUEST_DELIVER_ENCAPSULATED_RESPONSE:
+			if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_AUTHENTICATED) {
+				transcript_manager->reset_transcript (transcript_manager,
+					TRANSCRIPT_CONTEXT_TYPE_M1M2, false, SPDM_MAX_SESSION_COUNT);
+			}
+			break;
+
+		case SPDM_REQUEST_GET_DIGESTS:
+			transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
+				false, SPDM_MAX_SESSION_COUNT);
+			break;
+
+		default:
+			break;
+	}
+}
+
+/**
  * Process SPDM GET_VERSION request.
  *
  * @param spdm_responder SPDM responder instance.
@@ -323,132 +568,175 @@ int spdm_process_get_version_response (struct cmd_interface_msg *response)
 }
 
 /**
- * Process SPDM get capabilities request
+ * Process SPDM GET_CAPABILITIES request.
  *
- * @param request Get capabilities request to process
- * @param device_mgr Device manager instance to utilize
- * @param hash Hashing engine to utilize. Must be same engine used in other SPDM commands for
- * 	transcript hashing, and must be independent of other hash instances.
+ * @param spdm_responder SPDM responder instance.
+ * @param request The GET_CAPABILITIES request to process.
  *
  * @return 0 if request processed successfully or an error code.
  */
-int spdm_get_capabilities (struct cmd_interface_msg *request, struct device_manager *device_mgr,
-	struct hash_engine *hash)
+int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request)
 {
-	struct spdm_get_capabilities *rq;
-	struct device_manager_full_capabilities capabilities;
-	int device_num;
+	struct spdm_protocol_header *header;
+	struct spdm_get_capabilities *req_resp;
 	int status;
+	uint8_t spdm_version;
+	size_t req_resp_size;
+	struct spdm_transcript_manager *transcript_manager;
+	struct spdm_state *state;
+	const struct spdm_device_capability *local_capabilities;
 
-	if ((request == NULL) || (device_mgr == NULL) || (hash == NULL)) {
-		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	if ((spdm_responder == NULL) || (request == NULL)) {
+		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
-	rq = (struct spdm_get_capabilities*) request->payload;
+	transcript_manager = spdm_responder->transcript_manager;
+	state = spdm_responder->state;
+	local_capabilities = spdm_responder->local_capabilities;
 
-	if (request->payload_length < sizeof (struct spdm_get_capabilities_1_1)) {
-		return CMD_HANDLER_SPDM_BAD_LENGTH;
+	/* Verify the state. */
+	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
+		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_CAPABILITIES);
+		goto exit;
+	}
+	if (state->connection_info.connection_state != SPDM_CONNECTION_STATE_AFTER_VERSION) {
+		/* [TODO] Consolidate error reporting. */
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			SPDM_ERROR_UNEXPECTED_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
+			CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST);
+		goto exit;
 	}
 
-	if (rq->base_capabilities.header.spdm_minor_version == 1) {
-		if (request->payload_length != sizeof (struct spdm_get_capabilities_1_1)) {
-			return CMD_HANDLER_SPDM_BAD_LENGTH;
-		}
-	}
-	else {
-		if (request->payload_length != sizeof (struct spdm_get_capabilities)) {
-			return CMD_HANDLER_SPDM_BAD_LENGTH;
-		}
-	}
-
-	device_num = device_manager_get_device_num (device_mgr, request->source_eid);
-	if (ROT_IS_ERROR (device_num)) {
-		status = device_num;
-		goto send_unspecified_error;
+	/* Validate the request. */
+	header = (struct spdm_protocol_header*) request->payload;
+	spdm_version = SPDM_MAKE_VERSION (header->spdm_major_version, header->spdm_minor_version);
+	if (spdm_check_request_version_compatibility (state, spdm_responder->version_num,
+			spdm_responder->version_num_count, spdm_version) == false) {
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
+			CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH);
+		goto exit;
 	}
 
-	status = device_manager_get_device_capabilities (device_mgr, device_num, &capabilities);
-	if (status != 0) {
-		goto send_unspecified_error;
+	/* Check request size. */
+	if ((spdm_version >= SPDM_VERSION_1_2) &&
+		(request->payload_length >= sizeof (struct spdm_get_capabilities))) {
+		req_resp_size = sizeof (struct spdm_get_capabilities);
 	}
-
-	// TODO: Move hashing to a transcript hash manager.
-	status = hash->update (hash, (uint8_t*) rq, request->payload_length);
-	if (status != 0) {
-		goto send_unspecified_error;
-	}
-
-	// Limit maximum cryptographic timeout period of requester to prevent overflows
-	if (rq->base_capabilities.ct_exponent > 24) {
-		rq->base_capabilities.ct_exponent = 24;
-	}
-
-	capabilities.max_timeout = device_manager_set_timeout_ms (SPDM_MAX_RESPONSE_TIMEOUT_MS);
-	capabilities.max_sig = device_manager_set_crypto_timeout_ms (
-		spdm_capabilities_rsp_ct_to_ms (rq->base_capabilities.ct_exponent));
-
-	if (rq->base_capabilities.header.spdm_minor_version > 1) {
-		capabilities.request.max_message_size = rq->data_transfer_size;
-	}
-
-	status = device_manager_update_device_capabilities (device_mgr, device_num, &capabilities);
-	if (status != 0) {
-		goto send_unspecified_error;
-	}
-
-	rq->base_capabilities.header.req_rsp_code = SPDM_RESPONSE_GET_CAPABILITIES;
-
-	rq->base_capabilities.reserved = 0;
-	rq->base_capabilities.reserved2 = 0;
-	rq->base_capabilities.reserved3 = 0;
-	rq->base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
-	rq->base_capabilities.reserved4 = 0;
-
-	rq->base_capabilities.flags.cache_cap = SPDM_RESPONDER_CACHE_CAP;
-	rq->base_capabilities.flags.cert_cap = SPDM_RESPONDER_CERT_CAP;
-	rq->base_capabilities.flags.chal_cap = SPDM_RESPONDER_CHAL_CAP;
-	rq->base_capabilities.flags.meas_cap = SPDM_RESPONDER_MEAS_CAP;
-	rq->base_capabilities.flags.meas_fresh_cap = SPDM_RESPONDER_MEAS_FRESH_CAP;
-	rq->base_capabilities.flags.encrypt_cap = SPDM_RESPONDER_ENCRYPT_CAP;
-	rq->base_capabilities.flags.mac_cap = SPDM_RESPONDER_MAC_CAP;
-	rq->base_capabilities.flags.mut_auth_cap = SPDM_RESPONDER_MUT_AUTH_CAP;
-	rq->base_capabilities.flags.key_ex_cap = SPDM_RESPONDER_KEY_EX_CAP;
-	rq->base_capabilities.flags.psk_cap = SPDM_RESPONDER_PSK_CAP;
-	rq->base_capabilities.flags.encap_cap = SPDM_RESPONDER_ENCAP_CAP;
-	rq->base_capabilities.flags.hbeat_cap = SPDM_RESPONDER_HBEAT_CAP;
-	rq->base_capabilities.flags.key_upd_cap = SPDM_RESPONDER_KEY_UPD_CAP;
-	rq->base_capabilities.flags.handshake_in_the_clear_cap =
-		SPDM_RESPONDER_HANDSHAKE_IN_THE_CLEAR_CAP;
-	rq->base_capabilities.flags.pub_key_id_cap = SPDM_RESPONDER_PUB_KEY_ID_CAP;
-	rq->base_capabilities.flags.chunk_cap = SPDM_RESPONDER_CHUNK_CAP;
-	rq->base_capabilities.flags.alias_cert_cap = SPDM_RESPONDER_ALIAS_CERT_CAP;
-
-	if (rq->base_capabilities.header.spdm_minor_version < 2) {
-		cmd_interface_msg_set_message_payload_length (request,
-			sizeof (struct spdm_get_capabilities_1_1));
+	else if ((spdm_version == SPDM_VERSION_1_1) &&
+			(request->payload_length >= sizeof (struct spdm_get_capabilities_1_1))) {
+			req_resp_size = sizeof (struct spdm_get_capabilities_1_1);
 	}
 	else {
-		rq->data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-		rq->max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-
-		cmd_interface_msg_set_message_payload_length (request,
-			sizeof (struct spdm_get_capabilities));
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
+			CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+		goto exit;
 	}
 
-	// TODO: Move hashing to a transcript hash manager.
-	status = hash->update (hash, (uint8_t*) rq, request->payload_length);
+	/* Process the request. */
+	req_resp = (struct spdm_get_capabilities*) request->payload;
+
+	/* Check for request flag compatibility. */
+	if (spdm_check_request_flag_compatibility (req_resp->base_capabilities.flags, spdm_version)
+		 == false) {
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
+			CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+		goto exit;
+	}
+
+	/* Check the data transfer size. */
+	if (spdm_version >= SPDM_VERSION_1_2) {
+		if ((req_resp->data_transfer_size < SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2) ||
+			(req_resp->data_transfer_size > req_resp->max_spdm_msg_size)) {
+			spdm_generate_error_response (request, state->connection_info.version.minor_version,
+				SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
+				CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+			goto exit;
+		}
+		if ((req_resp->base_capabilities.flags.chunk_cap == 0) &&
+			(req_resp->data_transfer_size != req_resp->max_spdm_msg_size)) {
+			spdm_generate_error_response (request, state->connection_info.version.minor_version,
+				SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
+				CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+			goto exit;
+		}
+	}
+
+	/* Check the CT Exponent. */
+	if (spdm_version >= SPDM_VERSION_1_1) {
+		if (req_resp->base_capabilities.ct_exponent > SPDM_MAX_CT_EXPONENT) {
+			spdm_generate_error_response (request, state->connection_info.version.minor_version,
+				SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
+				CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
+			goto exit;
+		}
+	}
+
+	/* Reset the transcript manager state as per the request code. */
+	spdm_reset_transcript_via_request_code (state, transcript_manager,
+		SPDM_REQUEST_GET_CAPABILITIES);
+
+	/* Append the request to the VCA buffer. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
+		(const uint8_t*) req_resp, req_resp_size, false, SPDM_MAX_SESSION_COUNT);
 	if (status != 0) {
-		goto send_unspecified_error;
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES, status);
+		goto exit;
 	}
 
-	return 0;
+	/* Save the requester capabilities in the connection info. */
+	state->connection_info.peer_capabilities.flags = req_resp->base_capabilities.flags;
+	state->connection_info.peer_capabilities.ct_exponent = req_resp->base_capabilities.ct_exponent;
 
-send_unspecified_error:
-	spdm_generate_error_response (request, rq->base_capabilities.header.spdm_minor_version,
-		SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES, status);
+	if (spdm_version >= SPDM_VERSION_1_2) {
+		state->connection_info.peer_capabilities.data_transfer_size = req_resp->data_transfer_size;
+		state->connection_info.peer_capabilities.max_spdm_msg_size = req_resp->max_spdm_msg_size;
+	}
+	else {
+		state->connection_info.peer_capabilities.data_transfer_size = 0;
+		state->connection_info.peer_capabilities.max_spdm_msg_size = 0;
+	}
 
-	hash->cancel (hash);
+	/* Response phase. */
 
+	/* Contruct the response. */
+	memset (req_resp, 0, req_resp_size);
+	spdm_populate_header (&req_resp->base_capabilities.header, SPDM_RESPONSE_GET_CAPABILITIES,
+		SPDM_GET_MINOR_VERSION (spdm_version));
+
+	req_resp->base_capabilities.reserved = 0;
+	req_resp->base_capabilities.reserved2 = 0;
+	req_resp->base_capabilities.reserved3 = 0;
+	req_resp->base_capabilities.reserved4 = 0;
+
+	req_resp->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	req_resp->base_capabilities.flags = local_capabilities->flags;
+
+	if (spdm_version >= SPDM_VERSION_1_2) {
+		req_resp->data_transfer_size = local_capabilities->data_transfer_size;
+		req_resp->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+	}
+
+	/* Append the reponse to the VCA buffer. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
+		(const uint8_t*) req_resp, req_resp_size, false, SPDM_MAX_SESSION_COUNT);
+	if (status != 0) {
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES, status);
+		goto exit;
+	}
+
+	/* Set the payload length. */
+	cmd_interface_msg_set_message_payload_length (request, req_resp_size);
+
+	/* Update connection state */
+	spdm_set_connection_state (state, SPDM_CONNECTION_STATE_AFTER_CAPABILITIES);
+
+exit:
 	return 0;
 }
 
@@ -487,7 +775,7 @@ int spdm_generate_get_capabilities_request (uint8_t *buf, size_t buf_len,
 	spdm_populate_header (&rq->base_capabilities.header, SPDM_REQUEST_GET_CAPABILITIES,
 		spdm_minor_version);
 
-	rq->base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
+	rq->base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 
 	rq->base_capabilities.flags.cache_cap = SPDM_REQUESTER_CACHE_CAP;
 	rq->base_capabilities.flags.cert_cap = SPDM_REQUESTER_CERT_CAP;
@@ -1108,7 +1396,6 @@ int spdm_init_state (struct spdm_state *state)
 
 	/* Initialize the state. */
 	state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
-	memset (&state->connection_info.version, 0, sizeof (struct spdm_version_number));
 	state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 	state->last_spdm_request_session_id = SPDM_INVALID_SESSION_ID;
 	state->last_spdm_request_session_id_valid = false;

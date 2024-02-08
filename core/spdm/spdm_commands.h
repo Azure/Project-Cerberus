@@ -13,7 +13,17 @@
 #include "crypto/hash.h"
 #include "spdm_protocol.h"
 #include "spdm_transcript_manager.h"
+#include "platform_config.h"
 
+
+/* Configurable parameters. Defaults can be overridden in platform_config.h. */
+
+/**
+ * Maximum exponent for cryptographic processing time as described in section 10.3 of the DSP0274 SPDM spec.
+ */
+#ifndef SPDM_MAX_CT_EXPONENT
+#define SPDM_MAX_CT_EXPONENT						31
+#endif
 
 /**
  * Capabilities of SPDM requester. Capabilities described in section 10.3 in DSP0274 SPDM spec.
@@ -42,33 +52,6 @@
  */
 #define SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITHOUT_SIG		(0x01)
 #define SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITH_SIG			(0x02)
-
-/**
- * Capabilities of SPDM responder. Capabilities described in section 10.3 in DSP0274 SPDM spec.
- */
-#define SPDM_RESPONDER_CACHE_CAP					0
-#define SPDM_RESPONDER_CERT_CAP						1
-#define SPDM_RESPONDER_CHAL_CAP						1
-#define SPDM_RESPONDER_MEAS_CAP						SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITH_SIG
-#define SPDM_RESPONDER_MEAS_FRESH_CAP				0
-#define SPDM_RESPONDER_ENCRYPT_CAP					0
-#define SPDM_RESPONDER_MAC_CAP						0
-#define SPDM_RESPONDER_MUT_AUTH_CAP					0
-#define SPDM_RESPONDER_KEY_EX_CAP					0
-#define SPDM_RESPONDER_PSK_CAP						0
-#define SPDM_RESPONDER_ENCAP_CAP					0
-#define SPDM_RESPONDER_HBEAT_CAP					0
-#define SPDM_RESPONDER_KEY_UPD_CAP					0
-#define SPDM_RESPONDER_HANDSHAKE_IN_THE_CLEAR_CAP	0
-#define SPDM_RESPONDER_PUB_KEY_ID_CAP				0
-#define SPDM_RESPONDER_CHUNK_CAP					0
-#define SPDM_RESPONDER_ALIAS_CERT_CAP				0
-
-/**
- * SPDM maximum response time for cryptographic commands, as exponent of base 2. Described in
- * section 9.2 of DSP0274 SPDM spec.
- */
-#define SPDM_CT_EXPONENT							20
 
 /**
  * SPDM combined prefix length as described in section 15 of DSP0274 SPDM spec.
@@ -132,6 +115,11 @@ struct spdm_version_num_entry {
 #define spdm_capabilities_rsp_ct_to_ms(ct)						((1 << (ct)) / 1000)
 
 /**
+ * Minimum data transfer size for 1.2 per SPDM spec section 10.3
+ */
+#define SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2		42
+
+/**
  * SPDM get capabilities flags format
  */
 struct spdm_get_capabilities_flags_format {
@@ -154,6 +142,16 @@ struct spdm_get_capabilities_flags_format {
 	uint8_t alias_cert_cap:1;				/**< Uses the AliasCert model */
 	uint8_t reserved:5;						/**< Reserved */
 	uint8_t reserved2;						/**< Reserved */
+};
+
+/**
+ * SPDM pre-shared key capabilities flag values.
+ */
+enum spdm_pre_shared_key_capability_options {
+	SPDM_PSK_NOT_SUPPORTED, 			/**< Pre-shared key capabilities not supported.*/
+	SPDM_PSK_SUPPORTED_NO_CONTEXT, 		/** <Pre-shared key supported without session key derviation context.*/
+	SPDM_PSK_SUPPORTED_WITH_CONTEXT, 	/** <Pre-shared key supported with session key derviation context.*/
+	SPDM_PSK_RESERVED,					/**< Reserved.*/
 };
 
 /**
@@ -851,11 +849,26 @@ struct spdm_version_number {
 };
 
 /**
+ * SPDM device capabilities.
+ */
+struct spdm_device_capability {
+	/**
+	 * Maximum amount of time the endpoint has to provide any response requiring
+	 * cryptographic processing such as the GET_MEASUREMENTS or CHALLENGE request messages.
+	 */
+	uint8_t ct_exponent;
+	struct spdm_get_capabilities_flags_format flags;	/**< Capabilities flags */
+	uint32_t data_transfer_size;		/**< Maximum buffer size of the device. */
+	uint32_t max_spdm_msg_size;			/**< Maximum size for a single SPDM message */
+};
+
+/**
  * SPDM connection info.
  */
 struct spdm_connection_info {
-	enum spdm_connection_state connection_state;	/**< State of the SPDM connection. */
-	struct spdm_version_number version; 			/**< Negotiated version */
+	enum spdm_connection_state connection_state;		/**< State of the SPDM connection. */
+	struct spdm_version_number version; 				/**< Negotiated version */
+	struct spdm_device_capability peer_capabilities;	/**< Peer capabilities. */
 };
 
 /**
@@ -883,6 +896,8 @@ struct spdm_state {
 
 int spdm_init_state (struct spdm_state *state);
 
+int spdm_validate_local_capabilities (const struct cmd_interface_spdm_responder *spdm_responder);
+
 int spdm_get_command_id (struct cmd_interface_msg *message, uint8_t *command_id);
 
 void spdm_populate_mctp_header (struct spdm_protocol_mctp_header *header);
@@ -896,8 +911,8 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 int spdm_generate_get_version_request (uint8_t *buf, size_t buf_len);
 int spdm_process_get_version_response (struct cmd_interface_msg *response);
 
-int spdm_get_capabilities (struct cmd_interface_msg *request, struct device_manager *device_mgr,
-	struct hash_engine *hash);
+int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
 int spdm_generate_get_capabilities_request (uint8_t *buf, size_t buf_len,
 	uint8_t spdm_minor_version);
 int spdm_process_get_capabilities_response (struct cmd_interface_msg *response);

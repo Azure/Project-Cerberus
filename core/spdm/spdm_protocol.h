@@ -46,16 +46,6 @@
  */
 #define SPDM_VERSION_1_0		SPDM_MAKE_VERSION (1, 0)
 
-/**
- * Supported SPDM versions.
- */
-#ifndef SPDM_MIN_SUPPORTED_VERSION
-#define SPDM_MIN_SUPPORTED_VERSION	SPDM_VERSION_1_1
-#endif
-
-#ifndef SPDM_MAX_SUPPORTED_VERSION
-#define SPDM_MAX_SUPPORTED_VERSION	SPDM_VERSION_1_2
-#endif
 
 /**
  * Get SPDM major version.

@@ -26,6 +26,7 @@ struct cmd_interface_spdm_responder_testing {
 	struct spdm_transcript_manager_state transcript_manager_state; 	/**< The transcript manager state. */
 	struct hash_engine_mock hash_engine_mock;						/**< Mock hash engine for the responder. */
 	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION];	/**< Version number entries. */
+	struct spdm_device_capability local_capabilities;				/**< Local capabilities. */
 };
 
 /**
@@ -39,7 +40,7 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 {
 	int status;
 	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION] =
-		{ {1, 1, 0, 0}, {1, 2, 0, 0} };
+		{ {0, 0, 1, 1}, {0, 0, 2, 1} };
 
 	memcpy (testing->version_num, version_num, sizeof (version_num));
 
@@ -48,6 +49,31 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 
 	status = hash_mock_init (&testing->hash_engine_mock);
 	CuAssertIntEquals (test, 0, status);
+
+	/* Set the default capaiblities. */
+	memset (&testing->local_capabilities, 0, sizeof (testing->local_capabilities));
+	testing->local_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
+	testing->local_capabilities.flags.cache_cap = 0;
+	testing->local_capabilities.flags.cert_cap = 0;
+	testing->local_capabilities.flags.chal_cap = 0;
+	testing->local_capabilities.flags.meas_cap = 0;
+	testing->local_capabilities.flags.meas_fresh_cap = 0;
+	testing->local_capabilities.flags.encrypt_cap = 0;
+	testing->local_capabilities.flags.mac_cap = 0;
+	testing->local_capabilities.flags.mut_auth_cap = 0;
+	testing->local_capabilities.flags.key_ex_cap = 0;
+	testing->local_capabilities.flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	testing->local_capabilities.flags.encap_cap = 0;
+	testing->local_capabilities.flags.hbeat_cap = 0;
+	testing->local_capabilities.flags.key_upd_cap = 0;
+	testing->local_capabilities.flags.handshake_in_the_clear_cap = 0;
+	testing->local_capabilities.flags.pub_key_id_cap = 0;
+	testing->local_capabilities.flags.chunk_cap = 0;
+	testing->local_capabilities.flags.alias_cert_cap = 0;
+	testing->local_capabilities.data_transfer_size = DOE_MESSAGE_MAX_SIZE_IN_BYTES;
+	testing->local_capabilities.max_spdm_msg_size = DOE_MESSAGE_MAX_SIZE_IN_BYTES;
+	testing->local_capabilities.flags.reserved = 0;
+	testing->local_capabilities.flags.reserved2 = 0;
 }
 
 /**
@@ -83,8 +109,8 @@ static void cmd_interface_spdm_responder_testing_init (CuTest *test,
 
 	status = cmd_interface_spdm_responder_init (&testing->spdm_responder,
 		&testing->spdm_responder_state, &testing->transcript_manager_mock.base,
-		&testing->hash_engine_mock.base, testing->version_num,
-		ARRAY_SIZE (testing->version_num));
+		&testing->hash_engine_mock.base, testing->version_num, ARRAY_SIZE (testing->version_num),
+		&testing->local_capabilities);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -118,7 +144,8 @@ static void cmd_interface_spdm_responder_test_static_init (CuTest *test)
 	const struct cmd_interface_spdm_responder spdm_responder =
 		cmd_interface_spdm_responder_static_init (
 			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-			&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num));
+			&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+			&testing.local_capabilities);
 
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
 	CuAssertIntEquals (test, 0, status);
@@ -137,33 +164,42 @@ static void cmd_interface_spdm_responder_test_static_init_invalid_arg (CuTest *t
 	int status;
 	struct cmd_interface_spdm_responder spdm_responder =
 		cmd_interface_spdm_responder_static_init (NULL,
-			(struct spdm_transcript_manager*) 0xDEADBEEF, (struct hash_engine*) 0xBAADF00D, 
-			(struct spdm_version_num_entry*) 0xBADDCAFE, 2);
+			(struct spdm_transcript_manager*) 0xDEADBEEF, (struct hash_engine*) 0xBAADF00D,
+			(struct spdm_version_num_entry*) 0xBADDCAFE, 2,
+			(struct spdm_device_capability*) 0xCAFEB0BA);
 
 	struct cmd_interface_spdm_responder spdm_responder2 =
 		cmd_interface_spdm_responder_static_init ((struct spdm_state*) 0xDEADBEEF, NULL,
-			(struct hash_engine*) 0xBAADF00D, (struct spdm_version_num_entry*) 0xBADDCAFE, 2);
+			(struct hash_engine*) 0xBAADF00D, (struct spdm_version_num_entry*) 0xBADDCAFE, 2,
+			(struct spdm_device_capability*) 0xCAFEB0BA);
 
 	struct cmd_interface_spdm_responder spdm_responder3 =
 		cmd_interface_spdm_responder_static_init ((struct spdm_state*) 0xBAADF00D,
 			(struct spdm_transcript_manager*) 0xDEADBEEF, NULL,
-			(struct spdm_version_num_entry*) 0xBADDCAFE, 3);
+			(struct spdm_version_num_entry*) 0xBADDCAFE, 3,
+			(struct spdm_device_capability*) 0xCAFEB0BA);
 
 	struct cmd_interface_spdm_responder spdm_responder4 =
 		cmd_interface_spdm_responder_static_init ((struct spdm_state*) 0xDEADBEEF,
 			(struct spdm_transcript_manager*) 0xBAADF00D, (struct hash_engine*) 0xCAFEB0BA,
-			NULL, 2);
+			NULL, 2, (struct spdm_device_capability*) 0xBADDCAFE);
 
 	struct cmd_interface_spdm_responder spdm_responder5 =
 		cmd_interface_spdm_responder_static_init ((struct spdm_state*) 0xDEADBEEF,
 			(struct spdm_transcript_manager*) 0xBAADF00D, (struct hash_engine*) 0xCAFEB0BA,
-			(struct spdm_version_num_entry*) 0xBADDCAFE, 0);
+			(struct spdm_version_num_entry*) 0xBADDCAFE, 0,
+			(struct spdm_device_capability*) 0xDEADBEEF);
+
+	struct cmd_interface_spdm_responder spdm_responder6 =
+		cmd_interface_spdm_responder_static_init ((struct spdm_state*) 0xDEADBEEF,
+			(struct spdm_transcript_manager*) 0xBAADF00D, (struct hash_engine*) 0xCAFEB0BA,
+			(struct spdm_version_num_entry*) 0xBADDCAFE, 2, NULL);
 
 	TEST_START;
 
 	/* state = NULL */
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* transcript_manager = NULL */
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder2);
@@ -180,6 +216,139 @@ static void cmd_interface_spdm_responder_test_static_init_invalid_arg (CuTest *t
 	/* version_num_count = 0 */
 	status = cmd_interface_spdm_responder_init_state (&spdm_responder5);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
+
+	/* local_capabilities = NULL */
+	status = cmd_interface_spdm_responder_init_state (&spdm_responder6);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
+}
+
+static void cmd_interface_spdm_responder_test_static_init_incompatible_capabilities (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	testing.local_capabilities.flags.key_ex_cap = 1;
+	testing.local_capabilities.flags.mac_cap = 0;
+
+	const struct cmd_interface_spdm_responder spdm_responder =
+		cmd_interface_spdm_responder_static_init (
+			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+			&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+			&testing.local_capabilities);
+
+	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INCOMPATIBLE_CAPABILITIES, status);
+
+	cmd_interface_spdm_responder_deinit (&spdm_responder);
+
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_static_init_ct_exponent_gt_max (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	testing.local_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT + 1;
+
+	const struct cmd_interface_spdm_responder spdm_responder =
+		cmd_interface_spdm_responder_static_init (
+			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+			&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+			&testing.local_capabilities);
+
+	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
+
+	cmd_interface_spdm_responder_deinit (&spdm_responder);
+
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_lt_min_size (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	testing.local_capabilities.data_transfer_size = SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2 - 1;
+
+	const struct cmd_interface_spdm_responder spdm_responder =
+		cmd_interface_spdm_responder_static_init (
+			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+			&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+			&testing.local_capabilities);
+
+	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
+
+	cmd_interface_spdm_responder_deinit (&spdm_responder);
+
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_gt_max_size (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	testing.local_capabilities.data_transfer_size =
+		testing.local_capabilities.max_spdm_msg_size + 1;
+
+	const struct cmd_interface_spdm_responder spdm_responder =
+		cmd_interface_spdm_responder_static_init (
+			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+			&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+			&testing.local_capabilities);
+
+	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
+
+	cmd_interface_spdm_responder_deinit (&spdm_responder);
+
+	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_ne_max_size (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	testing.local_capabilities.flags.chunk_cap = 0;
+	testing.local_capabilities.max_spdm_msg_size =
+		testing.local_capabilities.data_transfer_size + 1;
+
+	const struct cmd_interface_spdm_responder spdm_responder =
+		cmd_interface_spdm_responder_static_init (
+			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+			&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+			&testing.local_capabilities);
+
+	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
+
+	cmd_interface_spdm_responder_deinit (&spdm_responder);
+
+	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
 }
 
 static void cmd_interface_spdm_responder_test_init (CuTest *test)
@@ -193,7 +362,8 @@ static void cmd_interface_spdm_responder_test_init (CuTest *test)
 
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
 		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num));
+		&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+		&testing.local_capabilities);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_request);
@@ -217,38 +387,152 @@ static void cmd_interface_spdm_responder_test_init_invalid_arg (CuTest *test)
 	/* spdm_responder = NULL */
 	status = cmd_interface_spdm_responder_init (NULL, &testing.spdm_responder_state,
 		&testing.transcript_manager_mock.base, &testing.hash_engine_mock.base,
-		testing.version_num, ARRAY_SIZE (testing.version_num));
+		testing.version_num, ARRAY_SIZE (testing.version_num), &testing.local_capabilities);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* state = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder, NULL,
 		&testing.transcript_manager_mock.base, &testing.hash_engine_mock.base,
-		testing.version_num, ARRAY_SIZE (testing.version_num));
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
+		testing.version_num, ARRAY_SIZE (testing.version_num), &testing.local_capabilities);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* transcript_manager = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
 		&testing.spdm_responder_state, NULL, &testing.hash_engine_mock.base,
-		testing.version_num, ARRAY_SIZE (testing.version_num));
+		testing.version_num, ARRAY_SIZE (testing.version_num), &testing.local_capabilities);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* hash_engine = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
 		&testing.spdm_responder_state, &testing.transcript_manager_mock.base, NULL,
-		testing.version_num, ARRAY_SIZE (testing.version_num));
+		testing.version_num, ARRAY_SIZE (testing.version_num), &testing.local_capabilities);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* version_num = NULL */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
 		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		&testing.hash_engine_mock.base, NULL, ARRAY_SIZE (testing.version_num));
+		&testing.hash_engine_mock.base, NULL, ARRAY_SIZE (testing.version_num),
+		&testing.local_capabilities);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	/* version_num_count = 0 */
 	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
 		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
-		&testing.hash_engine_mock.base, testing.version_num, 0);
+		&testing.hash_engine_mock.base, testing.version_num, 0, &testing.local_capabilities);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
+
+	/* local_capabilities = NULL */
+	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+		&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+		NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
 	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_init_incompatible_capabilities (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	testing.local_capabilities.flags.key_ex_cap = 1;
+	testing.local_capabilities.flags.mac_cap = 0;
+
+	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+		&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+		 &testing.local_capabilities);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INCOMPATIBLE_CAPABILITIES, status);
+
+	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_init_ct_exponent_gt_max (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	testing.local_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT + 1;
+
+	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+		&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+		 &testing.local_capabilities);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
+
+	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_init_data_transfer_size_lt_min_size (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	testing.local_capabilities.data_transfer_size = SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2 - 1;
+
+	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+		&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+		 &testing.local_capabilities);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
+
+	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_init_data_transfer_size_gt_max_size (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	testing.local_capabilities.data_transfer_size =
+		testing.local_capabilities.max_spdm_msg_size + 1;
+
+	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+		&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+		 &testing.local_capabilities);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
+
+	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_init_data_transfer_size_ne_max_size (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	testing.local_capabilities.flags.chunk_cap = 0;
+	testing.local_capabilities.max_spdm_msg_size =
+		testing.local_capabilities.data_transfer_size + 1;
+
+	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+		&testing.hash_engine_mock.base, testing.version_num, ARRAY_SIZE (testing.version_num),
+		 &testing.local_capabilities);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY, status);
+
+	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
 }
 
 static void cmd_interface_spdm_responder_test_process_request_get_version (CuTest *test)
@@ -375,6 +659,140 @@ static void cmd_interface_spdm_responder_test_process_request_get_version_fail (
 	CuAssertIntEquals (test, sizeof (struct spdm_error_response), request.payload_length);
 
 	cmd_interface_spdm_responder_testing_release (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_process_request_get_capabilities (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg request;
+	struct spdm_get_capabilities rq = {0};
+	struct spdm_get_capabilities *resp = (struct spdm_get_capabilities*) buf;
+	int status;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct cmd_interface_spdm_responder_testing testing;
+	struct spdm_device_capability *local_capabilities;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = (uint8_t*) buf;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_get_capabilities);
+	request.length = request.payload_length;
+
+	rq.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.base_capabilities.header.spdm_minor_version = 2;
+	rq.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq.base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq.base_capabilities.flags = local_capabilities->flags;
+	rq.data_transfer_size = local_capabilities->data_transfer_size;
+	rq.max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+	memcpy (request.payload, &rq, sizeof (struct spdm_get_capabilities));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_capabilities)),
+		MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_get_capabilities), request.length);
+	CuAssertIntEquals (test, request.length, request.payload_length);
+	CuAssertPtrEquals (test, buf, request.data);
+	CuAssertPtrEquals (test, resp, request.payload);
+	CuAssertIntEquals (test, 2, resp->base_capabilities.header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, resp->base_capabilities.header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_GET_CAPABILITIES,
+		resp->base_capabilities.header.req_rsp_code);
+	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved);
+	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved2);
+	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved3);
+	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved4);
+	CuAssertIntEquals (test, local_capabilities->ct_exponent, resp->base_capabilities.ct_exponent);
+	CuAssertIntEquals (test, local_capabilities->data_transfer_size, resp->data_transfer_size);
+	CuAssertIntEquals (test, local_capabilities->max_spdm_msg_size, resp->max_spdm_msg_size);
+
+	status = memcmp (&local_capabilities->flags, &resp->base_capabilities.flags,
+		sizeof (struct spdm_get_capabilities_flags_format));
+	CuAssertIntEquals (test, 0, status);
+
+	cmd_interface_spdm_responder_testing_release (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_process_request_get_capabilities_fail (CuTest *test)
+{
+uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg request;
+	struct spdm_get_capabilities rq = {0};
+	int status;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct cmd_interface_spdm_responder_testing testing;
+	struct spdm_device_capability *local_capabilities;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = (uint8_t*) buf;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_get_capabilities) - 1;
+	request.length = request.payload_length;
+
+	rq.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.base_capabilities.header.spdm_minor_version = 2;
+	rq.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq.base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq.base_capabilities.flags = local_capabilities->flags;
+	rq.data_transfer_size = local_capabilities->data_transfer_size;
+	rq.max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+	memcpy (request.payload, &rq, sizeof (struct spdm_get_capabilities));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), request.payload_length);
+
+	CuAssertIntEquals (test, 0, status);
 }
 
 static void cmd_interface_spdm_responder_test_process_request_invalid_arg (CuTest *test)
@@ -535,10 +953,22 @@ TEST_SUITE_START (cmd_interface_spdm_responder);
 
 TEST (cmd_interface_spdm_responder_test_static_init);
 TEST (cmd_interface_spdm_responder_test_static_init_invalid_arg);
+TEST (cmd_interface_spdm_responder_test_static_init_incompatible_capabilities);
+TEST (cmd_interface_spdm_responder_test_static_init_ct_exponent_gt_max);
+TEST (cmd_interface_spdm_responder_test_static_init_data_transfer_size_lt_min_size);
+TEST (cmd_interface_spdm_responder_test_static_init_data_transfer_size_gt_max_size);
+TEST (cmd_interface_spdm_responder_test_static_init_data_transfer_size_ne_max_size);
 TEST (cmd_interface_spdm_responder_test_init);
 TEST (cmd_interface_spdm_responder_test_init_invalid_arg);
+TEST (cmd_interface_spdm_responder_test_init_incompatible_capabilities);
+TEST (cmd_interface_spdm_responder_test_init_ct_exponent_gt_max);
+TEST (cmd_interface_spdm_responder_test_init_data_transfer_size_lt_min_size);
+TEST (cmd_interface_spdm_responder_test_init_data_transfer_size_gt_max_size);
+TEST (cmd_interface_spdm_responder_test_init_data_transfer_size_ne_max_size);
 TEST (cmd_interface_spdm_responder_test_process_request_get_version);
 TEST (cmd_interface_spdm_responder_test_process_request_get_version_fail);
+TEST (cmd_interface_spdm_responder_test_process_request_get_capabilities);
+TEST (cmd_interface_spdm_responder_test_process_request_get_capabilities_fail);
 TEST (cmd_interface_spdm_responder_test_process_request_invalid_arg);
 TEST (cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_short_payload);
 TEST (cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_unsupported_major_version);

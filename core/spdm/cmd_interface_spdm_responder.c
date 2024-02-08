@@ -20,7 +20,7 @@
 int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	const struct cmd_interface_spdm_responder *spdm_responder = 
+	const struct cmd_interface_spdm_responder *spdm_responder =
 		(const struct cmd_interface_spdm_responder*) intf;
 	uint8_t req_code;
 	int status = 0;
@@ -39,6 +39,10 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 	switch (req_code) {
 		case SPDM_REQUEST_GET_VERSION:
 			status = spdm_get_version (spdm_responder, request);
+			break;
+
+		case SPDM_REQUEST_GET_CAPABILITIES:
+			status = spdm_get_capabilities (spdm_responder, request);
 			break;
 
 		default:
@@ -108,7 +112,7 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
 int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_state *state, struct spdm_transcript_manager *transcript_manager,
 	struct hash_engine *hash_engine, const struct spdm_version_num_entry *version_num,
-	uint8_t version_num_count)
+	uint8_t version_num_count, const struct spdm_device_capability *local_capabilities)
 {
 	int status;
 
@@ -124,6 +128,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	spdm_responder->transcript_manager = transcript_manager;
 	spdm_responder->version_num = version_num;
 	spdm_responder->version_num_count = version_num_count;
+	spdm_responder->local_capabilities = local_capabilities;
 
 	spdm_responder->base.process_request = cmd_interface_spdm_process_request;
 	spdm_responder->base.process_response = cmd_interface_spdm_process_response;
@@ -152,11 +157,19 @@ int cmd_interface_spdm_responder_init_state (
 
 	if ((spdm_responder == NULL) || (spdm_responder->hash_engine == NULL) ||
 		(spdm_responder->transcript_manager == NULL) || (spdm_responder->version_num == NULL) ||
-		(spdm_responder->version_num_count == 0)) {
+		(spdm_responder->version_num_count == 0) || (spdm_responder->local_capabilities == NULL) ||
+		(spdm_responder->state == NULL)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 		goto exit;
 	}
 
+	/* Vaidate the local device capabilities. */
+	status = spdm_validate_local_capabilities (spdm_responder);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Initialize the SPDM state. */
 	status = spdm_init_state (spdm_responder->state);
 	if (status != 0) {
 		goto exit;

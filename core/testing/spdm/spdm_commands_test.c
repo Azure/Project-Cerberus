@@ -41,6 +41,7 @@ struct spdm_command_testing {
 	struct spdm_transcript_manager_state transcript_manager_state; 	/**< The transcript manager state. */
 	struct hash_engine_mock hash_engine_mock;						/**< Mock hash engine for the responder. */
 	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION];	/**< Version number entries. */
+	struct spdm_device_capability local_capabilities;				/**< Local capabilities. */
 };
 
 /**
@@ -54,7 +55,7 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 {
 	int status;
 	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION] =
-		{ {1, 1, 0, 0}, {1, 2, 0, 0} };
+		{ {0, 0, 1, 1}, {0, 0, 2, 1} };
 
 	memcpy (testing->version_num, version_num, sizeof (version_num));
 
@@ -64,9 +65,35 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 	status = hash_mock_init (&testing->hash_engine_mock);
 	CuAssertIntEquals (test, 0, status);
 
+	/* Set the default capabilities. */
+	memset (&testing->local_capabilities, 0, sizeof (testing->local_capabilities));
+	testing->local_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
+	testing->local_capabilities.flags.cache_cap = 0;
+	testing->local_capabilities.flags.cert_cap = 0;
+	testing->local_capabilities.flags.chal_cap = 0;
+	testing->local_capabilities.flags.meas_cap = 0;
+	testing->local_capabilities.flags.meas_fresh_cap = 0;
+	testing->local_capabilities.flags.encrypt_cap = 0;
+	testing->local_capabilities.flags.mac_cap = 0;
+	testing->local_capabilities.flags.mut_auth_cap = 0;
+	testing->local_capabilities.flags.key_ex_cap = 0;
+	testing->local_capabilities.flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	testing->local_capabilities.flags.encap_cap = 0;
+	testing->local_capabilities.flags.hbeat_cap = 0;
+	testing->local_capabilities.flags.key_upd_cap = 0;
+	testing->local_capabilities.flags.handshake_in_the_clear_cap = 0;
+	testing->local_capabilities.flags.pub_key_id_cap = 0;
+	testing->local_capabilities.flags.chunk_cap = 0;
+	testing->local_capabilities.flags.alias_cert_cap = 0;
+	testing->local_capabilities.data_transfer_size = DOE_MESSAGE_MAX_SIZE_IN_BYTES;
+	testing->local_capabilities.max_spdm_msg_size = DOE_MESSAGE_MAX_SIZE_IN_BYTES;
+	testing->local_capabilities.flags.reserved = 0;
+	testing->local_capabilities.flags.reserved2 = 0;
+
 	status = cmd_interface_spdm_responder_init (&testing->spdm_responder,
 		&testing->spdm_responder_state, &testing->transcript_manager_mock.base,
-		&testing->hash_engine_mock.base, testing->version_num, ARRAY_SIZE (testing->version_num));
+		&testing->hash_engine_mock.base, testing->version_num, ARRAY_SIZE (testing->version_num),
+		&testing->local_capabilities);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -854,6 +881,7 @@ static void spdm_test_get_version (CuTest *test)
 	TEST_START;
 
 	spdm_command_testing_init_dependencies (test, &testing);
+
 	spdm_responder = &testing.spdm_responder;
 	version_count = ARRAY_SIZE (testing.version_num);
 	version_length = version_count * sizeof (struct spdm_version_num_entry);
@@ -887,7 +915,7 @@ static void spdm_test_get_version (CuTest *test)
 	msg.length = msg.payload_length;
 
 	rq.header.spdm_minor_version = 0;
-	rq.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.header.spdm_major_version = 1;
 	rq.header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
 	rq.reserved = 0;
 	rq.reserved2 = 0;
@@ -947,6 +975,7 @@ static void spdm_test_get_version_response_state_need_resync (CuTest *test)
 	TEST_START;
 
 	spdm_command_testing_init_dependencies (test, &testing);
+
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	version_count = ARRAY_SIZE (testing.version_num);
@@ -979,7 +1008,7 @@ static void spdm_test_get_version_response_state_need_resync (CuTest *test)
 	msg.length = msg.payload_length;
 
 	rq.header.spdm_minor_version = 0;
-	rq.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.header.spdm_major_version = 1;
 	rq.header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
 	rq.reserved = 0;
 	rq.reserved2 = 0;
@@ -1040,6 +1069,7 @@ static void spdm_test_get_version_response_state_processing_encap (CuTest *test)
 	TEST_START;
 
 	spdm_command_testing_init_dependencies (test, &testing);
+
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
 	version_count = ARRAY_SIZE (testing.version_num);
@@ -1072,7 +1102,7 @@ static void spdm_test_get_version_response_state_processing_encap (CuTest *test)
 	msg.length = msg.payload_length;
 
 	rq.header.spdm_minor_version = 0;
-	rq.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.header.spdm_major_version = 1;
 	rq.header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
 	rq.reserved = 0;
 	rq.reserved2 = 0;
@@ -1145,12 +1175,13 @@ static void spdm_test_get_version_bad_length (CuTest *test)
 	msg.length = msg.payload_length;
 
 	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_major_version = 1;
 	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
 	rq->reserved = 0;
 	rq->reserved2 = 0;
 
 	status = spdm_get_version (&testing.spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
 	CuAssertIntEquals (test, 0, error_response->error_data);
@@ -1206,9 +1237,10 @@ static void spdm_test_get_version_incorrect_version (CuTest *test)
 	rq->reserved = 0;
 	rq->reserved2 = 0;
 	rq->header.spdm_minor_version = 1;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_major_version = 1;
 
 	status = spdm_get_version (&testing.spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_ERROR_VERSION_MISMATCH, error_response->error_code);
 	CuAssertIntEquals (test, 0, error_response->error_data);
@@ -1231,6 +1263,7 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 	TEST_START;
 
 	spdm_command_testing_init_dependencies (test, &testing);
+
 	spdm_state = testing.spdm_responder.state;
 
 	/* response_state = SPDM_RESPONSE_STATE_BUSY. */
@@ -1242,7 +1275,7 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 	msg.length = msg.payload_length;
 
 	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_major_version = 1;
 	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
 	rq->reserved = 0;
 	rq->reserved2 = 0;
@@ -1250,6 +1283,7 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
 
 	status = spdm_get_version (&testing.spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_ERROR_BUSY, error_response->error_code);
 	CuAssertIntEquals (test, 0, error_response->error_data);
@@ -1266,7 +1300,7 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 	msg.length = msg.payload_length;
 
 	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_major_version = 1;
 	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
 	rq->reserved = 0;
 	rq->reserved2 = 0;
@@ -1286,7 +1320,7 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 	msg.length = msg.payload_length;
 
 	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_major_version = 1;
 	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
 	rq->reserved = 0;
 	rq->reserved2 = 0;
@@ -1337,12 +1371,13 @@ static void spdm_test_get_version_transcript_manager_add_request_fail (CuTest *t
 	msg.length = msg.payload_length;
 
 	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_major_version = 1;
 	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
 	rq->reserved = 0;
 	rq->reserved2 = 0;
 
 	status = spdm_get_version (&testing.spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
 	CuAssertIntEquals (test, 0, error_response->error_data);
@@ -1394,7 +1429,7 @@ static void spdm_test_get_version_transcript_manager_add_response_fail (CuTest *
 	msg.length = msg.payload_length;
 
 	rq->header.spdm_minor_version = 0;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_major_version = 1;
 	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
 	rq->reserved = 0;
 	rq->reserved2 = 0;
@@ -1402,6 +1437,7 @@ static void spdm_test_get_version_transcript_manager_add_response_fail (CuTest *
 	memcpy (rq_copy, rq, sizeof (struct spdm_get_version_request));
 
 	status = spdm_get_version (&testing.spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
 	CuAssertIntEquals (test, 0, error_response->error_data);
@@ -1547,773 +1583,1634 @@ static void spdm_test_process_get_version_response_bad_length (CuTest *test)
 	CuAssertPtrEquals (test, resp, msg.payload);
 }
 
-static void spdm_test_get_capabilities (CuTest *test)
+static void spdm_test_get_capabilities_1_2 (CuTest *test)
 {
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct hash_engine_mock hash;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct cmd_interface_msg msg;
-	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) &buf[8];
-	struct spdm_get_capabilities expected_rsp;
-	struct device_manager manager;
-	struct device_manager_full_capabilities capabilities;
+	struct spdm_get_capabilities rq = {0};
+	struct spdm_get_capabilities *resp = (struct spdm_get_capabilities*) buf;
 	int status;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
 
 	TEST_START;
 
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
-	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
 	msg.payload_length = sizeof (struct spdm_get_capabilities);
-	msg.length = msg.payload_length + 8;
-	msg.source_eid = 0xCC;
+	msg.length = msg.payload_length;
 
-	rq->base_capabilities.header.spdm_minor_version = 2;
-	rq->base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
-	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq.base_capabilities.header.spdm_major_version = 1;
+	rq.base_capabilities.header.spdm_minor_version = 2;
+	rq.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq.base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq.base_capabilities.flags = local_capabilities->flags;
+	rq.data_transfer_size = local_capabilities->data_transfer_size;
+	rq.max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+	memcpy (msg.payload, &rq, sizeof (struct spdm_get_capabilities));
 
-	rq->base_capabilities.ct_exponent = 21;
-	rq->data_transfer_size = 1000;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
 
-	expected_rsp.base_capabilities.header.spdm_minor_version = 2;
-	expected_rsp.base_capabilities.header.spdm_major_version = 1;
-	expected_rsp.base_capabilities.header.req_rsp_code = SPDM_RESPONSE_GET_CAPABILITIES;
-	expected_rsp.base_capabilities.reserved = 0;
-	expected_rsp.base_capabilities.reserved2 = 0;
-	expected_rsp.base_capabilities.reserved3 = 0;
-	expected_rsp.base_capabilities.ct_exponent = 20;
-	expected_rsp.base_capabilities.reserved4 = 0;
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
-	expected_rsp.base_capabilities.flags.cache_cap = 0;
-	expected_rsp.base_capabilities.flags.cert_cap = 1;
-	expected_rsp.base_capabilities.flags.chal_cap = 1;
-	expected_rsp.base_capabilities.flags.meas_cap = 2;
-	expected_rsp.base_capabilities.flags.meas_fresh_cap = 0;
-	expected_rsp.base_capabilities.flags.encrypt_cap = 0;
-	expected_rsp.base_capabilities.flags.mac_cap = 0;
-	expected_rsp.base_capabilities.flags.mut_auth_cap = 0;
-	expected_rsp.base_capabilities.flags.key_ex_cap = 0;
-	expected_rsp.base_capabilities.flags.psk_cap = 0;
-	expected_rsp.base_capabilities.flags.encap_cap = 0;
-	expected_rsp.base_capabilities.flags.hbeat_cap = 0;
-	expected_rsp.base_capabilities.flags.key_upd_cap = 0;
-	expected_rsp.base_capabilities.flags.handshake_in_the_clear_cap = 0;
-	expected_rsp.base_capabilities.flags.pub_key_id_cap = 0;
-	expected_rsp.base_capabilities.flags.handshake_in_the_clear_cap = 0;
-	expected_rsp.base_capabilities.flags.chunk_cap = 0;
-	expected_rsp.base_capabilities.flags.alias_cert_cap = 0;
-	expected_rsp.base_capabilities.flags.reserved = 0;
-	expected_rsp.base_capabilities.flags.reserved2 = 0;
-	expected_rsp.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	expected_rsp.max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_capabilities)),
+		MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, sizeof (struct spdm_get_capabilities)),
-		MOCK_ARG (sizeof (struct spdm_get_capabilities)));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&expected_rsp, sizeof (struct spdm_get_capabilities)),
-		MOCK_ARG (sizeof (struct spdm_get_capabilities)));
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
+	status = spdm_get_capabilities (spdm_responder, &msg);
 
-	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_capabilities (&msg, &manager, &hash.base);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct spdm_get_capabilities), msg.length);
 	CuAssertIntEquals (test, msg.length, msg.payload_length);
 	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rq, msg.payload);
-	CuAssertIntEquals (test, 2, rq->base_capabilities.header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rq->base_capabilities.header.spdm_major_version);
+	CuAssertPtrEquals (test, resp, msg.payload);
+	CuAssertIntEquals (test, 2, resp->base_capabilities.header.spdm_minor_version);
+	CuAssertIntEquals (test, 1, resp->base_capabilities.header.spdm_major_version);
 	CuAssertIntEquals (test, SPDM_RESPONSE_GET_CAPABILITIES,
-		rq->base_capabilities.header.req_rsp_code);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved2);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved3);
-	CuAssertIntEquals (test, 20, rq->base_capabilities.ct_exponent);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved4);
+		resp->base_capabilities.header.req_rsp_code);
+	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved);
+	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved2);
+	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved3);	
+	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved4);
+	CuAssertIntEquals (test, local_capabilities->ct_exponent, resp->base_capabilities.ct_exponent);
+	CuAssertIntEquals (test, local_capabilities->data_transfer_size, resp->data_transfer_size);
+	CuAssertIntEquals (test, local_capabilities->max_spdm_msg_size, resp->max_spdm_msg_size);
 
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.cache_cap);
-	CuAssertIntEquals (test, 1, rq->base_capabilities.flags.cert_cap);
-	CuAssertIntEquals (test, 1, rq->base_capabilities.flags.chal_cap);
-	CuAssertIntEquals (test, 2, rq->base_capabilities.flags.meas_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.meas_fresh_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.encrypt_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.mac_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.mut_auth_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.key_ex_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.psk_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.encap_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.hbeat_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.key_upd_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.handshake_in_the_clear_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.pub_key_id_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.handshake_in_the_clear_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.chunk_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.alias_cert_cap);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, rq->data_transfer_size);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, rq->max_spdm_msg_size);
-
-	status = device_manager_get_device_capabilities (&manager, 1, &capabilities);
+	status = memcmp (&local_capabilities->flags, &resp->base_capabilities.flags,
+		sizeof (struct spdm_get_capabilities_flags_format));
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 10, capabilities.max_timeout);
-	CuAssertIntEquals (test, 20, capabilities.max_sig);
-	CuAssertIntEquals (test, 1000, capabilities.request.max_message_size);
-	CuAssertIntEquals (test, 0, capabilities.request.max_packet_size);
-	CuAssertIntEquals (test, 0, capabilities.request.security_mode);
-	CuAssertIntEquals (test, 0, capabilities.request.reserved1);
-	CuAssertIntEquals (test, 0, capabilities.request.bus_role);
-	CuAssertIntEquals (test, 0, capabilities.request.hierarchy_role);
-	CuAssertIntEquals (test, 0, capabilities.request.reserved2);
-	CuAssertIntEquals (test, 0, capabilities.request.fw_protection);
-	CuAssertIntEquals (test, 0, capabilities.request.policy_support);
-	CuAssertIntEquals (test, 0, capabilities.request.pfm_support);
-	CuAssertIntEquals (test, 0, capabilities.request.rsa_key_strength);
-	CuAssertIntEquals (test, 0, capabilities.request.ecc_key_strength);
-	CuAssertIntEquals (test, 0, capabilities.request.ecdsa);
-	CuAssertIntEquals (test, 0, capabilities.request.rsa);
-	CuAssertIntEquals (test, 0, capabilities.request.aes_enc_key_strength);
-	CuAssertIntEquals (test, 0, capabilities.request.reserved3);
-	CuAssertIntEquals (test, 0, capabilities.request.ecc);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&manager);
+	
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
 static void spdm_test_get_capabilities_1_1 (CuTest *test)
 {
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct hash_engine_mock hash;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct cmd_interface_msg msg;
-	struct spdm_get_capabilities_1_1 *rq = (struct spdm_get_capabilities_1_1*) &buf[16];
-	struct spdm_get_capabilities_1_1 expected_rsp;
-	struct device_manager manager;
-	struct device_manager_full_capabilities capabilities;
+	struct spdm_get_capabilities_1_1 rq = {0};
+	struct spdm_get_capabilities_1_1 *resp = (struct spdm_get_capabilities_1_1*) buf;
 	int status;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
 
 	TEST_START;
 
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
-	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
 	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
-	msg.length = msg.payload_length + 16;
-	msg.source_eid = 0xCC;
+	msg.length = msg.payload_length;
 
-	rq->header.spdm_minor_version = 1;
-	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
-	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq.header.spdm_major_version = 1;
+	rq.header.spdm_minor_version = 1;
+	rq.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq.ct_exponent = local_capabilities->ct_exponent;
+	rq.flags = local_capabilities->flags;
+	memcpy (msg.payload, &rq, sizeof (struct spdm_get_capabilities_1_1));
+	
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
 
-	rq->ct_exponent = 21;
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
-	expected_rsp.header.spdm_minor_version = 1;
-	expected_rsp.header.spdm_major_version = 1;
-	expected_rsp.header.req_rsp_code = SPDM_RESPONSE_GET_CAPABILITIES;
-	expected_rsp.reserved = 0;
-	expected_rsp.reserved2 = 0;
-	expected_rsp.reserved3 = 0;
-	expected_rsp.ct_exponent = 20;
-	expected_rsp.reserved4 = 0;
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_capabilities_1_1)),
+		MOCK_ARG (sizeof (struct spdm_get_capabilities_1_1)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
-	expected_rsp.flags.cache_cap = 0;
-	expected_rsp.flags.cert_cap = 1;
-	expected_rsp.flags.chal_cap = 1;
-	expected_rsp.flags.meas_cap = 2;
-	expected_rsp.flags.meas_fresh_cap = 0;
-	expected_rsp.flags.encrypt_cap = 0;
-	expected_rsp.flags.mac_cap = 0;
-	expected_rsp.flags.mut_auth_cap = 0;
-	expected_rsp.flags.key_ex_cap = 0;
-	expected_rsp.flags.psk_cap = 0;
-	expected_rsp.flags.encap_cap = 0;
-	expected_rsp.flags.hbeat_cap = 0;
-	expected_rsp.flags.key_upd_cap = 0;
-	expected_rsp.flags.handshake_in_the_clear_cap = 0;
-	expected_rsp.flags.pub_key_id_cap = 0;
-	expected_rsp.flags.handshake_in_the_clear_cap = 0;
-	expected_rsp.flags.chunk_cap = 0;
-	expected_rsp.flags.alias_cert_cap = 0;
-	expected_rsp.flags.reserved = 0;
-	expected_rsp.flags.reserved2 = 0;
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, sizeof (struct spdm_get_capabilities_1_1)),
-		MOCK_ARG (sizeof (struct spdm_get_capabilities_1_1)));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&expected_rsp, sizeof (struct spdm_get_capabilities_1_1)),
-		MOCK_ARG (sizeof (struct spdm_get_capabilities_1_1)));
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_get_capabilities_1_1)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
+	status = spdm_get_capabilities (spdm_responder, &msg);
 
-	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_capabilities (&msg, &manager, &hash.base);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct spdm_get_capabilities_1_1), msg.length);
 	CuAssertIntEquals (test, msg.length, msg.payload_length);
 	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rq, msg.payload);
-	CuAssertIntEquals (test, 1, rq->header.spdm_minor_version);
-	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rq->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_GET_CAPABILITIES, rq->header.req_rsp_code);
-	CuAssertIntEquals (test, 0, rq->reserved);
-	CuAssertIntEquals (test, 0, rq->reserved2);
-	CuAssertIntEquals (test, 0, rq->reserved3);
-	CuAssertIntEquals (test, 20, rq->ct_exponent);
-	CuAssertIntEquals (test, 0, rq->reserved4);
+	CuAssertPtrEquals (test, resp, msg.payload);
+	CuAssertIntEquals (test, 1, resp->header.spdm_minor_version);
+	CuAssertIntEquals (test, 1, resp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_GET_CAPABILITIES, resp->header.req_rsp_code);
+	CuAssertIntEquals (test, 0, resp->reserved);
+	CuAssertIntEquals (test, 0, resp->reserved2);
+	CuAssertIntEquals (test, 0, resp->reserved3);
+	CuAssertIntEquals (test, 0, resp->reserved4);
+	CuAssertIntEquals (test, local_capabilities->ct_exponent, resp->ct_exponent);
 
-	CuAssertIntEquals (test, 0, rq->flags.cache_cap);
-	CuAssertIntEquals (test, 1, rq->flags.cert_cap);
-	CuAssertIntEquals (test, 1, rq->flags.chal_cap);
-	CuAssertIntEquals (test, 2, rq->flags.meas_cap);
-	CuAssertIntEquals (test, 0, rq->flags.meas_fresh_cap);
-	CuAssertIntEquals (test, 0, rq->flags.encrypt_cap);
-	CuAssertIntEquals (test, 0, rq->flags.mac_cap);
-	CuAssertIntEquals (test, 0, rq->flags.mut_auth_cap);
-	CuAssertIntEquals (test, 0, rq->flags.key_ex_cap);
-	CuAssertIntEquals (test, 0, rq->flags.psk_cap);
-	CuAssertIntEquals (test, 0, rq->flags.encap_cap);
-	CuAssertIntEquals (test, 0, rq->flags.hbeat_cap);
-	CuAssertIntEquals (test, 0, rq->flags.key_upd_cap);
-	CuAssertIntEquals (test, 0, rq->flags.handshake_in_the_clear_cap);
-	CuAssertIntEquals (test, 0, rq->flags.pub_key_id_cap);
-	CuAssertIntEquals (test, 0, rq->flags.handshake_in_the_clear_cap);
-	CuAssertIntEquals (test, 0, rq->flags.chunk_cap);
-	CuAssertIntEquals (test, 0, rq->flags.alias_cert_cap);
-
-	status = device_manager_get_device_capabilities (&manager, 1, &capabilities);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 10, capabilities.max_timeout);
-	CuAssertIntEquals (test, 20, capabilities.max_sig);
-	CuAssertIntEquals (test, 0, capabilities.request.max_message_size);
-	CuAssertIntEquals (test, 0, capabilities.request.max_packet_size);
-	CuAssertIntEquals (test, 0, capabilities.request.security_mode);
-	CuAssertIntEquals (test, 0, capabilities.request.reserved1);
-	CuAssertIntEquals (test, 0, capabilities.request.bus_role);
-	CuAssertIntEquals (test, 0, capabilities.request.hierarchy_role);
-	CuAssertIntEquals (test, 0, capabilities.request.reserved2);
-	CuAssertIntEquals (test, 0, capabilities.request.fw_protection);
-	CuAssertIntEquals (test, 0, capabilities.request.policy_support);
-	CuAssertIntEquals (test, 0, capabilities.request.pfm_support);
-	CuAssertIntEquals (test, 0, capabilities.request.rsa_key_strength);
-	CuAssertIntEquals (test, 0, capabilities.request.ecc_key_strength);
-	CuAssertIntEquals (test, 0, capabilities.request.ecdsa);
-	CuAssertIntEquals (test, 0, capabilities.request.rsa);
-	CuAssertIntEquals (test, 0, capabilities.request.aes_enc_key_strength);
-	CuAssertIntEquals (test, 0, capabilities.request.reserved3);
-	CuAssertIntEquals (test, 0, capabilities.request.ecc);
-
-	status = hash_mock_validate_and_release (&hash);
+	status = memcmp (&local_capabilities->flags, &resp->flags,
+		sizeof (struct spdm_get_capabilities_flags_format));
 	CuAssertIntEquals (test, 0, status);
 
-	device_manager_release (&manager);
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
 static void spdm_test_get_capabilities_null (CuTest *test)
 {
-	struct hash_engine_mock hash;
-	struct cmd_interface_msg msg;
-	struct device_manager manager;
 	int status;
 
 	TEST_START;
 
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
+	/* spdm_responder = NULL */
+	status = spdm_get_capabilities (NULL, (struct cmd_interface_msg*)(0xDEADBEEF));
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
-	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_capabilities (NULL, &manager, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
-
-	status = spdm_get_capabilities (&msg, NULL, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
-
-	status = spdm_get_capabilities (&msg, &manager, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&manager);
+	/* request = NULL */
+	status = spdm_get_capabilities ((struct cmd_interface_spdm_responder*)(0xBAADF00D), NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 }
 
-static void spdm_test_get_capabilities_ct_too_large (CuTest *test)
+static void spdm_test_get_capabilities_response_state_busy (CuTest *test)
 {
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct hash_engine_mock hash;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct cmd_interface_msg msg;
-	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) &buf[8];
-	struct spdm_get_capabilities expected_rsp;
-	struct device_manager manager;
-	struct device_manager_full_capabilities capabilities;
 	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
 
 	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_BUSY);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_response_state_need_resync (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_REQUEST_RESYNCH);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_response_state_processing_encap (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_REQUEST_IN_FLIGHT);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_incorrect_connection_state (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_UNEXPECTED_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_version_lt_min (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 0;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->base_capabilities.flags = local_capabilities->flags;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_VERSION_MISMATCH);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_version_gt_max (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 3;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->base_capabilities.flags = local_capabilities->flags;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_VERSION_MISMATCH);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_incorrect_request_size_v_1_2 (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities) - 1;
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->base_capabilities.flags = local_capabilities->flags;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_incorrect_request_size_v_1_1 (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1) - 1;
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 1;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->base_capabilities.flags = local_capabilities->flags;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	struct spdm_get_capabilities *resp = (struct spdm_get_capabilities*) buf;
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) resp;
+	msg.max_response = sizeof (buf);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	/* Invalid flags.psk_cap = SPDM_PSK_RESERVED */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.psk_cap = SPDM_PSK_RESERVED;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.key_ex_cap = 1 && flags.psk_cap = 0 && flags.mac_cap == 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.key_ex_cap = 1;
+	rq->base_capabilities.flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->base_capabilities.flags.mac_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.key_ex_cap = 0 && flags.psk_cap = 1 && flags.mac_cap == 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.key_ex_cap = 0;
+	rq->base_capabilities.flags.psk_cap = SPDM_PSK_SUPPORTED_NO_CONTEXT;
+	rq->base_capabilities.flags.mac_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/*
+	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 1 && flags.encrypt_cap = 0 &&
+	 * flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 0 && flags.key_upd_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.key_ex_cap = 0;
+	rq->base_capabilities.flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->base_capabilities.flags.mac_cap = 1;
+	rq->base_capabilities.flags.encrypt_cap = 0;
+	rq->base_capabilities.flags.handshake_in_the_clear_cap = 0;
+	rq->base_capabilities.flags.hbeat_cap = 0;
+	rq->base_capabilities.flags.key_upd_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/*
+	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 1 &&
+	 * flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 0 && flags.key_upd_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.key_ex_cap = 0;
+	rq->base_capabilities.flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->base_capabilities.flags.mac_cap = 0;
+	rq->base_capabilities.flags.encrypt_cap = 1;
+	rq->base_capabilities.flags.handshake_in_the_clear_cap = 0;
+	rq->base_capabilities.flags.hbeat_cap = 0;
+	rq->base_capabilities.flags.key_upd_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/*
+	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 0 &&
+	 * flags.handshake_in_the_clear_cap = 1 && flags.hbeat_cap = 0 && flags.key_upd_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.key_ex_cap = 0;
+	rq->base_capabilities.flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->base_capabilities.flags.mac_cap = 0;
+	rq->base_capabilities.flags.encrypt_cap = 0;
+	rq->base_capabilities.flags.handshake_in_the_clear_cap = 1;
+	rq->base_capabilities.flags.hbeat_cap = 0;
+	rq->base_capabilities.flags.key_upd_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/*
+	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 0 &&
+	 * flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 1 && flags.key_upd_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.key_ex_cap = 0;
+	rq->base_capabilities.flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->base_capabilities.flags.mac_cap = 0;
+	rq->base_capabilities.flags.encrypt_cap = 0;
+	rq->base_capabilities.flags.handshake_in_the_clear_cap = 0;
+	rq->base_capabilities.flags.hbeat_cap = 1;
+	rq->base_capabilities.flags.key_upd_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/*
+	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 0 &&
+	 * flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 0 && flags.key_upd_cap = 1 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.key_ex_cap = 0;
+	rq->base_capabilities.flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->base_capabilities.flags.mac_cap = 0;
+	rq->base_capabilities.flags.encrypt_cap = 0;
+	rq->base_capabilities.flags.handshake_in_the_clear_cap = 0;
+	rq->base_capabilities.flags.hbeat_cap = 0;
+	rq->base_capabilities.flags.key_upd_cap = 1;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.key_ex_cap = 0 && flags.psk_cap = 1 && flags.mac_cap == 1 && flags.handshake_in_the_clear_cap = 1 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.key_ex_cap = 0;
+	rq->base_capabilities.flags.psk_cap = SPDM_PSK_SUPPORTED_NO_CONTEXT;
+	rq->base_capabilities.flags.mac_cap = 1;
+	rq->base_capabilities.flags.handshake_in_the_clear_cap = 1;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	 /* flags.cert_cap = 1 && flags.pub_key_id_cap = 1 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.cert_cap = 1;
+	rq->base_capabilities.flags.pub_key_id_cap = 1;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.cert_cap = 1 && flags.pub_key_id_cap = 0 && flags.chal_cap = 0 && flags.key_ex_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.cert_cap = 1;
+	rq->base_capabilities.flags.pub_key_id_cap = 0;
+	rq->base_capabilities.flags.chal_cap = 0;
+	rq->base_capabilities.flags.key_ex_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.cert_cap = 0 && flags.pub_key_id_cap = 1 && flags.chal_cap = 0 && flags.key_ex_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.cert_cap = 0;
+	rq->base_capabilities.flags.pub_key_id_cap = 1;
+	rq->base_capabilities.flags.chal_cap = 0;
+	rq->base_capabilities.flags.key_ex_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.cert_cap = 0 && flags.pub_key_id_cap = 0 && flags.chal_cap = 1 && flags.mut_auth_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.cert_cap = 0;
+	rq->base_capabilities.flags.pub_key_id_cap = 0;
+	rq->base_capabilities.flags.chal_cap = 1;
+	rq->base_capabilities.flags.mut_auth_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.cert_cap = 0 && flags.pub_key_id_cap = 0 && flags.chal_cap = 0 && flags.mut_auth_cap = 1 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	memset (&rq->base_capabilities.flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->base_capabilities.flags.cert_cap = 0;
+	rq->base_capabilities.flags.pub_key_id_cap = 0;
+	rq->base_capabilities.flags.chal_cap = 0;
+	rq->base_capabilities.flags.mut_auth_cap = 1;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_request_flag_compatibility_1_1_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	struct spdm_get_capabilities_1_1 *rq = (struct spdm_get_capabilities_1_1*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = sizeof (struct spdm_get_capabilities);
-	msg.length = msg.payload_length + 8;
-	msg.source_eid = 0xCC;
+	msg.max_response = sizeof (buf);
 
-	rq->base_capabilities.header.spdm_minor_version = 2;
-	rq->base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
-	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
 
-	rq->base_capabilities.ct_exponent = 24;
-	rq->data_transfer_size = 1000;
+	/* Invalid flags.psk_cap = SPDM_PSK_RESERVED */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
 
-	expected_rsp.base_capabilities.header.spdm_minor_version = 2;
-	expected_rsp.base_capabilities.header.spdm_major_version = 1;
-	expected_rsp.base_capabilities.header.req_rsp_code = SPDM_RESPONSE_GET_CAPABILITIES;
-	expected_rsp.base_capabilities.reserved = 0;
-	expected_rsp.base_capabilities.reserved2 = 0;
-	expected_rsp.base_capabilities.reserved3 = 0;
-	expected_rsp.base_capabilities.ct_exponent = 20;
-	expected_rsp.base_capabilities.reserved4 = 0;
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
 
-	expected_rsp.base_capabilities.flags.cache_cap = 0;
-	expected_rsp.base_capabilities.flags.cert_cap = 1;
-	expected_rsp.base_capabilities.flags.chal_cap = 1;
-	expected_rsp.base_capabilities.flags.meas_cap = 2;
-	expected_rsp.base_capabilities.flags.meas_fresh_cap = 0;
-	expected_rsp.base_capabilities.flags.encrypt_cap = 0;
-	expected_rsp.base_capabilities.flags.mac_cap = 0;
-	expected_rsp.base_capabilities.flags.mut_auth_cap = 0;
-	expected_rsp.base_capabilities.flags.key_ex_cap = 0;
-	expected_rsp.base_capabilities.flags.psk_cap = 0;
-	expected_rsp.base_capabilities.flags.encap_cap = 0;
-	expected_rsp.base_capabilities.flags.hbeat_cap = 0;
-	expected_rsp.base_capabilities.flags.key_upd_cap = 0;
-	expected_rsp.base_capabilities.flags.handshake_in_the_clear_cap = 0;
-	expected_rsp.base_capabilities.flags.pub_key_id_cap = 0;
-	expected_rsp.base_capabilities.flags.handshake_in_the_clear_cap = 0;
-	expected_rsp.base_capabilities.flags.chunk_cap = 0;
-	expected_rsp.base_capabilities.flags.alias_cert_cap = 0;
-	expected_rsp.base_capabilities.flags.reserved = 0;
-	expected_rsp.base_capabilities.flags.reserved2 = 0;
-	expected_rsp.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	expected_rsp.max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.psk_cap = SPDM_PSK_RESERVED;
 
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, sizeof (struct spdm_get_capabilities)),
-		MOCK_ARG (sizeof (struct spdm_get_capabilities)));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&expected_rsp, sizeof (struct spdm_get_capabilities)),
-		MOCK_ARG (sizeof (struct spdm_get_capabilities)));
+	status = spdm_get_capabilities (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
+	/* flags.key_ex_cap = 1 && flags.psk_cap = 0 && flags.mac_cap == 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.key_ex_cap = 1;
+	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->flags.mac_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
+	/* flags.key_ex_cap = 0 && flags.psk_cap = 1 && flags.mac_cap == 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.key_ex_cap = 0;
+	rq->flags.psk_cap = SPDM_PSK_SUPPORTED_NO_CONTEXT;
+	rq->flags.mac_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
+	/*
+	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 1 && flags.encrypt_cap = 0
+	 * && flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 0 && flags.key_upd_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.key_ex_cap = 0;
+	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->flags.mac_cap = 1;
+	rq->flags.encrypt_cap = 0;
+	rq->flags.handshake_in_the_clear_cap = 0;
+	rq->flags.hbeat_cap = 0;
+	rq->flags.key_upd_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	status = spdm_get_capabilities (&msg, &manager, &hash.base);
+	/*
+	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 1
+	 * && flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 0 && flags.key_upd_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.key_ex_cap = 0;
+	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->flags.mac_cap = 0;
+	rq->flags.encrypt_cap = 1;
+	rq->flags.handshake_in_the_clear_cap = 0;
+	rq->flags.hbeat_cap = 0;
+	rq->flags.key_upd_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_get_capabilities), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rq, msg.payload);
-	CuAssertIntEquals (test, 2, rq->base_capabilities.header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rq->base_capabilities.header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_GET_CAPABILITIES,
-		rq->base_capabilities.header.req_rsp_code);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved2);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved3);
-	CuAssertIntEquals (test, 20, rq->base_capabilities.ct_exponent);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved4);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.cache_cap);
-	CuAssertIntEquals (test, 1, rq->base_capabilities.flags.cert_cap);
-	CuAssertIntEquals (test, 1, rq->base_capabilities.flags.chal_cap);
-	CuAssertIntEquals (test, 2, rq->base_capabilities.flags.meas_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.meas_fresh_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.encrypt_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.mac_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.mut_auth_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.key_ex_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.psk_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.encap_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.hbeat_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.key_upd_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.handshake_in_the_clear_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.pub_key_id_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.handshake_in_the_clear_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.chunk_cap);
-	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.alias_cert_cap);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, rq->data_transfer_size);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, rq->max_spdm_msg_size);
+	/*
+	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 0
+	 * && flags.handshake_in_the_clear_cap = 1 && flags.hbeat_cap = 0 && flags.key_upd_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
 
-	status = device_manager_get_device_capabilities (&manager, 1, &capabilities);
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.key_ex_cap = 0;
+	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->flags.mac_cap = 0;
+	rq->flags.encrypt_cap = 0;
+	rq->flags.handshake_in_the_clear_cap = 1;
+	rq->flags.hbeat_cap = 0;
+	rq->flags.key_upd_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 10, capabilities.max_timeout);
-	CuAssertIntEquals (test, 167, capabilities.max_sig);
-	CuAssertIntEquals (test, 1000, capabilities.request.max_message_size);
-	CuAssertIntEquals (test, 0, capabilities.request.max_packet_size);
-	CuAssertIntEquals (test, 0, capabilities.request.security_mode);
-	CuAssertIntEquals (test, 0, capabilities.request.reserved1);
-	CuAssertIntEquals (test, 0, capabilities.request.bus_role);
-	CuAssertIntEquals (test, 0, capabilities.request.hierarchy_role);
-	CuAssertIntEquals (test, 0, capabilities.request.reserved2);
-	CuAssertIntEquals (test, 0, capabilities.request.fw_protection);
-	CuAssertIntEquals (test, 0, capabilities.request.policy_support);
-	CuAssertIntEquals (test, 0, capabilities.request.pfm_support);
-	CuAssertIntEquals (test, 0, capabilities.request.rsa_key_strength);
-	CuAssertIntEquals (test, 0, capabilities.request.ecc_key_strength);
-	CuAssertIntEquals (test, 0, capabilities.request.ecdsa);
-	CuAssertIntEquals (test, 0, capabilities.request.rsa);
-	CuAssertIntEquals (test, 0, capabilities.request.aes_enc_key_strength);
-	CuAssertIntEquals (test, 0, capabilities.request.reserved3);
-	CuAssertIntEquals (test, 0, capabilities.request.ecc);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	status = hash_mock_validate_and_release (&hash);
+	/*
+	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 0
+	 * && flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 1 && flags.key_upd_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.key_ex_cap = 0;
+	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->flags.mac_cap = 0;
+	rq->flags.encrypt_cap = 0;
+	rq->flags.handshake_in_the_clear_cap = 0;
+	rq->flags.hbeat_cap = 1;
+	rq->flags.key_upd_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	device_manager_release (&manager);
+	/*
+	 * flags.key_ex_cap = 0 && flags.psk_cap = 0 && flags.mac_cap = 0 && flags.encrypt_cap = 0
+	 * && flags.handshake_in_the_clear_cap = 0 && flags.hbeat_cap = 0 && flags.key_upd_cap = 1 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.key_ex_cap = 0;
+	rq->flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
+	rq->flags.mac_cap = 0;
+	rq->flags.encrypt_cap = 0;
+	rq->flags.handshake_in_the_clear_cap = 0;
+	rq->flags.hbeat_cap = 0;
+	rq->flags.key_upd_cap = 1;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.key_ex_cap = 0 && flags.psk_cap = 1 && flags.mac_cap = 1 && flags.handshake_in_the_clear_cap = 1 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.key_ex_cap = 0;
+	rq->flags.psk_cap = SPDM_PSK_SUPPORTED_NO_CONTEXT;
+	rq->flags.mac_cap = 1;
+	rq->flags.handshake_in_the_clear_cap = 1;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.cert_cap = 1 && flags.pub_key_id_cap = 1 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.cert_cap = 1;
+	rq->flags.pub_key_id_cap = 1;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.cert_cap = 1 && flags.pub_key_id_cap = 0 && flags.chal_cap = 0 && flags.key_ex_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.cert_cap = 1;
+	rq->flags.pub_key_id_cap = 0;
+	rq->flags.chal_cap = 0;
+	rq->flags.key_ex_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.cert_cap == 0 && flags.pub_key_id_cap = 1 && flags.chal_cap = 0 && flags.key_ex_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.cert_cap = 0;
+	rq->flags.pub_key_id_cap = 1;
+	rq->flags.chal_cap = 0;
+	rq->flags.key_ex_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.cert_cap = 0 && flags.pub_key_id_cap = 0 && flags.chal_cap = 1 && flags.mut_auth_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.cert_cap = 0;
+	rq->flags.pub_key_id_cap = 0;
+	rq->flags.chal_cap = 1;
+	rq->flags.mut_auth_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.cert_cap = 0 && flags.pub_key_id_cap = 0 && flags.chal_cap = 0 && flags.mut_auth_cap = 1 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.cert_cap = 0;
+	rq->flags.pub_key_id_cap = 0;
+	rq->flags.chal_cap = 0;
+	rq->flags.mut_auth_cap = 1;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	/* flags.mut_auth_cap = 1 && flags.encap_cap = 0 */
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_major_version = 1;
+	rq->header.spdm_minor_version = 1;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->ct_exponent = local_capabilities->ct_exponent;
+
+	memset (&rq->flags, 0, sizeof (struct spdm_get_capabilities_flags_format));
+	rq->flags.cert_cap = 1;
+	rq->flags.chal_cap = 1;
+
+	rq->flags.mut_auth_cap = 1;
+	rq->flags.encap_cap = 0;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
-static void spdm_test_get_capabilities_unknown_device (CuTest *test)
+static void spdm_test_get_capabilities_request_data_transfer_size_lt_min_size (CuTest *test)
 {
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct hash_engine_mock hash;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct cmd_interface_msg msg;
-	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) &buf[8];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[8];
-	struct device_manager manager;
-	struct logging_mock log;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_SPDM,
-		.msg_index = SPDM_LOGGING_ERR_MSG,
-		.arg1 =
-			(((uint32_t) SPDM_REQUEST_GET_CAPABILITIES) << 24 | 0xdd << 16 |
-				SPDM_ERROR_UNSPECIFIED << 8 | 0),
-		.arg2 = DEVICE_MGR_UNKNOWN_DEVICE
-	};
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
 
 	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	msg.max_response = sizeof (buf);
 	msg.payload_length = sizeof (struct spdm_get_capabilities);
-	msg.length = msg.payload_length + 8;
-	msg.source_eid = 0xDD;
+	msg.length = msg.payload_length;
 
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
 	rq->base_capabilities.header.spdm_minor_version = 2;
-	rq->base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->base_capabilities.flags = local_capabilities->flags;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
 
-	rq->base_capabilities.ct_exponent = 21;
-	rq->data_transfer_size = 1000;
+	rq->data_transfer_size = SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2 - 1;
 
-	status = logging_mock_init (&log);
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	debug_log = &log.base;
-
-	status = mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC, 0xDD, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_capabilities (&msg, &manager, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&manager);
-
-	debug_log = NULL;
-
-	status = logging_mock_validate_and_release (&log);
-	CuAssertIntEquals (test, 0, status);
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
-static void spdm_test_get_capabilities_hash_update_rq_fail (CuTest *test)
+static void spdm_test_get_capabilities_request_data_transfer_size_gt_max_size (CuTest *test)
 {
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct hash_engine_mock hash;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct cmd_interface_msg msg;
-	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) &buf[8];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[8];
-	struct device_manager manager;
-	struct logging_mock log;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_SPDM,
-		.msg_index = SPDM_LOGGING_ERR_MSG,
-		.arg1 =
-			(((uint32_t) SPDM_REQUEST_GET_CAPABILITIES) << 24 | 0xcc << 16 |
-				SPDM_ERROR_UNSPECIFIED << 8 | 0),
-		.arg2 = HASH_ENGINE_NO_MEMORY
-	};
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
 
 	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	msg.max_response = sizeof (buf);
 	msg.payload_length = sizeof (struct spdm_get_capabilities);
-	msg.length = msg.payload_length + 8;
-	msg.source_eid = 0xCC;
+	msg.length = msg.payload_length;
 
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
 	rq->base_capabilities.header.spdm_minor_version = 2;
-	rq->base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->base_capabilities.flags = local_capabilities->flags;
 
-	rq->base_capabilities.ct_exponent = 21;
-	rq->data_transfer_size = 1000;
+	rq->max_spdm_msg_size = SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2;
+	rq->data_transfer_size = rq->max_spdm_msg_size + 1;
 
-	status = logging_mock_init (&log);
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	debug_log = &log.base;
-
-	status = mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, sizeof (struct spdm_get_capabilities)),
-		MOCK_ARG (sizeof (struct spdm_get_capabilities)));
-	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_capabilities (&msg, &manager, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&manager);
-
-	debug_log = NULL;
-
-	status = logging_mock_validate_and_release (&log);
-	CuAssertIntEquals (test, 0, status);
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
-static void spdm_test_get_capabilities_hash_update_rsp_fail (CuTest *test)
+static void spdm_test_get_capabilities_request_data_transfer_size_ne_max_size (CuTest *test)
 {
-	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
-	struct hash_engine_mock hash;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct cmd_interface_msg msg;
-	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) &buf[8];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[8];
-	struct spdm_get_capabilities expected_rsp;
-	struct device_manager manager;
-	struct logging_mock log;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_SPDM,
-		.msg_index = SPDM_LOGGING_ERR_MSG,
-		.arg1 =
-			(((uint32_t) SPDM_REQUEST_GET_CAPABILITIES) << 24 | 0xcc << 16 |
-				SPDM_ERROR_UNSPECIFIED << 8 | 0),
-		.arg2 = HASH_ENGINE_NO_MEMORY
-	};
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
 
 	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	msg.max_response = sizeof (buf);
 	msg.payload_length = sizeof (struct spdm_get_capabilities);
-	msg.length = msg.payload_length + 8;
-	msg.source_eid = 0xCC;
+	msg.length = msg.payload_length;
 
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
 	rq->base_capabilities.header.spdm_minor_version = 2;
-	rq->base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq->base_capabilities.flags = local_capabilities->flags;
 
-	rq->base_capabilities.ct_exponent = 21;
-	rq->data_transfer_size = 1000;
+	rq->base_capabilities.flags.chunk_cap = 0;
+	rq->data_transfer_size = SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2;
+	rq->max_spdm_msg_size = rq->data_transfer_size + 1;
 
-	expected_rsp.base_capabilities.header.spdm_minor_version = 2;
-	expected_rsp.base_capabilities.header.spdm_major_version = 1;
-	expected_rsp.base_capabilities.header.req_rsp_code = SPDM_RESPONSE_GET_CAPABILITIES;
-	expected_rsp.base_capabilities.reserved = 0;
-	expected_rsp.base_capabilities.reserved2 = 0;
-	expected_rsp.base_capabilities.reserved3 = 0;
-	expected_rsp.base_capabilities.ct_exponent = 20;
-	expected_rsp.base_capabilities.reserved4 = 0;
+	status = spdm_get_capabilities (spdm_responder, &msg);
 
-	expected_rsp.base_capabilities.flags.cache_cap = 0;
-	expected_rsp.base_capabilities.flags.cert_cap = 1;
-	expected_rsp.base_capabilities.flags.chal_cap = 1;
-	expected_rsp.base_capabilities.flags.meas_cap = 2;
-	expected_rsp.base_capabilities.flags.meas_fresh_cap = 0;
-	expected_rsp.base_capabilities.flags.encrypt_cap = 0;
-	expected_rsp.base_capabilities.flags.mac_cap = 0;
-	expected_rsp.base_capabilities.flags.mut_auth_cap = 0;
-	expected_rsp.base_capabilities.flags.key_ex_cap = 0;
-	expected_rsp.base_capabilities.flags.psk_cap = 0;
-	expected_rsp.base_capabilities.flags.encap_cap = 0;
-	expected_rsp.base_capabilities.flags.hbeat_cap = 0;
-	expected_rsp.base_capabilities.flags.key_upd_cap = 0;
-	expected_rsp.base_capabilities.flags.handshake_in_the_clear_cap = 0;
-	expected_rsp.base_capabilities.flags.pub_key_id_cap = 0;
-	expected_rsp.base_capabilities.flags.handshake_in_the_clear_cap = 0;
-	expected_rsp.base_capabilities.flags.chunk_cap = 0;
-	expected_rsp.base_capabilities.flags.alias_cert_cap = 0;
-	expected_rsp.base_capabilities.flags.reserved = 0;
-	expected_rsp.base_capabilities.flags.reserved2 = 0;
-	expected_rsp.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	expected_rsp.max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	status = logging_mock_init (&log);
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_request_large_ct_exponent (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	rq->base_capabilities.header.spdm_major_version = 1;
+	rq->base_capabilities.header.spdm_minor_version = 2;
+	rq->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq->base_capabilities.flags = local_capabilities->flags;
+	rq->data_transfer_size = local_capabilities->data_transfer_size;
+	rq->max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+
+	rq->base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT + 1;
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_INVALID_REQUEST);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_append_request_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	struct spdm_get_capabilities rq = {0};
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq.base_capabilities.header.spdm_major_version = 1;
+	rq.base_capabilities.header.spdm_minor_version = 2;
+	rq.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq.base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq.base_capabilities.flags = local_capabilities->flags;
+	rq.data_transfer_size = local_capabilities->data_transfer_size;
+	rq.max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+	memcpy (msg.payload, &rq, sizeof (struct spdm_get_capabilities));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
+		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, SPDM_TRANSCRIPT_MANAGER_UPDATE_FAILED,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_capabilities)),
+		MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
 	CuAssertIntEquals (test, 0, status);
 
-	debug_log = &log.base;
+	status = spdm_get_capabilities (spdm_responder, &msg);
 
-	status = mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_UNSPECIFIED);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	status = hash_mock_init (&hash);
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_get_capabilities_append_response_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg msg;
+	struct spdm_get_capabilities rq = {0};
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_device_capability *local_capabilities;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_capabilities = &testing.local_capabilities;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_capabilities);
+	msg.length = msg.payload_length;
+
+	rq.base_capabilities.header.spdm_major_version = 1;
+	rq.base_capabilities.header.spdm_minor_version = 2;
+	rq.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
+	rq.base_capabilities.ct_exponent = local_capabilities->ct_exponent;
+	rq.base_capabilities.flags = local_capabilities->flags;
+	rq.data_transfer_size = local_capabilities->data_transfer_size;
+	rq.max_spdm_msg_size = local_capabilities->max_spdm_msg_size;
+	memcpy (msg.payload, &rq, sizeof (struct spdm_get_capabilities));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_capabilities)),
+		MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, SPDM_TRANSCRIPT_MANAGER_UPDATE_FAILED,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_get_capabilities)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status = spdm_get_capabilities (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, error_response->error_code, SPDM_ERROR_UNSPECIFIED);
+	CuAssertIntEquals (test, error_response->error_data, 0);
+	CuAssertIntEquals (test, error_response->header.req_rsp_code, SPDM_RESPONSE_ERROR);
+	CuAssertIntEquals (test, msg.payload_length, sizeof (struct spdm_error_response));
 
-	status = mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, sizeof (struct spdm_get_capabilities)),
-		MOCK_ARG (sizeof (struct spdm_get_capabilities)));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS (&expected_rsp, sizeof (struct spdm_get_capabilities)),
-		MOCK_ARG (sizeof (struct spdm_get_capabilities)));
-	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_init (&manager, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_not_attestable_device_entry (&manager, 0, 0xAA, 0xBB, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0xCC,	0xDD, 1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_get_capabilities (&msg, &manager, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	device_manager_release (&manager);
-
-	debug_log = NULL;
-
-	status = logging_mock_validate_and_release (&log);
-	CuAssertIntEquals (test, 0, status);
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
 static void spdm_test_generate_get_capabilities_request (CuTest *test)
@@ -2335,7 +3232,7 @@ static void spdm_test_generate_get_capabilities_request (CuTest *test)
 	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved);
 	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved2);
 	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved3);
-	CuAssertIntEquals (test, 20, rq->base_capabilities.ct_exponent);
+	CuAssertIntEquals (test, SPDM_MAX_CT_EXPONENT, rq->base_capabilities.ct_exponent);
 	CuAssertIntEquals (test, 0, rq->base_capabilities.reserved4);
 
 	CuAssertIntEquals (test, 0, rq->base_capabilities.flags.cache_cap);
@@ -2380,7 +3277,7 @@ static void spdm_test_generate_get_capabilities_request_1_1 (CuTest *test)
 	CuAssertIntEquals (test, 0, rq->reserved);
 	CuAssertIntEquals (test, 0, rq->reserved2);
 	CuAssertIntEquals (test, 0, rq->reserved3);
-	CuAssertIntEquals (test, 20, rq->ct_exponent);
+	CuAssertIntEquals (test, SPDM_MAX_CT_EXPONENT, rq->ct_exponent);
 	CuAssertIntEquals (test, 0, rq->reserved4);
 
 	CuAssertIntEquals (test, 0, rq->flags.cache_cap);
@@ -4601,13 +5498,25 @@ TEST (spdm_test_generate_get_version_request_buf_too_small);
 TEST (spdm_test_process_get_version_response);
 TEST (spdm_test_process_get_version_response_null);
 TEST (spdm_test_process_get_version_response_bad_length);
-TEST (spdm_test_get_capabilities);
+TEST (spdm_test_get_capabilities_1_2);
 TEST (spdm_test_get_capabilities_1_1);
 TEST (spdm_test_get_capabilities_null);
-TEST (spdm_test_get_capabilities_ct_too_large);
-TEST (spdm_test_get_capabilities_unknown_device);
-TEST (spdm_test_get_capabilities_hash_update_rq_fail);
-TEST (spdm_test_get_capabilities_hash_update_rsp_fail);
+TEST (spdm_test_get_capabilities_response_state_busy);
+TEST (spdm_test_get_capabilities_response_state_need_resync);
+TEST (spdm_test_get_capabilities_response_state_processing_encap);
+TEST (spdm_test_get_capabilities_incorrect_connection_state);
+TEST (spdm_test_get_capabilities_version_lt_min);
+TEST (spdm_test_get_capabilities_version_gt_max);
+TEST (spdm_test_get_capabilities_incorrect_request_size_v_1_2);
+TEST (spdm_test_get_capabilities_incorrect_request_size_v_1_1);
+TEST (spdm_test_get_capabilities_request_flag_compatibility_1_2_fail);
+TEST (spdm_test_get_capabilities_request_flag_compatibility_1_1_fail);
+TEST (spdm_test_get_capabilities_request_data_transfer_size_lt_min_size);
+TEST (spdm_test_get_capabilities_request_data_transfer_size_gt_max_size);
+TEST (spdm_test_get_capabilities_request_data_transfer_size_ne_max_size);
+TEST (spdm_test_get_capabilities_request_large_ct_exponent);
+TEST (spdm_test_get_capabilities_append_request_fail);
+TEST (spdm_test_get_capabilities_append_response_fail);
 TEST (spdm_test_generate_get_capabilities_request);
 TEST (spdm_test_generate_get_capabilities_request_1_1);
 TEST (spdm_test_generate_get_capabilities_request_null);

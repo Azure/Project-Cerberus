@@ -46,15 +46,18 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
  * @param hash_engine_ptr Hash Engine instance pointer.
  * @param version_num_ptr Array of supported version numbers.
  * @param version_num_count_arg Number of supported version numbers.
+ * @param local_capabilities_ptr Local SPDM capabilities.
  */
 #define	cmd_interface_spdm_responder_static_init(state_ptr, transcript_manager_ptr, hash_engine_ptr, \
-		version_num_ptr, version_num_count_arg) { \
+		version_num_ptr, version_num_count_arg, local_capabilities_ptr) { \
 		.base = CMD_INTERFACE_SPDM_RESPONDER_API_INIT, \
 		.state = state_ptr, \
 		.transcript_manager = transcript_manager_ptr, \
 		.hash_engine = hash_engine_ptr, \
 		.version_num = version_num_ptr, \
-		.version_num_count = version_num_count_arg \
+		.version_num_count = version_num_count_arg, \
+		.local_capabilities = local_capabilities_ptr \
 	}
+
 
 #endif /* CMD_INTERFACE_SPDM_RESPONDER_STATIC_H_ */

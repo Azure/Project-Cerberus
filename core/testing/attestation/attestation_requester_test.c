@@ -1903,7 +1903,7 @@ static int64_t attestation_requester_testing_spdm_get_capabilities_rsp_callback 
 	capabilities_response->base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	capabilities_response->base_capabilities.header.req_rsp_code = SPDM_RESPONSE_GET_CAPABILITIES;
 
-	capabilities_response->base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
+	capabilities_response->base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	capabilities_response->base_capabilities.flags.cache_cap = 0;
 	capabilities_response->base_capabilities.flags.cert_cap = !testing->get_cert_unsupported;
 	capabilities_response->base_capabilities.flags.chal_cap = !testing->challenge_unsupported;
@@ -3036,7 +3036,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	request->base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	request->base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	request->base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
+	request->base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	request->base_capabilities.flags.cache_cap = 0;
 	request->base_capabilities.flags.cert_cap = 0;
 	request->base_capabilities.flags.chal_cap = 0;
@@ -3127,7 +3127,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	req.base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
+	req.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	req.base_capabilities.flags.cache_cap = 0;
 	req.base_capabilities.flags.cert_cap = 0;
 	req.base_capabilities.flags.chal_cap = 0;
@@ -3153,7 +3153,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	rsp.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rsp.base_capabilities.header.req_rsp_code = SPDM_RESPONSE_GET_CAPABILITIES;
 
-	rsp.base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
+	rsp.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	rsp.base_capabilities.flags.cache_cap = 0;
 	rsp.base_capabilities.flags.cert_cap = !testing->get_cert_unsupported;
 	rsp.base_capabilities.flags.chal_cap = !testing->challenge_unsupported;
@@ -20774,7 +20774,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_req_h
 	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	req.base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
+	req.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	req.base_capabilities.flags.cache_cap = 0;
 	req.base_capabilities.flags.cert_cap = 0;
 	req.base_capabilities.flags.chal_cap = 0;
@@ -20838,7 +20838,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_fail 
 	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	req.base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
+	req.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	req.base_capabilities.flags.cache_cap = 0;
 	req.base_capabilities.flags.cert_cap = 0;
 	req.base_capabilities.flags.chal_cap = 0;
@@ -20898,7 +20898,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_respo
 	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	req.base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
+	req.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	req.base_capabilities.flags.cache_cap = 0;
 	req.base_capabilities.flags.cert_cap = 0;
 	req.base_capabilities.flags.chal_cap = 0;
@@ -20960,7 +20960,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_unexp
 	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	req.base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
+	req.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	req.base_capabilities.flags.cache_cap = 0;
 	req.base_capabilities.flags.cert_cap = 0;
 	req.base_capabilities.flags.chal_cap = 0;
@@ -21020,7 +21020,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	req.base_capabilities.ct_exponent = SPDM_CT_EXPONENT;
+	req.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	req.base_capabilities.flags.cache_cap = 0;
 	req.base_capabilities.flags.cert_cap = 0;
 	req.base_capabilities.flags.chal_cap = 0;
@@ -21080,7 +21080,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	req.base_capabilities.ct_exponent = 20;
+	req.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	req.base_capabilities.flags.cache_cap = 0;
 	req.base_capabilities.flags.cert_cap = 0;
 	req.base_capabilities.flags.chal_cap = 0;
@@ -21142,7 +21142,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	req.base_capabilities.ct_exponent = 20;
+	req.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	req.base_capabilities.flags.cache_cap = 0;
 	req.base_capabilities.flags.cert_cap = 0;
 	req.base_capabilities.flags.chal_cap = 0;
@@ -21204,7 +21204,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	req.base_capabilities.ct_exponent = 20;
+	req.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	req.base_capabilities.flags.cache_cap = 0;
 	req.base_capabilities.flags.cert_cap = 0;
 	req.base_capabilities.flags.chal_cap = 0;
@@ -21266,7 +21266,7 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_chall
 	req.base_capabilities.header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req.base_capabilities.header.req_rsp_code = SPDM_REQUEST_GET_CAPABILITIES;
 
-	req.base_capabilities.ct_exponent = 20;
+	req.base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	req.base_capabilities.flags.cache_cap = 0;
 	req.base_capabilities.flags.cert_cap = 0;
 	req.base_capabilities.flags.chal_cap = 0;

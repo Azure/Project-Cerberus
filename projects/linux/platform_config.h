@@ -142,5 +142,10 @@
  */
 // #define SPDM_TRANSCRIPT_MANAGER_VCA_BUFFER_MAX_SIZE		0x100
 
+/**
+ * Maximum exponent for cryptographic processing time as described in section 10.3 of the DSP0274 SPDM spec.
+ */
+// #define SPDM_MAX_CT_EXPONENT			31
+
 
 #endif /* PLATFORM_CONFIG_H_ */

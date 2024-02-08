@@ -21,13 +21,14 @@ struct cmd_interface_spdm_responder {
 	struct spdm_transcript_manager *transcript_manager;	/**< Transcript manager for SPDM. */
 	const struct spdm_version_num_entry *version_num;	/**< Supported version number(s). */
 	uint8_t version_num_count;							/**< Number of supported version number(s). */
+	const struct spdm_device_capability *local_capabilities;	/**< Local SPDM capabilities. */
 };
 
 
 int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_state *state, struct spdm_transcript_manager *transcript_manager,
 	struct hash_engine *hash_engine, const struct spdm_version_num_entry *version_num,
-	uint8_t version_num_count);
+	uint8_t version_num_count, const struct spdm_device_capability *local_capabilities);
 
 int cmd_interface_spdm_responder_init_state (
 	const struct cmd_interface_spdm_responder *spdm_responder);
@@ -50,6 +51,9 @@ enum {
 	CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x06),		/**< The request is not supported. */
 	CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x07),			/**< The request is invalid. */
 	CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x08),			/**< The request version is not supported. */
+	CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x09),	/**< The device capability is not supported. */
+	CMD_HANDLER_SPDM_RESPONDER_INCOMPATIBLE_CAPABILITIES = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0a),	/**< The device capabilities are incompatible. */
+	CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0b),		/**< The request is unexpected. */
 };
 
 
