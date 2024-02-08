@@ -49,6 +49,47 @@ struct doe_base_protocol_transport_header {
 	uint32_t length;
 };
 
+/**
+ * DOE Discovery Request message format.
+ */
+struct doe_base_protocol_discovery_request {
+	/**
+	 * Indicates DOE Discovery entry index queried.
+	 * Indices must start at 00h and increase monotonically by 1.
+	 */
+	uint32_t index:8;
+
+	uint32_t reserved:24;	/**< Reserved */
+};
+
+/**
+ * DOE Discovery Response message format.
+ */
+struct doe_base_protocol_discovery_response {
+	/**
+	 * PCI-SIG Vendor ID of the entity that defined the type of data object.
+	 * FFFFh if no more indices.
+	 */
+	uint32_t vendor_id:16;
+
+	/**
+	 * Indicates the identity of the data object protocol associated with the Index value supplied
+	 * with the DOE Discovery Request. The PCI-SIG defined data object protocol for DOE Discovery
+	 * must be implemented at index 00h. The index values used for other data object protocols is
+	 * implementation-specific and has no meaning defined by this specification.
+	 * Undefined if Vendor ID value is FFFFh.
+	 */
+	uint32_t data_object_protocol:8;
+
+	/**
+	 * Indicates the next DOE Discovery Index value. If the responding DOE instance supports entries
+	 * with indices greater than the index indicated in the received DOE Discovery Request, it must
+	 * increment the queried index by 1 and return the resulting value in this field.
+	 * Must be 00h to indicate the final entry. Undefined if Vendor ID value is FFFFh.
+	 */
+	uint32_t next_index:8;
+};
+
 #pragma pack(pop)
 
 /**
@@ -74,6 +115,7 @@ struct doe_base_protocol_transport_header {
 /**
  * Supported Ids of DOE message payloads.
  */
+#define DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY	0x00
 #define DOE_DATA_OBJECT_TYPE_SPDM			0x01
 #define DOE_DATA_OBJECT_TYPE_SECURED_SPDM	0x02
 

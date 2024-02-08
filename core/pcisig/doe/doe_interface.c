@@ -13,14 +13,20 @@
  * @param doe The DOE interface to initialize.
  * @param cmd_spdm_responder The command interface to use for processing and generating
  * SPDM protocol messages.
+ * @param data_object_protocol The supported DOE data object protocol(s).
+ * @param data_object_protocol_count The number of supported data object protocols.
  *
  * @return Initialization status, 0 if success or an error code.
  */
-int doe_interface_init (struct doe_interface *doe, struct cmd_interface *cmd_spdm_responder)
+int doe_interface_init (struct doe_interface *doe, struct cmd_interface *cmd_spdm_responder,
+	const struct doe_data_object_protocol *data_object_protocol, uint8_t data_object_protocol_count)
 {
 	int status = 0;
 
-	if ((doe == NULL) || (cmd_spdm_responder == NULL)) {
+	if ((doe == NULL) || (cmd_spdm_responder == NULL) || (data_object_protocol == NULL) ||
+		(data_object_protocol_count == 0) || 
+		(data_object_protocol[0].vendor_id != DOE_VENDOR_ID_PCISIG) ||
+		(data_object_protocol[0].data_object_type != DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY)) {
 		status =  DOE_INTERFACE_INVALID_ARGUMENT;
 		goto exit;
 	}
@@ -28,6 +34,8 @@ int doe_interface_init (struct doe_interface *doe, struct cmd_interface *cmd_spd
 	memset (doe, 0, sizeof (struct doe_interface));
 
 	doe->cmd_spdm_responder = cmd_spdm_responder;
+	doe->data_object_protocol = data_object_protocol;
+	doe->data_object_protocol_count = data_object_protocol_count;
 
 exit:
 	return status;
@@ -77,6 +85,44 @@ static int doe_interface_encode_message (struct doe_cmd_message *doe_message, si
 	}
 	doe_header->reserved = 0;
 	doe_header->vendor_id = DOE_VENDOR_ID_PCISIG;
+
+exit:
+	return status;
+}
+
+/**
+ * Process a DOE Discovery Request message.
+ *
+ * @param doe_interface The DOE interface to use for processing the message.
+ * @param data_obj_message The DOE message to process.
+ *
+ * @return 0 if the message was successfully processed or an error code.
+ */
+static int doe_interface_process_doe_discovery_request (const struct doe_interface *doe_interface,
+	struct cmd_interface_msg *data_obj_message)
+{
+	int status = 0;
+	uint8_t index;
+	struct doe_base_protocol_discovery_response *discovery_response;
+
+	index = ((struct doe_base_protocol_discovery_request*) data_obj_message->payload)->index;
+	discovery_response = (struct doe_base_protocol_discovery_response*) data_obj_message->payload;
+
+	if (index >= doe_interface->data_object_protocol_count) {
+		status = DOE_INTERFACE_INVALID_DISCOVERY_INDEX;
+		goto exit;
+	}
+
+	discovery_response->vendor_id = doe_interface->data_object_protocol[index].vendor_id;
+	discovery_response->data_object_protocol =
+		doe_interface->data_object_protocol[index].data_object_type;
+
+	/* For the last data object protocol, the next_index is 0. */
+	discovery_response->next_index = 
+		(index == (doe_interface->data_object_protocol_count - 1)) ? 0 : (index + 1);
+
+	cmd_interface_msg_set_message_payload_length (data_obj_message,
+		sizeof (struct doe_base_protocol_discovery_response));
 
 exit:
 	return status;
@@ -157,6 +203,7 @@ static int doe_interface_decode_message (struct doe_cmd_message *doe_message,
 			data_obj_message->is_encrypted = true;
 			break;
 
+		case DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY:
 		case DOE_DATA_OBJECT_TYPE_SPDM:
 			data_obj_message->is_encrypted = false;
 			break;
@@ -198,13 +245,20 @@ int doe_interface_process_message (const struct doe_interface *doe,
 	}
 
 	data_object_type = DOE_DATA_OBJECT_TYPE (doe_message->message);
-	if ((data_object_type == DOE_DATA_OBJECT_TYPE_SPDM) ||
-		(data_object_type == DOE_DATA_OBJECT_TYPE_SECURED_SPDM)) {
-		status = doe->cmd_spdm_responder->process_request (doe->cmd_spdm_responder,
-			&data_obj_message);
-	}
-	else {
-		status = DOE_INTERFACE_UNSUPPORTED_DATA_OBJECT_TYPE;
+	switch (data_object_type) {
+		case DOE_DATA_OBJECT_TYPE_SPDM:
+		case DOE_DATA_OBJECT_TYPE_SECURED_SPDM:
+			status = doe->cmd_spdm_responder->process_request (doe->cmd_spdm_responder,
+				&data_obj_message);
+			break;
+
+		case DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY:
+			status = doe_interface_process_doe_discovery_request (doe, &data_obj_message);
+			break;
+
+		default:
+			status = DOE_INTERFACE_UNSUPPORTED_DATA_OBJECT_TYPE;
+			break;
 	}
 	if (status != 0) {
 		goto exit;

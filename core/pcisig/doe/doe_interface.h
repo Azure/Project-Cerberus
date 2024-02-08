@@ -9,6 +9,14 @@
 
 
 /**
+ * DOE data object protocol entry.
+ */
+struct doe_data_object_protocol {
+	uint16_t vendor_id;			/**< Vendor Id. */
+	uint8_t data_object_type;	/**< DOE data object protocol type. */
+};
+
+/**
  * Information for a DOE message.
  */
 struct doe_cmd_message {
@@ -19,11 +27,15 @@ struct doe_cmd_message {
  * DOE interface context
  */
 struct doe_interface {
-	const struct cmd_interface *cmd_spdm_responder;		/**< Command interface instance to handle SPDM protocol requests */
+	const struct cmd_interface *cmd_spdm_responder;					/**< Command interface instance to handle SPDM protocol requests */
+	const struct doe_data_object_protocol *data_object_protocol;	/**< Supported DOE data object protocol(s).*/
+	uint8_t data_object_protocol_count;								/**< Number of supported data object protocols. */
 };
 
 
-int doe_interface_init (struct doe_interface *doe, struct cmd_interface *cmd_spdm_responder);
+int doe_interface_init (struct doe_interface *doe, struct cmd_interface *cmd_spdm_responder,
+	const struct doe_data_object_protocol *data_object_protocol,
+	uint8_t data_object_protocol_count);
 
 void doe_interface_release (const struct doe_interface *doe);
 
@@ -42,6 +54,8 @@ enum {
 	DOE_INTERFACE_UNSUPPORTED_DATA_OBJECT_TYPE = DOE_INTERFACE_ERROR (0x02),	/**< Data object type is unsupported. */
 	DOE_INTERFACE_INVALID_MSG_SIZE = DOE_INTERFACE_ERROR (0x03),				/**< The message size is incorrect. */
 	DOE_INTERFACE_INVALID_VENDOR_ID = DOE_INTERFACE_ERROR (0x04),				/**< The vendor id is invalid. */
+	DOE_INTERFACE_INVALID_MSG = DOE_INTERFACE_ERROR (0x05),						/**< The message is invalid. */
+	DOE_INTERFACE_INVALID_DISCOVERY_INDEX = DOE_INTERFACE_ERROR (0x06),			/**< The index for DOE discovery is invalid. */
 };
 
 

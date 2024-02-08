@@ -14,6 +14,7 @@
 
 TEST_SUITE_LABEL ("doe_interface");
 
+#define DOE_DATA_OBJECT_PROTOCOLS_MAX_COUNT		3
 
 /**
  * Dependencies for testing.
@@ -22,6 +23,7 @@ struct doe_interface_testing {
 	struct doe_interface doe_interface;			/**< DOE interface. */
 	struct doe_cmd_channel_mock cmd_channel;	/**< Mock for the DOE command channel. */
 	struct cmd_interface_mock spdm_responder;	/**< Mock for the SPDM responder. */
+	struct doe_data_object_protocol data_object_protocol[DOE_DATA_OBJECT_PROTOCOLS_MAX_COUNT];	/**< Supported DOE data object protocols. */
 };
 
 /**
@@ -34,6 +36,13 @@ static void doe_interface_testing_init_dependencies (CuTest *test,
 	struct doe_interface_testing *interface_testing)
 {
 	int status;
+	struct doe_data_object_protocol data_object_protocol[] = {
+		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY},
+		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_SPDM},
+		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_SECURED_SPDM},
+	};
+	memcpy (interface_testing->data_object_protocol, data_object_protocol,
+		sizeof (data_object_protocol));
 
 	status = doe_cmd_channel_mock_init (&interface_testing->cmd_channel);
 	CuAssertIntEquals (test, 0, status);
@@ -74,7 +83,8 @@ static void doe_interface_testing_init (CuTest *test,
 	doe_interface_testing_init_dependencies (test, interface_testing);
 
 	status = doe_interface_init (&interface_testing->doe_interface,
-		&interface_testing->spdm_responder.base);
+		&interface_testing->spdm_responder.base, interface_testing->data_object_protocol,
+		ARRAY_SIZE (interface_testing->data_object_protocol));
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -97,6 +107,66 @@ static void doe_interface_testing_release (CuTest *test,
  * Test cases
  *******************/
 
+static void doe_interface_test_doe_transport_header_format (CuTest *test)
+{
+	uint8_t raw_buffer[] = {
+		0x56, 0x69,
+		0x73,
+		0x68,
+		0x61, 0x6C, 0x20, 0x4D
+	};
+	struct doe_base_protocol_transport_header *header =
+		(struct doe_base_protocol_transport_header*) raw_buffer;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer),
+		sizeof (struct doe_base_protocol_transport_header));
+
+	CuAssertIntEquals (test, 0x6956, header->vendor_id);
+	CuAssertIntEquals (test, 0x73, header->data_object_type);
+	CuAssertIntEquals (test, 0x68, header->reserved);
+	CuAssertIntEquals (test, 0x4D206C61, header->length);
+}
+
+static void doe_interface_test_discovery_request_format (CuTest *test)
+{
+	uint8_t raw_buffer[] = {
+		0x76,
+		0x49, 0x53, 0x48
+	};
+	struct doe_base_protocol_discovery_request *discovery_request =
+		(struct doe_base_protocol_discovery_request*) raw_buffer;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer),
+		sizeof (struct doe_base_protocol_discovery_request));
+
+	CuAssertIntEquals (test, 0x76, discovery_request->index);
+	CuAssertIntEquals (test, 0x485349, discovery_request->reserved);
+}
+
+static void doe_interface_test_discovery_response_format (CuTest *test)
+{
+	uint8_t raw_buffer[] = {
+		0x48, 0x55,
+		0x4C,
+		0x4B
+	};
+	struct doe_base_protocol_discovery_response *discovery_response =
+		(struct doe_base_protocol_discovery_response*) raw_buffer;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer),
+		sizeof (struct doe_base_protocol_discovery_response));
+
+	CuAssertIntEquals (test, 0x5548, discovery_response->vendor_id);
+	CuAssertIntEquals (test, 0x4C, discovery_response->data_object_protocol);
+	CuAssertIntEquals (test, 0x4B, discovery_response->next_index);
+}
+
 static void doe_interface_test_doe_interface_init (CuTest *test)
 {
 	int status;
@@ -108,7 +178,8 @@ static void doe_interface_test_doe_interface_init (CuTest *test)
 
 	doe_interface_testing_init_dependencies (test, &interface_testing);
 
-	status = doe_interface_init (&doe, &cmd_spdm_responder);
+	status = doe_interface_init (&doe, &cmd_spdm_responder, interface_testing.data_object_protocol,
+		ARRAY_SIZE (interface_testing.data_object_protocol));
 	CuAssertIntEquals (test, 0, status);
 
 	doe_interface_testing_release (test, &interface_testing);
@@ -120,15 +191,38 @@ static void doe_interface_test_doe_interface_init_invalid_params (CuTest *test)
 	struct doe_interface doe;
 	struct cmd_interface cmd_spdm_responder;
 	struct doe_interface_testing interface_testing;
+	struct doe_data_object_protocol data_object_protocol[] = {
+		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY}
+	};
 
 	TEST_START;
 
 	doe_interface_testing_init_dependencies (test, &interface_testing);
 
-	status = doe_interface_init (NULL, &cmd_spdm_responder);
+	status = doe_interface_init (NULL, &cmd_spdm_responder, interface_testing.data_object_protocol,
+		ARRAY_SIZE (interface_testing.data_object_protocol));
 	CuAssertIntEquals (test, DOE_INTERFACE_INVALID_ARGUMENT, status);
 
-	status = doe_interface_init (&doe, NULL);
+	status = doe_interface_init (&doe, NULL, interface_testing.data_object_protocol,
+		ARRAY_SIZE (interface_testing.data_object_protocol));
+	CuAssertIntEquals (test, DOE_INTERFACE_INVALID_ARGUMENT, status);
+
+	status = doe_interface_init (&doe, &cmd_spdm_responder, NULL,
+		ARRAY_SIZE (interface_testing.data_object_protocol));
+	CuAssertIntEquals (test, DOE_INTERFACE_INVALID_ARGUMENT, status);
+
+	status = doe_interface_init (&doe, &cmd_spdm_responder, interface_testing.data_object_protocol,
+		0);
+	CuAssertIntEquals (test, DOE_INTERFACE_INVALID_ARGUMENT, status);
+
+	data_object_protocol[0].vendor_id = -1;
+	data_object_protocol[0].data_object_type = DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY;
+	status = doe_interface_init (&doe, &cmd_spdm_responder, data_object_protocol, 1);
+	CuAssertIntEquals (test, DOE_INTERFACE_INVALID_ARGUMENT, status);
+
+	data_object_protocol[0].vendor_id = DOE_VENDOR_ID_PCISIG;
+	data_object_protocol[0].data_object_type = -1;
+	status = doe_interface_init (&doe, &cmd_spdm_responder, data_object_protocol, 1);
 	CuAssertIntEquals (test, DOE_INTERFACE_INVALID_ARGUMENT, status);
 
 	doe_interface_testing_release_dependencies (test, &interface_testing);
@@ -184,7 +278,9 @@ static void doe_interface_test_doe_interface_process_message_decode_spdm_data_ob
 {
 	struct doe_cmd_message doe_message = {0};
 	struct doe_interface_testing interface_testing = {
-		.doe_interface = doe_interface_static_init (&interface_testing.spdm_responder.base)
+		.doe_interface = doe_interface_static_init (&interface_testing.spdm_responder.base,
+			interface_testing.data_object_protocol,
+			ARRAY_SIZE (interface_testing.data_object_protocol))
 	};
 	struct doe_base_protocol_transport_header *doe_header;
 	int status;
@@ -218,6 +314,50 @@ static void doe_interface_test_doe_interface_process_message_decode_spdm_data_ob
 
 	status = doe_interface_process_message (&interface_testing.doe_interface, &doe_message);
 	CuAssertIntEquals (test, 0, status);
+
+	doe_interface_testing_release_dependencies (test, &interface_testing);
+}
+
+static void doe_interface_test_doe_interface_process_message_decode_spdm_data_object_type_static_init_doe_discovery (
+	CuTest *test)
+{
+	struct doe_cmd_message doe_message = {0};
+	struct doe_interface_testing interface_testing = {
+		.doe_interface = doe_interface_static_init (&interface_testing.spdm_responder.base,
+			interface_testing.data_object_protocol,
+			ARRAY_SIZE (interface_testing.data_object_protocol))
+	};
+	struct doe_base_protocol_transport_header *doe_header;
+	struct doe_base_protocol_discovery_request *doe_discovery_request;
+	struct doe_base_protocol_discovery_response *doe_discovery_response;
+	int status;
+
+	TEST_START;
+
+	doe_interface_testing_init_dependencies (test, &interface_testing);
+
+	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
+	doe_header->vendor_id = DOE_VENDOR_ID_PCISIG;
+	doe_header->data_object_type = DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY;
+	doe_header->length = (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_request) + (sizeof (uint32_t) - 1)) /
+		sizeof (uint32_t);
+
+	doe_discovery_request = (struct doe_base_protocol_discovery_request*) (doe_header + 1);
+	doe_discovery_request->index = 0;
+
+	status = doe_interface_process_message (&interface_testing.doe_interface, &doe_message);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, DOE_VENDOR_ID_PCISIG, doe_header->vendor_id);
+	CuAssertIntEquals (test, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY, doe_header->data_object_type);
+	CuAssertIntEquals (test, (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_response)),
+		doe_header->length * sizeof (uint32_t));
+	doe_discovery_response = (struct doe_base_protocol_discovery_response*) (doe_header + 1);
+	CuAssertIntEquals (test, DOE_VENDOR_ID_PCISIG, doe_discovery_response->vendor_id);
+	CuAssertIntEquals (test, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY,
+		doe_discovery_response->data_object_protocol);
+	CuAssertIntEquals (test, 1, doe_discovery_response->next_index);
 
 	doe_interface_testing_release_dependencies (test, &interface_testing);
 }
@@ -259,6 +399,205 @@ static void doe_interface_test_doe_interface_process_message_decode_secure_spdm_
 
 	status = doe_interface_process_message (&interface_testing.doe_interface, &doe_message);
 	CuAssertIntEquals (test, 0, status);
+
+	doe_interface_testing_release (test, &interface_testing);
+}
+
+static void doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_discovery (
+	CuTest *test)
+{
+	struct doe_cmd_message doe_message = {0};
+	struct doe_interface_testing interface_testing;
+	struct doe_base_protocol_transport_header *doe_header;
+	struct doe_base_protocol_discovery_request *doe_discovery_request;
+	struct doe_base_protocol_discovery_response *doe_discovery_response;
+	int status;
+
+	TEST_START;
+
+	doe_interface_testing_init (test, &interface_testing);
+
+	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
+	doe_header->vendor_id = DOE_VENDOR_ID_PCISIG;
+	doe_header->data_object_type = DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY;
+	doe_header->length = (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_request) + (sizeof (uint32_t) - 1)) /
+		sizeof (uint32_t);
+
+	doe_discovery_request = (struct doe_base_protocol_discovery_request*) (doe_header + 1);
+	doe_discovery_request->index = 0;
+
+	status = doe_interface_process_message (&interface_testing.doe_interface, &doe_message);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, DOE_VENDOR_ID_PCISIG, doe_header->vendor_id);
+	CuAssertIntEquals (test, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY, doe_header->data_object_type);
+	CuAssertIntEquals (test, (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_response)),
+		doe_header->length * sizeof (uint32_t));
+	doe_discovery_response = (struct doe_base_protocol_discovery_response*) (doe_header + 1);
+	CuAssertIntEquals (test, DOE_VENDOR_ID_PCISIG, doe_discovery_response->vendor_id);
+	CuAssertIntEquals (test, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY,
+		doe_discovery_response->data_object_protocol);
+	CuAssertIntEquals (test, 1, doe_discovery_response->next_index);
+
+	doe_interface_testing_release (test, &interface_testing);
+}
+
+static void doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_spdm (
+	CuTest *test)
+{
+	struct doe_cmd_message doe_message = {0};
+	struct doe_interface_testing interface_testing;
+	struct doe_base_protocol_transport_header *doe_header;
+	struct doe_base_protocol_discovery_request *doe_discovery_request;
+	struct doe_base_protocol_discovery_response *doe_discovery_response;
+	int status;
+
+	TEST_START;
+
+	doe_interface_testing_init (test, &interface_testing);
+
+	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
+	doe_header->vendor_id = DOE_VENDOR_ID_PCISIG;
+	doe_header->data_object_type = DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY;
+	doe_header->length = (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_request) + (sizeof (uint32_t) - 1)) /
+		sizeof (uint32_t);
+
+	doe_discovery_request = (struct doe_base_protocol_discovery_request*) (doe_header + 1);
+	doe_discovery_request->index = 1;
+
+	status = doe_interface_process_message (&interface_testing.doe_interface, &doe_message);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, DOE_VENDOR_ID_PCISIG, doe_header->vendor_id);
+	CuAssertIntEquals (test, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY, doe_header->data_object_type);
+	CuAssertIntEquals (test, (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_response)),
+		doe_header->length * sizeof (uint32_t));
+	doe_discovery_response = (struct doe_base_protocol_discovery_response*) (doe_header + 1);
+	CuAssertIntEquals (test, DOE_VENDOR_ID_PCISIG, doe_discovery_response->vendor_id);
+	CuAssertIntEquals (test, DOE_DATA_OBJECT_TYPE_SPDM,
+		doe_discovery_response->data_object_protocol);
+	CuAssertIntEquals (test, 2, doe_discovery_response->next_index);
+
+	doe_interface_testing_release (test, &interface_testing);
+}
+
+static void doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_secure_spdm (
+	CuTest *test)
+{
+	struct doe_cmd_message doe_message = {0};
+	struct doe_interface_testing interface_testing;
+	struct doe_base_protocol_transport_header *doe_header;
+	struct doe_base_protocol_discovery_request *doe_discovery_request;
+	struct doe_base_protocol_discovery_response *doe_discovery_response;
+	int status;
+
+	TEST_START;
+
+	doe_interface_testing_init (test, &interface_testing);
+
+	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
+	doe_header->vendor_id = DOE_VENDOR_ID_PCISIG;
+	doe_header->data_object_type = DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY;
+	doe_header->length = (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_request) + (sizeof (uint32_t) - 1)) /
+		sizeof (uint32_t);
+
+	doe_discovery_request = (struct doe_base_protocol_discovery_request*) (doe_header + 1);
+	doe_discovery_request->index = 2;
+
+	status = doe_interface_process_message (&interface_testing.doe_interface, &doe_message);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, DOE_VENDOR_ID_PCISIG, doe_header->vendor_id);
+	CuAssertIntEquals (test, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY, doe_header->data_object_type);
+	CuAssertIntEquals (test, (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_response)),
+		doe_header->length * sizeof (uint32_t));
+	doe_discovery_response = (struct doe_base_protocol_discovery_response*) (doe_header + 1);
+	CuAssertIntEquals (test, DOE_VENDOR_ID_PCISIG, doe_discovery_response->vendor_id);
+	CuAssertIntEquals (test, DOE_DATA_OBJECT_TYPE_SECURED_SPDM,
+		doe_discovery_response->data_object_protocol);
+	CuAssertIntEquals (test, 0, doe_discovery_response->next_index);
+
+	doe_interface_testing_release (test, &interface_testing);
+}
+
+static void doe_interface_test_doe_interface_process_message_decode_doe_discovery_no_additional_data_object_type_suppported (
+	CuTest *test)
+{
+	struct doe_cmd_message doe_message = {0};
+	struct doe_interface_testing interface_testing;
+	struct doe_base_protocol_transport_header *doe_header;
+	struct doe_base_protocol_discovery_request *doe_discovery_request;
+	struct doe_base_protocol_discovery_response *doe_discovery_response;
+	int status;
+	struct doe_data_object_protocol data_object_protocol[] = {
+		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY}
+	};
+	TEST_START;
+
+	doe_interface_testing_init_dependencies (test, &interface_testing);
+
+	memcpy (interface_testing.data_object_protocol, data_object_protocol,
+		sizeof (data_object_protocol));
+
+	status = doe_interface_init (&interface_testing.doe_interface,
+		&interface_testing.spdm_responder.base, interface_testing.data_object_protocol,
+		ARRAY_SIZE (data_object_protocol));
+	CuAssertIntEquals (test, 0, status);
+
+	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
+	doe_header->vendor_id = DOE_VENDOR_ID_PCISIG;
+	doe_header->data_object_type = DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY;
+	doe_header->length = (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_request) + (sizeof (uint32_t) - 1)) /
+		sizeof (uint32_t);
+
+	doe_discovery_request = (struct doe_base_protocol_discovery_request*) (doe_header + 1);
+	doe_discovery_request->index = 0;
+
+	status = doe_interface_process_message (&interface_testing.doe_interface, &doe_message);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, DOE_VENDOR_ID_PCISIG, doe_header->vendor_id);
+	CuAssertIntEquals (test, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY, doe_header->data_object_type);
+	CuAssertIntEquals (test, (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_response)),
+		doe_header->length * sizeof (uint32_t));
+	doe_discovery_response = (struct doe_base_protocol_discovery_response*) (doe_header + 1);
+	CuAssertIntEquals (test, DOE_VENDOR_ID_PCISIG, doe_discovery_response->vendor_id);
+	CuAssertIntEquals (test, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY,
+		doe_discovery_response->data_object_protocol);
+	CuAssertIntEquals (test, 0, doe_discovery_response->next_index);
+
+	doe_interface_testing_release (test, &interface_testing);
+}
+
+static void doe_interface_test_doe_interface_process_message_decode_doe_discovery_invalid_index (
+	CuTest *test)
+{
+	struct doe_cmd_message doe_message = {0};
+	struct doe_interface_testing interface_testing;
+	struct doe_base_protocol_transport_header *doe_header;
+	struct doe_base_protocol_discovery_request *doe_discovery_request;
+	int status;
+
+	TEST_START;
+
+	doe_interface_testing_init (test, &interface_testing);
+
+	doe_header = (struct doe_base_protocol_transport_header*) doe_message.message;
+	doe_header->vendor_id = DOE_VENDOR_ID_PCISIG;
+	doe_header->data_object_type = DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY;
+	doe_header->length = (sizeof (struct doe_base_protocol_transport_header) +
+		sizeof (struct doe_base_protocol_discovery_request) + (sizeof (uint32_t) - 1)) /
+		sizeof (uint32_t);
+
+	doe_discovery_request = (struct doe_base_protocol_discovery_request*) (doe_header + 1);
+	doe_discovery_request->index = ARRAY_SIZE (interface_testing.data_object_protocol);
+
+	status = doe_interface_process_message (&interface_testing.doe_interface, &doe_message);
+	CuAssertIntEquals (test, DOE_INTERFACE_INVALID_DISCOVERY_INDEX, status);
 
 	doe_interface_testing_release (test, &interface_testing);
 }
@@ -580,12 +919,21 @@ static void doe_interface_test_doe_interface_process_message_encode_gt_max_paylo
 
 TEST_SUITE_START (doe_interface);
 
+TEST (doe_interface_test_doe_transport_header_format);
+TEST (doe_interface_test_discovery_request_format);
+TEST (doe_interface_test_discovery_response_format);
 TEST (doe_interface_test_doe_interface_init);
 TEST (doe_interface_test_doe_interface_init_invalid_params);
 TEST (doe_interface_test_doe_interface_release_null);
 TEST (doe_interface_test_doe_interface_process_message_decode_spdm_data_object_type);
 TEST (doe_interface_test_doe_interface_process_message_decode_spdm_data_object_type_static_init);
+TEST (doe_interface_test_doe_interface_process_message_decode_spdm_data_object_type_static_init_doe_discovery);
 TEST (doe_interface_test_doe_interface_process_message_decode_secure_spdm_data_object_type);
+TEST (doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_discovery);
+TEST (doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_spdm);
+TEST (doe_interface_test_doe_interface_process_message_decode_doe_discovery_data_object_type_secure_spdm);
+TEST (doe_interface_test_doe_interface_process_message_decode_doe_discovery_no_additional_data_object_type_suppported);
+TEST (doe_interface_test_doe_interface_process_message_decode_doe_discovery_invalid_index);
 TEST (doe_interface_test_doe_interface_process_message_decode_max_size);
 TEST (doe_interface_test_doe_interface_process_message_null);
 TEST (doe_interface_test_doe_interface_process_message_decode_invalid_message_size);

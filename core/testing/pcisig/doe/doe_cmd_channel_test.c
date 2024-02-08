@@ -11,10 +11,12 @@
 #include "pcisig/doe/doe_interface_static.h"
 #include "testing/mock/pcisig/doe/doe_channel_mock.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
+#include "common/array_size.h"
 
 
 TEST_SUITE_LABEL ("doe_cmd_channel");
 
+#define DOE_DATA_OBJECT_PROTOCOLS_MAX_COUNT		3
 
 /**
  * Dependencies for testing.
@@ -23,6 +25,7 @@ struct doe_cmd_channel_testing {
 	struct doe_interface doe_interface;			/**< DOE interface. */
 	struct doe_cmd_channel_mock cmd_channel;	/**< Mock for the DOE command channel. */
 	struct cmd_interface_mock spdm_responder;	/**< Mock for the SPDM responder. */
+	struct doe_data_object_protocol data_object_protocol[DOE_DATA_OBJECT_PROTOCOLS_MAX_COUNT];	/**< Supported DOE data object protocols. */
 };
 
 
@@ -36,6 +39,12 @@ static void doe_cmd_channel_testing_init_dependencies (CuTest *test,
 	struct doe_cmd_channel_testing *channel_testing)
 {
 	int status;
+	struct doe_data_object_protocol data_object_protocol[] = {
+		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_DOE_DISCOVERY},
+		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_SPDM},
+		{DOE_VENDOR_ID_PCISIG, DOE_DATA_OBJECT_TYPE_SECURED_SPDM},
+	};
+	memcpy (channel_testing->data_object_protocol, data_object_protocol, sizeof (data_object_protocol));
 
 	status = doe_cmd_channel_mock_init (&channel_testing->cmd_channel);
 	CuAssertIntEquals (test, 0, status);
@@ -44,7 +53,8 @@ static void doe_cmd_channel_testing_init_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = doe_interface_init (&channel_testing->doe_interface,
-		&channel_testing->spdm_responder.base);
+		&channel_testing->spdm_responder.base, channel_testing->data_object_protocol,
+		ARRAY_SIZE (channel_testing->data_object_protocol));
 	CuAssertIntEquals (test, 0, status);
 }
 

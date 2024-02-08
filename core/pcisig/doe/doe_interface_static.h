@@ -13,8 +13,11 @@
  * @param spdm_responder_ptr The SPDM interface to use for processing and generating
  * SPDM protocol messages.
  */
-#define	doe_interface_static_init(spdm_responder_ptr)	{ \
+#define	doe_interface_static_init(spdm_responder_ptr, data_object_protocol_ptr, \
+	data_object_protocol_count_arg)	{ \
 		.cmd_spdm_responder = spdm_responder_ptr, \
+		.data_object_protocol = data_object_protocol_ptr, \
+		.data_object_protocol_count = data_object_protocol_count_arg, \
 	}
 
 
