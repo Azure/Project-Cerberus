@@ -193,8 +193,6 @@ void buffer_zeroize (void *buffer, size_t length)
 	}
 }
 
-/* TODO: stub out unaligned_copy for platforms that allow unaligned access. */
-
 /**
  * Copies a 16 bit value between 2 assumed unaligned addresses.
  *
@@ -205,7 +203,13 @@ void buffer_zeroize (void *buffer, size_t length)
  */
 void buffer_unaligned_copy16 (uint16_t *dst, const uint16_t *src)
 {
-	memcpy (dst, src, sizeof (*dst));
+#ifdef UNALIGNED_16BIT_MEMORY_ACCESS_NOT_SUPPORTED
+	uint8_t *dst_copy = (uint8_t*) dst;
+
+	memcpy (dst_copy, src, sizeof (*dst));
+#else
+	*dst = *src;
+#endif
 }
 
 /**
@@ -218,7 +222,13 @@ void buffer_unaligned_copy16 (uint16_t *dst, const uint16_t *src)
  */
 void buffer_unaligned_copy32 (uint32_t *dst, const uint32_t *src)
 {
-	memcpy (dst, src, sizeof (*dst));
+#ifdef UNALIGNED_32BIT_MEMORY_ACCESS_NOT_SUPPORTED
+	uint8_t *dst_copy = (uint8_t*) dst;
+
+	memcpy (dst_copy, src, sizeof (*dst));
+#else
+	*dst = *src;
+#endif
 }
 
 /**
@@ -231,7 +241,13 @@ void buffer_unaligned_copy32 (uint32_t *dst, const uint32_t *src)
  */
 void buffer_unaligned_copy64 (uint64_t *dst, const uint64_t *src)
 {
-	memcpy (dst, src, sizeof (*dst));
+#ifdef UNALIGNED_64BIT_MEMORY_ACCESS_NOT_SUPPORTED
+	uint8_t *dst_copy = (uint8_t*) dst;
+
+	memcpy (dst_copy, src, sizeof (*dst));
+#else
+	*dst = *src;
+#endif
 }
 
 /**
