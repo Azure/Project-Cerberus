@@ -4142,7 +4142,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = testing->spdm_discovery ? 0x0A : 0x2B;
+	header->byte_count = (testing->spdm_discovery || testing->get_cert_unsupported) ? 0x0A : 0x2B;
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
@@ -4167,12 +4167,12 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	request->header.req_rsp_code = SPDM_REQUEST_GET_MEASUREMENTS;
 
 	request->measurement_operation = measurement_operation;
-	request->sig_required = !testing->spdm_discovery;
+	request->sig_required = !testing->spdm_discovery && !testing->get_cert_unsupported;
 	request->raw_bit_stream_requested = testing->spdm_version == 1 ? 0 : raw_request;
 
 	offset += sizeof (struct spdm_get_measurements_request);
 
-	if (!testing->spdm_discovery) {
+	if (!testing->spdm_discovery && !testing->get_cert_unsupported) {
 		nonce = spdm_get_measurements_rq_nonce (request);
 
 		for (i = 0; i < SPDM_NONCE_LEN; ++i) {
@@ -4274,17 +4274,21 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	req->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	req->header.req_rsp_code = SPDM_REQUEST_GET_MEASUREMENTS;
 
-	req->sig_required = 1;
+	if (!testing->get_cert_unsupported) {
+		req->sig_required = 1;
+	}
 	req->raw_bit_stream_requested = raw_request;
 	req->measurement_operation = measurement_operation;
 
-	slot_id = spdm_get_measurements_rq_slot_id_ptr (req);
-	*slot_id = ATTESTATION_RIOT_SLOT_NUM;
+	if (!testing->get_cert_unsupported) {
+		slot_id = spdm_get_measurements_rq_slot_id_ptr (req);
+		*slot_id = ATTESTATION_RIOT_SLOT_NUM;
 
-	nonce = spdm_get_measurements_rq_nonce (req);
+		nonce = spdm_get_measurements_rq_nonce (req);
 
-	for (i = 0; i < SPDM_NONCE_LEN; ++i) {
-		nonce[i] = SPDM_NONCE_LEN - i;
+		for (i = 0; i < SPDM_NONCE_LEN; ++i) {
+			nonce[i] = SPDM_NONCE_LEN - i;
+		}
 	}
 
 	rsp->header.spdm_minor_version = testing->spdm_version;
@@ -4364,11 +4368,13 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 		}
 	}
 
-	status = mock_expect (&testing->rng.mock, testing->rng.base.generate_random_buffer,
-		&testing->rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output_tmp (&testing->rng.mock, 1, spdm_get_measurements_rq_nonce (req),
-		SPDM_NONCE_LEN, -1);
-	CuAssertIntEquals (test, 0, status);
+	if (!testing->get_cert_unsupported) {
+		status = mock_expect (&testing->rng.mock, testing->rng.base.generate_random_buffer,
+				&testing->rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+		status |= mock_expect_output_tmp (&testing->rng.mock, 1, spdm_get_measurements_rq_nonce (req),
+				SPDM_NONCE_LEN, -1);
+		CuAssertIntEquals (test, 0, status);
+	}
 
 	status = mock_expect (&testing->secondary_hash.mock, testing->secondary_hash.base.update,
 		&testing->secondary_hash, 0,

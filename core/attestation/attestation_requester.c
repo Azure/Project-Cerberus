@@ -2162,14 +2162,17 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 
 	// No signature or nonce needed when getting device ID measurement block in device discovery
 	if (!attestation->state->txn.device_discovery) {
-		status = attestation->rng->generate_random_buffer (attestation->rng, SPDM_NONCE_LEN, nonce);
-		if (status != 0) {
-			return status;
+		if (attestation->state->txn.cert_supported) {
+			status = attestation->rng->generate_random_buffer (attestation->rng, SPDM_NONCE_LEN, nonce);
+			if (status != 0) {
+				return status;
+			}
 		}
 
 		rq_len = spdm_generate_get_measurements_request (attestation->state->spdm_msg_buffer,
 			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
-			measurement_operation, true, raw_bitstream_requested, nonce,
+			measurement_operation, attestation->state->txn.cert_supported ? true : false,
+			raw_bitstream_requested, attestation->state->txn.cert_supported ? nonce : NULL,
 			attestation->state->txn.protocol);
 		if (ROT_IS_ERROR (rq_len)) {
 			return rq_len;
