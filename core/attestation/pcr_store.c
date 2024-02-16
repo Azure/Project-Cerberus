@@ -29,11 +29,11 @@
  * be managed.  If any PCR is configured to hold no measurements, a single, explicit measurement can
  * be stored in that PCR.
  * @param num_pcrs The number of PCR configurations provided, which indicates the number of PCRs
- * that will be managed.
+ * that will be managed.  This is limited to 256 PCRs.
  *
  * @return Completion status, 0 if success or an error code.
  */
-int pcr_store_init (struct pcr_store *store, const struct pcr_config *pcr_config, size_t num_pcrs)
+int pcr_store_init (struct pcr_store *store, const struct pcr_config *pcr_config, uint8_t num_pcrs)
 {
 	size_t i;
 	int status;
@@ -104,6 +104,66 @@ int pcr_store_check_measurement_type (struct pcr_store *store, uint16_t measurem
 
 	return pcr_check_measurement_index (&store->pcrs[pcr_index],
 		PCR_STORE_MEASUREMENT_INDEX (measurement_type));
+}
+
+/**
+ * Determine the measurement type identifier for a measurement referenced with a sequential
+ * identifier.
+ *
+ * The mapping will determined by assigning the first measurement in the first PCR to 0, followed by
+ * the rest of the measurements in the first PCR.  Once those are exhausted, the next sequential ID
+ * will assigned to the first measurement of the second PCR, and so on.
+ *
+ * For example, the sequential IDs for measurements in 3 PCRs with 3, 2, and 1 measurements would
+ * look like:
+ * 0: PCR 0, measurement 0
+ * 1: PCR 0, measurement 1
+ * 2: PCR 0, measurement 2
+ * 3: PCR 1, measurement 0
+ * 4: PCR 1, measurement 1
+ * 5: PCR 2, measurement 0
+ *
+ * Explicit PCRs will be skipped.
+ *
+ * @param store The PCR store to query.
+ * @param sequential_id The 0-based ID for the requested measurement.
+ *
+ * @return The measurement type identifier that maps to the sequential ID or an error code.
+ */
+int pcr_store_get_measurement_type (struct pcr_store *store, size_t sequential_id)
+{
+	uint8_t pcr_index = 0;
+	uint8_t measurement_index;
+	int num_measurements;
+	bool valid = false;
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	while (!valid && (pcr_index < store->num_pcrs)) {
+		num_measurements = pcr_get_num_measurements (&store->pcrs[pcr_index]);
+		if (num_measurements == 0) {
+			/* Skip explicit PCRs. */
+			pcr_index++;
+		}
+		else if (sequential_id >= (size_t) num_measurements) {
+			/* Not enough measurements in this PCR.  Move to the next one. */
+			sequential_id -= num_measurements;
+			pcr_index++;
+		}
+		else {
+			/* Valid mapping in this PCR. */
+			measurement_index = sequential_id;
+			valid = true;
+		}
+	}
+
+	if (!valid) {
+		return PCR_INVALID_SEQUENTIAL_ID;
+	}
+
+	return PCR_MEASUREMENT (pcr_index, measurement_index);
 }
 
 /**
@@ -211,7 +271,59 @@ int pcr_store_set_tcg_event_type (struct pcr_store *store, uint16_t measurement_
 		return PCR_INVALID_PCR;
 	}
 
-	return pcr_set_event_type (&store->pcrs[pcr_index], measurement_index, event_type);
+	return pcr_set_tcg_event_type (&store->pcrs[pcr_index], measurement_index, event_type);
+}
+
+/**
+ * Set the DMTF value type for a single measurement.
+ *
+ * @param store The PCR store containing the measurement to update.
+ * @param measurement_type Identifier for the measurement to update.
+ * @param value_type DMTF value type to associate with the measurement.
+ *
+ * @return 0 if the value type was set successfully or an error code.
+ */
+int pcr_store_set_dmtf_value_type (struct pcr_store *store, uint16_t measurement_type,
+	enum pcr_dmtf_value_type value_type)
+{
+	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
+	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_index >= store->num_pcrs) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_set_dmtf_value_type (&store->pcrs[pcr_index], measurement_index, value_type);
+}
+
+/**
+ * Get the DMTF value type for a single measurement.
+ *
+ * @param store The PCR store containing the measurement to query.
+ * @param measurement_type Identifier for the measurement to query.
+ * @param value_type Output for the DMTF value type for the measurement.
+ *
+ * @return 0 if the value type was retrieved successfully or an error code.
+ */
+int pcr_store_get_dmtf_value_type (struct pcr_store *store, uint16_t measurement_type,
+	enum pcr_dmtf_value_type *value_type)
+{
+	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
+	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
+
+	if ((store == NULL) || (value_type == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_index >= store->num_pcrs) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_get_dmtf_value_type (&store->pcrs[pcr_index], measurement_index, value_type);
 }
 
 /**
@@ -391,7 +503,7 @@ int pcr_store_get_measurement (struct pcr_store *store, uint16_t measurement_typ
  * Provide a descriptor for accessing the raw data that was measured for a specific measurement in
  * the PCR store.
  *
- * @param store The PCR store containing measurement to update with the data descriptor.
+ * @param store The PCR store containing the measurement to update with the data descriptor.
  * @param measurement_type Identifier for the measurement to update.
  * @param measurement_data Descriptor for the raw data associated with the measurement.
  *
@@ -422,6 +534,9 @@ int pcr_store_set_measurement_data (struct pcr_store *store, uint16_t measuremen
  * subsequent call with the offset and/or length adjusted would be needed to determine if there is
  * more data available.
  *
+ * No data will be written and no error will be generated if the measurement has not been provided
+ * with access to the raw data.
+ *
  * @param store The PCR store containing the measurement to query.
  * @param measurement_type Identifier for the measurement to query.
  * @param offset An offset indicating where in the measurement data to start reading from.
@@ -436,7 +551,7 @@ int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measuremen
 {
 	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
 	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
-	uint32_t total_len;
+	size_t total_len;
 
 	if (store == NULL) {
 		return PCR_INVALID_ARGUMENT;
@@ -448,6 +563,96 @@ int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measuremen
 
 	return pcr_get_measurement_data (&store->pcrs[pcr_index], measurement_index, offset, buffer,
 		length, &total_len);
+}
+
+/**
+ * Get the measurement hash for a single measurement.  As long as the raw measurement data is
+ * available, this hash does not need to match the hash used by the PCR.  If the raw measurement
+ * data is not available, the hash algorithm must match the PCR hash algorithm.
+ *
+ * @param store The PCR store containing the measurement to hash.
+ * @param measurement_type Identifier for the measurement to hash.
+ * @param hash Hash engine to use for calculating the digest, if necessary.
+ * @param hash_type The hash algorithm that should be used for digest calculation.
+ * @param buffer Output buffer for the measurement hash.
+ * @param length Size of the output buffer.
+ *
+ * @return 0 if the hash was successfully generated for the measurement or an error code.
+ */
+int pcr_store_hash_measurement_data (struct pcr_store *store, uint16_t measurement_type,
+	struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length)
+{
+	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
+	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_index >= store->num_pcrs) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_hash_measurement_data (&store->pcrs[pcr_index], measurement_index, hash, hash_type,
+		buffer, length);
+}
+
+/**
+ * Indicate if the requested measurement has access to the raw data that was measured.
+ *
+ * @param store The PCR store containing the measurement to query.
+ * @param measurement_type Identifier for the measurement to query.
+ *
+ * @return 1 if the measurement has access to the raw data, 0 if not, or an error code.
+ */
+int pcr_store_is_measurement_data_available (struct pcr_store *store, uint16_t measurement_type)
+{
+	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
+	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_index >= store->num_pcrs) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_is_measurement_data_available (&store->pcrs[pcr_index], measurement_index);
+}
+
+/**
+ * Determine the total length of the measured data for a single measurement.
+ *
+ * @param store The PCR store containing the measurement to query.
+ * @param measurement_type Identifier for the measurement to query.
+ *
+ * @return The total length of the measured data or an error code.  Use ROT_IS_ERROR to check the
+ * return value.
+ */
+int pcr_store_get_measurement_data_length (struct pcr_store *store, uint16_t measurement_type)
+{
+	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
+	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
+	uint8_t tmp;
+	size_t total_len;
+	int status;
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_index >= store->num_pcrs) {
+		return PCR_INVALID_PCR;
+	}
+
+	status = pcr_get_measurement_data (&store->pcrs[pcr_index], measurement_index, 0, &tmp, 0,
+		&total_len);
+	if (status != 0) {
+		return status;
+	}
+
+	return (total_len == 0) ? PCR_MEASURED_DATA_NOT_AVIALABLE : total_len;
 }
 
 /**

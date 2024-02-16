@@ -16521,6 +16521,331 @@ static void recovery_image_manager_test_get_measured_data_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void recovery_image_manager_test_hash_measured_data (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	HASH_TESTING_ENGINE mgr_hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&mgr_hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &mgr_hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&image.mock, image.base.get_hash, &image, 0,
+		MOCK_ARG_PTR (&mgr_hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&image.mock, 1, RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN, 2);
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN),
+		MOCK_ARG (RECOVERY_IMAGE_HASH_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_hash_measured_data (&manager, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&mgr_hash);
+}
+
+static void recovery_image_manager_test_hash_measured_data_no_active (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	uint8_t zero[SHA256_HASH_LENGTH] = {0};
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, SIG_VERIFICATION_BAD_SIGNATURE,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (zero, sizeof (zero)), MOCK_ARG (sizeof (zero)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_hash_measured_data (&manager, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+}
+
+static void recovery_image_manager_test_hash_measured_data_null (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_hash_measured_data (NULL, &hash.base);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT, status);
+
+	status = recovery_image_manager_hash_measured_data (&manager, NULL);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+}
+
+static void recovery_image_manager_test_hash_measured_data_fail (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	HASH_TESTING_ENGINE mgr_hash;
+	struct recovery_image_manager_mock manager;
+	struct recovery_image_mock image;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&mgr_hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+	manager.base.hash = &mgr_hash.base;
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_recovery_image, &manager,
+		MOCK_RETURN_PTR (&image.base));
+	status |= mock_expect (&manager.mock, manager.base.free_recovery_image, &manager,
+		0, MOCK_ARG_PTR (&image.base));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&image.mock, image.base.get_hash, &image, RECOVERY_IMAGE_GET_HASH_FAILED,
+		MOCK_ARG_PTR (&mgr_hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_hash_measured_data (&manager.base, &hash.base);
+	CuAssertIntEquals (test, RECOVERY_IMAGE_GET_HASH_FAILED, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&mgr_hash);
+}
+
+static void recovery_image_manager_test_hash_measured_data_hash_update_fail (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	HASH_TESTING_ENGINE mgr_hash;
+	struct recovery_image_manager manager;
+	struct recovery_image_mock image;
+	struct signature_verification_mock verification;
+	struct pfm_manager_mock pfm_manager;
+	struct flash_mock flash;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&mgr_hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_init (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_init (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = signature_verification_mock_init (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	image.base.flash = &flash.base;
+	image.base.addr = 0x10000;
+
+	status = mock_expect (&image.mock, image.base.verify, &image, 0, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR (NULL), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_init (&manager, &image.base, &mgr_hash.base,
+		&verification.base, &pfm_manager.base, RECOVERY_IMAGE_MANAGER_IMAGE_MAX_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&image.mock, image.base.get_hash, &image, 0,
+		MOCK_ARG_PTR (&mgr_hash.base), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&image.mock, 1, RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN, 2);
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (RECOVERY_IMAGE_HASH, RECOVERY_IMAGE_HASH_LEN),
+		MOCK_ARG (RECOVERY_IMAGE_HASH_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_manager_hash_measured_data (&manager, &hash.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = signature_verification_mock_validate_and_release (&verification);
+	CuAssertIntEquals (test, 0, status);
+
+	status = recovery_image_mock_validate_and_release (&image);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pfm_manager_mock_validate_and_release (&pfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery_image_manager_release (&manager);
+
+	HASH_TESTING_ENGINE_RELEASE (&mgr_hash);
+}
+
 
 TEST_SUITE_START (recovery_image_manager);
 
@@ -16727,5 +17052,10 @@ TEST (recovery_image_manager_test_get_measured_data_0_bytes_read);
 TEST (recovery_image_manager_test_get_measured_data_invalid_offset);
 TEST (recovery_image_manager_test_get_measured_data_null);
 TEST (recovery_image_manager_test_get_measured_data_fail);
+TEST (recovery_image_manager_test_hash_measured_data);
+TEST (recovery_image_manager_test_hash_measured_data_no_active);
+TEST (recovery_image_manager_test_hash_measured_data_null);
+TEST (recovery_image_manager_test_hash_measured_data_fail);
+TEST (recovery_image_manager_test_hash_measured_data_hash_update_fail);
 
 TEST_SUITE_END;

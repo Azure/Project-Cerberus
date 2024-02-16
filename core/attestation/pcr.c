@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include "common/common_math.h"
 #include "flash/flash.h"
+#include "flash/flash_util.h"
 #include "platform_api.h"
 #include "pcr.h"
 
@@ -157,15 +158,15 @@ int pcr_get_digest_length (struct pcr_bank *pcr)
 }
 
 /**
- * Set the event type for a measurement in the PCR.
+ * Set the TCG event type for a measurement in the PCR.
  *
  * @param pcr PCR containing the measurement to update.
- * @param measurement_index The index of measurement being updated.
+ * @param measurement_index The index of the measurement being updated.
  * @param event_type Event type to associate with measurement.
  *
  * @return Completion status, 0 if success or an error code.
  */
-int pcr_set_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t event_type)
+int pcr_set_tcg_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t event_type)
 {
 	if (pcr == NULL) {
 		return PCR_INVALID_ARGUMENT;
@@ -185,15 +186,15 @@ int pcr_set_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_
 }
 
 /**
- * Get the event type for a measurement in the PCR.
+ * Get the TCG event type for a measurement in the PCR.
  *
  * @param pcr PCR containing the measurement to query.
- * @param measurement_index The index of measurement being accessed.
+ * @param measurement_index The index of the measurement being accessed.
  * @param event_type Output buffer to store the event type.
  *
  * @return Completion status, 0 if success or an error code.
  */
-int pcr_get_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t *event_type)
+int pcr_get_tcg_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t *event_type)
 {
 	if ((pcr == NULL) || (event_type == NULL)) {
 		return PCR_INVALID_ARGUMENT;
@@ -204,6 +205,64 @@ int pcr_get_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_
 	}
 
 	*event_type = pcr->measurement_list[measurement_index].event_type;
+
+	return 0;
+}
+
+/**
+ * Set the DMTF value type identifier for a measurement in the PCR.
+ *
+ * @param pcr PCR containing the measurement to update.
+ * @param measurement_index The index of the measurement being updated.
+ * @param value_type DMTF value type to associate with the measurement.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int pcr_set_dmtf_value_type (struct pcr_bank *pcr, uint8_t measurement_index,
+	enum pcr_dmtf_value_type value_type)
+{
+	if (pcr == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (measurement_index >= pcr->config.num_measurements) {
+		return PCR_INVALID_INDEX;
+	}
+
+	if (value_type >= PCR_DMTF_VALUE_TYPE_UNUSED) {
+		return PCR_INVALID_VALUE_TYPE;
+	}
+
+	platform_mutex_lock (&pcr->lock);
+
+	pcr->measurement_list[measurement_index].dmtf_type = value_type;
+
+	platform_mutex_unlock (&pcr->lock);
+
+	return 0;
+}
+
+/**
+ * Get the DMTF value type identifier for a measurement in the PCR.
+ *
+ * @param pcr PCR containing the measurement to query.
+ * @param measurement_index The index of the measurement being updated.
+ * @param value_type Output buffer for the DMTF value type.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int pcr_get_dmtf_value_type (struct pcr_bank *pcr, uint8_t measurement_index,
+	enum pcr_dmtf_value_type *value_type)
+{
+	if ((pcr == NULL) || (value_type == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (measurement_index >= pcr->config.num_measurements) {
+		return PCR_INVALID_INDEX;
+	}
+
+	*value_type = pcr->measurement_list[measurement_index].dmtf_type;
 
 	return 0;
 }
@@ -554,6 +613,27 @@ int pcr_get_all_measurements (struct pcr_bank *pcr,
 }
 
 /**
+ * Indicate if a measurement has access to the raw data that was measured.
+ *
+ * @param pcr The PCR containing the measurement to query.
+ * @param measurement_index Index of the measurement to query.
+ *
+ * @return 1 if the measurement has access to the raw data, 0 if not, or an error code.
+ */
+int pcr_is_measurement_data_available (struct pcr_bank *pcr, uint8_t measurement_index)
+{
+	if (pcr == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (measurement_index >= pcr->config.num_measurements) {
+		return PCR_INVALID_INDEX;
+	}
+
+	return (pcr->measurement_list[measurement_index].measured_data == NULL) ? 0 : 1;
+}
+
+/**
  * Set the raw data that is measured for a single measurement in the PCR.
  *
  * @param pcr The PCR containing the measurement to update.
@@ -599,7 +679,11 @@ int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 		}
 	}
 
+	platform_mutex_lock (&pcr->lock);
+
 	pcr->measurement_list[measurement_index].measured_data = measurement_data;
+
+	platform_mutex_unlock (&pcr->lock);
 
 	return 0;
 }
@@ -635,6 +719,9 @@ static int pcr_read_measurement_data_bytes (const uint8_t *data, size_t data_len
 /**
  * Internal function to retrieve the measured data for a single measurement.
  *
+ * No data will be written and no error will be generated if the measurement does not have a
+ * registered data descriptor.
+ *
  * @param pcr The PCR containing the measurement to query.
  * @param measurement_index Index of the measurement to get.
  * @param offset The offset index to starting reading the data.
@@ -646,7 +733,7 @@ static int pcr_read_measurement_data_bytes (const uint8_t *data, size_t data_len
  * @return Length of the buffer if the measured data was retrieved successfully or an error code.
  */
 static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t measurement_index,
-	size_t offset, uint8_t *buffer, size_t length, uint32_t *total_len)
+	size_t offset, uint8_t *buffer, size_t length, size_t *total_len)
 {
 	const struct pcr_measured_data *measured_data;
 	bool include_event;
@@ -655,10 +742,6 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 	size_t bytes_read;
 	uint32_t data_len;
 	int status = 0;
-
-	if ((pcr == NULL) || (buffer == NULL) || (total_len == NULL)) {
-		return PCR_INVALID_ARGUMENT;
-	}
 
 	if (measurement_index >= pcr->config.num_measurements) {
 		return PCR_INVALID_INDEX;
@@ -780,6 +863,7 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 
 		default:
 			status = PCR_INVALID_DATA_TYPE;
+			break;
 	}
 
 	return status;
@@ -787,6 +871,9 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
 
 /**
  * Retrieve the raw data that was used to generate a measurement in the PCR.
+ *
+ * No data will be written and no error will be generated if the measurement has not been provided
+ * with access to the raw data.
  *
  * @param pcr The PCR containing the measurement to query.
  * @param measurement_index Index of the measurement to get.
@@ -800,11 +887,11 @@ static int pcr_get_measurement_data_internal (struct pcr_bank *pcr, uint8_t meas
  * ROT_IS_ERROR to check the return value.
  */
 int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, size_t offset,
-	 uint8_t *buffer, size_t length, uint32_t *total_len)
+	 uint8_t *buffer, size_t length, size_t *total_len)
 {
 	int status;
 
-	if (pcr == NULL) {
+	if ((pcr == NULL) || (buffer == NULL) || (total_len == NULL)) {
 		return PCR_INVALID_ARGUMENT;
 	}
 
@@ -815,6 +902,143 @@ int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, s
 
 	platform_mutex_unlock (&pcr->lock);
 
+	return status;
+}
+
+/**
+ * Get the hash of the measurement data for a measurement in the PCR.
+ *
+ * If the requested hash algorithm matches the one used by the PCR, this will just return the
+ * current measurement digest.  If the requested hash algorithm is different, the digest will be
+ * calculated from the raw data.
+ *
+ * @param pcr The PCR containing the measurement to hash.
+ * @param measurement_index Index of the measurement to hash.
+ * @param hash Hash engine to use for calculating the digest, if necessary.
+ * @param hash_type The hash algorithm that should be used for digest calculation.
+ * @param buffer Output buffer for the measurement hash.
+ * @param length Size of the output buffer.
+ *
+ * @return 0 if the hash was successfully generated for the measurement or an error code.
+ */
+int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
+	struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length)
+{
+	const struct pcr_measured_data *measured_data;
+	bool include_event;
+	bool include_version;
+	int status = 0;
+
+	if ((pcr == NULL) || (hash == NULL) || (buffer == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (measurement_index >= pcr->config.num_measurements) {
+		return PCR_INVALID_INDEX;
+	}
+
+	if (length < (size_t) hash_get_hash_length (pcr->config.measurement_algo)) {
+		return PCR_SMALL_OUTPUT_BUFFER;
+	}
+
+	platform_mutex_lock (&pcr->lock);
+
+	if (hash_type == pcr->config.measurement_algo) {
+		/* No need to recalculate the hash since the requested algorithm matches the one used for
+		 * all measurements in the PCR. */
+		memcpy (buffer, pcr->measurement_list[measurement_index].digest,
+			hash_get_hash_length (pcr->config.measurement_algo));
+	}
+	else {
+		/* Calculate the digest from the raw measured data. */
+		measured_data = pcr->measurement_list[measurement_index].measured_data;
+		if (measured_data == NULL) {
+			/* There is no measured data for this measurement, so it's not possible to calculate the
+			 * hash */
+			status = PCR_MEASURED_DATA_NOT_AVIALABLE;
+			goto exit;
+		}
+
+		include_event = pcr->measurement_list[measurement_index].measurement_config &
+			PCR_MEASUREMENT_FLAG_EVENT;
+		include_version = pcr->measurement_list[measurement_index].measurement_config &
+			PCR_MEASUREMENT_FLAG_VERSION;
+
+		status = hash_start_new_hash (hash, hash_type);
+		if (status != 0) {
+			goto exit;
+		}
+
+		if (include_event) {
+			status = hash->update (hash,
+				(uint8_t*) &pcr->measurement_list[measurement_index].event_type, 4);
+			if (status != 0) {
+				goto hash_cancel;
+			}
+		}
+
+		if (include_version) {
+			status = hash->update (hash, &pcr->measurement_list[measurement_index].version, 1);
+			if (status != 0) {
+				goto hash_cancel;
+			}
+		}
+
+		switch (measured_data->type) {
+			case PCR_DATA_TYPE_1BYTE:
+				status = hash->update (hash, &measured_data->data.value_1byte, 1);
+				break;
+
+			case PCR_DATA_TYPE_2BYTE:
+				status = hash->update (hash, (uint8_t*) &measured_data->data.value_2byte, 2);
+				break;
+
+			case PCR_DATA_TYPE_4BYTE:
+				status = hash->update (hash, (uint8_t*) &measured_data->data.value_4byte, 4);
+				break;
+
+			case PCR_DATA_TYPE_8BYTE:
+				status = hash->update (hash, (uint8_t*) &measured_data->data.value_8byte, 8);
+				break;
+
+			case PCR_DATA_TYPE_MEMORY:
+				status = hash->update (hash, measured_data->data.memory.buffer,
+					measured_data->data.memory.length);
+				break;
+
+			case PCR_DATA_TYPE_FLASH:
+				status = flash_hash_update_contents (measured_data->data.flash.flash,
+					measured_data->data.flash.addr, measured_data->data.flash.length, hash);
+				break;
+
+			case PCR_DATA_TYPE_CALLBACK:
+				if (measured_data->data.callback.hash_data != NULL) {
+					status = measured_data->data.callback.hash_data (
+						measured_data->data.callback.context, hash);
+				}
+				else {
+					status = PCR_MEASURED_DATA_NO_HASH_CALLBACK;
+				}
+				break;
+
+			default:
+				status = PCR_INVALID_DATA_TYPE;
+				break;
+		};
+		if (status != 0) {
+			goto hash_cancel;
+		}
+
+		status = hash->finish (hash, buffer, length);
+	}
+
+hash_cancel:
+	if (status != 0) {
+		hash->cancel (hash);
+	}
+
+exit:
+	platform_mutex_unlock (&pcr->lock);
 	return status;
 }
 
@@ -850,7 +1074,7 @@ int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, size_t offset, uint
 	uint8_t *entry_ptr = NULL;
 	size_t entry_len = 0;
 	size_t entry_offset = 0;
-	uint32_t event_size;
+	size_t event_size;
 	int status = 0;
 
 	if ((pcr == NULL) || (buffer == NULL) || (total_len == NULL)) {

@@ -25,7 +25,7 @@
  */
 struct pcr_store {
 	struct pcr_bank *pcrs;		/**< List of individual PCRs for the device.*/
-	size_t num_pcrs;			/**< The number of PCRs in the list. */
+	uint8_t num_pcrs;			/**< The number of PCRs in the list. */
 };
 
 #pragma pack(push, 1)
@@ -102,10 +102,12 @@ struct pcr_store_attestation_log_entry_sha512 {
 #pragma pack(pop)
 
 
-int pcr_store_init (struct pcr_store *store, const struct pcr_config *pcr_config, size_t num_pcrs);
+int pcr_store_init (struct pcr_store *store, const struct pcr_config *pcr_config, uint8_t num_pcrs);
 void pcr_store_release (struct pcr_store *store);
 
 int pcr_store_check_measurement_type (struct pcr_store *store, uint16_t measurement_type);
+int pcr_store_get_measurement_type (struct pcr_store *store, size_t sequential_id);
+
 int pcr_store_get_num_pcrs (struct pcr_store *store);
 int pcr_store_get_num_total_measurements (struct pcr_store *store);
 int pcr_store_get_num_pcr_measurements (struct pcr_store *store, uint8_t pcr_num);
@@ -113,6 +115,11 @@ int pcr_store_get_pcr_digest_length (struct pcr_store *store, uint8_t pcr_num);
 
 int pcr_store_set_tcg_event_type (struct pcr_store *store, uint16_t measurement_type,
 	uint32_t event_type);
+
+int pcr_store_set_dmtf_value_type (struct pcr_store *store, uint16_t measurement_type,
+	enum pcr_dmtf_value_type value_type);
+int pcr_store_get_dmtf_value_type (struct pcr_store *store, uint16_t measurement_type,
+	enum pcr_dmtf_value_type *value_type);
 
 int pcr_store_update_digest (struct pcr_store *store, uint16_t measurement_type,
 	const uint8_t *digest, size_t digest_len);
@@ -132,6 +139,11 @@ int pcr_store_set_measurement_data (struct pcr_store *store, uint16_t measuremen
 	const struct pcr_measured_data *measurement);
 int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measurement_type,
 	size_t offset, uint8_t *buffer, size_t length);
+int pcr_store_hash_measurement_data (struct pcr_store *store, uint16_t measurement_type,
+	struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length);
+
+int pcr_store_is_measurement_data_available (struct pcr_store *store, uint16_t measurement_type);
+int pcr_store_get_measurement_data_length (struct pcr_store *store, uint16_t measurement_type);
 
 int pcr_store_get_attestation_log_size (struct pcr_store *store);
 int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash,

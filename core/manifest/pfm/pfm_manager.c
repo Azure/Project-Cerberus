@@ -173,8 +173,7 @@ void pfm_manager_on_pfm_activation_request (struct pfm_manager *manager)
 }
 
 /**
- * Get the data used for PFM ID measurement.  The PFM instance must be released with the
- * manager.
+ * Get the data used for PFM ID measurement.
  *
  * @param manager The PFM manager to query
  * @param offset The offset to read data from
@@ -208,8 +207,36 @@ int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset
 }
 
 /**
- * Get the data used for PFM Platform ID measurement.  The PFM instance must be released with the
- * manager.
+ * Update a hash context with the data used for the PFM ID measurement.
+ *
+ * @param manager The PFM manager to query.
+ * @param hash Hash engine to update.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int pfm_manager_hash_id_measured_data (struct pfm_manager *manager, struct hash_engine *hash)
+{
+	int status;
+	struct pfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pfm (manager);
+	if (active == NULL) {
+		status = manifest_manager_hash_id_measured_data (NULL, hash);
+	}
+	else {
+		status = manifest_manager_hash_id_measured_data (&active->base, hash);
+		manager->free_pfm (manager, active);
+	}
+
+	return status;
+}
+
+/**
+ * Get the data used for PFM Platform ID measurement.
  *
  * @param manager The PFM manager to query
  * @param offset The offset to read data from
@@ -245,8 +272,37 @@ int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size
 }
 
 /**
- * Get the data used for PFM measurement.  The PFM instance must be released with the
- * manager.
+ * Update a hash context with the data used for the PFM platform ID measurement.
+ *
+ * @param manager The PFM manager to query.
+ * @param hash Hash engine to update.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int pfm_manager_hash_platform_id_measured_data (struct pfm_manager *manager,
+	struct hash_engine *hash)
+{
+	int status;
+	struct pfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pfm (manager);
+	if (active == NULL) {
+		status = manifest_manager_hash_platform_id_measured_data (NULL, hash);
+	}
+	else {
+		status = manifest_manager_hash_platform_id_measured_data (&active->base, hash);
+		manager->free_pfm (manager, active);
+	}
+
+	return status;
+}
+
+/**
+ * Get the data used for PFM measurement.
  *
  * @param manager The PFM manager to query
  * @param offset The offset to read data from
@@ -274,6 +330,40 @@ int pfm_manager_get_pfm_measured_data (struct pfm_manager *manager, size_t offse
 	else {
 		status = manifest_manager_get_manifest_measured_data (&manager->base, &active->base, offset,
 			buffer, length, total_len);
+		manager->free_pfm (manager, active);
+	}
+
+	return status;
+}
+
+/**
+ * Update a hash context with the data used for the PFM measurement.
+ *
+ * NOTE:  When using this function to hash the PFM measurement, it must be guaranteed that the hash
+ * context used by the PFM manager be different from the one passed into this function as an
+ * argument.
+ *
+ * @param manager The PFM manager to query.
+ * @param hash Hash engine to update.  This must be different from the hash engine contained in the
+ * PFM manager.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int pfm_manager_hash_pfm_measured_data (struct pfm_manager *manager, struct hash_engine *hash)
+{
+	int status;
+	struct pfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pfm (manager);
+	if (active == NULL) {
+		status = manifest_manager_hash_manifest_measured_data (&manager->base, NULL, hash);
+	}
+	else {
+		status = manifest_manager_hash_manifest_measured_data (&manager->base, &active->base, hash);
 		manager->free_pfm (manager, active);
 	}
 

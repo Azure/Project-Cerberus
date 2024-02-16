@@ -169,8 +169,7 @@ void pcd_manager_on_pcd_activation_request (struct pcd_manager *manager)
 }
 
 /**
- * Get the data used for PCD ID measurement.  The PCD instance must be released with the
- * manager.
+ * Get the data used for PCD ID measurement.
  *
  * @param manager The PCD manager to query
  * @param offset The offset to read data from
@@ -204,8 +203,36 @@ int pcd_manager_get_id_measured_data (struct pcd_manager *manager, size_t offset
 }
 
 /**
- * Get the data used for PCD Platform ID measurement.  The PCD instance must be released with the
- * manager.
+ * Update a hash context with the data used for the PCD ID measurement.
+ *
+ * @param manager The PCD manager to query.
+ * @param hash Hash engine to update.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int pcd_manager_hash_id_measured_data (struct pcd_manager *manager, struct hash_engine *hash)
+{
+	int status;
+	struct pcd *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pcd (manager);
+	if (active == NULL) {
+		status = manifest_manager_hash_id_measured_data (NULL, hash);
+	}
+	else {
+		status = manifest_manager_hash_id_measured_data (&active->base, hash);
+		manager->free_pcd (manager, active);
+	}
+
+	return status;
+}
+
+/**
+ * Get the data used for PCD Platform ID measurement.
  *
  * @param manager The PCD manager to query
  * @param offset The offset to read data from
@@ -240,8 +267,37 @@ int pcd_manager_get_platform_id_measured_data (struct pcd_manager *manager, size
 }
 
 /**
- * Get the data used for PCD measurement.  The PCD instance must be released with the
- * manager.
+ * Update a hash context with the data used for the PCD platform ID measurement.
+ *
+ * @param manager The PCD manager to query.
+ * @param hash Hash engine to update.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int pcd_manager_hash_platform_id_measured_data (struct pcd_manager *manager,
+	struct hash_engine *hash)
+{
+	int status;
+	struct pcd *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pcd (manager);
+	if (active == NULL) {
+		status = manifest_manager_hash_platform_id_measured_data (NULL, hash);
+	}
+	else {
+		status = manifest_manager_hash_platform_id_measured_data (&active->base, hash);
+		manager->free_pcd (manager, active);
+	}
+
+	return status;
+}
+
+/**
+ * Get the data used for PCD measurement.
  *
  * @param manager The PCD manager to query
  * @param offset The offset to read data from
@@ -269,6 +325,40 @@ int pcd_manager_get_pcd_measured_data (struct pcd_manager *manager, size_t offse
 	else {
 		status = manifest_manager_get_manifest_measured_data (&manager->base, &active->base, offset,
 			buffer, length, total_len);
+		manager->free_pcd (manager, active);
+	}
+
+	return status;
+}
+
+/**
+ * Update a hash context with the data used for the PCD measurement.
+ *
+ * NOTE:  When using this function to hash the PCD measurement, it must be guaranteed that the hash
+ * context used by the PCD manager be different from the one passed into this function as an
+ * argument.
+ *
+ * @param manager The PCD manager to query.
+ * @param hash Hash engine to update.  This must be different from the hash engine contained in the
+ * PCD manager.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int pcd_manager_hash_pcd_measured_data (struct pcd_manager *manager, struct hash_engine *hash)
+{
+	int status;
+	struct pcd *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_pcd (manager);
+	if (active == NULL) {
+		status = manifest_manager_hash_manifest_measured_data (&manager->base, NULL, hash);
+	}
+	else {
+		status = manifest_manager_hash_manifest_measured_data (&manager->base, &active->base, hash);
 		manager->free_pcd (manager, active);
 	}
 

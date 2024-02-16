@@ -32,10 +32,22 @@ enum pcr_data_type {
  * @param total_len Output buffer containing the total length of the measurement data. This should
  * 	contain total length of the measured data even if only partially returned.
  *
- * @return length of the measured data if successfully read or an error code.
+ * @return The length of the measured data if successfully read or an error code.
  */
 typedef int (*pcr_data_get_measured_data) (void *context, size_t offset, uint8_t *buffer,
 	size_t length, uint32_t *total_len);
+
+/**
+ * Update a hash context with the measured data.
+ *
+ * The hash context will already be started and it must not be canceled or finished by the callback.
+ *
+ * @param context The context that will update the hash with the measured data.
+ * @param hash Hash engine that will be updated with the data.
+ *
+ * @return 0 if the hash was successfully updated or an error code.
+ */
+typedef int (*pcr_data_hash_measured_data) (void *context, struct hash_engine *hash);
 
 /**
  * Measurement data used for PCR measurement.
@@ -62,10 +74,11 @@ struct pcr_measured_data {
 
 		struct  {
 			pcr_data_get_measured_data get_data;	/**< Callback function to get measured data */
+			pcr_data_hash_measured_data hash_data;	/**< Callback function to hash the measured data */
 			void *context;							/**< Context for the callback function */
 		} callback;									/**< Container for measured data to be retrieved by callback function */
 	} data;											/**< Measured data container */
 };
 
 
-#endif //PCR_DATA_H_
+#endif /* PCR_DATA_H_ */

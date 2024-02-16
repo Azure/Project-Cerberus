@@ -6,6 +6,7 @@
 #include <string.h>
 #include "testing.h"
 #include "manifest/cfm/cfm_manager.h"
+#include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/manifest/cfm/cfm_mock.h"
 #include "testing/mock/manifest/cfm/cfm_manager_mock.h"
 #include "testing/mock/manifest/cfm/cfm_observer_mock.h"
@@ -748,7 +749,6 @@ static void cfm_manager_test_get_id_measured_data_0_bytes_read (CuTest *test)
 
 static void cfm_manager_test_get_id_measured_data_null (CuTest *test)
 {
-	struct cfm_mock cfm;
 	struct cfm_manager_mock manager;
 	uint8_t buffer[4];
 	size_t length = sizeof (buffer);
@@ -757,9 +757,6 @@ static void cfm_manager_test_get_id_measured_data_null (CuTest *test)
 
 	TEST_START;
 
-	status = cfm_mock_init (&cfm);
-	CuAssertIntEquals (test, 0, status);
-
 	status = cfm_manager_mock_init (&manager);
 	CuAssertIntEquals (test, 0, status);
 
@@ -767,17 +764,12 @@ static void cfm_manager_test_get_id_measured_data_null (CuTest *test)
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
-		MOCK_RETURN_PTR (&cfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
-		0, MOCK_ARG_PTR (&cfm.base));
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_get_id_measured_data (&manager.base, 0, NULL, length, &total_len);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
-
-	status = cfm_mock_validate_and_release (&cfm);
-	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_mock_validate_and_release (&manager);
 	CuAssertIntEquals (test, 0, status);
@@ -1041,7 +1033,6 @@ static void cfm_manager_test_get_platform_id_measured_data_0_bytes_read (CuTest 
 
 static void cfm_manager_test_get_platform_id_measured_data_null (CuTest *test)
 {
-	struct cfm_mock cfm;
 	struct cfm_manager_mock manager;
 	uint8_t buffer[4];
 	size_t length = sizeof (buffer);
@@ -1050,9 +1041,6 @@ static void cfm_manager_test_get_platform_id_measured_data_null (CuTest *test)
 
 	TEST_START;
 
-	status = cfm_mock_init (&cfm);
-	CuAssertIntEquals (test, 0, status);
-
 	status = cfm_manager_mock_init (&manager);
 	CuAssertIntEquals (test, 0, status);
 
@@ -1060,17 +1048,12 @@ static void cfm_manager_test_get_platform_id_measured_data_null (CuTest *test)
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
-		MOCK_RETURN_PTR (&cfm.base));
-	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
-		0, MOCK_ARG_PTR (&cfm.base));
+		MOCK_RETURN_PTR (NULL));
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_get_platform_id_measured_data (&manager.base, 0, NULL, length, &total_len);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
-
-	status = cfm_mock_validate_and_release (&cfm);
-	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_mock_validate_and_release (&manager);
 	CuAssertIntEquals (test, 0, status);
@@ -1417,6 +1400,7 @@ static void cfm_manager_test_get_cfm_measured_data_0_bytes_read (CuTest *test)
 
 static void cfm_manager_test_get_cfm_measured_data_null (CuTest *test)
 {
+	struct cfm_manager_mock manager;
 	uint8_t buffer[4224];
 	size_t length = sizeof (buffer);
 	uint32_t total_len;
@@ -1424,8 +1408,22 @@ static void cfm_manager_test_get_cfm_measured_data_null (CuTest *test)
 
 	TEST_START;
 
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
 	status = cfm_manager_get_cfm_measured_data (NULL, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (NULL));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_get_cfm_measured_data (&manager.base, 0, NULL, length, &total_len);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
 }
 
 static void cfm_manager_test_get_cfm_measured_data_fail (CuTest *test)
@@ -1462,6 +1460,485 @@ static void cfm_manager_test_get_cfm_measured_data_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_id_measured_data (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	uint8_t id[] = {1, 2, 3, 4, 5};
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
+		0, MOCK_ARG_PTR (&cfm.base));
+
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&cfm.mock, 0, &id[1], sizeof (id) - 1, -1);
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (id, sizeof (id)), MOCK_ARG (sizeof (id)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_id_measured_data (&manager.base, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_id_measured_data_no_active_cfm (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	uint8_t id[5] = {0};
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (NULL));
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (id, sizeof (id)), MOCK_ARG (sizeof (id)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_id_measured_data (&manager.base, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_id_measured_data_null (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_manager_mock manager;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_id_measured_data (NULL, &hash.base);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (NULL));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_id_measured_data (&manager.base, NULL);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_id_measured_data_fail (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
+		0, MOCK_ARG_PTR (&cfm.base));
+
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_id, &cfm, MANIFEST_GET_ID_FAILED,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_id_measured_data (&manager.base, &hash.base);
+	CuAssertIntEquals (test, MANIFEST_GET_ID_FAILED, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_platform_id_measured_data (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	const char *id = "CFM Test1";
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
+		0, MOCK_ARG_PTR (&cfm.base));
+
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_platform_id, &cfm, 0,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+	status |= mock_expect_output (&cfm.mock, 0, &id, sizeof (id), -1);
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (id, strlen (id) + 1), MOCK_ARG (strlen (id) + 1));
+
+	status |= mock_expect (&cfm.mock, cfm.base.base.free_platform_id, &cfm, 0, MOCK_ARG_PTR (id));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_platform_id_measured_data (&manager.base, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_platform_id_measured_data_no_active_cfm (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	char id = '\0';
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (NULL));
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0, MOCK_ARG_PTR_CONTAINS (&id, 1),
+		MOCK_ARG (1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_platform_id_measured_data (&manager.base, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_platform_id_measured_data_null (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_manager_mock manager;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_platform_id_measured_data (NULL, &hash.base);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (NULL));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_platform_id_measured_data (&manager.base, NULL);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_platform_id_measured_data_fail (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
+		0, MOCK_ARG_PTR (&cfm.base));
+
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_platform_id, &cfm, MANIFEST_GET_ID_FAILED,
+		MOCK_ARG_PTR_PTR (NULL), MOCK_ARG_ANY);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_platform_id_measured_data (&manager.base, &hash.base);
+	CuAssertIntEquals (test, MANIFEST_GET_ID_FAILED, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_cfm_measured_data (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
+		0, MOCK_ARG_PTR (&cfm.base));
+
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, CFM_TESTING.manifest.hash_len,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+	status |= mock_expect_output (&cfm.mock, 1, CFM_TESTING.manifest.hash,
+		CFM_TESTING.manifest.hash_len, 2);
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (CFM_TESTING.manifest.hash, CFM_TESTING.manifest.hash_len),
+		MOCK_ARG (CFM_TESTING.manifest.hash_len));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_cfm_measured_data (&manager.base, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_cfm_measured_data_no_active_cfm (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	uint8_t zero[SHA256_HASH_LENGTH] = {0};
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (NULL));
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
+		MOCK_ARG_PTR_CONTAINS (zero, sizeof (zero)), MOCK_ARG (sizeof (zero)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_cfm_measured_data (&manager.base, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_cfm_measured_data_null (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_manager_mock manager;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_cfm_measured_data (NULL, &hash.base);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (NULL));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_cfm_measured_data (&manager.base, NULL);
+	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cfm_manager_test_hash_cfm_measured_data_fail (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct cfm_mock cfm;
+	struct cfm_manager_mock manager;
+	int status;
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&manager.mock, manager.base.get_active_cfm, &manager,
+		MOCK_RETURN_PTR (&cfm.base));
+	status |= mock_expect (&manager.mock, manager.base.free_cfm, &manager,
+		0, MOCK_ARG_PTR (&cfm.base));
+
+	status |= mock_expect (&cfm.mock, cfm.base.base.get_hash, &cfm, MANIFEST_GET_HASH_FAILED,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG (SHA512_HASH_LENGTH));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_hash_cfm_measured_data (&manager.base, &hash.base);
+	CuAssertIntEquals (test, MANIFEST_GET_HASH_FAILED, status);
+
+	status = cfm_mock_validate_and_release (&cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_validate_and_release (&manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -1511,5 +1988,17 @@ TEST (cfm_manager_test_get_cfm_measured_data_no_active_cfm);
 TEST (cfm_manager_test_get_cfm_measured_data_0_bytes_read);
 TEST (cfm_manager_test_get_cfm_measured_data_null);
 TEST (cfm_manager_test_get_cfm_measured_data_fail);
+TEST (cfm_manager_test_hash_id_measured_data);
+TEST (cfm_manager_test_hash_id_measured_data_no_active_cfm);
+TEST (cfm_manager_test_hash_id_measured_data_null);
+TEST (cfm_manager_test_hash_id_measured_data_fail);
+TEST (cfm_manager_test_hash_platform_id_measured_data);
+TEST (cfm_manager_test_hash_platform_id_measured_data_no_active_cfm);
+TEST (cfm_manager_test_hash_platform_id_measured_data_null);
+TEST (cfm_manager_test_hash_platform_id_measured_data_fail);
+TEST (cfm_manager_test_hash_cfm_measured_data);
+TEST (cfm_manager_test_hash_cfm_measured_data_no_active_cfm);
+TEST (cfm_manager_test_hash_cfm_measured_data_null);
+TEST (cfm_manager_test_hash_cfm_measured_data_fail);
 
 TEST_SUITE_END;

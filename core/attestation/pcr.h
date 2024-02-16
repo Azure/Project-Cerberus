@@ -40,12 +40,32 @@
 #define PCR_TCG_UINT_SIZE_32								0x01
 #define PCR_TCG_LOG_SIGNATURE								"Spec ID Event03"
 
+/**
+ * DMTF measurement value type identifiers indicating what type of data is being reported. Defined
+ * in the SPDM DSP0274 spec section 10.11.1.1.
+ */
+enum pcr_dmtf_value_type {
+	PCR_DMTF_VALUE_TYPE_ROM = 0x00,				/**< Immutable ROM. */
+	PCR_DMTF_VALUE_TYPE_FIRMWARE = 0x01,		/**< Mutable firmware. */
+	PCR_DMTF_VALUE_TYPE_HW_CONFIG = 0x02,		/**< Hardware configuration, such as straps. */
+	PCR_DMTF_VALUE_TYPE_FW_CONFIG = 0x03,		/**< Firmware configuration, such as configurable firmware policy. */
+	PCR_DMTF_VALUE_TYPE_MEAS_MANIFEST = 0x04,	/**< Measurement manifest. */
+
+	/**
+	 * Other values are defined in SPDM specs 1.2 and 1.3, but are not used here to allow for easier
+	 * compatibility with SPDM 1.1.
+	 */
+	PCR_DMTF_VALUE_TYPE_UNUSED = 0x05,
+
+	PCR_DMTF_VALUE_TYPE_RESERVED = 0x0b,		/**< Reserved. */
+};
+
 
 /**
  * Configuration details for a set of measurements in a PCR.
  */
 struct pcr_config {
-	size_t num_measurements;			/**< The number of measurements in the PCR. */
+	uint8_t num_measurements;			/**< The number of measurements in the PCR. */
 	enum hash_type measurement_algo;	/**< Hash algorithm used for measurements in the PCR. */
 };
 
@@ -59,6 +79,7 @@ struct pcr_measurement {
 	uint32_t event_type;							/**< TCG event type identifier. */
 	uint8_t version;								/**< Version associated with the measurement data. */
 	uint8_t measurement_config;						/**< Indicates additional data to include in measurement digests. */
+	enum pcr_dmtf_value_type dmtf_type;				/**< DMTF value type identifier. */
 };
 
 /**
@@ -156,8 +177,13 @@ int pcr_check_measurement_index (struct pcr_bank *pcr, uint8_t measurement_index
 enum hash_type pcr_get_hash_algorithm (struct pcr_bank *pcr);
 int pcr_get_digest_length (struct pcr_bank *pcr);
 
-int pcr_set_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t event_type);
-int pcr_get_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t *event_type);
+int pcr_set_tcg_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t event_type);
+int pcr_get_tcg_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t *event_type);
+
+int pcr_set_dmtf_value_type (struct pcr_bank *pcr, uint8_t measurement_index,
+	enum pcr_dmtf_value_type value_type);
+int pcr_get_dmtf_value_type (struct pcr_bank *pcr, uint8_t measurement_index,
+	enum pcr_dmtf_value_type *value_type);
 
 int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const uint8_t *digest,
 	size_t digest_len);
@@ -175,10 +201,13 @@ int pcr_get_measurement (struct pcr_bank *pcr, uint8_t measurement_index,
 int pcr_get_all_measurements (struct pcr_bank *pcr,
 	const struct pcr_measurement **measurement_list);
 
+int pcr_is_measurement_data_available (struct pcr_bank *pcr, uint8_t measurement_index);
 int pcr_set_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 	const struct pcr_measured_data *measurement_data);
 int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, size_t offset,
-	uint8_t *buffer, size_t length, uint32_t *total_len);
+	uint8_t *buffer, size_t length, size_t *total_len);
+int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
+	struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length);
 
 int pcr_get_tcg_log (struct pcr_bank *pcr, uint32_t pcr_num, size_t offset, uint8_t *buffer,
 	size_t length, size_t *total_len);
@@ -205,6 +234,10 @@ enum {
 	PCR_MEASURED_DATA_INVALID_CALLBACK = PCR_ERROR (0x0a),		/**< Callback to retrieve PCR Measured data is null or invalid */
 	PCR_INCORRECT_DIGEST_LENGTH = PCR_ERROR (0x0b),				/**< The digest length is not correct for the PCR. */
 	PCR_SMALL_OUTPUT_BUFFER = PCR_ERROR (0x0c),					/**< The output buffer is not large enough for the PCR. */
+	PCR_INVALID_VALUE_TYPE = PCR_ERROR (0x0d),					/**< Invalid DMTF value type identifier. */
+	PCR_INVALID_SEQUENTIAL_ID = PCR_ERROR (0x0e),				/**< Invalid sequential measurement ID. */
+	PCR_MEASURED_DATA_NOT_AVIALABLE = PCR_ERROR (0x0f),			/**< The raw measured data is not available for the measurement. */
+	PCR_MEASURED_DATA_NO_HASH_CALLBACK = PCR_ERROR (0x10),		/**< The measured data does not provide a hash callback. */
 };
 
 

@@ -2843,9 +2843,15 @@ static void pcr_store_test_set_measurement_data (CuTest *test)
 
 	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
 
+	status = pcr_store_is_measurement_data_available (&store.test, PCR_MEASUREMENT (0, 2));
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_store_set_measurement_data (&store.test, PCR_MEASUREMENT (0, 2),
 		&measurement_data);
 	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_is_measurement_data_available (&store.test, PCR_MEASUREMENT (0, 2));
+	CuAssertIntEquals (test, 1, status);
 
 	status = pcr_store_get_measurement_data (&store.test, PCR_MEASUREMENT (0, 2), 0, buffer,
 		length);
@@ -2858,9 +2864,15 @@ static void pcr_store_test_set_measurement_data (CuTest *test)
 	measurement_data.data.memory.buffer = data_mem;
 	measurement_data.data.memory.length = sizeof (data_mem);
 
+	status = pcr_store_is_measurement_data_available (&store.test, PCR_MEASUREMENT (1, 4));
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_store_set_measurement_data (&store.test, PCR_MEASUREMENT (1, 4),
 		&measurement_data);
 	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_is_measurement_data_available (&store.test, PCR_MEASUREMENT (1, 4));
+	CuAssertIntEquals (test, 1, status);
 
 	status = pcr_store_get_measurement_data (&store.test, PCR_MEASUREMENT (1, 4), 0, buffer,
 		length);
@@ -2902,6 +2914,9 @@ static void pcr_store_test_set_measurement_data_remove (CuTest *test)
 		&measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
+	status = pcr_store_is_measurement_data_available (&store.test, PCR_MEASUREMENT (0, 2));
+	CuAssertIntEquals (test, 1, status);
+
 	status = pcr_store_get_measurement_data (&store.test, PCR_MEASUREMENT (0, 2), 0, buffer,
 		length);
 	CuAssertIntEquals (test, 1, status);
@@ -2910,6 +2925,9 @@ static void pcr_store_test_set_measurement_data_remove (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_set_measurement_data (&store.test, PCR_MEASUREMENT (0, 2), NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_is_measurement_data_available (&store.test, PCR_MEASUREMENT (0, 2));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_measurement_data (&store.test, PCR_MEASUREMENT (0, 2), 0, buffer,
@@ -3011,6 +3029,56 @@ static void pcr_store_test_set_measurement_data_fail (CuTest *test)
 	pcr_store_testing_release (test, &store);
 }
 
+static void pcr_store_test_is_measurement_data_available_null (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_is_measurement_data_available (NULL, PCR_MEASUREMENT (0, 2));
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_is_measurement_data_available_invalid_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_is_measurement_data_available (&store.test, PCR_MEASUREMENT (2, 0));
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
 static void pcr_store_test_get_measurement_data_no_data (CuTest *test)
 {
 	struct pcr_store_testing store;
@@ -3090,6 +3158,278 @@ static void pcr_store_test_get_measurement_data_invalid_pcr (CuTest *test)
 	status = pcr_store_get_measurement_data (&store.test, PCR_MEASUREMENT (2, 0), 0, buffer,
 		length);
 	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_hash_measurement_data (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_update_digest (&store.test, PCR_MEASUREMENT (0, 2), SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_hash_measurement_data (&store.test, PCR_MEASUREMENT (0, 2), &store.hash.base,
+		HASH_TYPE_SHA256, buffer, sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_update_digest (&store.test, PCR_MEASUREMENT (1, 4), SHA256_TEST2_HASH,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_hash_measurement_data (&store.test, PCR_MEASUREMENT (1, 4), &store.hash.base,
+		HASH_TYPE_SHA256, buffer, sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_TEST2_HASH, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_hash_measurement_data_null (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_hash_measurement_data (NULL, PCR_MEASUREMENT (0, 2), &store.hash.base,
+		HASH_TYPE_SHA256, buffer, sizeof (buffer));
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_store_hash_measurement_data (&store.test, PCR_MEASUREMENT (0, 2), NULL,
+		HASH_TYPE_SHA256, buffer, sizeof (buffer));
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_store_hash_measurement_data (&store.test, PCR_MEASUREMENT (0, 2), &store.hash.base,
+		HASH_TYPE_SHA256, NULL, sizeof (buffer));
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_hash_measurement_data_invalid_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_hash_measurement_data (&store.test, PCR_MEASUREMENT (2, 0), &store.hash.base,
+		HASH_TYPE_SHA256, buffer, sizeof (buffer));
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_hash_measurement_data_error (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_hash_measurement_data (&store.test, PCR_MEASUREMENT (0, 3), &store.hash.base,
+		HASH_TYPE_SHA256, buffer, SHA256_HASH_LENGTH - 1);
+	CuAssertIntEquals (test, PCR_SMALL_OUTPUT_BUFFER, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_measurement_data_length (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measured_data measurement_data;
+	uint8_t data_mem[] = {
+		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
+		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = data_mem;
+	measurement_data.data.memory.length = sizeof (data_mem);
+
+	status = pcr_store_set_measurement_data (&store.test, PCR_MEASUREMENT (1, 4),
+		&measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement_data_length (&store.test, PCR_MEASUREMENT (1, 4));
+	CuAssertIntEquals (test, sizeof (data_mem), status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_measurement_data_length_no_data (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_measurement_data_length (&store.test, PCR_MEASUREMENT (0, 2));
+	CuAssertIntEquals (test, PCR_MEASURED_DATA_NOT_AVIALABLE, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_measurement_data_length_null (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_measurement_data_length (NULL, PCR_MEASUREMENT (1, 4));
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_measurement_data_length_invalid_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_measurement_data_length (&store.test, PCR_MEASUREMENT (2, 0));
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_measurement_data_length_fail (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_measurement_data_length (&store.test, PCR_MEASUREMENT (0, 6));
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
 
 	pcr_store_testing_release (test, &store);
 }
@@ -8875,6 +9215,450 @@ void pcr_store_test_get_tcg_log_null (CuTest *test)
 	pcr_store_testing_release (test, &store);
 }
 
+static void pcr_store_test_set_dmtf_value_type (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+	enum pcr_dmtf_value_type value;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_set_dmtf_value_type (&store.test, PCR_MEASUREMENT (0, 2),
+		PCR_DMTF_VALUE_TYPE_HW_CONFIG);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_dmtf_value_type (&store.test, PCR_MEASUREMENT (0, 2), &value);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_HW_CONFIG, value);
+
+	status = pcr_store_set_dmtf_value_type (&store.test, PCR_MEASUREMENT (1, 3),
+		PCR_DMTF_VALUE_TYPE_MEAS_MANIFEST);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_dmtf_value_type (&store.test, PCR_MEASUREMENT (1, 3), &value);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_MEAS_MANIFEST, value);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_set_dmtf_value_type_null (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_set_dmtf_value_type (NULL, PCR_MEASUREMENT (0, 2),
+		PCR_DMTF_VALUE_TYPE_HW_CONFIG);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_set_dmtf_value_type_invalid_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_set_dmtf_value_type (&store.test, PCR_MEASUREMENT (2, 0),
+		PCR_DMTF_VALUE_TYPE_HW_CONFIG);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_set_dmtf_value_type_update_fail (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_set_dmtf_value_type (&store.test, PCR_MEASUREMENT (0, 6),
+		PCR_DMTF_VALUE_TYPE_HW_CONFIG);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_dmtf_value_type_null (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+	enum pcr_dmtf_value_type value;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_dmtf_value_type (NULL, PCR_MEASUREMENT (0, 2), &value);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_store_get_dmtf_value_type (&store.test, PCR_MEASUREMENT (0, 2), NULL);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_dmtf_value_type_invalid_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+	enum pcr_dmtf_value_type value;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_dmtf_value_type (&store.test, PCR_MEASUREMENT (2, 0), &value);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_dmtf_value_type_get_fail (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+	enum pcr_dmtf_value_type value;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_dmtf_value_type (&store.test, PCR_MEASUREMENT (0, 6), &value);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_measurement_type_first_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_measurement_type (&store.test, 0);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 0), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 1);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 1), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 2);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 2), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 3);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 3), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 4);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 4), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 5);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 5), status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_measurement_type_multiple_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 3,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 4,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_measurement_type (&store.test, 0);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 0), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 1);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 1), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 2);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 2), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 3);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 3), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 4);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 4), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 5);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 5), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 6);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (1, 0), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 7);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (1, 1), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 8);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (1, 2), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 9);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (2, 0), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 10);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (2, 1), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 11);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (2, 2), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 12);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (2, 3), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 13);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (3, 0), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 14);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (3, 1), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 15);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (3, 2), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 16);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (3, 3), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 17);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (3, 4), status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_measurement_type_explicit (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 3,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 0,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 5,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_measurement_type (&store.test, 0);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 0), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 1);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 1), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 2);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 2), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 3);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 3), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 4);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 4), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 5);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (0, 5), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 6);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (1, 0), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 7);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (1, 1), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 8);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (1, 2), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 9);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (3, 0), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 10);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (3, 1), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 11);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (3, 2), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 12);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (3, 3), status);
+
+	status = pcr_store_get_measurement_type (&store.test, 13);
+	CuAssertIntEquals (test, PCR_MEASUREMENT (3, 4), status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_measurement_type_null (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_measurement_type (NULL, 0);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_get_measurement_type_invalid_sequential_id (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_get_measurement_type (&store.test, 12);
+	CuAssertIntEquals (test, PCR_INVALID_SEQUENTIAL_ID, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
 
 TEST_SUITE_START (pcr_store);
 
@@ -8982,9 +9766,20 @@ TEST (pcr_store_test_set_measurement_data_remove);
 TEST (pcr_store_test_set_measurement_data_null);
 TEST (pcr_store_test_set_measurement_data_invalid_pcr);
 TEST (pcr_store_test_set_measurement_data_fail);
+TEST (pcr_store_test_is_measurement_data_available_null);
+TEST (pcr_store_test_is_measurement_data_available_invalid_pcr);
 TEST (pcr_store_test_get_measurement_data_no_data);
 TEST (pcr_store_test_get_measurement_data_null);
 TEST (pcr_store_test_get_measurement_data_invalid_pcr);
+TEST (pcr_store_test_hash_measurement_data);
+TEST (pcr_store_test_hash_measurement_data_null);
+TEST (pcr_store_test_hash_measurement_data_invalid_pcr);
+TEST (pcr_store_test_hash_measurement_data_error);
+TEST (pcr_store_test_get_measurement_data_length);
+TEST (pcr_store_test_get_measurement_data_length_no_data);
+TEST (pcr_store_test_get_measurement_data_length_null);
+TEST (pcr_store_test_get_measurement_data_length_invalid_pcr);
+TEST (pcr_store_test_get_measurement_data_length_fail);
 TEST (pcr_store_test_get_attestation_log_size_sha256);
 TEST (pcr_store_test_get_attestation_log_size_sha256_explicit);
 #if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
@@ -9053,5 +9848,17 @@ TEST (pcr_store_test_get_tcg_log_offset_skip_event);
 TEST (pcr_store_test_get_tcg_log_offset_into_event);
 TEST (pcr_store_test_get_tcg_log_offset_only_one_event);
 TEST (pcr_store_test_get_tcg_log_null);
+TEST (pcr_store_test_set_dmtf_value_type);
+TEST (pcr_store_test_set_dmtf_value_type_null);
+TEST (pcr_store_test_set_dmtf_value_type_invalid_pcr);
+TEST (pcr_store_test_set_dmtf_value_type_update_fail);
+TEST (pcr_store_test_get_dmtf_value_type_null);
+TEST (pcr_store_test_get_dmtf_value_type_invalid_pcr);
+TEST (pcr_store_test_get_dmtf_value_type_get_fail);
+TEST (pcr_store_test_get_measurement_type_first_pcr);
+TEST (pcr_store_test_get_measurement_type_multiple_pcr);
+TEST (pcr_store_test_get_measurement_type_explicit);
+TEST (pcr_store_test_get_measurement_type_null);
+TEST (pcr_store_test_get_measurement_type_invalid_sequential_id);
 
 TEST_SUITE_END;

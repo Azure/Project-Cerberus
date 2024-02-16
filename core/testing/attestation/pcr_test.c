@@ -35,6 +35,134 @@ const uint8_t PCR_TESTING_SHA256_VERSIONED[] = {
 };
 
 /**
+ * SHA256 hash of 1-byte data 0x11.
+ */
+const uint8_t PCR_TESTING_SHA256_1BYTE_DATA[] = {
+	0x4a,0x64,0xa1,0x07,0xf0,0xcb,0x32,0x53,0x6e,0x5b,0xce,0x6c,0x98,0xc3,0x93,0xdb,
+	0x21,0xcc,0xa7,0xf4,0xea,0x18,0x7b,0xa8,0xc4,0xdc,0xa8,0xb5,0x1d,0x4e,0xa8,0x0a
+};
+
+/**
+ * SHA256 hash of 1-byte data 0x11 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA256_1BYTE_DATA_WITH_EVENT[] = {
+	0x09,0x2b,0xce,0x3a,0x53,0xe8,0xe3,0x86,0x12,0xda,0x90,0x05,0x7a,0xbf,0x84,0xb3,
+	0x81,0x24,0xfb,0x05,0xe3,0xbb,0xfc,0xec,0x07,0x00,0x25,0x26,0x42,0x96,0xa2,0x6c
+};
+
+/**
+ * SHA256 hash of 1-byte data 0x11 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA256_1BYTE_DATA_VERSIONED[] = {
+	0x33,0xa1,0xda,0x07,0xef,0xee,0x0b,0x95,0x45,0xa8,0x3b,0x05,0xa7,0xf9,0x8b,0x5d,
+	0x47,0x41,0xd0,0x38,0xfb,0xc3,0x60,0x42,0xfb,0x49,0x28,0x98,0x5d,0xad,0x50,0x4d
+};
+
+/**
+ * SHA256 hash of 1-byte data 0x11 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA256_1BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0x04,0xdf,0x33,0xa5,0x56,0x93,0xe8,0xb3,0x19,0xf8,0x08,0x51,0x35,0xec,0x48,0x47,
+	0x96,0xa6,0x86,0x1f,0x66,0x06,0x2e,0x8a,0x7c,0xbe,0x89,0x4b,0x08,0x01,0xe9,0xdf
+};
+
+/**
+ * SHA256 hash of 2-byte data 0x1122.
+ */
+const uint8_t PCR_TESTING_SHA256_2BYTE_DATA[] = {
+	0xb2,0x9b,0x08,0xef,0x69,0x3e,0x9a,0x43,0x81,0x8a,0x00,0xcd,0xf3,0x84,0xad,0xec,
+	0xf5,0x6d,0x8d,0x4b,0xe8,0x01,0x9a,0xd4,0xf2,0x8f,0xbf,0x5f,0x84,0x20,0x99,0x50
+};
+
+/**
+ * SHA256 hash of 2-byte data 0x1122 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA256_2BYTE_DATA_WITH_EVENT[] = {
+	0xfd,0xff,0x04,0x6c,0x1e,0xa7,0xe1,0x64,0x02,0x46,0x1d,0xca,0x4f,0x61,0x8f,0x15,
+	0x0b,0xbc,0xfc,0x54,0x2e,0xf8,0x4d,0x61,0xed,0x2e,0x01,0x9c,0x70,0x39,0x0d,0x6c
+};
+
+/**
+ * SHA256 hash of 2-byte data 0x1122 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA256_2BYTE_DATA_VERSIONED[] = {
+	0x01,0x07,0x19,0xea,0x3a,0x97,0x71,0x95,0x81,0x77,0xd0,0x2f,0xfa,0x46,0x35,0x67,
+	0xb7,0xb4,0x0c,0x23,0x9b,0xc7,0x9b,0xd2,0xe6,0x8e,0x17,0x00,0x01,0xc9,0x7c,0x1a
+};
+
+/**
+ * SHA256 hash of 2-byte data 0x1122 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA256_2BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0xf9,0x7b,0x20,0x44,0xc1,0x55,0x95,0x8d,0xf1,0x12,0x1f,0xc0,0x96,0x03,0xcc,0xe4,
+	0x53,0xbd,0x95,0xee,0x82,0x1d,0xcc,0xa8,0x07,0x95,0x74,0xd9,0x9a,0xfb,0x32,0x05
+};
+
+/**
+ * SHA256 hash of 4-byte data 0x11223344.
+ */
+const uint8_t PCR_TESTING_SHA256_4BYTE_DATA[] = {
+	0xc8,0x32,0xfb,0xe8,0xa6,0x9c,0x86,0x94,0xf8,0x5d,0x3f,0x3d,0x6b,0xda,0xce,0x5b,
+	0x99,0xc4,0xc4,0x15,0x3c,0x4f,0x5c,0xa5,0xe3,0xd2,0x1e,0x22,0xeb,0x21,0x8c,0xe3
+};
+
+/**
+ * SHA256 hash of 4-byte data 0x11223344 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA256_4BYTE_DATA_WITH_EVENT[] = {
+	0x9d,0xfb,0x54,0x35,0xa0,0x1c,0x05,0x3c,0x63,0x5e,0x80,0x8b,0xd5,0x16,0x51,0x03,
+	0xaf,0x09,0xd2,0x51,0x21,0xf8,0x7e,0xe7,0xa7,0xfc,0x4c,0x91,0x65,0x0b,0x65,0xd0
+};
+
+/**
+ * SHA256 hash of 4-byte data 0x11223344 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED[] = {
+	0xac,0x09,0xe6,0xba,0xa1,0xce,0x8c,0xe4,0xb9,0xc1,0x23,0x92,0x98,0x92,0x1e,0x27,
+	0x6a,0x75,0x01,0x79,0x30,0x28,0xa5,0x54,0x73,0xfd,0x61,0x8c,0x03,0x1e,0x7b,0xae
+};
+
+/**
+ * SHA256 hash of 4-byte data 0x11223344 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0xe1,0x15,0xc9,0xad,0x91,0x15,0x9a,0xfa,0xc1,0xa1,0x6e,0x2c,0xfa,0x29,0x8e,0xc7,
+	0x9e,0x2b,0x80,0x2b,0xef,0x72,0x21,0x3f,0xcb,0x10,0x3f,0x39,0x6e,0x2b,0x69,0x56
+};
+
+/**
+ * SHA256 hash of 8-byte data 0x1122334455667788.
+ */
+const uint8_t PCR_TESTING_SHA256_8BYTE_DATA[] = {
+	0x80,0x4d,0x56,0x2d,0x22,0x47,0x0f,0xb7,0xbe,0x7f,0x06,0xaa,0x07,0x66,0x21,0xcb,
+	0x26,0x89,0x32,0xbe,0x33,0xd8,0xf9,0xfb,0x28,0x44,0xf9,0x58,0xdb,0xd7,0x4c,0x17
+};
+
+/**
+ * SHA256 hash of 8-byte data 0x1122334455667788 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA256_8BYTE_DATA_WITH_EVENT[] = {
+	0x19,0x24,0x57,0xe0,0x82,0xa5,0xfe,0x44,0xb2,0x81,0x36,0x44,0x24,0xb8,0xb6,0x9c,
+	0x23,0x3a,0x98,0xaa,0x46,0x0d,0x0b,0xa8,0x36,0x85,0x94,0x60,0x53,0x23,0x84,0x8a
+};
+
+/**
+ * SHA256 hash of 8-byte data 0x1122334455667788 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA256_8BYTE_DATA_VERSIONED[] = {
+	0x91,0xf5,0x3f,0x1c,0x6f,0x0a,0xf0,0xad,0xe2,0x74,0x45,0xcd,0x38,0x70,0x48,0xdd,
+	0xfd,0xa6,0x38,0x3c,0xf4,0x39,0xc3,0x6c,0x2e,0x4b,0x1c,0xc3,0x88,0xdf,0x2c,0xee
+};
+
+/**
+ * SHA256 hash of 8-byte data 0x1122334455667788 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA256_8BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0x5b,0x0b,0x10,0x4b,0x2b,0x95,0xca,0xdd,0x76,0xf4,0x74,0x9e,0xea,0x94,0x85,0xc4,
+	0x20,0xae,0xae,0xd2,0xec,0x01,0xdd,0x09,0x8b,0x40,0x5d,0x1b,0x62,0x64,0xec,0x98
+};
+
+/**
  * SHA256 hash of HASH_TESTING_FULL_BLOCK_512 including event type 0xaabbccdd.
  */
 const uint8_t PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_WITH_EVENT[] = {
@@ -116,6 +244,150 @@ const uint8_t PCR_TESTING_SHA384_VERSIONED[] = {
 	0xb1,0x58,0x3f,0x4b,0x2e,0x1b,0xf5,0x3f,0xc3,0x1e,0x9d,0xfb,0x8e,0x8d,0x94,0x5a,
 	0x62,0x95,0x5d,0xa7,0x09,0xf2,0x80,0xa9,0x06,0x6a,0xa8,0xf3,0x1e,0xf6,0x88,0xd6,
 	0x5e,0x0e,0x98,0x16,0xa5,0xf1,0xf1,0x13,0x63,0xb3,0x89,0x88,0x20,0xbd,0x15,0x76
+};
+
+/**
+ * SHA384 hash of 1-byte data 0x11.
+ */
+const uint8_t PCR_TESTING_SHA384_1BYTE_DATA[] = {
+	0x74,0x27,0x78,0xad,0x96,0xc7,0xc7,0x33,0x14,0x5a,0x22,0x87,0x99,0x94,0xe0,0x35,
+	0x73,0xfc,0xda,0x24,0x47,0xa3,0xf8,0x06,0xea,0x08,0x36,0xbd,0xdb,0xc7,0x7f,0xbb,
+	0xee,0x25,0x91,0xc2,0x88,0x8e,0xfd,0xa4,0x2f,0x99,0x36,0x92,0x21,0x49,0x2c,0x3d
+};
+
+/**
+ * SHA384 hash of 1-byte data 0x11 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA384_1BYTE_DATA_WITH_EVENT[] = {
+	0x4a,0x69,0x6f,0xf8,0xee,0x2e,0x31,0x88,0xf5,0xd3,0xa7,0xa9,0x8d,0xfd,0xf5,0x0c,
+	0x3a,0x92,0x1c,0x7f,0x84,0xb4,0x91,0x51,0xaa,0x7b,0x60,0x8c,0xed,0xed,0xf0,0xba,
+	0x84,0x60,0xf9,0x45,0x52,0xf3,0xbb,0xdc,0x05,0x1a,0x91,0xc3,0x87,0x40,0x3e,0xf7
+};
+
+/**
+ * SHA384 hash of 1-byte data 0x11 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA384_1BYTE_DATA_VERSIONED[] = {
+	0xe8,0x81,0xaf,0x7a,0xae,0xc7,0xc5,0xf0,0x65,0xef,0xfb,0xf1,0xec,0xc5,0x56,0x52,
+	0xaa,0x60,0x4c,0x98,0x46,0xc3,0x47,0x42,0xdc,0x9e,0x4e,0xb1,0x25,0x8a,0xac,0xc1,
+	0xb8,0xc6,0xab,0x4f,0x45,0x87,0xa6,0x1f,0xe0,0x91,0x40,0x6a,0xbd,0x44,0xec,0x31
+};
+
+/**
+ * SHA384 hash of 1-byte data 0x11 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA384_1BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0x76,0x56,0x30,0x1e,0xc7,0xe8,0x7d,0x71,0x30,0x6e,0xbe,0xe8,0x11,0xb1,0x48,0x9a,
+	0xac,0xa1,0x91,0x79,0x83,0xfb,0xc0,0xa3,0x3a,0xa8,0xdf,0x70,0x27,0x15,0x3a,0x83,
+	0xb8,0xf6,0x10,0x03,0x2b,0xf8,0xa4,0x1a,0xfb,0xae,0x15,0xe2,0x90,0x34,0x99,0xdd
+};
+
+/**
+ * SHA384 hash of 2-byte data 0x1122.
+ */
+const uint8_t PCR_TESTING_SHA384_2BYTE_DATA[] = {
+	0xe4,0x14,0x0d,0x8b,0xc4,0x38,0x9c,0x32,0xd1,0x6c,0xd0,0x2c,0x49,0xe9,0xd7,0x90,
+	0xda,0x13,0x98,0x02,0x44,0x8f,0x13,0x75,0xcd,0x9c,0xd1,0x60,0xcb,0xd8,0xb7,0x4c,
+	0xe8,0xd3,0xc4,0x25,0x74,0x4c,0xd1,0xbf,0xcd,0xa4,0xaa,0xde,0x0e,0x66,0x04,0xc7
+};
+
+/**
+ * SHA384 hash of 2-byte data 0x1122 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA384_2BYTE_DATA_WITH_EVENT[] = {
+	0x3c,0x29,0xde,0xd3,0x41,0x25,0x75,0x0d,0xae,0x1f,0x0a,0x7b,0x2f,0x91,0x51,0x9b,
+	0x5e,0x78,0x63,0xf1,0x6d,0xf3,0xf6,0xf1,0x75,0x96,0xad,0x65,0xbc,0x13,0xa9,0x13,
+	0xb8,0x04,0x8b,0x1b,0xf6,0x51,0xfa,0xbf,0xc7,0x90,0xc1,0x4f,0x47,0x18,0xef,0x74
+};
+
+/**
+ * SHA384 hash of 2-byte data 0x1122 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA384_2BYTE_DATA_VERSIONED[] = {
+	0xc6,0xea,0xa7,0x48,0xa2,0x4b,0xcf,0x19,0xac,0x9a,0xa8,0x01,0xed,0x74,0xf5,0xbb,
+	0x9e,0x1c,0xae,0x52,0x1a,0xa1,0x6c,0x5d,0x4f,0x88,0x45,0x76,0xbb,0x4e,0x4a,0xa0,
+	0xff,0xf3,0x91,0x78,0x3a,0xc9,0x09,0xb2,0x5c,0xad,0x2d,0x3e,0xc3,0xd2,0x7e,0xf3
+};
+
+/**
+ * SHA384 hash of 2-byte data 0x1122 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA384_2BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0x86,0x9d,0x2b,0x45,0x88,0x1f,0x14,0x12,0x59,0x46,0x5b,0x8e,0x19,0x37,0x31,0x4e,
+	0x3a,0x60,0x34,0x0a,0xbe,0xe9,0xd9,0xd2,0x50,0x2d,0xda,0x62,0x23,0x5a,0xb9,0xa7,
+	0xec,0xe7,0x17,0x22,0xee,0x87,0x9e,0x84,0xfb,0x3f,0x6e,0x6a,0xe8,0xf9,0x69,0x3c
+};
+
+/**
+ * SHA384 hash of 4-byte data 0x11223344.
+ */
+const uint8_t PCR_TESTING_SHA384_4BYTE_DATA[] = {
+	0xa5,0x6f,0x05,0x5b,0x3e,0xe1,0x8d,0x2e,0x68,0x85,0xc4,0xdf,0xaf,0x17,0x47,0xc3,
+	0x25,0xb1,0xe0,0xab,0x59,0xa0,0x9b,0x7e,0xf6,0x48,0x84,0xf7,0x32,0x40,0xcb,0xee,
+	0xa7,0x9e,0x89,0xed,0xdf,0x4c,0xd2,0x34,0xdd,0x56,0x16,0x63,0x3e,0x22,0x1b,0xc9
+};
+
+/**
+ * SHA384 hash of 4-byte data 0x11223344 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA384_4BYTE_DATA_WITH_EVENT[] = {
+	0xd9,0x8b,0xb6,0x2a,0x28,0x35,0xf6,0x69,0x9b,0xbe,0xbd,0xe3,0xd8,0x6e,0x4c,0x99,
+	0xb5,0x06,0xc2,0xbb,0x7e,0x71,0x09,0xdf,0xd8,0x08,0x25,0xe2,0xae,0x7c,0xf9,0x19,
+	0x9a,0x83,0x90,0x02,0x48,0x63,0x2c,0x40,0x96,0x27,0x18,0x30,0xec,0x82,0x35,0xfe
+};
+
+/**
+ * SHA384 hash of 4-byte data 0x11223344 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED[] = {
+	0x40,0x81,0x7e,0x81,0xfe,0xde,0x02,0xb0,0xb3,0xdf,0xff,0x3e,0xad,0xba,0x16,0x24,
+	0x65,0x41,0x37,0xc5,0x6a,0x9a,0x42,0xfc,0xa2,0x5b,0x42,0xf5,0x6a,0x86,0x26,0xb7,
+	0x6d,0x0a,0xdd,0x6f,0x77,0x52,0xdc,0x9f,0x71,0x3c,0xfe,0x48,0x41,0xfa,0x02,0x48
+};
+
+/**
+ * SHA384 hash of 4-byte data 0x11223344 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0x40,0x5c,0xc2,0xfd,0x51,0xd9,0xeb,0xc6,0x6d,0x13,0x16,0xf4,0x97,0x8a,0xbe,0x4b,
+	0x9d,0xde,0xa4,0x4c,0xe1,0xc1,0xe6,0x5a,0x65,0xf4,0x3b,0x5f,0xc3,0xf0,0x0a,0x36,
+	0xf5,0xcd,0x5f,0xd9,0xce,0xaf,0x03,0xb4,0x29,0x38,0x48,0xca,0xaf,0x58,0x6a,0x42
+};
+
+/**
+ * SHA384 hash of 8-byte data 0x1122334455667788.
+ */
+const uint8_t PCR_TESTING_SHA384_8BYTE_DATA[] = {
+	0x2a,0xa2,0x2c,0xbc,0x7a,0xdb,0xd3,0x81,0x5e,0xf7,0x6c,0x7c,0x6b,0x6b,0xfa,0x04,
+	0xa8,0x77,0xe3,0x25,0x6c,0xb2,0x3a,0x3e,0xc3,0x36,0xf7,0xf1,0xcd,0xd4,0x50,0x8f,
+	0xc0,0x62,0x9b,0x8f,0x3e,0x70,0xda,0x66,0xa2,0x8e,0x83,0x52,0xa2,0x6d,0x6a,0xbb
+};
+
+/**
+ * SHA384 hash of 8-byte data 0x1122334455667788 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA384_8BYTE_DATA_WITH_EVENT[] = {
+	0x0d,0x60,0x0d,0x58,0xb1,0x74,0x81,0xea,0x7c,0x77,0x6c,0x2c,0x27,0xdb,0xd9,0x35,
+	0xcb,0xf1,0x97,0x5e,0x0e,0xc0,0xaf,0xa6,0xf2,0x4c,0x38,0xb3,0x1c,0x52,0x04,0xf6,
+	0xe8,0x35,0xf3,0xab,0xc2,0xfe,0x2d,0x9b,0x78,0x2a,0x3e,0x86,0x66,0x2f,0x56,0x97
+};
+
+/**
+ * SHA384 hash of 8-byte data 0x1122334455667788 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA384_8BYTE_DATA_VERSIONED[] = {
+	0x58,0x00,0x60,0xea,0x81,0x92,0x27,0x14,0x2a,0x1d,0x19,0x95,0x59,0xe2,0x0e,0xf4,
+	0xf8,0x7f,0xe9,0xc9,0x74,0xfb,0x5f,0xdd,0xfc,0x8b,0xca,0xa7,0x2a,0x2f,0xf0,0xab,
+	0x67,0x01,0x5d,0xc6,0x97,0xe2,0x74,0xda,0x36,0x7d,0x8e,0x5b,0x51,0xc3,0x78,0x6d
+};
+
+/**
+ * SHA384 hash of 8-byte data 0x1122334455667788 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA384_8BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0x60,0x43,0x96,0xd5,0xe0,0x39,0x62,0xb6,0x39,0xff,0xa5,0x0d,0xf8,0x72,0x77,0x66,
+	0xdb,0x1b,0x87,0xdb,0xce,0x7d,0x82,0xad,0xd2,0x78,0xa0,0x87,0x85,0x13,0x76,0xdd,
+	0x1c,0x85,0x90,0xfc,0x66,0x7e,0xb7,0x9e,0xa8,0xc6,0x1f,0x49,0xff,0xed,0x2a,0xf0
 };
 
 /**
@@ -213,6 +485,166 @@ const uint8_t PCR_TESTING_SHA512_VERSIONED[] = {
 };
 
 /**
+ * SHA512 hash of 1-byte data 0x11.
+ */
+const uint8_t PCR_TESTING_SHA512_1BYTE_DATA[] = {
+	0x4d,0xab,0x24,0x9e,0x3e,0xf1,0xf2,0x7d,0x32,0x3f,0xea,0x6d,0x44,0x3d,0xd6,0xf2,
+	0xab,0x36,0x55,0xe2,0xb4,0xfa,0xf1,0x07,0x8c,0x7a,0xd6,0xaf,0x83,0xa1,0x8f,0x2e,
+	0xfb,0xbe,0xd8,0x8b,0x2a,0x63,0xb1,0xaf,0xff,0x3d,0x19,0x6f,0x8b,0x97,0x07,0xf2,
+	0x8c,0xfa,0x8c,0xc0,0x85,0x79,0xdb,0x54,0x28,0xd2,0xa5,0xdc,0x1c,0x5c,0x9d,0x63
+};
+
+/**
+ * SHA512 hash of 1-byte data 0x11 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA512_1BYTE_DATA_WITH_EVENT[] = {
+	0xa8,0x65,0x7a,0xd9,0x40,0x54,0x8f,0x9c,0x3b,0x88,0x49,0x0f,0xd4,0x21,0x4e,0xee,
+	0x7c,0xe6,0x34,0x77,0x0f,0xe6,0xd0,0xba,0x81,0xfd,0x5f,0x21,0xae,0xa7,0xdc,0x3f,
+	0xb3,0x94,0x4f,0xa2,0x9b,0x49,0xfa,0x01,0x6d,0x09,0x54,0x63,0xf0,0x38,0x38,0xe2,
+	0x1a,0xc1,0xbf,0xd2,0x28,0x19,0xe6,0x32,0xcc,0xb9,0x98,0x8c,0xef,0x24,0x11,0xc9
+};
+
+/**
+ * SHA512 hash of 1-byte data 0x11 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA512_1BYTE_DATA_VERSIONED[] = {
+	0x58,0xfa,0xa7,0x52,0x29,0x91,0x45,0x7d,0x08,0x98,0xb3,0xe7,0xe0,0xd7,0xfb,0xfe,
+	0x04,0xb4,0xa2,0x38,0xae,0x2f,0xc6,0x3f,0x76,0xdd,0x42,0x95,0x8e,0xf9,0x6a,0x13,
+	0xa6,0xe0,0x9f,0xda,0x02,0x3c,0x7d,0xae,0xa3,0x9e,0x98,0x74,0x93,0x98,0x0f,0xe5,
+	0xfc,0x3a,0x83,0x08,0x77,0xad,0x5e,0xeb,0xc9,0x65,0xf4,0x4f,0x4f,0xf7,0x2a,0xcf
+};
+
+/**
+ * SHA512 hash of 1-byte data 0x11 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA512_1BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0x30,0xfc,0xbb,0x03,0x59,0x24,0x3f,0x4d,0xb5,0x57,0x29,0xe0,0x99,0x2a,0x0e,0x46,
+	0xe8,0x68,0xe1,0x82,0xdf,0xab,0xac,0xec,0x62,0x7c,0x22,0x02,0xee,0x9f,0xe0,0xc6,
+	0x04,0x7d,0x42,0xc0,0x93,0xf0,0x68,0x57,0x3a,0xc8,0x8e,0xb7,0x3d,0xc8,0xe6,0xaa,
+	0x3a,0x17,0xad,0xe4,0xbb,0x39,0xce,0x1d,0xe2,0x48,0xe4,0x5b,0x47,0xdd,0x40,0xc2
+};
+
+/**
+ * SHA512 hash of 2-byte data 0x1122.
+ */
+const uint8_t PCR_TESTING_SHA512_2BYTE_DATA[] = {
+	0x5c,0xdd,0xf8,0x99,0xff,0xbe,0x6b,0x2f,0x77,0x5a,0x41,0x18,0x16,0x2d,0xfc,0x70,
+	0x56,0xca,0xb5,0x9c,0x06,0xc7,0xaf,0x27,0x4e,0x9f,0xef,0xaa,0x8a,0xf0,0x32,0x10,
+	0x58,0x05,0x81,0x8b,0x25,0xb6,0x09,0x84,0xff,0x09,0xc1,0x9f,0x97,0xae,0x5e,0xbf,
+	0x27,0x13,0xa1,0x46,0xf8,0x1f,0x4a,0x9e,0x58,0x02,0xa4,0x9d,0xef,0x48,0xcc,0xa1
+};
+
+/**
+ * SHA512 hash of 2-byte data 0x1122 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA512_2BYTE_DATA_WITH_EVENT[] = {
+	0xbf,0x3c,0xaf,0x00,0xdd,0x07,0xaa,0xf1,0x74,0xab,0x99,0x9c,0x3d,0x74,0x68,0xc3,
+	0x4c,0xfd,0x24,0xd2,0x64,0x8b,0x94,0xb3,0x28,0x62,0x5c,0x01,0x4e,0xc4,0xd3,0x79,
+	0x3a,0x8c,0x20,0xe1,0xf7,0x71,0xcb,0x65,0x55,0xe2,0x76,0x21,0x28,0x47,0xc4,0x60,
+	0x62,0x06,0x2c,0xb2,0xb6,0x2d,0x2e,0xd0,0xca,0x4d,0xfd,0xb0,0xc1,0x1b,0x4c,0x77
+};
+
+/**
+ * SHA512 hash of 2-byte data 0x1122 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA512_2BYTE_DATA_VERSIONED[] = {
+	0xc3,0x74,0x2a,0x49,0x83,0xb1,0x63,0xf5,0xa8,0xbd,0x3f,0x1a,0x84,0x01,0x86,0x77,
+	0x51,0x88,0xc6,0x43,0x62,0xa4,0x20,0x10,0xf5,0xb7,0x52,0x3e,0xf2,0x6d,0x1a,0x0f,
+	0x3c,0x93,0x5a,0x6d,0x49,0x41,0xe9,0x4b,0x96,0xbb,0x3d,0x06,0x2c,0xe7,0xe0,0xdd,
+	0x3d,0x7b,0xe8,0x22,0x20,0x9e,0x84,0x58,0xc5,0x6e,0x29,0x1a,0xeb,0x29,0x54,0x3d
+};
+
+/**
+ * SHA512 hash of 2-byte data 0x1122 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA512_2BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0xa3,0x20,0xcc,0xd6,0xe1,0x85,0x94,0xd7,0xe5,0xc8,0xf6,0x34,0x80,0x02,0xcc,0x71,
+	0x1e,0x55,0xaa,0x39,0x42,0x95,0xd6,0xcb,0x7c,0xc6,0xa4,0xe1,0x7a,0x19,0x09,0x6d,
+	0xf0,0xa5,0x00,0x63,0xe2,0x78,0x46,0xab,0xc0,0xe5,0xd5,0x6d,0x03,0x9f,0x44,0x43,
+	0x6b,0x43,0xa1,0xb0,0xe5,0x67,0x89,0x41,0xe2,0x67,0xab,0xec,0x6a,0xd3,0x02,0xec
+};
+
+/**
+ * SHA512 hash of 4-byte data 0x11223344.
+ */
+const uint8_t PCR_TESTING_SHA512_4BYTE_DATA[] = {
+	0x1a,0x7f,0x65,0x62,0xdc,0x41,0x82,0xb6,0x12,0x19,0xca,0x86,0xc7,0x01,0x21,0xaa,
+	0x91,0x0e,0x42,0xf9,0x49,0x61,0xbe,0x3e,0xcd,0x0a,0x2f,0xf4,0x12,0x4e,0xd4,0x13,
+	0x1b,0x08,0xaf,0xa4,0x41,0xf5,0x81,0xd4,0x63,0xcd,0x30,0x26,0x65,0x69,0xb9,0x88,
+	0xfe,0x3c,0xa5,0x3a,0x9a,0x43,0xfd,0x6c,0x64,0x2a,0x7f,0xb9,0xc1,0x3b,0x05,0x7b
+};
+
+/**
+ * SHA512 hash of 4-byte data 0x11223344 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA512_4BYTE_DATA_WITH_EVENT[] = {
+	0xf8,0x08,0x20,0xa0,0x77,0x37,0x28,0xa3,0xf2,0xbe,0x9d,0xac,0xb2,0x03,0x48,0x41,
+	0xa5,0xfd,0xbc,0xf1,0xb6,0x1a,0x19,0xcb,0x24,0xee,0x03,0x35,0xc1,0xc7,0x78,0x49,
+	0xd4,0x52,0xb3,0x16,0x7e,0xe5,0xa2,0xad,0x0c,0xd2,0x3d,0xf1,0xc9,0x02,0x76,0x0c,
+	0xae,0x89,0x14,0xfc,0xa9,0x75,0xde,0x43,0xd5,0xb6,0xaf,0x79,0x09,0xcd,0xd9,0x79
+};
+
+/**
+ * SHA512 hash of 4-byte data 0x11223344 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED[] = {
+	0x44,0x23,0xed,0x99,0xe4,0xc1,0xee,0x3d,0x51,0x6a,0xc4,0x6e,0xc7,0x2d,0x1b,0x4b,
+	0x7a,0x6f,0x3b,0xca,0x42,0x50,0xc1,0x23,0x4d,0xf6,0x60,0xb1,0x31,0x9d,0x64,0xae,
+	0x53,0x51,0xed,0xfd,0x74,0xa3,0xe1,0x70,0x5e,0x6b,0x62,0xb7,0x3b,0xea,0x0d,0xca,
+	0x8b,0x10,0xc9,0x09,0xcd,0x99,0xd8,0x85,0x40,0x62,0xcd,0x0f,0xc2,0xd0,0x8f,0x6e
+};
+
+/**
+ * SHA512 hash of 4-byte data 0x11223344 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0xe9,0xaa,0x73,0x8c,0xe8,0x5c,0xc5,0xb8,0x70,0xf1,0xef,0x02,0x99,0x6f,0x30,0x75,
+	0x99,0x11,0xee,0x85,0x60,0x7c,0x26,0x54,0x86,0x87,0xce,0x41,0xb1,0x9c,0x92,0x73,
+	0xae,0xa4,0x89,0x9a,0xc7,0x2a,0x38,0xb0,0x78,0x9e,0xf8,0x53,0x7b,0xd6,0x8c,0xa5,
+	0xb8,0xf4,0x61,0x8f,0x16,0x12,0x52,0x9c,0x6a,0x40,0x27,0x79,0x6d,0x86,0xa4,0x5c
+};
+
+/**
+ * SHA512 hash of 8-byte data 0x1122334455667788.
+ */
+const uint8_t PCR_TESTING_SHA512_8BYTE_DATA[] = {
+	0x02,0x19,0x9a,0x71,0xd7,0x2c,0x35,0xba,0x7f,0x20,0x34,0x53,0x08,0x82,0x85,0x45,
+	0x78,0x61,0x1d,0x05,0x98,0x03,0xf5,0x0f,0xf4,0x70,0xbc,0xed,0xee,0xde,0xe3,0x30,
+	0xbc,0xaa,0x22,0xf9,0xff,0x42,0x5a,0xb1,0x13,0xdf,0xcd,0x84,0xae,0x1d,0x9c,0x29,
+	0x57,0x8f,0x07,0x12,0xe8,0xc2,0xbe,0x87,0xab,0xfe,0xa9,0xfb,0x28,0x05,0x6d,0xff
+};
+
+/**
+ * SHA512 hash of 8-byte data 0x1122334455667788 with event type 0xaabbccdd.
+ */
+const uint8_t PCR_TESTING_SHA512_8BYTE_DATA_WITH_EVENT[] = {
+	0x16,0xef,0x5c,0x5f,0x09,0xf2,0xc8,0x22,0xc2,0x34,0x87,0x05,0xda,0x61,0x19,0xc1,
+	0x6a,0x08,0x7c,0x74,0x34,0x4f,0x62,0x90,0x7f,0x97,0xff,0x1e,0xa2,0xbe,0xfd,0x7e,
+	0xf8,0x18,0x66,0xfa,0x4e,0x21,0xde,0x03,0x94,0x34,0x95,0x12,0xd4,0x2f,0x42,0xa9,
+	0x2e,0x6f,0xa6,0x85,0x3d,0xa6,0xd5,0x5b,0xa2,0x7a,0x33,0x0b,0x78,0x80,0x7f,0xdc
+};
+
+/**
+ * SHA512 hash of 8-byte data 0x1122334455667788 with version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA512_8BYTE_DATA_VERSIONED[] = {
+	0x1f,0x87,0x79,0x0b,0x54,0xda,0xd2,0x8a,0xc3,0xbf,0x53,0x54,0x70,0x66,0x81,0x24,
+	0xe7,0x02,0xeb,0x13,0x12,0xa0,0x5c,0x84,0x1e,0xcc,0x6e,0xe4,0x47,0x26,0xe6,0xf9,
+	0xc5,0xd4,0x71,0xda,0xc4,0xf1,0x8e,0xad,0x0a,0x81,0x3d,0x58,0x65,0x99,0xac,0xcf,
+	0x20,0x58,0x58,0x5f,0x30,0xbe,0x73,0xe9,0x91,0x1f,0x7d,0xd7,0x9d,0x6d,0xd9,0x1e
+};
+
+/**
+ * SHA512 hash of 8-byte data 0x1122334455667788 with event type 0xaabbccdd and version 0x24.
+ */
+const uint8_t PCR_TESTING_SHA512_8BYTE_DATA_VERSIONED_WITH_EVENT[] = {
+	0x14,0x6d,0x84,0x2a,0xb7,0xad,0x5e,0x9e,0xe9,0x87,0xa1,0x7a,0x53,0x03,0xf6,0x63,
+	0x0a,0x6a,0x22,0x40,0x13,0x0c,0x9f,0xf5,0xd4,0x1a,0xfb,0x6d,0x99,0x06,0x57,0x7f,
+	0xf6,0x3a,0xd3,0xed,0x90,0xdd,0xd9,0x48,0x85,0x42,0x01,0x35,0x5e,0x79,0x8d,0x23,
+	0x0d,0xb4,0x47,0x60,0xc0,0x6d,0x4f,0x89,0x73,0xbb,0x35,0x6b,0xab,0xa2,0x7b,0xd6
+};
+
+/**
  * SHA512 hash of HASH_TESTING_FULL_BLOCK_512 including event type 0xaabbccdd.
  */
 const uint8_t PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_WITH_EVENT[] = {
@@ -301,6 +733,7 @@ const uint8_t PCR_TESTING_SHA512_PCR_NONE_VALID_MEASUREMENT1[] = {
 struct pcr_testing {
 	HASH_TESTING_ENGINE hash;				/**< Hash engine for testing measurements. */
 	struct hash_engine_mock hash_mock;		/**< Mock for hash operations. */
+	struct flash_mock flash;				/**< Mock for flash operations. */
 	struct pcr_bank test;					/**< PCR under test. */
 };
 
@@ -320,6 +753,9 @@ static void pcr_testing_init_dependencies (CuTest *test, struct pcr_testing *pcr
 
 	status = hash_mock_init (&pcr->hash_mock);
 	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&pcr->flash);
+	CuAssertIntEquals (test, 0, status);
 }
 
 /**
@@ -333,6 +769,8 @@ static void pcr_testing_release_dependencies (CuTest *test, struct pcr_testing *
 	int status;
 
 	status = hash_mock_validate_and_release (&pcr->hash_mock);
+	status |= flash_mock_validate_and_release (&pcr->flash);
+
 	CuAssertIntEquals (test, 0, status);
 
 	HASH_TESTING_ENGINE_RELEASE (&pcr->hash);
@@ -385,7 +823,7 @@ static void pcr_testing_release (CuTest *test, struct pcr_testing *pcr)
  *
  * @return The number of bytes returned.
  */
-static int pcr_test_measurement_data_callback (void *context, size_t offset, uint8_t *buffer,
+static int pcr_testing_measurement_data_callback (void *context, size_t offset, uint8_t *buffer,
 	size_t length, uint32_t *total_len)
 {
 	int bytes = (4 - offset);
@@ -403,6 +841,23 @@ static int pcr_test_measurement_data_callback (void *context, size_t offset, uin
 	*total_len = 4;
 
 	return bytes;
+}
+
+/**
+ * Callback function to test callback based PCR measurement data hashing.
+ *
+ * @param context The data to hash in the callback.  It is assumed to be 4 bytes of data.
+ * @param hash The hash engine to use for hashing.
+ *
+ * @return 0 if the hash was successful or an error code.
+ */
+static int pcr_testing_measurement_hash_callback (void *context, struct hash_engine *hash)
+{
+	if (context == NULL) {
+		return PCR_NO_MEMORY;
+	}
+
+	return hash->update (hash, context, 4);
 }
 
 /*******************
@@ -988,7 +1443,7 @@ static void pcr_test_update_buffer_sha256_with_event (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
@@ -1017,7 +1472,7 @@ static void pcr_test_update_buffer_sha256_with_event_no_data (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 1, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, NULL, 0, true);
@@ -1091,7 +1546,7 @@ static void pcr_test_update_buffer_sha384_with_event (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
 
-	status = pcr_set_event_type (&pcr.test, 1, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, HASH_TESTING_FULL_BLOCK_512,
@@ -1120,7 +1575,7 @@ static void pcr_test_update_buffer_sha384_with_event_no_data (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
 
-	status = pcr_set_event_type (&pcr.test, 1, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, NULL, 0, true);
@@ -1195,7 +1650,7 @@ static void pcr_test_update_buffer_sha512_with_event (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
@@ -1224,7 +1679,7 @@ static void pcr_test_update_buffer_sha512_with_event_no_data (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
 
-	status = pcr_set_event_type (&pcr.test, 1, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, NULL, 0, true);
@@ -1252,7 +1707,7 @@ static void pcr_test_update_buffer_with_event_then_update_digest (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
@@ -1464,7 +1919,7 @@ static void pcr_test_update_buffer_with_event_event_hash_fail (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
@@ -1499,7 +1954,7 @@ static void pcr_test_update_buffer_with_event_update_buffer_hash_fail (CuTest *t
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
@@ -1538,7 +1993,7 @@ static void pcr_test_update_buffer_with_event_finish_hash_fail (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
@@ -1672,7 +2127,7 @@ static void pcr_test_update_versioned_buffer_sha256_with_event (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 3, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 3, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3, HASH_TESTING_FULL_BLOCK_512,
@@ -1780,7 +2235,7 @@ static void pcr_test_update_versioned_buffer_sha384_with_event (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
 
-	status = pcr_set_event_type (&pcr.test, 3, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 3, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3, HASH_TESTING_FULL_BLOCK_512,
@@ -1889,7 +2344,7 @@ static void pcr_test_update_versioned_buffer_sha512_with_event (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
 
-	status = pcr_set_event_type (&pcr.test, 3, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 3, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3, HASH_TESTING_FULL_BLOCK_512,
@@ -1921,7 +2376,7 @@ static void pcr_test_update_versioned_buffer_with_event_then_update_digest (CuTe
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 3, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 3, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3, HASH_TESTING_FULL_BLOCK_512,
@@ -2068,7 +2523,7 @@ static void pcr_test_update_versioned_buffer_with_event_update_hash_fail (CuTest
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
@@ -2220,7 +2675,7 @@ static void pcr_test_update_versioned_buffer_update_digest_fail (CuTest *test)
 	pcr_testing_release (test, &pcr);
 }
 
-static void pcr_test_set_event_type_null (CuTest *test)
+static void pcr_test_set_tcg_event_type_null (CuTest *test)
 {
 	struct pcr_testing pcr;
 	int status;
@@ -2229,13 +2684,13 @@ static void pcr_test_set_event_type_null (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (NULL, 2, 0x0a);
+	status = pcr_set_tcg_event_type (NULL, 2, 0x0a);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 
 	pcr_testing_release (test, &pcr);
 }
 
-static void pcr_test_set_event_type_invalid_index (CuTest *test)
+static void pcr_test_set_tcg_event_type_invalid_index (CuTest *test)
 {
 	struct pcr_testing pcr;
 	int status;
@@ -2244,13 +2699,13 @@ static void pcr_test_set_event_type_invalid_index (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 1, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 2, 0x0a);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, 0x0a);
 	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
 
 	pcr_testing_release (test, &pcr);
 }
 
-static void pcr_test_get_event_type (CuTest *test)
+static void pcr_test_get_tcg_event_type (CuTest *test)
 {
 	struct pcr_testing pcr;
 	uint32_t event;
@@ -2260,17 +2715,17 @@ static void pcr_test_get_event_type (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 2, 0x0a);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, 0x0a);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_get_event_type (&pcr.test, 2, &event);
+	status = pcr_get_tcg_event_type (&pcr.test, 2, &event);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0x0a, event);
 
 	pcr_testing_release (test, &pcr);
 }
 
-static void pcr_test_get_event_type_explicit (CuTest *test)
+static void pcr_test_get_tcg_event_type_explicit (CuTest *test)
 {
 	struct pcr_testing pcr;
 	uint32_t event;
@@ -2280,17 +2735,17 @@ static void pcr_test_get_event_type_explicit (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 0, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 0, 0x0a);
+	status = pcr_set_tcg_event_type (&pcr.test, 0, 0x0a);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_get_event_type (&pcr.test, 0, &event);
+	status = pcr_get_tcg_event_type (&pcr.test, 0, &event);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0x0a, event);
 
 	pcr_testing_release (test, &pcr);
 }
 
-static void pcr_test_get_event_type_null (CuTest *test)
+static void pcr_test_get_tcg_event_type_null (CuTest *test)
 {
 	struct pcr_testing pcr;
 	uint32_t event;
@@ -2300,16 +2755,16 @@ static void pcr_test_get_event_type_null (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_get_event_type (NULL, 2, &event);
+	status = pcr_get_tcg_event_type (NULL, 2, &event);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 
-	status = pcr_get_event_type (&pcr.test, 2, NULL);
+	status = pcr_get_tcg_event_type (&pcr.test, 2, NULL);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 
 	pcr_testing_release (test, &pcr);
 }
 
-static void pcr_test_get_event_type_invalid_index (CuTest *test)
+static void pcr_test_get_tcg_event_type_invalid_index (CuTest *test)
 {
 	struct pcr_testing pcr;
 	uint32_t event;
@@ -2319,7 +2774,154 @@ static void pcr_test_get_event_type_invalid_index (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 1, HASH_TYPE_SHA256);
 
-	status = pcr_get_event_type (&pcr.test, 2, &event);
+	status = pcr_get_tcg_event_type (&pcr.test, 2, &event);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_set_dmtf_value_type (CuTest *test)
+{
+	struct pcr_testing pcr;
+	enum pcr_dmtf_value_type type;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_dmtf_value_type (&pcr.test, 2, PCR_DMTF_VALUE_TYPE_FIRMWARE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_dmtf_value_type (&pcr.test, 2, &type);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_FIRMWARE, type);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_set_dmtf_value_type_change_type (CuTest *test)
+{
+	struct pcr_testing pcr;
+	enum pcr_dmtf_value_type type;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_dmtf_value_type (&pcr.test, 4, PCR_DMTF_VALUE_TYPE_FIRMWARE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_dmtf_value_type (&pcr.test, 4, &type);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_FIRMWARE, type);
+
+	status = pcr_set_dmtf_value_type (&pcr.test, 4, PCR_DMTF_VALUE_TYPE_FW_CONFIG);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_dmtf_value_type (&pcr.test, 4, &type);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_FW_CONFIG, type);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_set_dmtf_value_type_null (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_dmtf_value_type (NULL, 2, PCR_DMTF_VALUE_TYPE_FIRMWARE);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_set_dmtf_value_type_invalid_index (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_dmtf_value_type (&pcr.test, 5, PCR_DMTF_VALUE_TYPE_FIRMWARE);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_set_dmtf_value_type_invalid_type (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_dmtf_value_type (&pcr.test, 2, PCR_DMTF_VALUE_TYPE_UNUSED);
+	CuAssertIntEquals (test, PCR_INVALID_VALUE_TYPE, status);
+
+	status = pcr_set_dmtf_value_type (&pcr.test, 2, PCR_DMTF_VALUE_TYPE_RESERVED);
+	CuAssertIntEquals (test, PCR_INVALID_VALUE_TYPE, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_get_dmtf_value_type_unset (CuTest *test)
+{
+	struct pcr_testing pcr;
+	enum pcr_dmtf_value_type type;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_get_dmtf_value_type (&pcr.test, 2, &type);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_ROM, type);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_get_dmtf_value_type_null (CuTest *test)
+{
+	struct pcr_testing pcr;
+	enum pcr_dmtf_value_type type;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_get_dmtf_value_type (NULL, 2, &type);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_get_dmtf_value_type (&pcr.test, 2, NULL);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_get_dmtf_value_type_invalid_index (CuTest *test)
+{
+	struct pcr_testing pcr;
+	enum pcr_dmtf_value_type type;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_get_dmtf_value_type (&pcr.test, 5, &type);
 	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
 
 	pcr_testing_release (test, &pcr);
@@ -3354,8 +3956,14 @@ static void pcr_test_set_measurement_data (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
+	status = pcr_is_measurement_data_available (&pcr.test, 2);
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_is_measurement_data_available (&pcr.test, 2);
+	CuAssertIntEquals (test, 1, status);
 
 	status = pcr_get_measurement (&pcr.test, 2, &measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -3365,8 +3973,14 @@ static void pcr_test_set_measurement_data (CuTest *test)
 	measurement_data.data.memory.buffer = data_mem;
 	measurement_data.data.memory.length = sizeof (data_mem);
 
+	status = pcr_is_measurement_data_available (&pcr.test, 4);
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_set_measurement_data (&pcr.test, 4, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_is_measurement_data_available (&pcr.test, 2);
+	CuAssertIntEquals (test, 1, status);
 
 	status = pcr_get_measurement (&pcr.test, 4, &measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
@@ -3418,11 +4032,17 @@ static void pcr_test_set_measurement_data_remove (CuTest *test)
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
+	status = pcr_is_measurement_data_available (&pcr.test, 2);
+	CuAssertIntEquals (test, 1, status);
+
 	status = pcr_get_measurement (&pcr.test, 2, &measurement);
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 	CuAssertPtrEquals (test, &measurement_data, (void*) measurement.measured_data);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_is_measurement_data_available (&pcr.test, 2);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement (&pcr.test, 2, &measurement);
@@ -3506,6 +4126,36 @@ static void pcr_test_set_measurement_data_bad_measurement_data_type (CuTest *tes
 	pcr_testing_release (test, &pcr);
 }
 
+static void pcr_test_is_measurement_data_available_null (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_is_measurement_data_available (NULL, 2);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_is_measurement_data_available_bad_measurement_index (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_is_measurement_data_available (&pcr.test, 5);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
 static void pcr_test_get_measurement_data_1byte (CuTest *test)
 {
 	struct pcr_testing pcr;
@@ -3513,7 +4163,7 @@ static void pcr_test_get_measurement_data_1byte (CuTest *test)
 	uint8_t data = 0x11;
 	uint8_t buffer[4];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -3542,7 +4192,7 @@ static void pcr_test_get_measurement_data_1byte_zero_length (CuTest *test)
 	struct pcr_measured_data measurement_data;
 	uint8_t data = 0x11;
 	uint8_t buffer[1];
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -3569,7 +4219,7 @@ static void pcr_test_get_measurement_data_1byte_invalid_offset (CuTest *test)
 	uint8_t data = 0x11;
 	uint8_t buffer[4];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -3597,7 +4247,7 @@ static void pcr_test_get_measurement_data_1byte_include_event (CuTest *test)
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -3610,7 +4260,7 @@ static void pcr_test_get_measurement_data_1byte_include_event (CuTest *test)
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, &measurement_data.data.value_1byte, 1,
@@ -3632,7 +4282,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_offset (CuTest *te
 	struct pcr_measured_data measurement_data;
 	uint8_t data = 0x11;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[5] = {0};
 	size_t length = sizeof (buffer);
 	size_t offset = 1;
@@ -3648,7 +4298,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_offset (CuTest *te
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, &measurement_data.data.value_1byte, 1,
@@ -3670,7 +4320,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_with_event (CuTest
 	struct pcr_measured_data measurement_data;
 	uint8_t data = 0x11;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[5] = {0};
 	uint8_t zero[1] = {0};
 	int status;
@@ -3685,7 +4335,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_with_event (CuTest
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, &measurement_data.data.value_1byte, 1,
@@ -3711,7 +4361,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_with_event_offset 
 	struct pcr_measured_data measurement_data;
 	uint8_t data = 0x11;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[5] = {0};
 	uint8_t zero[3] = {0};
 	size_t offset = 2;
@@ -3727,7 +4377,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_with_event_offset 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, &measurement_data.data.value_1byte, 1,
@@ -3755,7 +4405,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_with_event_small_b
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[5] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -3768,7 +4418,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_with_event_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, &measurement_data.data.value_1byte, 1,
@@ -3791,7 +4441,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_with_event_small_b
 	struct pcr_measured_data measurement_data;
 	uint8_t data = 0x11;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[4] = {0};
 	size_t offset = 1;
 	int status;
@@ -3806,7 +4456,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_with_event_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, &measurement_data.data.value_1byte, 1,
@@ -3832,7 +4482,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_offset_with_data (
 	uint8_t buffer[5] = {0};
 	uint8_t zero[4] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
@@ -3846,7 +4496,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_offset_with_data (
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, &measurement_data.data.value_1byte, 1,
@@ -3870,7 +4520,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_invalid_offset (Cu
 	struct pcr_measured_data measurement_data;
 	uint8_t data = 0x11;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[5] = {0};
 	uint8_t zero[5] = {0};
 	size_t length = sizeof (buffer);
@@ -3887,7 +4537,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_invalid_offset (Cu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, &measurement_data.data.value_1byte, 1,
@@ -3911,7 +4561,7 @@ static void pcr_test_get_measurement_data_1byte_include_version (CuTest *test)
 	uint8_t data = 0x11;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	int status;
 
@@ -3945,7 +4595,7 @@ static void pcr_test_get_measurement_data_1byte_include_version_offset (CuTest *
 	uint8_t data = 0x11;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	size_t offset = 1;
 	int status;
@@ -3980,7 +4630,7 @@ static void pcr_test_get_measurement_data_1byte_include_version_with_version (Cu
 	uint8_t buffer[5] = {0};
 	uint8_t zero[4] = {0};
 	uint8_t version = 0x24;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4015,7 +4665,7 @@ static void pcr_test_get_measurement_data_1byte_include_version_invalid_offset (
 	uint8_t data = 0x11;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	int status;
 
@@ -4047,7 +4697,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version (CuTest *t
 	uint8_t data = 0x11;
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	int status;
@@ -4062,7 +4712,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version (CuTest *t
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4086,7 +4736,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_offset (Cu
 	uint8_t data = 0x11;
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 2;
@@ -4102,7 +4752,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_offset (Cu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4131,7 +4781,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	uint8_t zero[5] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4144,7 +4794,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4175,7 +4825,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -4189,7 +4839,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4220,7 +4870,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_versi
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
@@ -4234,7 +4884,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4259,7 +4909,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	uint8_t zero[6] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4272,7 +4922,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4302,7 +4952,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4315,7 +4965,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4345,7 +4995,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4358,7 +5008,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4388,7 +5038,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4401,7 +5051,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4430,7 +5080,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_versi
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
@@ -4444,7 +5094,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4471,7 +5121,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_data 
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
@@ -4485,7 +5135,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_with_data 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4509,7 +5159,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_invalid_of
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
@@ -4523,7 +5173,7 @@ static void pcr_test_get_measurement_data_1byte_include_event_version_invalid_of
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4544,7 +5194,7 @@ static void pcr_test_get_measurement_data_2byte (CuTest *test)
 	uint16_t data = 0x1122;
 	uint8_t buffer[2];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4573,7 +5223,7 @@ static void pcr_test_get_measurement_data_2byte_zero_length (CuTest *test)
 	struct pcr_measured_data measurement_data;
 	uint16_t data = 0x1122;
 	uint8_t buffer[2];
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4600,7 +5250,7 @@ static void pcr_test_get_measurement_data_2byte_with_offset (CuTest *test)
 	uint16_t data = 0x1122;
 	uint8_t buffer[2];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4630,7 +5280,7 @@ static void pcr_test_get_measurement_data_2byte_small_buffer (CuTest *test)
 	uint16_t data = 0x1122;
 	uint8_t buffer[1];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4659,7 +5309,7 @@ static void pcr_test_get_measurement_data_2byte_small_buffer_offset (CuTest *tes
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x1122;
 	uint8_t buffer[2];
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4686,7 +5336,7 @@ static void pcr_test_get_measurement_data_2byte_invalid_offset (CuTest *test)
 	uint16_t data = 0x1122;
 	uint8_t buffer[2];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4712,7 +5362,7 @@ static void pcr_test_get_measurement_data_2byte_include_event (CuTest *test)
 	struct pcr_measured_data measurement_data;
 	uint16_t data = 0x1122;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[6];
 	size_t length = sizeof (buffer);
 	int status;
@@ -4727,7 +5377,7 @@ static void pcr_test_get_measurement_data_2byte_include_event (CuTest *test)
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4755,7 +5405,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_offset (CuTest *te
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[6] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 1;
 	int status;
 
@@ -4769,7 +5419,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_offset (CuTest *te
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4799,7 +5449,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_small_buffer (CuTe
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[6] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -4812,7 +5462,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_small_buffer (CuTe
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4837,7 +5487,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_small_buffer_offse
 	struct pcr_measured_data measurement_data;
 	uint16_t data = 0x1122;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[6] = {0};
 	uint8_t zero[3] = {0};
 	size_t offset = 2;
@@ -4853,7 +5503,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_small_buffer_offse
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4882,7 +5532,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_event (CuTest
 	struct pcr_measured_data measurement_data;
 	uint16_t data = 0x1122;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[6] = {0};
 	uint8_t zero[2] = {0};
 	int status;
@@ -4897,7 +5547,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_event (CuTest
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4923,7 +5573,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_event_offset 
 	struct pcr_measured_data measurement_data;
 	uint16_t data = 0x1122;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[6] = {0};
 	uint8_t zero[4] = {0};
 	size_t offset = 2;
@@ -4939,7 +5589,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_event_offset 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -4965,7 +5615,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_event_small_b
 	struct pcr_measured_data measurement_data;
 	uint16_t data = 0x1122;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[6] = {0};
 	uint8_t zero[4] = {0};
 	int status;
@@ -4980,7 +5630,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_event_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5007,7 +5657,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_event_small_b
 	struct pcr_measured_data measurement_data;
 	uint16_t data = 0x1122;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[6] = {0};
 	uint8_t zero[4] = {0};
 	size_t offset = 1;
@@ -5023,7 +5673,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_event_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5049,7 +5699,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_data (CuTest 
 	struct pcr_measured_data measurement_data;
 	uint16_t data = 0x1122;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[6] = {0};
 	uint8_t zero[4] = {0};
 	size_t length = sizeof (buffer);
@@ -5066,7 +5716,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_data (CuTest 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5095,7 +5745,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_data_offset (
 	uint8_t buffer[6] = {0};
 	uint8_t zero[5] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
@@ -5109,7 +5759,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_data_offset (
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5135,7 +5785,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_data_small_bu
 	struct pcr_measured_data measurement_data;
 	uint16_t data = 0x1122;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[6] = {0};
 	uint8_t zero[5] = {0};
 	size_t offset = 4;
@@ -5151,7 +5801,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_with_data_small_bu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5180,7 +5830,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_invalid_offset (Cu
 	uint8_t buffer[6] = {0};
 	uint8_t zero[6] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
@@ -5194,7 +5844,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_invalid_offset (Cu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5218,7 +5868,7 @@ static void pcr_test_get_measurement_data_2byte_include_version (CuTest *test)
 	uint16_t data = 0x1122;
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	int status;
 
@@ -5254,7 +5904,7 @@ static void pcr_test_get_measurement_data_2byte_include_version_offset (CuTest *
 	uint16_t data = 0x1122;
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	size_t offset = 1;
 	int status;
@@ -5290,7 +5940,7 @@ static void pcr_test_get_measurement_data_2byte_include_version_small_buffer (Cu
 	uint16_t data = 0x1122;
 	uint8_t buffer[10];
 	uint8_t version = 0x24;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -5326,7 +5976,7 @@ static void pcr_test_get_measurement_data_2byte_include_version_small_buffer_off
 	uint8_t buffer[10];
 	uint8_t version = 0x24;
 	size_t offset = 1;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -5360,7 +6010,7 @@ static void pcr_test_get_measurement_data_2byte_include_version_invalid_offset (
 	uint16_t data = 0x1122;
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	size_t offset = 3;
 	int status;
@@ -5395,7 +6045,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version (CuTest *t
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -5408,7 +6058,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version (CuTest *t
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5436,7 +6086,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_offset (Cu
 	uint16_t data = 0x1122;
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 2;
@@ -5452,7 +6102,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_offset (Cu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5482,7 +6132,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_small_buff
 	uint8_t zero[4] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -5495,7 +6145,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_small_buff
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5529,7 +6179,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_small_buff
 	uint8_t zero[6] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -5543,7 +6193,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_small_buff
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5577,7 +6227,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	uint8_t zero[5] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -5590,7 +6240,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5621,7 +6271,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -5635,7 +6285,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5665,7 +6315,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_versi
 	uint8_t buffer[10] = {0};
 	uint8_t zero[7] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 4;
@@ -5681,7 +6331,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5712,7 +6362,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_versi
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
@@ -5726,7 +6376,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5756,7 +6406,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	uint8_t zero[6] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -5769,7 +6419,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5799,7 +6449,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -5813,7 +6463,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5843,7 +6493,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -5856,7 +6506,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5886,7 +6536,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -5900,7 +6550,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5929,7 +6579,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_versi
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
@@ -5943,7 +6593,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -5971,7 +6621,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_data 
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
@@ -5985,7 +6635,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_data 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6016,7 +6666,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_data_
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
@@ -6030,7 +6680,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_data_
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6060,7 +6710,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_data_
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
@@ -6074,7 +6724,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_with_data_
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6104,7 +6754,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_invalid_of
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 7;
 	int status;
 
@@ -6118,7 +6768,7 @@ static void pcr_test_get_measurement_data_2byte_include_event_version_invalid_of
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6139,7 +6789,7 @@ static void pcr_test_get_measurement_data_4byte (CuTest *test)
 	uint32_t data = 0x11223344;
 	uint8_t buffer[4];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6168,7 +6818,7 @@ static void pcr_test_get_measurement_data_4byte_zero_length (CuTest *test)
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint8_t buffer[4];
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6195,7 +6845,7 @@ static void pcr_test_get_measurement_data_4byte_offset (CuTest *test)
 	uint32_t data = 0x11223344;
 	uint8_t buffer[4];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6225,7 +6875,7 @@ static void pcr_test_get_measurement_data_4byte_small_buffer (CuTest *test)
 	uint32_t data = 0x11223344;
 	uint8_t buffer[2];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6255,7 +6905,7 @@ static void pcr_test_get_measurement_data_4byte_small_buffer_offset (CuTest *tes
 	uint32_t data = 0x11223344;
 	uint8_t buffer[2];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6285,7 +6935,7 @@ static void pcr_test_get_measurement_data_4byte_invalid_offset (CuTest *test)
 	uint32_t data = 0x11223344;
 	uint8_t buffer[2];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6313,7 +6963,7 @@ static void pcr_test_get_measurement_data_4byte_include_event (CuTest *test)
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6326,7 +6976,7 @@ static void pcr_test_get_measurement_data_4byte_include_event (CuTest *test)
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6354,7 +7004,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_offset (CuTest *te
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[10] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -6368,7 +7018,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_offset (CuTest *te
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6397,7 +7047,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_small_buffer (CuTe
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[10] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6410,7 +7060,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_small_buffer (CuTe
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6436,7 +7086,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_small_buffer_offse
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[6] = {0};
 	size_t offset = 2;
@@ -6452,7 +7102,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_small_buffer_offse
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6481,7 +7131,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_event (CuTest
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[6] = {0};
 	int status;
@@ -6496,7 +7146,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_event (CuTest
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6522,7 +7172,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_event_offset 
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[8] = {0};
 	size_t offset = 2;
@@ -6538,7 +7188,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_event_offset 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6564,7 +7214,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_event_small_b
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[8] = {0};
 	int status;
@@ -6579,7 +7229,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_event_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6606,7 +7256,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_event_small_b
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[8] = {0};
 	size_t offset = 1;
@@ -6622,7 +7272,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_event_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6648,7 +7298,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_data (CuTest 
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[6] = {0};
 	size_t offset = 4;
@@ -6664,7 +7314,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_data (CuTest 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6690,7 +7340,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_data_offset (
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[7] = {0};
 	size_t offset = 5;
@@ -6706,7 +7356,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_data_offset (
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6732,7 +7382,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_data_small_bu
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[7] = {0};
 	size_t offset = 4;
@@ -6748,7 +7398,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_data_small_bu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6775,7 +7425,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_data_small_bu
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[8] = {0};
 	size_t offset = 5;
@@ -6791,7 +7441,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_with_data_small_bu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6817,7 +7467,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_invalid_offset (Cu
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[8] = {0};
 	uint8_t zero[8] = {0};
 	size_t length = sizeof (buffer);
@@ -6834,7 +7484,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_invalid_offset (Cu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -6859,7 +7509,7 @@ static void pcr_test_get_measurement_data_4byte_include_version (CuTest *test)
 	uint8_t buffer[10];
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6895,7 +7545,7 @@ static void pcr_test_get_measurement_data_4byte_include_version_small_buffer (Cu
 	uint8_t buffer[10] = {0};
 	uint8_t zero[6] = {0};
 	uint8_t version = 0x24;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6934,7 +7584,7 @@ static void pcr_test_get_measurement_data_4byte_include_version_with_version (Cu
 	uint8_t buffer[10] = {0};
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -6971,7 +7621,7 @@ static void pcr_test_get_measurement_data_4byte_include_version_with_data (CuTes
 	uint8_t zero[6] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 1;
 	int status;
 
@@ -7011,7 +7661,7 @@ static void pcr_test_get_measurement_data_4byte_include_version_with_data_offset
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -7052,7 +7702,7 @@ static void pcr_test_get_measurement_data_4byte_include_version_with_data_small_
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	size_t offset = 1;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -7092,7 +7742,7 @@ static void pcr_test_get_measurement_data_4byte_include_version_with_data_small_
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	size_t offset = 2;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -7130,7 +7780,7 @@ static void pcr_test_get_measurement_data_4byte_include_version_invalid_offset (
 	uint8_t buffer[10];
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
@@ -7164,7 +7814,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version (CuTest *t
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -7177,7 +7827,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version (CuTest *t
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7205,7 +7855,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_offset (Cu
 	uint32_t data = 0x11223344;
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 2;
@@ -7221,7 +7871,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_offset (Cu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7251,7 +7901,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_small_buff
 	uint8_t zero[3] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -7264,7 +7914,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_small_buff
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7298,7 +7948,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_small_buff
 	uint8_t zero[5] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -7312,7 +7962,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_small_buff
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7346,7 +7996,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	uint8_t zero[5] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -7359,7 +8009,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7390,7 +8040,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -7404,7 +8054,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7436,7 +8086,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_versi
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
@@ -7450,7 +8100,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7481,7 +8131,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_versi
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
@@ -7495,7 +8145,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7525,7 +8175,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	uint8_t zero[6] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -7538,7 +8188,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7568,7 +8218,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -7582,7 +8232,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7612,7 +8262,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -7625,7 +8275,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7655,7 +8305,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -7669,7 +8319,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7698,7 +8348,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_versi
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
@@ -7712,7 +8362,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7738,7 +8388,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_data 
 	uint8_t buffer[10] = {0};
 	uint8_t zero[6] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 5;
@@ -7754,7 +8404,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_data 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7783,7 +8433,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_data_
 	uint8_t buffer[10] = {0};
 	uint8_t zero[7] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 6;
@@ -7799,7 +8449,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_data_
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7829,7 +8479,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_data_
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
@@ -7843,7 +8493,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_data_
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7873,7 +8523,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_data_
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
@@ -7887,7 +8537,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_with_data_
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7914,7 +8564,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_invalid_of
 	uint32_t data = 0x11223344;
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 9;
@@ -7930,7 +8580,7 @@ static void pcr_test_get_measurement_data_4byte_include_event_version_invalid_of
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -7951,7 +8601,7 @@ static void pcr_test_get_measurement_data_8byte (CuTest *test)
 	uint64_t data = 0x1122334455667788;
 	uint8_t buffer[8];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -7980,7 +8630,7 @@ static void pcr_test_get_measurement_data_8byte_zero_length (CuTest *test)
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint8_t buffer[8];
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -8007,7 +8657,7 @@ static void pcr_test_get_measurement_data_8byte_offset (CuTest *test)
 	uint64_t data = 0x1122334455667788;
 	uint8_t buffer[8];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -8037,7 +8687,7 @@ static void pcr_test_get_measurement_data_8byte_small_buffer (CuTest *test)
 	uint64_t data = 0x1122334455667788;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -8067,7 +8717,7 @@ static void pcr_test_get_measurement_data_8byte_small_buffer_offset (CuTest *tes
 	uint64_t data = 0x1122334455667788;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -8097,7 +8747,7 @@ static void pcr_test_get_measurement_data_8byte_invalid_offset (CuTest *test)
 	uint64_t data = 0x1122334455667788;
 	uint8_t buffer[8];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -8123,7 +8773,7 @@ static void pcr_test_get_measurement_data_8byte_include_event (CuTest *test)
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15];
 	size_t length = sizeof (buffer);
 	int status;
@@ -8138,7 +8788,7 @@ static void pcr_test_get_measurement_data_8byte_include_event (CuTest *test)
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8164,7 +8814,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_offset (CuTest *te
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	size_t length = sizeof (buffer);
 	size_t offset = 2;
@@ -8180,7 +8830,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_offset (CuTest *te
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8207,7 +8857,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_small_buffer (CuTe
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[2] = {0};
 	size_t length = sizeof (data) + sizeof (event) - 2;
@@ -8223,7 +8873,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_small_buffer (CuTe
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8253,7 +8903,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_small_buffer_offse
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[7] = {0};
 	size_t offset = 2;
@@ -8270,7 +8920,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_small_buffer_offse
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8299,7 +8949,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_event (CuTest
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[11] = {0};
 	int status;
@@ -8314,7 +8964,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_event (CuTest
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8340,7 +8990,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_event_offset 
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[13] = {0};
 	size_t offset = 2;
@@ -8357,7 +9007,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_event_offset 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8383,7 +9033,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_event_small_b
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[13] = {0};
 	int status;
@@ -8398,7 +9048,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_event_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8425,7 +9075,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_event_small_b
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[13] = {0};
 	size_t offset = 1;
@@ -8441,7 +9091,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_event_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8467,7 +9117,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_data (CuTest 
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[7] = {0};
 	size_t length = sizeof (buffer);
@@ -8484,7 +9134,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_data (CuTest 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8510,7 +9160,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_data_offset (
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[8] = {0};
 	size_t length = sizeof (buffer);
@@ -8527,7 +9177,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_data_offset (
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8553,7 +9203,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_data_small_bu
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[8] = {0};
 	size_t offset = 4;
@@ -8569,7 +9219,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_data_small_bu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8596,7 +9246,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_data_small_bu
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[9] = {0};
 	size_t offset = 5;
@@ -8612,7 +9262,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_with_data_small_bu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8638,7 +9288,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_invalid_offset (Cu
 	struct pcr_measured_data measurement_data;
 	uint64_t data = 0x1122334455667788;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[15] = {0};
 	uint8_t zero[15] = {0};
 	size_t length = sizeof (buffer);
@@ -8655,7 +9305,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_invalid_offset (Cu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -8680,7 +9330,7 @@ static void pcr_test_get_measurement_data_8byte_include_version (CuTest *test)
 	uint8_t buffer[15];
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -8717,7 +9367,7 @@ static void pcr_test_get_measurement_data_8byte_include_version_small_buffer (Cu
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (version) + sizeof (data) - 1;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -8757,7 +9407,7 @@ static void pcr_test_get_measurement_data_8byte_include_version_with_version (Cu
 	uint8_t zero[14] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (version);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -8794,7 +9444,7 @@ static void pcr_test_get_measurement_data_8byte_include_version_with_data (CuTes
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 1;
 	int status;
 
@@ -8834,7 +9484,7 @@ static void pcr_test_get_measurement_data_8byte_include_version_with_data_offset
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -8875,7 +9525,7 @@ static void pcr_test_get_measurement_data_8byte_include_version_with_data_small_
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	size_t offset = 1;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -8915,7 +9565,7 @@ static void pcr_test_get_measurement_data_8byte_include_version_with_data_small_
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	size_t offset = 2;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -8953,7 +9603,7 @@ static void pcr_test_get_measurement_data_8byte_include_version_invalid_offset (
 	uint8_t buffer[15];
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 9;
 	int status;
 
@@ -8985,7 +9635,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version (CuTest *t
 	uint64_t data = 0x1122334455667788;
 	uint8_t buffer[15];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	int status;
@@ -9000,7 +9650,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version (CuTest *t
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9028,7 +9678,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_offset (Cu
 	uint64_t data = 0x1122334455667788;
 	uint8_t buffer[15];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 2;
@@ -9044,7 +9694,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_offset (Cu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9074,7 +9724,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_small_buff
 	uint8_t zero[4] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t length = sizeof (data) + sizeof (event) + sizeof (version) - 2;
 	int status;
 
@@ -9088,7 +9738,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_small_buff
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9122,7 +9772,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_small_buff
 	uint8_t zero[6] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	size_t length = sizeof (data) + sizeof (event) + sizeof (version) - offset - 2;
 	int status;
@@ -9137,7 +9787,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_small_buff
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9171,7 +9821,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	uint8_t zero[10] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t length = sizeof (event) + sizeof (version);
 	int status;
 
@@ -9185,7 +9835,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9216,7 +9866,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	uint8_t zero[12] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	size_t length = sizeof (event) + sizeof (version);
 	int status;
@@ -9231,7 +9881,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9262,7 +9912,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_versi
 	uint8_t zero[6] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	size_t length = sizeof (version) + sizeof (data);
 	int status;
@@ -9277,7 +9927,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9308,7 +9958,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_versi
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	size_t length = sizeof (data) + sizeof (version) - 1;
 	int status;
@@ -9323,7 +9973,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9353,7 +10003,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	uint8_t zero[11] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -9366,7 +10016,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9396,7 +10046,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	uint8_t zero[13] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -9410,7 +10060,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9440,7 +10090,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	uint8_t zero[12] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t length = sizeof (event) -1;
 	int status;
 
@@ -9454,7 +10104,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9485,7 +10135,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	size_t length = 1;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -9499,7 +10149,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_event
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9528,7 +10178,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_versi
 	uint8_t zero[14] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
@@ -9542,7 +10192,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_versi
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9568,7 +10218,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_data 
 	uint8_t buffer[15] = {0};
 	uint8_t zero[7] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 5;
@@ -9584,7 +10234,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_data 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9613,7 +10263,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_data_
 	uint8_t buffer[15] = {0};
 	uint8_t zero[8] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 6;
@@ -9629,7 +10279,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_data_
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9659,7 +10309,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_data_
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
@@ -9673,7 +10323,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_data_
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9703,7 +10353,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_data_
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
@@ -9717,7 +10367,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_with_data_
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9744,7 +10394,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_invalid_of
 	uint64_t data = 0x1122334455667788;
 	uint8_t buffer[15];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 13;
@@ -9760,7 +10410,7 @@ static void pcr_test_get_measurement_data_8byte_include_event_version_invalid_of
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
@@ -9784,7 +10434,7 @@ static void pcr_test_get_measurement_data_memory (CuTest *test)
 	};
 	uint8_t buffer[50];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -9817,7 +10467,7 @@ static void pcr_test_get_measurement_data_memory_zero_length (CuTest *test)
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint8_t buffer[50];
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -9848,7 +10498,7 @@ static void pcr_test_get_measurement_data_memory_offset (CuTest *test)
 	};
 	uint8_t buffer[50];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -9882,7 +10532,7 @@ static void pcr_test_get_measurement_data_memory_small_buffer (CuTest *test)
 	};
 	uint8_t buffer[20];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -9916,7 +10566,7 @@ static void pcr_test_get_measurement_data_memory_small_buffer_offset (CuTest *te
 	};
 	uint8_t buffer[20];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -9950,7 +10600,7 @@ static void pcr_test_get_measurement_data_memory_invalid_offset (CuTest *test)
 	};
 	uint8_t buffer[50];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -9980,7 +10630,7 @@ static void pcr_test_get_measurement_data_memory_include_event (CuTest *test)
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40];
 	size_t length = sizeof (buffer);
 	int status;
@@ -9996,7 +10646,7 @@ static void pcr_test_get_measurement_data_memory_include_event (CuTest *test)
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10024,7 +10674,7 @@ static void pcr_test_get_measurement_data_memory_include_event_offset (CuTest *t
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	size_t length = sizeof (buffer);
 	size_t offset = 2;
@@ -10041,7 +10691,7 @@ static void pcr_test_get_measurement_data_memory_include_event_offset (CuTest *t
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10070,7 +10720,7 @@ static void pcr_test_get_measurement_data_memory_include_event_small_buffer (CuT
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[6] = {0};
 	size_t length = sizeof (data) + sizeof (event) - 2;
@@ -10087,7 +10737,7 @@ static void pcr_test_get_measurement_data_memory_include_event_small_buffer (CuT
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10119,7 +10769,7 @@ static void pcr_test_get_measurement_data_memory_include_event_small_buffer_offs
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[8] = {0};
 	size_t offset = 2;
@@ -10137,7 +10787,7 @@ static void pcr_test_get_measurement_data_memory_include_event_small_buffer_offs
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10168,7 +10818,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_event (CuTes
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[36] = {0};
 	int status;
@@ -10184,7 +10834,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_event (CuTes
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10212,7 +10862,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_event_offset
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[38] = {0};
 	size_t offset = 2;
@@ -10230,7 +10880,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_event_offset
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10259,7 +10909,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_event_small_
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[38] = {0};
 	int status;
@@ -10275,7 +10925,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_event_small_
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10304,7 +10954,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_event_small_
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[38] = {0};
 	size_t offset = 1;
@@ -10321,7 +10971,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_event_small_
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10349,7 +10999,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_data (CuTest
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[8] = {0};
 	size_t length = sizeof (buffer);
@@ -10367,7 +11017,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_data (CuTest
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10395,7 +11045,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_data_offset 
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[9] = {0};
 	size_t length = sizeof (buffer);
@@ -10413,7 +11063,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_data_offset 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10441,7 +11091,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_data_small_b
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[9] = {0};
 	size_t offset = 4;
@@ -10458,7 +11108,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_data_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10487,7 +11137,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_data_small_b
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[10] = {0};
 	size_t offset = 5;
@@ -10504,7 +11154,7 @@ static void pcr_test_get_measurement_data_memory_include_event_with_data_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10532,7 +11182,7 @@ static void pcr_test_get_measurement_data_memory_include_event_invalid_offset (C
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[40] = {0};
 	size_t length = sizeof (buffer);
@@ -10550,7 +11200,7 @@ static void pcr_test_get_measurement_data_memory_include_event_invalid_offset (C
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -10577,7 +11227,7 @@ static void pcr_test_get_measurement_data_memory_include_version (CuTest *test)
 	uint8_t buffer[40];
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -10618,7 +11268,7 @@ static void pcr_test_get_measurement_data_memory_include_version_small_buffer (C
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (version) + sizeof (data) - 1;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -10662,7 +11312,7 @@ static void pcr_test_get_measurement_data_memory_include_version_with_version (C
 	uint8_t zero[39] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (version);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -10703,7 +11353,7 @@ static void pcr_test_get_measurement_data_memory_include_version_with_data (CuTe
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 1;
 	int status;
 
@@ -10747,7 +11397,7 @@ static void pcr_test_get_measurement_data_memory_include_version_with_data_offse
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -10791,7 +11441,7 @@ static void pcr_test_get_measurement_data_memory_include_version_with_data_small
 	uint8_t buffer[40] = {0};
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 1;
 	int status;
 
@@ -10836,7 +11486,7 @@ static void pcr_test_get_measurement_data_memory_include_version_with_data_small
 	uint8_t zero[10] = {0};
 	uint8_t version = 0x24;
 	size_t offset = 2;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -10878,7 +11528,7 @@ static void pcr_test_get_measurement_data_memory_include_version_invalid_offset 
 	uint8_t buffer[40];
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 33;
 	int status;
 
@@ -10916,7 +11566,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version (CuTest *
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -10930,7 +11580,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version (CuTest *
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -10959,7 +11609,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_no_data (
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -10973,7 +11623,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_no_data (
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, NULL, 0, true, version);
@@ -11000,7 +11650,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_offset (C
 	};
 	uint8_t buffer[40];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
 	size_t offset = 2;
@@ -11017,7 +11667,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_offset (C
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11050,7 +11700,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_small_buf
 	uint8_t zero[5] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t length = sizeof (data) + sizeof (event) + sizeof (version) - 2;
 	int status;
 
@@ -11065,7 +11715,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_small_buf
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11102,7 +11752,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_small_buf
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	size_t length = sizeof (data) + sizeof (event) + sizeof (version) - offset - 2;
 	int status;
@@ -11118,7 +11768,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_small_buf
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11155,7 +11805,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	uint8_t zero[35] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t length = sizeof (event) + sizeof (version);
 	int status;
 
@@ -11170,7 +11820,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11204,7 +11854,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	uint8_t zero[37] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	size_t length = sizeof (event) + sizeof (version);
 	int status;
@@ -11220,7 +11870,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11254,7 +11904,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_vers
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	size_t length = sizeof (version) + sizeof (data);
 	int status;
@@ -11270,7 +11920,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_vers
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11304,7 +11954,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_vers
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	size_t length = sizeof (data) + sizeof (version) - 1;
 	int status;
@@ -11320,7 +11970,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_vers
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11353,7 +12003,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	uint8_t zero[36] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -11367,7 +12017,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11400,7 +12050,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	uint8_t zero[38] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -11415,7 +12065,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11448,7 +12098,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	uint8_t zero[37] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t length = sizeof (event) - 1;
 	int status;
 
@@ -11463,7 +12113,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11497,7 +12147,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	size_t length = 1;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
@@ -11512,7 +12162,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_even
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11544,7 +12194,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_vers
 	uint8_t zero[39] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
@@ -11559,7 +12209,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_vers
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11590,7 +12240,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_data
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
@@ -11605,7 +12255,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_data
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11639,7 +12289,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_data
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
@@ -11654,7 +12304,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_data
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11687,7 +12337,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_data
 	uint8_t zero[10] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
@@ -11702,7 +12352,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_data
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11735,7 +12385,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_data
 	uint8_t zero[10] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
@@ -11750,7 +12400,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_with_data
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11782,7 +12432,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_invalid_o
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 37;
 	int status;
 
@@ -11797,7 +12447,7 @@ static void pcr_test_get_measurement_data_memory_include_event_version_invalid_o
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -11814,7 +12464,6 @@ static void pcr_test_get_measurement_data_memory_include_event_version_invalid_o
 static void pcr_test_get_measurement_data_flash (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -11822,28 +12471,25 @@ static void pcr_test_get_measurement_data_flash (CuTest *test)
 	};
 	uint8_t buffer[32];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data), 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -11853,46 +12499,36 @@ static void pcr_test_get_measurement_data_flash (CuTest *test)
 	status = testing_validate_array ((uint8_t*) &data, buffer, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_zero_length (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t buffer[32];
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 32;
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, 0, &total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 32, total_len);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
 }
@@ -11900,7 +12536,6 @@ static void pcr_test_get_measurement_data_flash_zero_length (CuTest *test)
 static void pcr_test_get_measurement_data_flash_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -11908,29 +12543,26 @@ static void pcr_test_get_measurement_data_flash_offset (CuTest *test)
 	};
 	uint8_t buffer[50];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 15;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344 + offset),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - offset));
-	status |= mock_expect_output (&flash.mock, 1, data + offset, sizeof (data) - offset, 2);
-
-	CuAssertIntEquals (test, 0, status);
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344 + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - offset));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data + offset, sizeof (data) - offset, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -11940,16 +12572,12 @@ static void pcr_test_get_measurement_data_flash_offset (CuTest *test)
 	status = testing_validate_array ((uint8_t*) &data + offset, buffer, sizeof (data) - offset);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_small_buffer (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -11957,28 +12585,25 @@ static void pcr_test_get_measurement_data_flash_small_buffer (CuTest *test)
 	};
 	uint8_t buffer[22];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (length));
-	status |= mock_expect_output (&flash.mock, 1, data, length, 2);
-
-	CuAssertIntEquals (test, 0, status);
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (length));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, length, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -11988,16 +12613,12 @@ static void pcr_test_get_measurement_data_flash_small_buffer (CuTest *test)
 	status = testing_validate_array ((uint8_t*) &data, buffer, length);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_small_buffer_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -12005,29 +12626,26 @@ static void pcr_test_get_measurement_data_flash_small_buffer_offset (CuTest *tes
 	};
 	uint8_t buffer[22];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344 + offset),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (length));
-	status |= mock_expect_output (&flash.mock, 1, data + offset, length, 2);
-
-	CuAssertIntEquals (test, 0, status);
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344 + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (length));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data + offset, length, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -12037,33 +12655,26 @@ static void pcr_test_get_measurement_data_flash_small_buffer_offset (CuTest *tes
 	status = testing_validate_array ((uint8_t*) &data + offset, buffer, length);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 static void pcr_test_get_measurement_data_flash_invalid_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t buffer[50];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 32;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 32;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
@@ -12078,26 +12689,22 @@ static void pcr_test_get_measurement_data_flash_invalid_offset (CuTest *test)
 static void pcr_test_get_measurement_data_flash_read_fail (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t buffer[50];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 32;
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, FLASH_READ_FAILED,
 		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (32));
 	CuAssertIntEquals (test, 0, status);
 
@@ -12107,52 +12714,45 @@ static void pcr_test_get_measurement_data_flash_read_fail (CuTest *test)
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40];
 	size_t length = sizeof (buffer);
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data), 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -12165,23 +12765,19 @@ static void pcr_test_get_measurement_data_flash_include_event (CuTest *test)
 	status = testing_validate_array ((uint8_t*) &data, buffer + sizeof (event), sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	size_t length = sizeof (buffer);
 	size_t offset = 2;
@@ -12189,29 +12785,26 @@ static void pcr_test_get_measurement_data_flash_include_event_offset (CuTest *te
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
-
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data), 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -12225,23 +12818,19 @@ static void pcr_test_get_measurement_data_flash_include_event_offset (CuTest *te
 		sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_small_buffer (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[6] = {0};
 	size_t length = sizeof (data) + sizeof (event) - 2;
@@ -12249,29 +12838,26 @@ static void pcr_test_get_measurement_data_flash_include_event_small_buffer (CuTe
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data) - 2, 2);
-
-	CuAssertIntEquals (test, 0, status);
-
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data) - 2, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -12288,23 +12874,19 @@ static void pcr_test_get_measurement_data_flash_include_event_small_buffer (CuTe
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_small_buffer_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[8] = {0};
 	size_t offset = 2;
@@ -12313,29 +12895,26 @@ static void pcr_test_get_measurement_data_flash_include_event_small_buffer_offse
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data) - 2, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data) - 2, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -12351,50 +12930,43 @@ static void pcr_test_get_measurement_data_flash_include_event_small_buffer_offse
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_with_event (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[36] = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, sizeof (event), &total_len);
@@ -12407,23 +12979,19 @@ static void pcr_test_get_measurement_data_flash_include_event_with_event (CuTest
 	status = testing_validate_array (zero, buffer + sizeof (event), sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_with_event_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[38] = {0};
 	size_t offset = 2;
@@ -12432,27 +13000,24 @@ static void pcr_test_get_measurement_data_flash_include_event_with_event_offset 
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -12465,50 +13030,43 @@ static void pcr_test_get_measurement_data_flash_include_event_with_event_offset 
 	status = testing_validate_array (zero, buffer + offset, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_with_event_small_buffer (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[38] = {0};
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, 2, &total_len);
@@ -12521,9 +13079,6 @@ static void pcr_test_get_measurement_data_flash_include_event_with_event_small_b
 	status = testing_validate_array (zero, buffer + 2, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -12531,14 +13086,13 @@ static void pcr_test_get_measurement_data_flash_include_event_with_event_small_b
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[38] = {0};
 	size_t offset = 1;
@@ -12546,27 +13100,24 @@ static void pcr_test_get_measurement_data_flash_include_event_with_event_small_b
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, 2, &total_len);
@@ -12579,23 +13130,19 @@ static void pcr_test_get_measurement_data_flash_include_event_with_event_small_b
 	status = testing_validate_array (zero, buffer + 2, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_with_data (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[8] = {0};
 	size_t length = sizeof (buffer);
@@ -12604,29 +13151,26 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data (CuTest 
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data), 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -12639,23 +13183,19 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data (CuTest 
 	status = testing_validate_array (zero, buffer + sizeof (data), sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_with_data_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[9] = {0};
 	size_t length = sizeof (buffer);
@@ -12664,29 +13204,26 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data_offset (
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344 + 1),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
-	status |= mock_expect_output (&flash.mock, 1, data + 1, sizeof (data) - 1, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344 + 1), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data + 1, sizeof (data) - 1, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -12699,23 +13236,19 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data_offset (
 	status = testing_validate_array (zero, buffer + sizeof (data) - 1, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_with_data_small_buffer (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[9] = {0};
 	size_t offset = 4;
@@ -12723,29 +13256,26 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data_small_bu
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data) - 1, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data) - 1, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, sizeof (data) - 1, &total_len);
@@ -12758,9 +13288,6 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data_small_bu
 	status = testing_validate_array (zero, buffer + sizeof (data) - 1, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -12768,14 +13295,13 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data_small_bu
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[10] = {0};
 	size_t offset = 5;
@@ -12783,29 +13309,26 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data_small_bu
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344 + 1),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
-	status |= mock_expect_output (&flash.mock, 1, data + 1, sizeof (data) - 2, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344 + 1), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data + 1, sizeof (data) - 2, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, sizeof (data) - 2, &total_len);
@@ -12818,23 +13341,19 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data_small_bu
 	status = testing_validate_array (zero, buffer + sizeof (data) - 2, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_with_data_read_fail (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[40] = {0};
 	size_t length = sizeof (buffer);
@@ -12843,27 +13362,24 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data_read_fai
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 1;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
-		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -12872,57 +13388,47 @@ static void pcr_test_get_measurement_data_flash_include_event_with_data_read_fai
 	status = testing_validate_array (zero, buffer, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_read_fail (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	size_t length = sizeof (buffer);
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 1;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
-		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	CuAssertIntEquals (test, 0, status);
-
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
 }
@@ -12930,14 +13436,13 @@ static void pcr_test_get_measurement_data_flash_include_event_read_fail (CuTest 
 static void pcr_test_get_measurement_data_flash_include_event_invalid_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
 		0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f,0x7f,0x38,0x9c,0x4f
 	};
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[40] = {0};
 	uint8_t zero[40] = {0};
 	size_t length = sizeof (buffer);
@@ -12946,11 +13451,8 @@ static void pcr_test_get_measurement_data_flash_include_event_invalid_offset (Cu
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 1;
 
@@ -12959,7 +13461,7 @@ static void pcr_test_get_measurement_data_flash_include_event_invalid_offset (Cu
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true);
@@ -12972,16 +13474,12 @@ static void pcr_test_get_measurement_data_flash_include_event_invalid_offset (Cu
 	status = testing_validate_array (zero, buffer, length);
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_version (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -12990,24 +13488,15 @@ static void pcr_test_get_measurement_data_flash_include_version (CuTest *test)
 	uint8_t buffer[40];
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
@@ -13016,6 +13505,12 @@ static void pcr_test_get_measurement_data_flash_include_version (CuTest *test)
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), false,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data), 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -13026,16 +13521,12 @@ static void pcr_test_get_measurement_data_flash_include_version (CuTest *test)
 	status = testing_validate_array ((uint8_t*) &data, buffer + 1, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_version_small_buffer (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13045,24 +13536,15 @@ static void pcr_test_get_measurement_data_flash_include_version_small_buffer (Cu
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (version) + sizeof (data) - 1;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data) - 1, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
@@ -13071,6 +13553,12 @@ static void pcr_test_get_measurement_data_flash_include_version_small_buffer (Cu
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), false,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data) - 1, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -13084,16 +13572,12 @@ static void pcr_test_get_measurement_data_flash_include_version_small_buffer (Cu
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_version_with_version (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13103,22 +13587,15 @@ static void pcr_test_get_measurement_data_flash_include_version_with_version (Cu
 	uint8_t zero[39] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (version);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
@@ -13127,6 +13604,10 @@ static void pcr_test_get_measurement_data_flash_include_version_with_version (Cu
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), false,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -13137,16 +13618,12 @@ static void pcr_test_get_measurement_data_flash_include_version_with_version (Cu
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_version_with_data (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13156,25 +13633,16 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data (CuTes
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 1;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
@@ -13183,6 +13651,12 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data (CuTes
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), false,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data), 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -13195,16 +13669,12 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data (CuTes
 	status = testing_validate_array (zero, buffer + sizeof (data), sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_version_with_data_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13214,25 +13684,16 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_offset
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344 + 1),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
-	status |= mock_expect_output (&flash.mock, 1, data + 1, sizeof (data) - 1, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
@@ -13241,6 +13702,12 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_offset
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), false,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344 + 1), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data + 1, sizeof (data) - 1, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -13253,9 +13720,6 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_offset
 	status = testing_validate_array (zero, buffer + sizeof (data) - 1, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -13263,7 +13727,6 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_small_
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13272,25 +13735,16 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_small_
 	uint8_t buffer[40] = {0};
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 1;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data) - 1, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
@@ -13299,6 +13753,12 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_small_
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), false,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data) - 1, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, sizeof (data) - 1, &total_len);
@@ -13311,9 +13771,6 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_small_
 	status = testing_validate_array (zero, buffer + sizeof (data) - 1, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -13321,7 +13778,6 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_small_
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13331,24 +13787,15 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_small_
 	uint8_t zero[10] = {0};
 	uint8_t version = 0x24;
 	size_t offset = 2;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344 + 1),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
-	status |= mock_expect_output (&flash.mock, 1, data + 1, sizeof (data) - 2, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
@@ -13357,6 +13804,12 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_small_
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), false,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344 + 1), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data + 1, sizeof (data) - 2, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, sizeof (data) - 2, &total_len);
@@ -13369,16 +13822,12 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_small_
 	status = testing_validate_array (zero, buffer + sizeof (data) - 2, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_version_with_data_read_fail (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13388,23 +13837,16 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_read_f
 	uint8_t zero[40] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 1;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 1;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
-		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
@@ -13413,6 +13855,10 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_read_f
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), false,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -13421,16 +13867,12 @@ static void pcr_test_get_measurement_data_flash_include_version_with_data_read_f
 	status = testing_validate_array (zero, buffer, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_version_read_fail (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13439,22 +13881,15 @@ static void pcr_test_get_measurement_data_flash_include_version_read_fail (CuTes
 	uint8_t buffer[40] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 1;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
-		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
@@ -13465,11 +13900,12 @@ static void pcr_test_get_measurement_data_flash_include_version_read_fail (CuTes
 		version);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
 }
@@ -13477,7 +13913,6 @@ static void pcr_test_get_measurement_data_flash_include_version_read_fail (CuTes
 static void pcr_test_get_measurement_data_flash_include_version_invalid_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13487,16 +13922,13 @@ static void pcr_test_get_measurement_data_flash_include_version_invalid_offset (
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
 	size_t offset = 33;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 1;
 
@@ -13513,16 +13945,12 @@ static void pcr_test_get_measurement_data_flash_include_version_invalid_offset (
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (version) + 1, total_len);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_version (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13532,35 +13960,32 @@ static void pcr_test_get_measurement_data_flash_include_event_version (CuTest *t
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data), 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -13574,16 +13999,12 @@ static void pcr_test_get_measurement_data_flash_include_event_version (CuTest *t
 	status = testing_validate_array ((uint8_t*) &data, buffer + 5, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_version_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13593,36 +14014,33 @@ static void pcr_test_get_measurement_data_flash_include_event_version_offset (Cu
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data), 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -13636,16 +14054,12 @@ static void pcr_test_get_measurement_data_flash_include_event_version_offset (Cu
 	status = testing_validate_array ((uint8_t*) &data, buffer + 3, sizeof (data));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_version_small_buffer (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13655,36 +14069,33 @@ static void pcr_test_get_measurement_data_flash_include_event_version_small_buff
 	uint8_t zero[5] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t length = sizeof (data) + sizeof (event) + sizeof (version) - 2;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data) - 2, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data) - 2, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -13701,9 +14112,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_small_buff
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -13711,7 +14119,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_small_buff
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13721,37 +14128,34 @@ static void pcr_test_get_measurement_data_flash_include_event_version_small_buff
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	size_t length = sizeof (data) + sizeof (event) + sizeof (version) - offset - 2;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data) - 2, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data) - 2, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -13768,9 +14172,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_small_buff
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -13778,7 +14179,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13788,34 +14188,31 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	uint8_t zero[35] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t length = sizeof (event) + sizeof (version);
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -13829,9 +14226,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -13839,7 +14233,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13849,35 +14242,32 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	uint8_t zero[37] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	size_t length = sizeof (event) + sizeof (version);
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length - offset, &total_len);
@@ -13891,9 +14281,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	status = testing_validate_array (zero, buffer + length - offset, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -13901,7 +14288,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13911,37 +14297,34 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	size_t length = sizeof (version) + sizeof (data);
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data), 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, sizeof (buffer), &total_len);
@@ -13955,9 +14338,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -13965,7 +14345,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -13975,37 +14354,34 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	size_t length = sizeof (data) + sizeof (version) - 1;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data) - 1, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data) - 1, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -14019,9 +14395,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -14029,7 +14402,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14038,41 +14410,35 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 	uint8_t buffer[40] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 1;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
-		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, sizeof (buffer), &total_len);
 	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
 }
@@ -14080,7 +14446,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 static void pcr_test_get_measurement_data_flash_include_event_version_with_event (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14090,33 +14455,30 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	uint8_t zero[36] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, sizeof (event), &total_len);
@@ -14129,9 +14491,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	status = testing_validate_array (zero, buffer + sizeof (event), sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -14139,7 +14498,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14149,34 +14507,31 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	uint8_t zero[38] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, 2, &total_len);
@@ -14189,9 +14544,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	status = testing_validate_array (zero, buffer + 2, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -14199,7 +14551,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14209,34 +14560,31 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	uint8_t zero[37] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t length = sizeof (event) - 1;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
@@ -14249,9 +14597,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -14259,7 +14604,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14270,34 +14614,31 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	size_t length = 1;
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -14310,16 +14651,12 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_event
 	status = testing_validate_array (zero, buffer + length, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_version_with_version (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14329,34 +14666,31 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 	uint8_t zero[39] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 0;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, 1, &total_len);
@@ -14367,16 +14701,12 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_versi
 	status = testing_validate_array (zero, buffer + 1, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_version_with_data (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14387,36 +14717,33 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data 
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data)));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data), 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -14429,9 +14756,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data 
 	status = testing_validate_array (zero, buffer + sizeof (data), sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -14439,7 +14763,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14450,36 +14773,33 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344 + 1),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
-	status |= mock_expect_output (&flash.mock, 1, data + 1, sizeof (data) - 1, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344 + 1), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 1));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data + 1, sizeof (data) - 1, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -14492,9 +14812,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	status = testing_validate_array (zero, buffer + sizeof (data) - 1, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -14502,7 +14819,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14512,36 +14828,33 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	uint8_t zero[10] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
-	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data) -2, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data, sizeof (data) -2, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, sizeof (data) - 2, &total_len);
@@ -14554,9 +14867,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	status = testing_validate_array (zero, buffer + sizeof (data) - 2, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -14564,7 +14874,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14574,36 +14883,33 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	uint8_t zero[10] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = sizeof (data);
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x11223344 + 1),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
-	status |= mock_expect_output (&flash.mock, 1, data + 1, sizeof (data) - 2, 2);
-
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344 + 1), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (data) - 2));
+	status |= mock_expect_output (&pcr.flash.mock, 1, data + 1, sizeof (data) - 2, 2);
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, sizeof (data) - 2, &total_len);
@@ -14616,9 +14922,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	status = testing_validate_array (zero, buffer + sizeof (data) - 2, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
@@ -14626,7 +14929,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14637,34 +14939,31 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 1;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
-		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
@@ -14673,16 +14972,12 @@ static void pcr_test_get_measurement_data_flash_include_event_version_with_data_
 	status = testing_validate_array (zero, buffer, sizeof (zero));
 	CuAssertIntEquals (test, 0, status);
 
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	pcr_testing_release (test, &pcr);
 }
 
 static void pcr_test_get_measurement_data_flash_include_event_version_read_fail (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14692,40 +14987,34 @@ static void pcr_test_get_measurement_data_flash_include_event_version_read_fail 
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 1;
-
-	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
-		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
 		version);
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
 }
@@ -14733,7 +15022,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_read_fail 
 static void pcr_test_get_measurement_data_flash_include_event_version_invalid_offset (CuTest *test)
 {
 	struct pcr_testing pcr;
-	struct flash_mock flash;
 	struct pcr_measured_data measurement_data;
 	uint8_t data[] = {
 		0xfc,0x3d,0x91,0xe6,0xc1,0x13,0xd6,0x82,0x18,0x33,0xf6,0x5b,0x12,0xc7,0xe7,0x6e,
@@ -14743,17 +15031,14 @@ static void pcr_test_get_measurement_data_flash_include_event_version_invalid_of
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 37;
 	int status;
 
 	TEST_START;
 
-	status = flash_mock_init (&flash);
-	CuAssertIntEquals (test, 0, status);
-
 	measurement_data.type = PCR_DATA_TYPE_FLASH;
-	measurement_data.data.flash.flash = &flash.base;
+	measurement_data.data.flash.flash = &pcr.flash.base;
 	measurement_data.data.flash.addr = 0x11223344;
 	measurement_data.data.flash.length = 1;
 
@@ -14762,7 +15047,7 @@ static void pcr_test_get_measurement_data_flash_include_event_version_invalid_of
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, data, sizeof (data), true,
@@ -14772,9 +15057,6 @@ static void pcr_test_get_measurement_data_flash_include_event_version_invalid_of
 	status = pcr_get_measurement_data (&pcr.test, 2, offset, buffer, length, &total_len);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (event) + sizeof (version) + 1, total_len);
-
-	status = flash_mock_validate_and_release (&flash);
-	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
 }
@@ -14786,7 +15068,7 @@ static void pcr_test_get_measurement_data_callback (CuTest *test)
 	uint32_t data = 0x12345678;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -14794,7 +15076,7 @@ static void pcr_test_get_measurement_data_callback (CuTest *test)
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
@@ -14815,7 +15097,7 @@ static void pcr_test_get_measurement_data_callback_zero_length (CuTest *test)
 	struct pcr_testing pcr;
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x12345678;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[5];
 	int status;
 
@@ -14824,7 +15106,7 @@ static void pcr_test_get_measurement_data_callback_zero_length (CuTest *test)
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
@@ -14845,7 +15127,7 @@ static void pcr_test_get_measurement_data_callback_offset (CuTest *test)
 	uint8_t *data_addr = (uint8_t*) &data;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -14853,7 +15135,7 @@ static void pcr_test_get_measurement_data_callback_offset (CuTest *test)
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
@@ -14875,7 +15157,7 @@ static void pcr_test_get_measurement_data_callback_fail (CuTest *test)
 	struct pcr_measured_data measurement_data;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -14883,7 +15165,7 @@ static void pcr_test_get_measurement_data_callback_fail (CuTest *test)
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = NULL;
 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
@@ -14903,13 +15185,13 @@ static void pcr_test_get_measurement_data_callback_include_event (CuTest *test)
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[10];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -14917,7 +15199,7 @@ static void pcr_test_get_measurement_data_callback_include_event (CuTest *test)
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -14945,14 +15227,14 @@ static void pcr_test_get_measurement_data_callback_include_event_offset (CuTest 
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[10] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -14960,7 +15242,7 @@ static void pcr_test_get_measurement_data_callback_include_event_offset (CuTest 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -14989,13 +15271,13 @@ static void pcr_test_get_measurement_data_callback_include_event_small_buffer (C
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[10] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15003,7 +15285,7 @@ static void pcr_test_get_measurement_data_callback_include_event_small_buffer (C
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15029,7 +15311,7 @@ static void pcr_test_get_measurement_data_callback_include_event_small_buffer_of
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[6] = {0};
 	size_t offset = 2;
@@ -15038,7 +15320,7 @@ static void pcr_test_get_measurement_data_callback_include_event_small_buffer_of
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15046,7 +15328,7 @@ static void pcr_test_get_measurement_data_callback_include_event_small_buffer_of
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15075,7 +15357,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event (CuT
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[6] = {0};
 	int status;
@@ -15083,7 +15365,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event (CuT
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15091,7 +15373,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event (CuT
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15117,7 +15399,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event_offs
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[8] = {0};
 	size_t offset = 2;
@@ -15126,7 +15408,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event_offs
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15134,7 +15416,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event_offs
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15161,7 +15443,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event_smal
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[8] = {0};
 	int status;
@@ -15169,7 +15451,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event_smal
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15177,7 +15459,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event_smal
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15204,7 +15486,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event_smal
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[8] = {0};
 	size_t offset = 1;
@@ -15213,7 +15495,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event_smal
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15221,7 +15503,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_event_smal
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15247,7 +15529,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data (CuTe
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[6] = {0};
 	size_t offset = 4;
@@ -15256,7 +15538,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data (CuTe
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15264,7 +15546,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data (CuTe
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15290,7 +15572,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_offse
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[7] = {0};
 	size_t offset = 5;
@@ -15299,7 +15581,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_offse
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15307,7 +15589,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_offse
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15334,7 +15616,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_small
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[7] = {0};
 	size_t offset = 4;
@@ -15343,7 +15625,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_small
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15351,7 +15633,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_small
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15378,7 +15660,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_small
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[8] = {0};
 	size_t offset = 5;
@@ -15387,7 +15669,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_small
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15395,7 +15677,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_small
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15424,14 +15706,14 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_fail 
 	uint8_t buffer[10] = {0};
 	uint8_t zero[10] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = NULL;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15439,7 +15721,7 @@ static void pcr_test_get_measurement_data_callback_include_event_with_data_fail 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15463,13 +15745,13 @@ static void pcr_test_get_measurement_data_callback_include_event_fail (CuTest *t
 	uint32_t event = 0xaabbccdd;
 	uint8_t buffer[10] = {0};
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = NULL;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15477,7 +15759,7 @@ static void pcr_test_get_measurement_data_callback_include_event_fail (CuTest *t
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data, sizeof (data),
@@ -15498,13 +15780,13 @@ static void pcr_test_get_measurement_data_callback_include_version (CuTest *test
 	uint8_t buffer[10];
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15532,7 +15814,7 @@ static void pcr_test_get_measurement_data_callback_include_version_small_buffer 
 	struct pcr_testing pcr;
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[6] = {0};
 	uint8_t version = 0x24;
@@ -15541,7 +15823,7 @@ static void pcr_test_get_measurement_data_callback_include_version_small_buffer 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15572,7 +15854,7 @@ static void pcr_test_get_measurement_data_callback_include_version_with_version 
 	struct pcr_testing pcr;
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
@@ -15581,7 +15863,7 @@ static void pcr_test_get_measurement_data_callback_include_version_with_version 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15614,13 +15896,13 @@ static void pcr_test_get_measurement_data_callback_include_version_with_data (Cu
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
 	size_t offset = 1;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15655,13 +15937,13 @@ static void pcr_test_get_measurement_data_callback_include_version_with_data_off
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
 	size_t offset = 2;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15692,7 +15974,7 @@ static void pcr_test_get_measurement_data_callback_include_version_with_data_sma
 	struct pcr_testing pcr;
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
@@ -15702,7 +15984,7 @@ static void pcr_test_get_measurement_data_callback_include_version_with_data_sma
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15733,7 +16015,7 @@ static void pcr_test_get_measurement_data_callback_include_version_with_data_sma
 	struct pcr_testing pcr;
 	struct pcr_measured_data measurement_data;
 	uint32_t data = 0x11223344;
-	uint32_t total_len;
+	size_t total_len;
 	uint8_t buffer[10] = {0};
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
@@ -15743,7 +16025,7 @@ static void pcr_test_get_measurement_data_callback_include_version_with_data_sma
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15778,13 +16060,13 @@ static void pcr_test_get_measurement_data_callback_include_version_with_data_fai
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
 	size_t offset = 1;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = NULL;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15813,13 +16095,13 @@ static void pcr_test_get_measurement_data_callback_include_version_fail (CuTest 
 	uint8_t buffer[10] = {0};
 	uint8_t version = 0x24;
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = NULL;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15846,13 +16128,13 @@ static void pcr_test_get_measurement_data_callback_include_event_version (CuTest
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15860,7 +16142,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version (CuTest
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -15890,14 +16172,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_offset 
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15905,7 +16187,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_offset 
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -15935,13 +16217,13 @@ static void pcr_test_get_measurement_data_callback_include_event_version_small_b
 	uint8_t zero[3] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15949,7 +16231,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -15983,14 +16265,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_small_b
 	uint8_t zero[5] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -15998,7 +16280,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_small_b
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16032,13 +16314,13 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	uint8_t zero[5] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16046,7 +16328,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16077,14 +16359,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16092,7 +16374,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16124,14 +16406,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ve
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16139,7 +16421,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ve
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16170,14 +16452,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ve
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16185,7 +16467,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ve
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16216,14 +16498,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ve
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = NULL;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16231,7 +16513,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ve
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16253,13 +16535,13 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	uint8_t zero[6] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16267,7 +16549,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16297,14 +16579,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16312,7 +16594,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16342,13 +16624,13 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	uint8_t zero[7] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16356,7 +16638,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16386,14 +16668,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 2;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16401,7 +16683,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ev
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16430,14 +16712,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ve
 	uint8_t zero[9] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 4;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16445,7 +16727,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_ve
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16473,14 +16755,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_da
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16488,7 +16770,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_da
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16519,14 +16801,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_da
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16534,7 +16816,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_da
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16564,14 +16846,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_da
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16579,7 +16861,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_da
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16609,14 +16891,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_da
 	uint8_t zero[8] = {0};
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 6;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = &data;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16624,7 +16906,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_da
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16655,14 +16937,14 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_da
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	size_t offset = 5;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = NULL;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16670,7 +16952,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_with_da
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16695,13 +16977,13 @@ static void pcr_test_get_measurement_data_callback_include_event_version_fail (C
 	size_t length = sizeof (buffer);
 	uint8_t version = 0x24;
 	uint32_t event = 0xaabbccdd;
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
 
 	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
-	measurement_data.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement_data.data.callback.context = NULL;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
@@ -16709,7 +16991,7 @@ static void pcr_test_get_measurement_data_callback_include_event_version_fail (C
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	status = pcr_set_event_type (&pcr.test, 2, event);
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
@@ -16728,7 +17010,7 @@ static void pcr_test_get_measurement_data_no_measured_data (
 	struct pcr_testing pcr;
 	uint8_t buffer[40];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -16748,7 +17030,7 @@ static void pcr_test_get_measurement_data_null (CuTest *test)
 	struct pcr_testing pcr;
 	uint8_t buffer[5];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -16772,7 +17054,7 @@ static void pcr_test_get_measurement_data_bad_measurement_index (CuTest *test)
 	struct pcr_testing pcr;
 	uint8_t buffer[1];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -16790,7 +17072,7 @@ static void pcr_test_get_measurement_data_no_data (CuTest *test)
 	struct pcr_testing pcr;
 	uint8_t buffer[1];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -16811,7 +17093,7 @@ static void pcr_test_get_measurement_data_bad_measurement_data_type (CuTest *tes
 	uint8_t data = 0x11;
 	uint8_t buffer[4];
 	size_t length = sizeof (buffer);
-	uint32_t total_len;
+	size_t total_len;
 	int status;
 
 	TEST_START;
@@ -16824,16 +17106,3964 @@ static void pcr_test_get_measurement_data_bad_measurement_data_type (CuTest *tes
 	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
 	CuAssertIntEquals (test, 0, status);
 
-	/* This is a contrived test that is not possible using the APIs, so need to access internals to
-	 * force it. */
-	((struct pcr_measured_data*) pcr.test.measurement_list[2].measured_data)->type =
-		NUM_PCR_DATA_TYPE;
+	/* This is a contrived test that is not possible using the APIs, so need to change the value
+	 * after setting the measured data. */
+	measurement_data.type = NUM_PCR_DATA_TYPE;
 
 	status = pcr_get_measurement_data (&pcr.test, 2, 0, buffer, length, &total_len);
 	CuAssertIntEquals (test, PCR_INVALID_DATA_TYPE, status);
 
 	pcr_testing_release (test, &pcr);
 }
+
+static void pcr_test_hash_measurement_data_sha256_matches_pcr (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_matches_pcr_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, 0xaabbccdd);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_matches_pcr_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false, 0x24);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_matches_pcr_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, 0xaabbccdd);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, true, 0x24);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_test_hash_measurement_data_sha384_matches_pcr (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA384_FULL_BLOCK_512_HASH, buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_matches_pcr_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, 0xaabbccdd);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_matches_pcr_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false, 0x24);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_matches_pcr_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, 0xaabbccdd);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, true, 0x24);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_test_hash_measurement_data_sha512_matches_pcr (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA512_FULL_BLOCK_512_HASH, buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_matches_pcr_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, 0xaabbccdd);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_matches_pcr_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false, 0x24);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_matches_pcr_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, 0xaabbccdd);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, true, 0x24);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_test_hash_measurement_data_sha256_1byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_1byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, &measurement_data.data.value_1byte, 1,
+		true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_1byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		&measurement_data.data.value_1byte, 1, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA_VERSIONED, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_1byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		&measurement_data.data.value_1byte, 1, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_2byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_2byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		(uint8_t*) &measurement_data.data.value_2byte, 2, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_2byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		(uint8_t*) &measurement_data.data.value_2byte, 2, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA_VERSIONED, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_2byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		(uint8_t*) &measurement_data.data.value_2byte, 2, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_4byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_4byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		(uint8_t*) &measurement_data.data.value_4byte, 4, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_4byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		(uint8_t*) &measurement_data.data.value_4byte, 4, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_4byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		(uint8_t*) &measurement_data.data.value_4byte, 4, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_8byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_8byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		(uint8_t*) &measurement_data.data.value_8byte, 8, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_8byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		(uint8_t*) &measurement_data.data.value_8byte, 8, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA_VERSIONED, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_8byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		(uint8_t*) &measurement_data.data.value_8byte, 8, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_memory (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_memory_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_memory_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_memory_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_flash (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_1024_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_1024_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_1024_HASH, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_flash_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x44332211;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x44332211), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_flash_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_flash_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_callback (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA, buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_callback_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, (uint8_t*) &data, sizeof (data),
+		true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_WITH_EVENT, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_callback_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3, (uint8_t*) &data,
+		sizeof (data), false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED, buffer,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_callback_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0, (uint8_t*) &data,
+		sizeof (data), true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED_WITH_EVENT,
+		buffer, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_1byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA, buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_1byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, &measurement_data.data.value_1byte, 1,
+		true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_1byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		&measurement_data.data.value_1byte, 1, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA_VERSIONED, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_1byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		&measurement_data.data.value_1byte, 1, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_2byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA, buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_2byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		(uint8_t*) &measurement_data.data.value_2byte, 2, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_2byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		(uint8_t*) &measurement_data.data.value_2byte, 2, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA_VERSIONED, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_2byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		(uint8_t*) &measurement_data.data.value_2byte, 2, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_4byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA, buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_4byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		(uint8_t*) &measurement_data.data.value_4byte, 4, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_4byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		(uint8_t*) &measurement_data.data.value_4byte, 4, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_4byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		(uint8_t*) &measurement_data.data.value_4byte, 4, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_8byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA, buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_8byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		(uint8_t*) &measurement_data.data.value_8byte, 8, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_8byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		(uint8_t*) &measurement_data.data.value_8byte, 8, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA_VERSIONED, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_8byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		(uint8_t*) &measurement_data.data.value_8byte, 8, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_memory (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA384_FULL_BLOCK_512_HASH, buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_memory_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_memory_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_memory_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_flash (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_1024_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_1024_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA384_FULL_BLOCK_1024_HASH, buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_flash_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x44332211;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x44332211), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_flash_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_flash_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_callback (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA, buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_callback_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, (uint8_t*) &data, sizeof (data),
+		true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_WITH_EVENT, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_callback_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3, (uint8_t*) &data,
+		sizeof (data), false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED, buffer,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_callback_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0, (uint8_t*) &data,
+		sizeof (data), true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED_WITH_EVENT,
+		buffer, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_test_hash_measurement_data_sha512_1byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA, buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_1byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, &measurement_data.data.value_1byte, 1,
+		true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_1byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		&measurement_data.data.value_1byte, 1, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA_VERSIONED, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_1byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		&measurement_data.data.value_1byte, 1, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_2byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA, buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_2byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		(uint8_t*) &measurement_data.data.value_2byte, 2, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_2byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		(uint8_t*) &measurement_data.data.value_2byte, 2, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA_VERSIONED, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_2byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		(uint8_t*) &measurement_data.data.value_2byte, 2, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_4byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA, buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_4byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		(uint8_t*) &measurement_data.data.value_4byte, 4, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_4byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		(uint8_t*) &measurement_data.data.value_4byte, 4, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_4byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		(uint8_t*) &measurement_data.data.value_4byte, 4, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_8byte (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA, buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_8byte_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		(uint8_t*) &measurement_data.data.value_8byte, 8, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_8byte_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		(uint8_t*) &measurement_data.data.value_8byte, 8, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA_VERSIONED, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_8byte_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		(uint8_t*) &measurement_data.data.value_8byte, 8, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_memory (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA512_FULL_BLOCK_512_HASH, buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_memory_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_memory_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_memory_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_flash (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_1024_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_1024_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA512_FULL_BLOCK_1024_HASH, buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_flash_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x44332211;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x44332211), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_flash_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_flash_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, 0,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+	status |= mock_expect_output (&pcr.flash.mock, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_callback (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA, buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_callback_include_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1, (uint8_t*) &data, sizeof (data),
+		true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_WITH_EVENT, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_callback_include_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3, (uint8_t*) &data,
+		sizeof (data), false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED, buffer,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_callback_include_event_version (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	const uint32_t event = 0xaabbccdd;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 0, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 0, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0, (uint8_t*) &data,
+		sizeof (data), true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED_WITH_EVENT,
+		buffer, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+static void pcr_test_hash_measurement_data_null (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_hash_measurement_data (NULL, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, NULL, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, NULL,
+		sizeof (buffer));
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_bad_measurement_index (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_hash_measurement_data (&pcr.test, 5, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_small_output_buffer (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		SHA256_HASH_LENGTH - 1);
+	CuAssertIntEquals (test, PCR_SMALL_OUTPUT_BUFFER, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_test_hash_measurement_data_sha384_small_output_buffer (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
+		SHA384_HASH_LENGTH - 1);
+	CuAssertIntEquals (test, PCR_SMALL_OUTPUT_BUFFER, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_no_measured_data (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, PCR_MEASURED_DATA_NOT_AVIALABLE, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha256_start_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA256_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha384_start_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha384, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA384_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_event_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t event = 0xaabbccdd;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 1, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 1,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_version_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t version = 0x24;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 3, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED, MOCK_ARG_PTR_CONTAINS (&version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_1byte_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint8_t data = 0x11;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED, MOCK_ARG_PTR_CONTAINS (&data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_2byte_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint16_t data = 0x1122;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_2BYTE;
+	measurement_data.data.value_2byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED, MOCK_ARG_PTR_CONTAINS (&data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_4byte_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint32_t data = 0x11223344;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_4BYTE;
+	measurement_data.data.value_4byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED, MOCK_ARG_PTR_CONTAINS (&data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_8byte_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	const uint64_t data = 0x1122334455667788;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_8BYTE;
+	measurement_data.data.value_8byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED, MOCK_ARG_PTR_CONTAINS (&data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_memory_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN),
+		MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_flash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_FLASH;
+	measurement_data.data.flash.flash = &pcr.flash.base;
+	measurement_data.data.flash.addr = 0x11223344;
+	measurement_data.data.flash.length = HASH_TESTING_FULL_BLOCK_1024_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.flash.mock, pcr.flash.base.read, &pcr.flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x11223344), MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_TESTING_FULL_BLOCK_1024_LEN));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_callback_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = pcr_testing_measurement_hash_callback;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED, MOCK_ARG_PTR_CONTAINS (&data, sizeof (data)),
+		MOCK_ARG (sizeof (data)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_no_hash_callback (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint32_t data = 0x11223344;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_CALLBACK;
+	measurement_data.data.callback.get_data = pcr_testing_measurement_data_callback;
+	measurement_data.data.callback.hash_data = NULL;
+	measurement_data.data.callback.context = &data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, PCR_MEASURED_DATA_NO_HASH_CALLBACK, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_bad_measurement_data_type (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t data = 0x11;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_1BYTE;
+	measurement_data.data.value_1byte = data;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	/* This is a contrived test that is not possible using the APIs, so need to change the value
+	 * after setting the measured data. */
+	measurement_data.type = NUM_PCR_DATA_TYPE;
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, PCR_INVALID_DATA_TYPE, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_finish_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN),
+		MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.finish, &pcr.hash_mock,
+		HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_test_hash_measurement_data_sha512_small_output_buffer (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		SHA512_HASH_LENGTH - 1);
+	CuAssertIntEquals (test, PCR_SMALL_OUTPUT_BUFFER, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_hash_measurement_data_sha512_start_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha512, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA512_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
 
 static void pcr_test_get_tcg_log_sha256 (CuTest *test)
 {
@@ -16879,7 +21109,7 @@ static void pcr_test_get_tcg_log_sha256 (CuTest *test)
 			SHA256_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -16977,7 +21207,7 @@ static void pcr_test_get_tcg_log_sha256_offset_beginning_of_event (CuTest *test)
 			SHA256_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17052,7 +21282,7 @@ static void pcr_test_get_tcg_log_sha256_offset_middle_of_event (CuTest *test)
 			SHA256_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17143,7 +21373,7 @@ static void pcr_test_get_tcg_log_sha256_offset_middle_of_event_header (CuTest *t
 			SHA256_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17228,7 +21458,7 @@ static void pcr_test_get_tcg_log_sha256_zero_bytes_read (CuTest *test)
 			SHA256_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17295,7 +21525,7 @@ static void pcr_test_get_tcg_log_sha384 (CuTest *test)
 			SHA384_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17399,7 +21629,7 @@ static void pcr_test_get_tcg_log_sha384_offset_beginning_of_event (CuTest *test)
 			SHA384_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17479,7 +21709,7 @@ static void pcr_test_get_tcg_log_sha384_offset_middle_of_event (CuTest *test)
 			SHA384_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17575,7 +21805,7 @@ static void pcr_test_get_tcg_log_sha384_offset_middle_of_event_header (CuTest *t
 			SHA384_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17665,7 +21895,7 @@ static void pcr_test_get_tcg_log_sha384_zero_bytes_read (CuTest *test)
 			SHA384_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17738,7 +21968,7 @@ static void pcr_test_get_tcg_log_sha512 (CuTest *test)
 			SHA512_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17848,7 +22078,7 @@ static void pcr_test_get_tcg_log_sha512_offset_beginning_of_event (CuTest *test)
 			SHA512_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -17933,7 +22163,7 @@ static void pcr_test_get_tcg_log_sha512_offset_middle_of_event (CuTest *test)
 			SHA512_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -18034,7 +22264,7 @@ static void pcr_test_get_tcg_log_sha512_offset_middle_of_event_header (CuTest *t
 			SHA512_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -18129,7 +22359,7 @@ static void pcr_test_get_tcg_log_sha512_zero_bytes_read (CuTest *test)
 			SHA512_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -18191,7 +22421,7 @@ static void pcr_test_get_tcg_log_small_buffer (CuTest *test)
 			SHA256_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -18265,7 +22495,7 @@ static void pcr_test_get_tcg_log_small_buffer_with_offset (CuTest *test)
 			SHA256_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -18355,7 +22585,7 @@ static void pcr_test_get_tcg_log_short_buffer_middle_of_event_header (CuTest *te
 			SHA256_HASH_LENGTH);
 		CuAssertIntEquals (test, 0, status);
 
-		status = pcr_set_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
+		status = pcr_set_tcg_event_type (&pcr.test, i_measurement, 0x0A + i_measurement);
 		CuAssertIntEquals (test, 0, status);
 
 		status = pcr_set_measurement_data (&pcr.test, i_measurement, &measurement[i_measurement]);
@@ -18408,12 +22638,12 @@ static void pcr_test_get_tcg_log_get_measured_data_fail (CuTest *test)
 	TEST_START;
 
 	measurement.type = PCR_DATA_TYPE_CALLBACK;
-	measurement.data.callback.get_data = pcr_test_measurement_data_callback;
+	measurement.data.callback.get_data = pcr_testing_measurement_data_callback;
 	measurement.data.callback.context = NULL;
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_event_type (&pcr.test, 0, 0x0A + 0);
+	status = pcr_set_tcg_event_type (&pcr.test, 0, 0x0A + 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_set_measurement_data (&pcr.test, 0, &measurement);
@@ -18524,12 +22754,20 @@ TEST (pcr_test_update_versioned_buffer_update_version_hash_fail);
 TEST (pcr_test_update_versioned_buffer_update_buffer_hash_fail);
 TEST (pcr_test_update_versioned_buffer_finish_hash_fail);
 TEST (pcr_test_update_versioned_buffer_update_digest_fail);
-TEST (pcr_test_set_event_type_null);
-TEST (pcr_test_set_event_type_invalid_index);
-TEST (pcr_test_get_event_type);
-TEST (pcr_test_get_event_type_explicit);
-TEST (pcr_test_get_event_type_null);
-TEST (pcr_test_get_event_type_invalid_index);
+TEST (pcr_test_set_tcg_event_type_null);
+TEST (pcr_test_set_tcg_event_type_invalid_index);
+TEST (pcr_test_get_tcg_event_type);
+TEST (pcr_test_get_tcg_event_type_explicit);
+TEST (pcr_test_get_tcg_event_type_null);
+TEST (pcr_test_get_tcg_event_type_invalid_index);
+TEST (pcr_test_set_dmtf_value_type);
+TEST (pcr_test_set_dmtf_value_type_change_type);
+TEST (pcr_test_set_dmtf_value_type_null);
+TEST (pcr_test_set_dmtf_value_type_invalid_index);
+TEST (pcr_test_set_dmtf_value_type_invalid_type);
+TEST (pcr_test_get_dmtf_value_type_unset);
+TEST (pcr_test_get_dmtf_value_type_null);
+TEST (pcr_test_get_dmtf_value_type_invalid_index);
 TEST (pcr_test_get_all_measurements_sha256);
 TEST (pcr_test_get_all_measurements_sha256_explicit);
 #if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
@@ -18587,6 +22825,8 @@ TEST (pcr_test_set_measurement_data_remove);
 TEST (pcr_test_set_measurement_data_null);
 TEST (pcr_test_set_measurement_data_bad_measurement_index);
 TEST (pcr_test_set_measurement_data_bad_measurement_data_type);
+TEST (pcr_test_is_measurement_data_available_null);
+TEST (pcr_test_is_measurement_data_available_bad_measurement_index);
 TEST (pcr_test_get_measurement_data_1byte);
 TEST (pcr_test_get_measurement_data_1byte_zero_length);
 TEST (pcr_test_get_measurement_data_1byte_invalid_offset);
@@ -18895,6 +23135,135 @@ TEST (pcr_test_get_measurement_data_null);
 TEST (pcr_test_get_measurement_data_bad_measurement_index);
 TEST (pcr_test_get_measurement_data_no_data);
 TEST (pcr_test_get_measurement_data_bad_measurement_data_type);
+TEST (pcr_test_hash_measurement_data_sha256_matches_pcr);
+TEST (pcr_test_hash_measurement_data_sha256_matches_pcr_include_event);
+TEST (pcr_test_hash_measurement_data_sha256_matches_pcr_include_version);
+TEST (pcr_test_hash_measurement_data_sha256_matches_pcr_include_event_version);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_test_hash_measurement_data_sha384_matches_pcr);
+TEST (pcr_test_hash_measurement_data_sha384_matches_pcr_include_event);
+TEST (pcr_test_hash_measurement_data_sha384_matches_pcr_include_version);
+TEST (pcr_test_hash_measurement_data_sha384_matches_pcr_include_event_version);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_test_hash_measurement_data_sha512_matches_pcr);
+TEST (pcr_test_hash_measurement_data_sha512_matches_pcr_include_event);
+TEST (pcr_test_hash_measurement_data_sha512_matches_pcr_include_version);
+TEST (pcr_test_hash_measurement_data_sha512_matches_pcr_include_event_version);
+#endif
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_test_hash_measurement_data_sha256_1byte);
+TEST (pcr_test_hash_measurement_data_sha256_1byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha256_1byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha256_1byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha256_2byte);
+TEST (pcr_test_hash_measurement_data_sha256_2byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha256_2byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha256_2byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha256_4byte);
+TEST (pcr_test_hash_measurement_data_sha256_4byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha256_4byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha256_4byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha256_8byte);
+TEST (pcr_test_hash_measurement_data_sha256_8byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha256_8byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha256_8byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha256_memory);
+TEST (pcr_test_hash_measurement_data_sha256_memory_include_event);
+TEST (pcr_test_hash_measurement_data_sha256_memory_include_version);
+TEST (pcr_test_hash_measurement_data_sha256_memory_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha256_flash);
+TEST (pcr_test_hash_measurement_data_sha256_flash_include_event);
+TEST (pcr_test_hash_measurement_data_sha256_flash_include_version);
+TEST (pcr_test_hash_measurement_data_sha256_flash_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha256_callback);
+TEST (pcr_test_hash_measurement_data_sha256_callback_include_event);
+TEST (pcr_test_hash_measurement_data_sha256_callback_include_version);
+TEST (pcr_test_hash_measurement_data_sha256_callback_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha384_1byte);
+TEST (pcr_test_hash_measurement_data_sha384_1byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha384_1byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha384_1byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha384_2byte);
+TEST (pcr_test_hash_measurement_data_sha384_2byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha384_2byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha384_2byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha384_4byte);
+TEST (pcr_test_hash_measurement_data_sha384_4byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha384_4byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha384_4byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha384_8byte);
+TEST (pcr_test_hash_measurement_data_sha384_8byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha384_8byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha384_8byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha384_memory);
+TEST (pcr_test_hash_measurement_data_sha384_memory_include_event);
+TEST (pcr_test_hash_measurement_data_sha384_memory_include_version);
+TEST (pcr_test_hash_measurement_data_sha384_memory_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha384_flash);
+TEST (pcr_test_hash_measurement_data_sha384_flash_include_event);
+TEST (pcr_test_hash_measurement_data_sha384_flash_include_version);
+TEST (pcr_test_hash_measurement_data_sha384_flash_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha384_callback);
+TEST (pcr_test_hash_measurement_data_sha384_callback_include_event);
+TEST (pcr_test_hash_measurement_data_sha384_callback_include_version);
+TEST (pcr_test_hash_measurement_data_sha384_callback_include_event_version);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_test_hash_measurement_data_sha512_1byte);
+TEST (pcr_test_hash_measurement_data_sha512_1byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha512_1byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha512_1byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha512_2byte);
+TEST (pcr_test_hash_measurement_data_sha512_2byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha512_2byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha512_2byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha512_4byte);
+TEST (pcr_test_hash_measurement_data_sha512_4byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha512_4byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha512_4byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha512_8byte);
+TEST (pcr_test_hash_measurement_data_sha512_8byte_include_event);
+TEST (pcr_test_hash_measurement_data_sha512_8byte_include_version);
+TEST (pcr_test_hash_measurement_data_sha512_8byte_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha512_memory);
+TEST (pcr_test_hash_measurement_data_sha512_memory_include_event);
+TEST (pcr_test_hash_measurement_data_sha512_memory_include_version);
+TEST (pcr_test_hash_measurement_data_sha512_memory_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha512_flash);
+TEST (pcr_test_hash_measurement_data_sha512_flash_include_event);
+TEST (pcr_test_hash_measurement_data_sha512_flash_include_version);
+TEST (pcr_test_hash_measurement_data_sha512_flash_include_event_version);
+TEST (pcr_test_hash_measurement_data_sha512_callback);
+TEST (pcr_test_hash_measurement_data_sha512_callback_include_event);
+TEST (pcr_test_hash_measurement_data_sha512_callback_include_version);
+TEST (pcr_test_hash_measurement_data_sha512_callback_include_event_version);
+#endif
+TEST (pcr_test_hash_measurement_data_null);
+TEST (pcr_test_hash_measurement_data_bad_measurement_index);
+TEST (pcr_test_hash_measurement_data_sha256_small_output_buffer);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_test_hash_measurement_data_sha384_small_output_buffer);
+TEST (pcr_test_hash_measurement_data_no_measured_data);
+TEST (pcr_test_hash_measurement_data_sha256_start_hash_error);
+TEST (pcr_test_hash_measurement_data_sha384_start_hash_error);
+TEST (pcr_test_hash_measurement_data_event_hash_error);
+TEST (pcr_test_hash_measurement_data_version_hash_error);
+TEST (pcr_test_hash_measurement_data_1byte_hash_error);
+TEST (pcr_test_hash_measurement_data_2byte_hash_error);
+TEST (pcr_test_hash_measurement_data_4byte_hash_error);
+TEST (pcr_test_hash_measurement_data_8byte_hash_error);
+TEST (pcr_test_hash_measurement_data_memory_hash_error);
+TEST (pcr_test_hash_measurement_data_flash_error);
+TEST (pcr_test_hash_measurement_data_callback_error);
+TEST (pcr_test_hash_measurement_data_no_hash_callback);
+TEST (pcr_test_hash_measurement_data_bad_measurement_data_type);
+TEST (pcr_test_hash_measurement_data_finish_error);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_test_hash_measurement_data_sha512_small_output_buffer);
+TEST (pcr_test_hash_measurement_data_sha512_start_hash_error);
+#endif
 TEST (pcr_test_get_tcg_log_sha256);
 TEST (pcr_test_get_tcg_log_sha256_explicit);
 TEST (pcr_test_get_tcg_log_sha256_offset_beginning_of_event);

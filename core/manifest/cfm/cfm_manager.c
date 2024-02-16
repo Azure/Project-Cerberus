@@ -168,8 +168,7 @@ void cfm_manager_on_cfm_activation_request (struct cfm_manager *manager)
 }
 
 /**
- * Get the data used for CFM ID measurement.  The CFM instance must be released with the
- * manager.
+ * Get the data used for CFM ID measurement.
  *
  * @param manager The CFM manager to query
  * @param offset The offset to read data from
@@ -203,8 +202,36 @@ int cfm_manager_get_id_measured_data (struct cfm_manager *manager, size_t offset
 }
 
 /**
- * Get the data used for CFM platform ID measurement.  The CFM instance must be released with the
- * manager.
+ * Update a hash context with the data used for the CFM ID measurement.
+ *
+ * @param manager The CFM manager to query.
+ * @param hash Hash engine to update.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int cfm_manager_hash_id_measured_data (struct cfm_manager *manager, struct hash_engine *hash)
+{
+	int status;
+	struct cfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_cfm (manager);
+	if (active == NULL) {
+		status = manifest_manager_hash_id_measured_data (NULL, hash);
+	}
+	else {
+		status = manifest_manager_hash_id_measured_data (&active->base, hash);
+		manager->free_cfm (manager, active);
+	}
+
+	return status;
+}
+
+/**
+ * Get the data used for CFM platform ID measurement.
  *
  * @param manager The CFM manager to query
  * @param offset The offset to read data from
@@ -239,10 +266,39 @@ int cfm_manager_get_platform_id_measured_data (struct cfm_manager *manager, size
 }
 
 /**
- * Get the data used for CFM measurement.  The CFM instance must be released with the
- * manager.
+ * Update a hash context with the data used for the CFM platform ID measurement.
  *
- * @param manager The PFM manager to query
+ * @param manager The CFM manager to query.
+ * @param hash Hash engine to update.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int cfm_manager_hash_platform_id_measured_data (struct cfm_manager *manager,
+	struct hash_engine *hash)
+{
+	int status;
+	struct cfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_cfm (manager);
+	if (active == NULL) {
+		status = manifest_manager_hash_platform_id_measured_data (NULL, hash);
+	}
+	else {
+		status = manifest_manager_hash_platform_id_measured_data (&active->base, hash);
+		manager->free_cfm (manager, active);
+	}
+
+	return status;
+}
+
+/**
+ * Get the data used for CFM measurement.
+ *
+ * @param manager The CFM manager to query
  * @param offset The offset to read data from
  * @param buffer The output buffer to be filled with measured data
  * @param length Maximum length of the buffer
@@ -268,6 +324,40 @@ int cfm_manager_get_cfm_measured_data (struct cfm_manager *manager, size_t offse
 	else {
 		status = manifest_manager_get_manifest_measured_data (&manager->base, &active->base, offset,
 			buffer, length, total_len);
+		manager->free_cfm (manager, active);
+	}
+
+	return status;
+}
+
+/**
+ * Update a hash context with the data used for the CFM measurement.
+ *
+ * NOTE:  When using this function to hash the CFM measurement, it must be guaranteed that the hash
+ * context used by the CFM manager be different from the one passed into this function as an
+ * argument.
+ *
+ * @param manager The CFM manager to query.
+ * @param hash Hash engine to update.  This must be different from the hash engine contained in the
+ * CFM manager.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int cfm_manager_hash_cfm_measured_data (struct cfm_manager *manager, struct hash_engine *hash)
+{
+	int status;
+	struct cfm *active;
+
+	if (manager == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_cfm (manager);
+	if (active == NULL) {
+		status = manifest_manager_hash_manifest_measured_data (&manager->base, NULL, hash);
+	}
+	else {
+		status = manifest_manager_hash_manifest_measured_data (&manager->base, &active->base, hash);
 		manager->free_cfm (manager, active);
 	}
 

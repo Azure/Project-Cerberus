@@ -54,6 +54,19 @@ struct pfm_manager {
 int pfm_manager_add_observer (struct pfm_manager *manager, const struct pfm_observer *observer);
 int pfm_manager_remove_observer (struct pfm_manager *manager, const struct pfm_observer *observer);
 
+int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length, uint32_t *total_len);
+int pfm_manager_hash_id_measured_data (struct pfm_manager *manager, struct hash_engine *hash);
+
+int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size_t offset,
+	uint8_t *buffer, size_t length, uint32_t *total_len);
+int pfm_manager_hash_platform_id_measured_data (struct pfm_manager *manager,
+	struct hash_engine *hash);
+
+int pfm_manager_get_pfm_measured_data (struct pfm_manager *manager, size_t offset, uint8_t *buffer,
+	size_t length, uint32_t *total_len);
+int pfm_manager_hash_pfm_measured_data (struct pfm_manager *manager, struct hash_engine *hash);
+
 /* Internal functions for use by derived types. */
 int pfm_manager_init (struct pfm_manager *manager, struct hash_engine *hash, int port);
 void pfm_manager_release (struct pfm_manager *manager);
@@ -62,14 +75,6 @@ void pfm_manager_on_pfm_verified (struct pfm_manager *manager);
 void pfm_manager_on_pfm_activated (struct pfm_manager *manager);
 void pfm_manager_on_clear_active (struct pfm_manager *manager);
 void pfm_manager_on_pfm_activation_request (struct pfm_manager *manager);
-
-
-int pfm_manager_get_id_measured_data (struct pfm_manager *manager, size_t offset, uint8_t *buffer,
-	size_t length, uint32_t *total_len);
-int pfm_manager_get_platform_id_measured_data (struct pfm_manager *manager, size_t offset,
-	uint8_t *buffer, size_t length, uint32_t *total_len);
-int pfm_manager_get_pfm_measured_data (struct pfm_manager *manager, size_t offset, uint8_t *buffer,
-	size_t length, uint32_t *total_len);
 
 
 #endif /* PFM_MANAGER_H_ */

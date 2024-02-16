@@ -605,8 +605,7 @@ int recovery_image_manager_get_port (struct recovery_image_manager *manager)
 }
 
 /**
- * Get the data used for recovery image measurement.  The recovery image instance must be released
- * with the manager.
+ * Get the data used for recovery image measurement.
  *
  * @param manager The recovery image manager to query
  * @param offset The offset to read data from
@@ -620,7 +619,7 @@ int recovery_image_manager_get_measured_data (struct recovery_image_manager *man
 	uint8_t *buffer, size_t length, uint32_t *total_len)
 {
 	uint8_t hash_out[SHA256_HASH_LENGTH] = {0};
-	int status = 0;
+	int status;
 	struct recovery_image *active;
 	size_t bytes_read;
 
@@ -648,4 +647,40 @@ int recovery_image_manager_get_measured_data (struct recovery_image_manager *man
 	memcpy (buffer, hash_out + offset, bytes_read);
 
 	return bytes_read;
+}
+
+/**
+ * Update a hash context with the data used for the recovery image measurement.
+ *
+ * NOTE:  When using this function to hash the recovery image measurement, it must be guaranteed
+ * that the hash context used by the recovery image manager be different from the one passed into
+ * this function as an argument.
+ *
+ * @param manager The recovery image manager to query.
+ * @param hash Hash engine to update.  This must be different from the hash engine contained in the
+ * recovery image manager.
+ *
+ * @return 0 if the hash was updated successfully or an error code.
+ */
+int recovery_image_manager_hash_measured_data (struct recovery_image_manager *manager,
+	struct hash_engine *hash)
+{
+	uint8_t hash_out[SHA256_HASH_LENGTH] = {0};
+	struct recovery_image *active;
+	int status;
+
+	if ((manager == NULL) || (hash == NULL)) {
+		return RECOVERY_IMAGE_MANAGER_INVALID_ARGUMENT;
+	}
+
+	active = manager->get_active_recovery_image (manager);
+	if (active) {
+		status = active->get_hash (active, manager->hash, hash_out, sizeof (hash_out));
+		manager->free_recovery_image (manager, active);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	return hash->update (hash, hash_out, sizeof (hash_out));
 }
