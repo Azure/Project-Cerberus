@@ -21,6 +21,7 @@
 #include "mctp/mctp_interface.h"
 #include "spdm/cmd_interface_spdm.h"
 #include "spdm/spdm_commands.h"
+#include "spdm/spdm_discovery.h"
 #include "spdm/spdm_measurements.h"
 #include "spdm/spdm_protocol.h"
 #include "testing/mock/asn1/x509_mock.h"
@@ -2343,9 +2344,9 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 	struct attestation_requester_testing *testing = expected->context;
 	struct spdm_protocol_mctp_header *mctp;
 	struct spdm_get_measurements_response *measurements_response;
-	struct spdm_measurements_block_header *block;
-	struct spdm_measurements_device_id_block *device_id_block;
-	struct spdm_measurements_device_id_descriptor *device_id_descriptor;
+	struct spdm_measurements_measurement_block *block;
+	struct spdm_discovery_device_id_block *device_id_block;
+	struct spdm_discovery_device_id_descriptor *device_id_descriptor;
 	struct cmd_packet rx_packet;
 	struct cmd_message *tx;
 	uint16_t *opaque_length;
@@ -2374,8 +2375,8 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 
 	memset (&rx_packet, 0, sizeof (rx_packet));
 
-	device_id_len = sizeof (struct spdm_measurements_device_id_block) +
-		(sizeof (struct spdm_measurements_device_id_descriptor) + sizeof (uint16_t)) *
+	device_id_len = sizeof (struct spdm_discovery_device_id_block) +
+		(sizeof (struct spdm_discovery_device_id_descriptor) + sizeof (uint16_t)) *
 		(4 - testing->device_id_block_short);
 
 	block_len = testing->spdm_discovery ? spdm_measurements_block_size (device_id_len) :
@@ -2411,16 +2412,16 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 		measurements_response->measurement_record_len[0] = block_len;
 
 		payload_len += sizeof (struct spdm_get_measurements_response);
-		block =	(struct spdm_measurements_block_header*) &msg[payload_len];
-		payload_len += sizeof (struct spdm_measurements_block_header);
+		block =	(struct spdm_measurements_measurement_block*) &msg[payload_len];
+		payload_len += sizeof (struct spdm_measurements_measurement_block);
 
 		if (!testing->spdm_discovery) {
 			if (!testing->second_response[1]) {
 				block->index = 1 + testing->unexpected_measurement_block;
-				block->measurement_size = sizeof (struct spdm_measurements_block_dmtf) + hash_len;
+				block->measurement_size = spdm_measurements_measurement_size (hash_len);
 				block->measurement_specification = 1;
-				block->dmtf.measurement_block_type = 0;
-				block->dmtf.measurement_size = hash_len;
+				block->dmtf.measurement_value_type = 0;
+				block->dmtf.measurement_value_size = hash_len;
 				block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw & testing->raw_rsp[0];
 
 				for (i = 0; i < hash_len; ++i, ++payload_len) {
@@ -2432,15 +2433,15 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 				}
 
 				if (testing->get_all_blocks | testing->num_blocks_incorrect) {
-					block =	(struct spdm_measurements_block_header*) &msg[payload_len];
-					payload_len += sizeof (struct spdm_measurements_block_header);
+					block =	(struct spdm_measurements_measurement_block*) &msg[payload_len];
+					payload_len += sizeof (struct spdm_measurements_measurement_block);
 
 					block->index = 2 + testing->unexpected_measurement_block;
 					block->measurement_size =
-						sizeof (struct spdm_measurements_block_dmtf) + hash_len;
+						spdm_measurements_measurement_size (hash_len);
 					block->measurement_specification = 1;
-					block->dmtf.measurement_block_type = 0;
-					block->dmtf.measurement_size = hash_len;
+					block->dmtf.measurement_value_type = 0;
+					block->dmtf.measurement_value_size = hash_len;
 					block->dmtf.raw_bit_stream =
 						!testing->digest_instead_of_raw & testing->raw_rsp[0];
 
@@ -2451,10 +2452,10 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 			}
 			else {
 				block->index = 2 + testing->unexpected_measurement_block;
-				block->measurement_size = sizeof (struct spdm_measurements_block_dmtf) + hash_len;
+				block->measurement_size = spdm_measurements_measurement_size (hash_len);
 				block->measurement_specification = 1;
-				block->dmtf.measurement_block_type = 0;
-				block->dmtf.measurement_size = hash_len;
+				block->dmtf.measurement_value_type = 0;
+				block->dmtf.measurement_value_size = hash_len;
 				block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw & testing->raw_rsp[1];
 
 				for (i = 0; i < hash_len; ++i, ++payload_len) {
@@ -2464,55 +2465,50 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 		}
 		else {
 			block->index = (testing->spdm_version == 1) ? 5 : 0xEF;
-			block->measurement_size = device_id_len +
-				sizeof (struct spdm_measurements_block_dmtf);
+			block->measurement_size = spdm_measurements_measurement_size (device_id_len);
 			block->measurement_specification = 1;
-			block->dmtf.measurement_block_type = 3;
-			block->dmtf.measurement_size = device_id_len;
+			block->dmtf.measurement_value_type = 3;
+			block->dmtf.measurement_value_size = device_id_len;
 			block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw;
 
-			device_id_block =
-				(struct spdm_measurements_device_id_block*) &msg[payload_len];
+			device_id_block = (struct spdm_discovery_device_id_block*) &msg[payload_len];
 			device_id_block->completion_code = testing->device_id_fail;
 			device_id_block->descriptor_count = 4 - testing->device_id_block_short;
-			device_id_block->device_id_len = block->dmtf.measurement_size -
-				sizeof (struct spdm_measurements_device_id_block);
-			payload_len += sizeof (struct spdm_measurements_device_id_block);
+			device_id_block->device_id_len = block->dmtf.measurement_value_size -
+				sizeof (struct spdm_discovery_device_id_block);
+			payload_len += sizeof (struct spdm_discovery_device_id_block);
 
-			device_id_descriptor =
-				(struct spdm_measurements_device_id_descriptor*) &msg[payload_len];
-			payload_len += sizeof (struct spdm_measurements_device_id_descriptor);
+			device_id_descriptor = (struct spdm_discovery_device_id_descriptor*) &msg[payload_len];
+			payload_len += sizeof (struct spdm_discovery_device_id_descriptor);
 
 			device_id_descriptor->descriptor_len = sizeof (uint16_t);
 			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 1) ?
-				SPDM_MEASUREMENTS_DEVICE_ID_PCI_VID :
-				SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
+				SPDM_DISCOVERY_DEVICE_ID_PCI_VID :
+				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &msg[payload_len];
 			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xAB : 0xAA;
 			payload_len += 2;
 
-			device_id_descriptor =
-				(struct spdm_measurements_device_id_descriptor*) &msg[payload_len];
-			payload_len += sizeof (struct spdm_measurements_device_id_descriptor);
+			device_id_descriptor = (struct spdm_discovery_device_id_descriptor*) &msg[payload_len];
+			payload_len += sizeof (struct spdm_discovery_device_id_descriptor);
 
 			device_id_descriptor->descriptor_len = sizeof (uint16_t);
 			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 2) ?
-				SPDM_MEASUREMENTS_DEVICE_ID_PCI_DEVICE_ID :
-				SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
+				SPDM_DISCOVERY_DEVICE_ID_PCI_DEVICE_ID :
+				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &msg[payload_len];
 			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xBC : 0xBB;
 			payload_len += 2;
 
-			device_id_descriptor =
-				(struct spdm_measurements_device_id_descriptor*) &msg[payload_len];
-			payload_len += sizeof (struct spdm_measurements_device_id_descriptor);
+			device_id_descriptor = (struct spdm_discovery_device_id_descriptor*) &msg[payload_len];
+			payload_len += sizeof (struct spdm_discovery_device_id_descriptor);
 
 			device_id_descriptor->descriptor_len = sizeof (uint16_t);
 			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 3) ?
-				SPDM_MEASUREMENTS_DEVICE_ID_PCI_SUBSYSTEM_VID :
-				SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
+				SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_VID :
+				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &msg[payload_len];
 			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xCD : 0xCC;
@@ -2520,13 +2516,13 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 
 			if (!testing->device_id_block_short) {
 				device_id_descriptor =
-					(struct spdm_measurements_device_id_descriptor*) &msg[payload_len];
-				payload_len += sizeof (struct spdm_measurements_device_id_descriptor);
+					(struct spdm_discovery_device_id_descriptor*) &msg[payload_len];
+				payload_len += sizeof (struct spdm_discovery_device_id_descriptor);
 
 				device_id_descriptor->descriptor_len = sizeof (uint16_t);
 				device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 4) ?
-					SPDM_MEASUREMENTS_DEVICE_ID_PCI_SUBSYSTEM_ID :
-					SPDM_MEASUREMENTS_DEVICE_ID_IANA_ENTERPRISE_ID;
+					SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_ID :
+					SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 				id = (uint16_t*) &msg[payload_len];
 				*id = (testing->second_response[0] && testing->multiple_devices) ? 0xDE : 0xDD;
@@ -4245,8 +4241,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	struct spdm_get_measurements_request *req = (struct spdm_get_measurements_request*) rq_buf;
 	uint8_t rsp_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) &rsp_buf;
-	struct spdm_measurements_block_header *block =
-		(struct spdm_measurements_block_header*)
+	struct spdm_measurements_measurement_block *block =
+		(struct spdm_measurements_measurement_block*)
 			spdm_get_measurements_resp_measurement_record (rsp);
 	uint16_t *opaque_length;
 	uint8_t *slot_id;
@@ -4301,14 +4297,14 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	rsp->measurement_record_len[0] = num_blocks * spdm_measurements_block_size (hash_len);
 
 	offset = sizeof (struct spdm_get_measurements_response) +
-		sizeof (struct spdm_measurements_block_header);
+		sizeof (struct spdm_measurements_measurement_block);
 
 	if (measurement_operation != 2) {
 		block->index = 1 + testing->unexpected_measurement_block;
-		block->measurement_size = sizeof (struct spdm_measurements_block_dmtf) + hash_len;
+		block->measurement_size = spdm_measurements_measurement_size (hash_len);
 		block->measurement_specification = 1;
-		block->dmtf.measurement_block_type = 0;
-		block->dmtf.measurement_size = hash_len;
+		block->dmtf.measurement_value_type = 0;
+		block->dmtf.measurement_value_size = hash_len;
 		block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw & testing->raw_rsp[0];
 
 		for (i = 0; i < hash_len; ++i, ++offset) {
@@ -4321,10 +4317,10 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	}
 	else {
 		block->index = 2 + testing->unexpected_measurement_block;
-		block->measurement_size = sizeof (struct spdm_measurements_block_dmtf) + hash_len;
+		block->measurement_size = spdm_measurements_measurement_size (hash_len);
 		block->measurement_specification = 1;
-		block->dmtf.measurement_block_type = 0;
-		block->dmtf.measurement_size = hash_len;
+		block->dmtf.measurement_value_type = 0;
+		block->dmtf.measurement_value_size = hash_len;
 		block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw & testing->raw_rsp[1];
 
 		for (i = 0; i < hash_len; ++i, ++offset) {
@@ -4333,14 +4329,14 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	}
 
 	if (num_blocks > 1) {
-		block =	(struct spdm_measurements_block_header*) &rsp_buf[offset];
-		offset += sizeof (struct spdm_measurements_block_header);
+		block =	(struct spdm_measurements_measurement_block*) &rsp_buf[offset];
+		offset += sizeof (struct spdm_measurements_measurement_block);
 
 		block->index = 2 + testing->unexpected_measurement_block;
-		block->measurement_size = sizeof (struct spdm_measurements_block_dmtf) + hash_len;
+		block->measurement_size = spdm_measurements_measurement_size (hash_len);
 		block->measurement_specification = 1;
-		block->dmtf.measurement_block_type = 0;
-		block->dmtf.measurement_size = hash_len;
+		block->dmtf.measurement_value_type = 0;
+		block->dmtf.measurement_value_size = hash_len;
 		block->dmtf.raw_bit_stream = !testing->digest_instead_of_raw & testing->raw_rsp[0];
 
 		for (i = 0; i < hash_len; ++i, ++offset) {
@@ -26064,8 +26060,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_fail (Cu
 	struct spdm_get_measurements_request *req = (struct spdm_get_measurements_request*) rq_buf;
 	uint8_t rsp_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) &rsp_buf;
-	struct spdm_measurements_block_header *block =
-		(struct spdm_measurements_block_header*)
+	struct spdm_measurements_measurement_block *block =
+		(struct spdm_measurements_measurement_block*)
 		spdm_get_measurements_resp_measurement_record (rsp);
 	struct attestation_requester_testing testing;
 	struct cfm_pmr_digest pmr_digest;
@@ -26141,29 +26137,27 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_fail (Cu
 	rsp->measurement_record_len[0] = 2 * spdm_measurements_block_size (SHA256_HASH_LENGTH);
 
 	offset = sizeof (struct spdm_get_measurements_response) +
-		sizeof (struct spdm_measurements_block_header);
+		sizeof (struct spdm_measurements_measurement_block);
 
 	block->index = 1;
-	block->measurement_size =
-		sizeof (struct spdm_measurements_block_dmtf) + SHA256_HASH_LENGTH;
+	block->measurement_size = spdm_measurements_measurement_size (SHA256_HASH_LENGTH);
 	block->measurement_specification = 1;
-	block->dmtf.measurement_block_type = 0;
-	block->dmtf.measurement_size = SHA256_HASH_LENGTH;
+	block->dmtf.measurement_value_type = 0;
+	block->dmtf.measurement_value_size = SHA256_HASH_LENGTH;
 	block->dmtf.raw_bit_stream = 0;
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i, ++offset) {
 		rsp_buf[offset] = 50 + i;
 	}
 
-	block =	(struct spdm_measurements_block_header*) &rsp_buf[offset];
-	offset += sizeof (struct spdm_measurements_block_header);
+	block =	(struct spdm_measurements_measurement_block*) &rsp_buf[offset];
+	offset += sizeof (struct spdm_measurements_measurement_block);
 
 	block->index = 2;
-	block->measurement_size =
-		sizeof (struct spdm_measurements_block_dmtf) + SHA256_HASH_LENGTH;
+	block->measurement_size = spdm_measurements_measurement_size (SHA256_HASH_LENGTH);
 	block->measurement_specification = 1;
-	block->dmtf.measurement_block_type = 0;
-	block->dmtf.measurement_size = SHA256_HASH_LENGTH;
+	block->dmtf.measurement_value_type = 0;
+	block->dmtf.measurement_value_size = SHA256_HASH_LENGTH;
 	block->dmtf.raw_bit_stream = 0;
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i, ++offset) {
@@ -26227,8 +26221,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 	struct spdm_get_measurements_request *req = (struct spdm_get_measurements_request*) rq_buf;
 	uint8_t rsp_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) &rsp_buf;
-	struct spdm_measurements_block_header *block =
-		(struct spdm_measurements_block_header*)
+	struct spdm_measurements_measurement_block *block =
+		(struct spdm_measurements_measurement_block*)
 		spdm_get_measurements_resp_measurement_record (rsp);
 	struct attestation_requester_testing testing;
 	struct cfm_pmr_digest pmr_digest;
@@ -26304,29 +26298,27 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 	rsp->measurement_record_len[0] = 2 * spdm_measurements_block_size (SHA256_HASH_LENGTH);
 
 	offset = sizeof (struct spdm_get_measurements_response) +
-		sizeof (struct spdm_measurements_block_header);
+		sizeof (struct spdm_measurements_measurement_block);
 
 	block->index = 1;
-	block->measurement_size =
-		sizeof (struct spdm_measurements_block_dmtf) + SHA256_HASH_LENGTH;
+	block->measurement_size = spdm_measurements_measurement_size (SHA256_HASH_LENGTH);
 	block->measurement_specification = 1;
-	block->dmtf.measurement_block_type = 0;
-	block->dmtf.measurement_size = SHA256_HASH_LENGTH;
+	block->dmtf.measurement_value_type = 0;
+	block->dmtf.measurement_value_size = SHA256_HASH_LENGTH;
 	block->dmtf.raw_bit_stream = 0;
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i, ++offset) {
 		rsp_buf[offset] = 50 + i;
 	}
 
-	block =	(struct spdm_measurements_block_header*) &rsp_buf[offset];
-	offset += sizeof (struct spdm_measurements_block_header);
+	block =	(struct spdm_measurements_measurement_block*) &rsp_buf[offset];
+	offset += sizeof (struct spdm_measurements_measurement_block);
 
 	block->index = 2;
-	block->measurement_size =
-		sizeof (struct spdm_measurements_block_dmtf) + SHA256_HASH_LENGTH;
+	block->measurement_size = spdm_measurements_measurement_size (SHA256_HASH_LENGTH);
 	block->measurement_specification = 1;
-	block->dmtf.measurement_block_type = 0;
-	block->dmtf.measurement_size = SHA256_HASH_LENGTH;
+	block->dmtf.measurement_value_type = 0;
+	block->dmtf.measurement_value_size = SHA256_HASH_LENGTH;
 	block->dmtf.raw_bit_stream = 0;
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i, ++offset) {
@@ -26391,8 +26383,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 	struct spdm_get_measurements_request *req = (struct spdm_get_measurements_request*) rq_buf;
 	uint8_t rsp_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) &rsp_buf;
-	struct spdm_measurements_block_header *block =
-		(struct spdm_measurements_block_header*)
+	struct spdm_measurements_measurement_block *block =
+		(struct spdm_measurements_measurement_block*)
 		spdm_get_measurements_resp_measurement_record (rsp);
 	struct attestation_requester_testing testing;
 	struct cfm_pmr_digest pmr_digest;
@@ -26468,29 +26460,27 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 	rsp->measurement_record_len[0] = 2 * spdm_measurements_block_size (SHA256_HASH_LENGTH);
 
 	offset = sizeof (struct spdm_get_measurements_response) +
-		sizeof (struct spdm_measurements_block_header);
+		sizeof (struct spdm_measurements_measurement_block);
 
 	block->index = 1;
-	block->measurement_size =
-		sizeof (struct spdm_measurements_block_dmtf) + SHA256_HASH_LENGTH;
+	block->measurement_size = spdm_measurements_measurement_size (SHA256_HASH_LENGTH);
 	block->measurement_specification = 1;
-	block->dmtf.measurement_block_type = 0;
-	block->dmtf.measurement_size = SHA256_HASH_LENGTH;
+	block->dmtf.measurement_value_type = 0;
+	block->dmtf.measurement_value_size = SHA256_HASH_LENGTH;
 	block->dmtf.raw_bit_stream = 0;
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i, ++offset) {
 		rsp_buf[offset] = 50 + i;
 	}
 
-	block =	(struct spdm_measurements_block_header*) &rsp_buf[offset];
-	offset += sizeof (struct spdm_measurements_block_header);
+	block =	(struct spdm_measurements_measurement_block*) &rsp_buf[offset];
+	offset += sizeof (struct spdm_measurements_measurement_block);
 
 	block->index = 2;
-	block->measurement_size =
-		sizeof (struct spdm_measurements_block_dmtf) + SHA256_HASH_LENGTH;
+	block->measurement_size = spdm_measurements_measurement_size (SHA256_HASH_LENGTH);
 	block->measurement_specification = 1;
-	block->dmtf.measurement_block_type = 0;
-	block->dmtf.measurement_size = SHA256_HASH_LENGTH;
+	block->dmtf.measurement_value_type = 0;
+	block->dmtf.measurement_value_size = SHA256_HASH_LENGTH;
 	block->dmtf.raw_bit_stream = 0;
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i, ++offset) {
@@ -26555,8 +26545,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 	struct spdm_get_measurements_request *req = (struct spdm_get_measurements_request*) rq_buf;
 	uint8_t rsp_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) &rsp_buf;
-	struct spdm_measurements_block_header *block =
-		(struct spdm_measurements_block_header*)
+	struct spdm_measurements_measurement_block *block =
+		(struct spdm_measurements_measurement_block*)
 		spdm_get_measurements_resp_measurement_record (rsp);
 	struct attestation_requester_testing testing;
 	struct cfm_pmr_digest pmr_digest;
@@ -26633,29 +26623,27 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 	rsp->measurement_record_len[0] = 2 * spdm_measurements_block_size (SHA256_HASH_LENGTH);
 
 	offset = sizeof (struct spdm_get_measurements_response) +
-		sizeof (struct spdm_measurements_block_header);
+		sizeof (struct spdm_measurements_measurement_block);
 
 	block->index = 1;
-	block->measurement_size =
-		sizeof (struct spdm_measurements_block_dmtf) + SHA256_HASH_LENGTH;
+	block->measurement_size = spdm_measurements_measurement_size (SHA256_HASH_LENGTH);
 	block->measurement_specification = 1;
-	block->dmtf.measurement_block_type = 0;
-	block->dmtf.measurement_size = SHA256_HASH_LENGTH;
+	block->dmtf.measurement_value_type = 0;
+	block->dmtf.measurement_value_size = SHA256_HASH_LENGTH;
 	block->dmtf.raw_bit_stream = 0;
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i, ++offset) {
 		rsp_buf[offset] = 50 + i;
 	}
 
-	block =	(struct spdm_measurements_block_header*) &rsp_buf[offset];
-	offset += sizeof (struct spdm_measurements_block_header);
+	block =	(struct spdm_measurements_measurement_block*) &rsp_buf[offset];
+	offset += sizeof (struct spdm_measurements_measurement_block);
 
 	block->index = 2;
-	block->measurement_size =
-		sizeof (struct spdm_measurements_block_dmtf) + SHA256_HASH_LENGTH;
+	block->measurement_size = spdm_measurements_measurement_size (SHA256_HASH_LENGTH);
 	block->measurement_specification = 1;
-	block->dmtf.measurement_block_type = 0;
-	block->dmtf.measurement_size = SHA256_HASH_LENGTH;
+	block->dmtf.measurement_value_type = 0;
+	block->dmtf.measurement_value_size = SHA256_HASH_LENGTH;
 	block->dmtf.raw_bit_stream = 0;
 
 	for (i = 0; i < SHA256_HASH_LENGTH; ++i, ++offset) {

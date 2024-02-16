@@ -18,6 +18,7 @@
 #include "mctp/mctp_control_protocol.h"
 #include "mctp/mctp_control_protocol_commands.h"
 #include "spdm/spdm_commands.h"
+#include "spdm/spdm_discovery.h"
 #include "spdm/spdm_measurements.h"
 #include "spdm/spdm_protocol.h"
 #include "attestation_logging.h"
@@ -2038,7 +2039,7 @@ static int attestation_requester_spdm_process_get_measurements_response (
 {
 	struct spdm_get_measurements_response *rsp =
 		(struct spdm_get_measurements_response*) attestation->state->txn.msg_buffer;
-	struct spdm_measurements_block_header *block;
+	struct spdm_measurements_measurement_block *block;
 	size_t offset = sizeof (struct spdm_get_measurements_response);
 	size_t measurement_size;
 	uint8_t number_of_blocks = rsp->number_of_blocks;
@@ -2065,8 +2066,8 @@ static int attestation_requester_spdm_process_get_measurements_response (
 
 	for (i_block = 0; i_block < number_of_blocks; ++i_block) {
 		block =
-			(struct spdm_measurements_block_header*) &attestation->state->txn.msg_buffer[offset];
-		offset += sizeof (struct spdm_measurements_block_header);
+			(struct spdm_measurements_measurement_block*) &attestation->state->txn.msg_buffer[offset];
+		offset += sizeof (struct spdm_measurements_measurement_block);
 
 		// If a specific block was requested, make sure response only includes that block
 		if ((attestation->state->txn.measurement_operation_requested !=
@@ -2094,16 +2095,16 @@ static int attestation_requester_spdm_process_get_measurements_response (
 			return ATTESTATION_GET_MEAS_RSP_NOT_RAW;
 		}
 		else {
-			if ((block->dmtf.measurement_size + attestation->state->txn.msg_buffer_len) >
+			if ((block->dmtf.measurement_value_size + attestation->state->txn.msg_buffer_len) >
 				sizeof (attestation->state->txn.msg_buffer)) {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 					ATTESTATION_LOGGING_MEASUREMENT_DATA_TOO_LARGE,
 					(device_eid << 8) | block->index,
-					block->dmtf.measurement_size + attestation->state->txn.msg_buffer_len);
+					block->dmtf.measurement_value_size + attestation->state->txn.msg_buffer_len);
 				return ATTESTATION_GET_MEAS_BLOCKS_TOO_LARGE;
 			}
 
-			measurement_size = block->dmtf.measurement_size;
+			measurement_size = block->dmtf.measurement_value_size;
 			memmove (&attestation->state->txn.msg_buffer[attestation->state->txn.msg_buffer_len],
 				&attestation->state->txn.msg_buffer[offset], measurement_size);
 			attestation->state->txn.msg_buffer_len += measurement_size;
@@ -2951,15 +2952,15 @@ static int attestation_requester_discover_device_cerberus_protocol (
 static int attestation_requester_discover_device_spdm_protocol (
 	const struct attestation_requester *attestation, uint8_t eid, uint8_t device_addr)
 {
-	struct spdm_measurements_device_id_block *block =
-		(struct spdm_measurements_device_id_block*) attestation->state->txn.msg_buffer;
-	struct spdm_measurements_device_id_descriptor *descriptor;
+	struct spdm_discovery_device_id_block *block =
+		(struct spdm_discovery_device_id_block*) attestation->state->txn.msg_buffer;
+	struct spdm_discovery_device_id_descriptor *descriptor;
 	uint16_t pci_vid = 0;
 	uint16_t pci_device_id = 0;
 	uint16_t pci_sub_vid = 0;
 	uint16_t pci_sub_id = 0;
 	uint16_t *id;
-	size_t offset = sizeof (struct spdm_measurements_device_id_block);
+	size_t offset = sizeof (struct spdm_discovery_device_id_block);
 	uint8_t found = 0;
 	int i_descriptor;
 	int device_num;
@@ -2975,7 +2976,7 @@ static int attestation_requester_discover_device_spdm_protocol (
 		return status;
 	}
 
-	if (block->completion_code != SPDM_MEASUREMENTS_DEVICE_ID_BLOCK_CC_SUCCESS) {
+	if (block->completion_code != SPDM_DISCOVERY_DEVICE_ID_BLOCK_CC_SUCCESS) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_GET_DEVICE_ID_FAILED,
 			((eid << 8) | attestation->state->txn.protocol), block->completion_code);
@@ -2986,15 +2987,15 @@ static int attestation_requester_discover_device_spdm_protocol (
 	// Only PCI descriptors are supported, so ensure the 4 PCI descriptors are included in response
 	if ((block->descriptor_count < 4) ||
 		(block->device_id_len <
-			((sizeof (struct spdm_measurements_device_id_descriptor) + sizeof (uint16_t)) * 4))) {
+			((sizeof (struct spdm_discovery_device_id_descriptor) + sizeof (uint16_t)) * 4))) {
 		return 0;
 	}
 
 	for (i_descriptor = 0; i_descriptor < block->descriptor_count; ++i_descriptor) {
 		descriptor =
-			(struct spdm_measurements_device_id_descriptor*) &attestation->state->txn.msg_buffer[offset];
+			(struct spdm_discovery_device_id_descriptor*) &attestation->state->txn.msg_buffer[offset];
 
-		offset += sizeof (struct spdm_measurements_device_id_descriptor);
+		offset += sizeof (struct spdm_discovery_device_id_descriptor);
 		id = (uint16_t*) &attestation->state->txn.msg_buffer[offset];
 		offset += descriptor->descriptor_len;
 
@@ -3003,22 +3004,22 @@ static int attestation_requester_discover_device_spdm_protocol (
 		}
 
 		switch (descriptor->descriptor_type) {
-			case SPDM_MEASUREMENTS_DEVICE_ID_PCI_VID:
+			case SPDM_DISCOVERY_DEVICE_ID_PCI_VID:
 				pci_vid = *id;
 				found |= 1;
 				break;
 
-			case SPDM_MEASUREMENTS_DEVICE_ID_PCI_DEVICE_ID:
+			case SPDM_DISCOVERY_DEVICE_ID_PCI_DEVICE_ID:
 				pci_device_id = *id;
 				found |= (1 << 1);
 				break;
 
-			case SPDM_MEASUREMENTS_DEVICE_ID_PCI_SUBSYSTEM_VID:
+			case SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_VID:
 				pci_sub_vid = *id;
 				found |= (1 << 2);
 				break;
 
-			case SPDM_MEASUREMENTS_DEVICE_ID_PCI_SUBSYSTEM_ID:
+			case SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_ID:
 				pci_sub_id = *id;
 				found |= (1 << 3);
 				break;

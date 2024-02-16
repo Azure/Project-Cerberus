@@ -17132,9 +17132,9 @@ static void pcr_test_hash_measurement_data_sha256_matches_pcr (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, buffer, SHA256_HASH_LENGTH);
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17159,10 +17159,10 @@ static void pcr_test_hash_measurement_data_sha256_matches_pcr_include_event (CuT
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17184,10 +17184,10 @@ static void pcr_test_hash_measurement_data_sha256_matches_pcr_include_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED, buffer,
-		SHA256_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17212,10 +17212,10 @@ static void pcr_test_hash_measurement_data_sha256_matches_pcr_include_event_vers
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
-		buffer, SHA256_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17238,9 +17238,9 @@ static void pcr_test_hash_measurement_data_sha384_matches_pcr (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA384_FULL_BLOCK_512_HASH, buffer, SHA384_HASH_LENGTH);
+	status = testing_validate_array (SHA384_FULL_BLOCK_512_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17265,10 +17265,10 @@ static void pcr_test_hash_measurement_data_sha384_matches_pcr_include_event (CuT
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17290,10 +17290,10 @@ static void pcr_test_hash_measurement_data_sha384_matches_pcr_include_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED, buffer,
-		SHA384_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17318,10 +17318,10 @@ static void pcr_test_hash_measurement_data_sha384_matches_pcr_include_event_vers
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
-		buffer, SHA384_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17345,9 +17345,9 @@ static void pcr_test_hash_measurement_data_sha512_matches_pcr (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA512_FULL_BLOCK_512_HASH, buffer, SHA512_HASH_LENGTH);
+	status = testing_validate_array (SHA512_FULL_BLOCK_512_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17372,10 +17372,10 @@ static void pcr_test_hash_measurement_data_sha512_matches_pcr_include_event (CuT
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17397,10 +17397,10 @@ static void pcr_test_hash_measurement_data_sha512_matches_pcr_include_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED, buffer,
-		SHA512_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17425,10 +17425,10 @@ static void pcr_test_hash_measurement_data_sha512_matches_pcr_include_event_vers
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
-		buffer, SHA512_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17456,9 +17456,9 @@ static void pcr_test_hash_measurement_data_sha256_1byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA, buffer, SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17492,10 +17492,9 @@ static void pcr_test_hash_measurement_data_sha256_1byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17526,10 +17525,9 @@ static void pcr_test_hash_measurement_data_sha256_1byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA_VERSIONED, buffer,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17564,10 +17562,10 @@ static void pcr_test_hash_measurement_data_sha256_1byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_1BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17593,9 +17591,9 @@ static void pcr_test_hash_measurement_data_sha256_2byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA, buffer, SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17629,10 +17627,9 @@ static void pcr_test_hash_measurement_data_sha256_2byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17663,10 +17660,9 @@ static void pcr_test_hash_measurement_data_sha256_2byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA_VERSIONED, buffer,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17701,10 +17697,10 @@ static void pcr_test_hash_measurement_data_sha256_2byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_2BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17730,9 +17726,9 @@ static void pcr_test_hash_measurement_data_sha256_4byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA, buffer, SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17766,10 +17762,9 @@ static void pcr_test_hash_measurement_data_sha256_4byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17800,10 +17795,9 @@ static void pcr_test_hash_measurement_data_sha256_4byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED, buffer,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17838,10 +17832,10 @@ static void pcr_test_hash_measurement_data_sha256_4byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17867,9 +17861,9 @@ static void pcr_test_hash_measurement_data_sha256_8byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA, buffer, SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17903,10 +17897,9 @@ static void pcr_test_hash_measurement_data_sha256_8byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17937,10 +17930,9 @@ static void pcr_test_hash_measurement_data_sha256_8byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA_VERSIONED, buffer,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -17975,10 +17967,10 @@ static void pcr_test_hash_measurement_data_sha256_8byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_8BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18004,9 +17996,9 @@ static void pcr_test_hash_measurement_data_sha256_memory (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, buffer, SHA256_HASH_LENGTH);
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18040,10 +18032,10 @@ static void pcr_test_hash_measurement_data_sha256_memory_include_event (CuTest *
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18074,10 +18066,10 @@ static void pcr_test_hash_measurement_data_sha256_memory_include_version (CuTest
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED, buffer,
-		SHA256_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18112,10 +18104,10 @@ static void pcr_test_hash_measurement_data_sha256_memory_include_event_version (
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
-		buffer, SHA256_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18149,9 +18141,9 @@ static void pcr_test_hash_measurement_data_sha256_flash (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA256_FULL_BLOCK_1024_HASH, buffer, SHA256_HASH_LENGTH);
+	status = testing_validate_array (SHA256_FULL_BLOCK_1024_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18193,10 +18185,10 @@ static void pcr_test_hash_measurement_data_sha256_flash_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18235,10 +18227,10 @@ static void pcr_test_hash_measurement_data_sha256_flash_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED, buffer,
-		SHA256_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18281,10 +18273,10 @@ static void pcr_test_hash_measurement_data_sha256_flash_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
-		buffer, SHA256_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18312,9 +18304,9 @@ static void pcr_test_hash_measurement_data_sha256_callback (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA, buffer, SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18350,10 +18342,9 @@ static void pcr_test_hash_measurement_data_sha256_callback_include_event (CuTest
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_WITH_EVENT, buffer,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18386,10 +18377,9 @@ static void pcr_test_hash_measurement_data_sha256_callback_include_version (CuTe
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED, buffer,
-		SHA256_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18426,10 +18416,10 @@ static void pcr_test_hash_measurement_data_sha256_callback_include_event_version
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED_WITH_EVENT,
-		buffer, SHA256_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18455,9 +18445,9 @@ static void pcr_test_hash_measurement_data_sha384_1byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA, buffer, SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18491,10 +18481,9 @@ static void pcr_test_hash_measurement_data_sha384_1byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18525,10 +18514,9 @@ static void pcr_test_hash_measurement_data_sha384_1byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA_VERSIONED, buffer,
-		SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18563,10 +18551,10 @@ static void pcr_test_hash_measurement_data_sha384_1byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_1BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18592,9 +18580,9 @@ static void pcr_test_hash_measurement_data_sha384_2byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA, buffer, SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18628,10 +18616,9 @@ static void pcr_test_hash_measurement_data_sha384_2byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18662,10 +18649,9 @@ static void pcr_test_hash_measurement_data_sha384_2byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA_VERSIONED, buffer,
-		SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18700,10 +18686,10 @@ static void pcr_test_hash_measurement_data_sha384_2byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_2BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18729,9 +18715,9 @@ static void pcr_test_hash_measurement_data_sha384_4byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA, buffer, SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18765,10 +18751,9 @@ static void pcr_test_hash_measurement_data_sha384_4byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18799,10 +18784,9 @@ static void pcr_test_hash_measurement_data_sha384_4byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED, buffer,
-		SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18837,10 +18821,10 @@ static void pcr_test_hash_measurement_data_sha384_4byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18866,9 +18850,9 @@ static void pcr_test_hash_measurement_data_sha384_8byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA, buffer, SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18902,10 +18886,9 @@ static void pcr_test_hash_measurement_data_sha384_8byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18936,10 +18919,9 @@ static void pcr_test_hash_measurement_data_sha384_8byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA_VERSIONED, buffer,
-		SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -18974,10 +18956,10 @@ static void pcr_test_hash_measurement_data_sha384_8byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_8BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19003,9 +18985,9 @@ static void pcr_test_hash_measurement_data_sha384_memory (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA384_FULL_BLOCK_512_HASH, buffer, SHA384_HASH_LENGTH);
+	status = testing_validate_array (SHA384_FULL_BLOCK_512_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19039,10 +19021,10 @@ static void pcr_test_hash_measurement_data_sha384_memory_include_event (CuTest *
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19073,10 +19055,10 @@ static void pcr_test_hash_measurement_data_sha384_memory_include_version (CuTest
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED, buffer,
-		SHA384_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19111,10 +19093,10 @@ static void pcr_test_hash_measurement_data_sha384_memory_include_event_version (
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
-		buffer, SHA384_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19148,9 +19130,9 @@ static void pcr_test_hash_measurement_data_sha384_flash (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA384_FULL_BLOCK_1024_HASH, buffer, SHA384_HASH_LENGTH);
+	status = testing_validate_array (SHA384_FULL_BLOCK_1024_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19192,10 +19174,10 @@ static void pcr_test_hash_measurement_data_sha384_flash_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19234,10 +19216,10 @@ static void pcr_test_hash_measurement_data_sha384_flash_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED, buffer,
-		SHA384_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19280,10 +19262,10 @@ static void pcr_test_hash_measurement_data_sha384_flash_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
-		buffer, SHA384_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19311,9 +19293,9 @@ static void pcr_test_hash_measurement_data_sha384_callback (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA, buffer, SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19349,10 +19331,9 @@ static void pcr_test_hash_measurement_data_sha384_callback_include_event (CuTest
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_WITH_EVENT, buffer,
-		SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19385,10 +19366,9 @@ static void pcr_test_hash_measurement_data_sha384_callback_include_version (CuTe
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED, buffer,
-		SHA384_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19425,10 +19405,10 @@ static void pcr_test_hash_measurement_data_sha384_callback_include_event_version
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA384_4BYTE_DATA_VERSIONED_WITH_EVENT,
-		buffer, SHA384_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19456,9 +19436,9 @@ static void pcr_test_hash_measurement_data_sha512_1byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA, buffer, SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19492,10 +19472,9 @@ static void pcr_test_hash_measurement_data_sha512_1byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19526,10 +19505,9 @@ static void pcr_test_hash_measurement_data_sha512_1byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA_VERSIONED, buffer,
-		SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19564,10 +19542,10 @@ static void pcr_test_hash_measurement_data_sha512_1byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_1BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19593,9 +19571,9 @@ static void pcr_test_hash_measurement_data_sha512_2byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA, buffer, SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19629,10 +19607,9 @@ static void pcr_test_hash_measurement_data_sha512_2byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19663,10 +19640,9 @@ static void pcr_test_hash_measurement_data_sha512_2byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA_VERSIONED, buffer,
-		SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19701,10 +19677,10 @@ static void pcr_test_hash_measurement_data_sha512_2byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_2BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19730,9 +19706,9 @@ static void pcr_test_hash_measurement_data_sha512_4byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA, buffer, SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19766,10 +19742,9 @@ static void pcr_test_hash_measurement_data_sha512_4byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19800,10 +19775,9 @@ static void pcr_test_hash_measurement_data_sha512_4byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED, buffer,
-		SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19838,10 +19812,10 @@ static void pcr_test_hash_measurement_data_sha512_4byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19867,9 +19841,9 @@ static void pcr_test_hash_measurement_data_sha512_8byte (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA, buffer, SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19903,10 +19877,9 @@ static void pcr_test_hash_measurement_data_sha512_8byte_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19937,10 +19910,9 @@ static void pcr_test_hash_measurement_data_sha512_8byte_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA_VERSIONED, buffer,
-		SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -19975,10 +19947,10 @@ static void pcr_test_hash_measurement_data_sha512_8byte_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_8BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20004,9 +19976,9 @@ static void pcr_test_hash_measurement_data_sha512_memory (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA512_FULL_BLOCK_512_HASH, buffer, SHA512_HASH_LENGTH);
+	status = testing_validate_array (SHA512_FULL_BLOCK_512_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20040,10 +20012,10 @@ static void pcr_test_hash_measurement_data_sha512_memory_include_event (CuTest *
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20074,10 +20046,10 @@ static void pcr_test_hash_measurement_data_sha512_memory_include_version (CuTest
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED, buffer,
-		SHA512_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20112,10 +20084,10 @@ static void pcr_test_hash_measurement_data_sha512_memory_include_event_version (
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
-		buffer, SHA512_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20149,9 +20121,9 @@ static void pcr_test_hash_measurement_data_sha512_flash (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA512_FULL_BLOCK_1024_HASH, buffer, SHA512_HASH_LENGTH);
+	status = testing_validate_array (SHA512_FULL_BLOCK_1024_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20193,10 +20165,10 @@ static void pcr_test_hash_measurement_data_sha512_flash_include_event (CuTest *t
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20235,10 +20207,10 @@ static void pcr_test_hash_measurement_data_sha512_flash_include_version (CuTest 
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED, buffer,
-		SHA512_HASH_LENGTH);
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20281,10 +20253,10 @@ static void pcr_test_hash_measurement_data_sha512_flash_include_event_version (C
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
 	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
-		buffer, SHA512_HASH_LENGTH);
+		buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20312,9 +20284,9 @@ static void pcr_test_hash_measurement_data_sha512_callback (CuTest *test)
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA, buffer, SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20350,10 +20322,9 @@ static void pcr_test_hash_measurement_data_sha512_callback_include_event (CuTest
 
 	status = pcr_hash_measurement_data (&pcr.test, 1, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_WITH_EVENT, buffer,
-		SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_WITH_EVENT, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20386,10 +20357,9 @@ static void pcr_test_hash_measurement_data_sha512_callback_include_version (CuTe
 
 	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED, buffer,
-		SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20426,10 +20396,10 @@ static void pcr_test_hash_measurement_data_sha512_callback_include_event_version
 
 	status = pcr_hash_measurement_data (&pcr.test, 0, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
 		sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
 
-	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED_WITH_EVENT,
-		buffer, SHA512_HASH_LENGTH);
+	status = testing_validate_array (PCR_TESTING_SHA512_4BYTE_DATA_VERSIONED_WITH_EVENT, buffer,
+		status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -20478,6 +20448,23 @@ static void pcr_test_hash_measurement_data_bad_measurement_index (CuTest *test)
 	pcr_testing_release (test, &pcr);
 }
 
+static void pcr_test_hash_measurement_data_unknown_hash (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_hash_measurement_data (&pcr.test, 3, &pcr.hash.base, HASH_TYPE_INVALID, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
 static void pcr_test_hash_measurement_data_sha256_small_output_buffer (CuTest *test)
 {
 	struct pcr_testing pcr;
@@ -20495,8 +20482,6 @@ static void pcr_test_hash_measurement_data_sha256_small_output_buffer (CuTest *t
 	pcr_testing_release (test, &pcr);
 }
 
-
-#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
 static void pcr_test_hash_measurement_data_sha384_small_output_buffer (CuTest *test)
 {
 	struct pcr_testing pcr;
@@ -20505,7 +20490,7 @@ static void pcr_test_hash_measurement_data_sha384_small_output_buffer (CuTest *t
 
 	TEST_START;
 
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA384, buffer,
 		SHA384_HASH_LENGTH - 1);
@@ -20514,6 +20499,86 @@ static void pcr_test_hash_measurement_data_sha384_small_output_buffer (CuTest *t
 	pcr_testing_release (test, &pcr);
 }
 
+static void pcr_test_hash_measurement_data_sha512_small_output_buffer (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
+		SHA512_HASH_LENGTH - 1);
+	CuAssertIntEquals (test, PCR_SMALL_OUTPUT_BUFFER, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+#ifdef HASH_ENABLE_SHA384
+static void pcr_test_hash_measurement_data_sha384_start_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha384, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA384_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA384, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+static void pcr_test_hash_measurement_data_sha512_start_hash_error (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measured_data measurement_data;
+	uint8_t buffer[HASH_MAX_HASH_LEN];
+	int status;
+
+	TEST_START;
+
+	measurement_data.type = PCR_DATA_TYPE_MEMORY;
+	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
+	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha512, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA512_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA512, buffer,
+		sizeof (buffer));
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
 static void pcr_test_hash_measurement_data_no_measured_data (CuTest *test)
 {
 	struct pcr_testing pcr;
@@ -20556,35 +20621,6 @@ static void pcr_test_hash_measurement_data_sha256_start_hash_error (CuTest *test
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
-
-	pcr_testing_release (test, &pcr);
-}
-
-static void pcr_test_hash_measurement_data_sha384_start_hash_error (CuTest *test)
-{
-	struct pcr_testing pcr;
-	struct pcr_measured_data measurement_data;
-	uint8_t buffer[HASH_MAX_HASH_LEN];
-	int status;
-
-	TEST_START;
-
-	measurement_data.type = PCR_DATA_TYPE_MEMORY;
-	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
-	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
-
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
-
-	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha384, &pcr.hash_mock,
-		HASH_ENGINE_START_SHA384_FAILED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA384, buffer,
-		sizeof (buffer));
-	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
 
 	pcr_testing_release (test, &pcr);
 }
@@ -21012,54 +21048,6 @@ static void pcr_test_hash_measurement_data_finish_error (CuTest *test)
 	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA256, buffer,
 		sizeof (buffer));
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
-
-	pcr_testing_release (test, &pcr);
-}
-#endif
-
-#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
-static void pcr_test_hash_measurement_data_sha512_small_output_buffer (CuTest *test)
-{
-	struct pcr_testing pcr;
-	uint8_t buffer[HASH_MAX_HASH_LEN];
-	int status;
-
-	TEST_START;
-
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
-
-	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash.base, HASH_TYPE_SHA512, buffer,
-		SHA512_HASH_LENGTH - 1);
-	CuAssertIntEquals (test, PCR_SMALL_OUTPUT_BUFFER, status);
-
-	pcr_testing_release (test, &pcr);
-}
-
-static void pcr_test_hash_measurement_data_sha512_start_hash_error (CuTest *test)
-{
-	struct pcr_testing pcr;
-	struct pcr_measured_data measurement_data;
-	uint8_t buffer[HASH_MAX_HASH_LEN];
-	int status;
-
-	TEST_START;
-
-	measurement_data.type = PCR_DATA_TYPE_MEMORY;
-	measurement_data.data.memory.buffer = HASH_TESTING_FULL_BLOCK_512;
-	measurement_data.data.memory.length = HASH_TESTING_FULL_BLOCK_512_LEN;
-
-	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
-
-	status = pcr_set_measurement_data (&pcr.test, 2, &measurement_data);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha512, &pcr.hash_mock,
-		HASH_ENGINE_START_SHA512_FAILED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcr_hash_measurement_data (&pcr.test, 2, &pcr.hash_mock.base, HASH_TYPE_SHA512, buffer,
-		sizeof (buffer));
-	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
 
 	pcr_testing_release (test, &pcr);
 }
@@ -23241,12 +23229,19 @@ TEST (pcr_test_hash_measurement_data_sha512_callback_include_event_version);
 #endif
 TEST (pcr_test_hash_measurement_data_null);
 TEST (pcr_test_hash_measurement_data_bad_measurement_index);
+TEST (pcr_test_hash_measurement_data_unknown_hash);
 TEST (pcr_test_hash_measurement_data_sha256_small_output_buffer);
-#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
 TEST (pcr_test_hash_measurement_data_sha384_small_output_buffer);
+TEST (pcr_test_hash_measurement_data_sha512_small_output_buffer);
+#ifdef HASH_ENABLE_SHA384
+TEST (pcr_test_hash_measurement_data_sha384_start_hash_error);
+#endif
+#ifdef HASH_ENABLE_SHA512
+TEST (pcr_test_hash_measurement_data_sha512_start_hash_error);
+#endif
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
 TEST (pcr_test_hash_measurement_data_no_measured_data);
 TEST (pcr_test_hash_measurement_data_sha256_start_hash_error);
-TEST (pcr_test_hash_measurement_data_sha384_start_hash_error);
 TEST (pcr_test_hash_measurement_data_event_hash_error);
 TEST (pcr_test_hash_measurement_data_version_hash_error);
 TEST (pcr_test_hash_measurement_data_1byte_hash_error);
@@ -23259,10 +23254,6 @@ TEST (pcr_test_hash_measurement_data_callback_error);
 TEST (pcr_test_hash_measurement_data_no_hash_callback);
 TEST (pcr_test_hash_measurement_data_bad_measurement_data_type);
 TEST (pcr_test_hash_measurement_data_finish_error);
-#endif
-#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
-TEST (pcr_test_hash_measurement_data_sha512_small_output_buffer);
-TEST (pcr_test_hash_measurement_data_sha512_start_hash_error);
 #endif
 TEST (pcr_test_get_tcg_log_sha256);
 TEST (pcr_test_get_tcg_log_sha256_explicit);

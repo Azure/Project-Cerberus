@@ -246,7 +246,7 @@ int pcr_set_dmtf_value_type (struct pcr_bank *pcr, uint8_t measurement_index,
  * Get the DMTF value type identifier for a measurement in the PCR.
  *
  * @param pcr PCR containing the measurement to query.
- * @param measurement_index The index of the measurement being updated.
+ * @param measurement_index The index of the measurement being queried.
  * @param value_type Output buffer for the DMTF value type.
  *
  * @return Completion status, 0 if success or an error code.
@@ -919,12 +919,14 @@ int pcr_get_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index, s
  * @param buffer Output buffer for the measurement hash.
  * @param length Size of the output buffer.
  *
- * @return 0 if the hash was successfully generated for the measurement or an error code.
+ * @return Length of the hash that was generated for the measurement or an error code.  Use
+ * ROT_IS_ERROR to check the return value.
  */
 int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 	struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length)
 {
 	const struct pcr_measured_data *measured_data;
+	int hash_length;
 	bool include_event;
 	bool include_version;
 	int status = 0;
@@ -937,7 +939,12 @@ int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 		return PCR_INVALID_INDEX;
 	}
 
-	if (length < (size_t) hash_get_hash_length (pcr->config.measurement_algo)) {
+	hash_length = hash_get_hash_length (hash_type);
+	if (hash_length == HASH_ENGINE_UNKNOWN_HASH) {
+		return hash_length;
+	}
+
+	if (length < (size_t) hash_length) {
 		return PCR_SMALL_OUTPUT_BUFFER;
 	}
 
@@ -946,8 +953,7 @@ int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 	if (hash_type == pcr->config.measurement_algo) {
 		/* No need to recalculate the hash since the requested algorithm matches the one used for
 		 * all measurements in the PCR. */
-		memcpy (buffer, pcr->measurement_list[measurement_index].digest,
-			hash_get_hash_length (pcr->config.measurement_algo));
+		memcpy (buffer, pcr->measurement_list[measurement_index].digest, hash_length);
 	}
 	else {
 		/* Calculate the digest from the raw measured data. */
@@ -973,14 +979,14 @@ int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 			status = hash->update (hash,
 				(uint8_t*) &pcr->measurement_list[measurement_index].event_type, 4);
 			if (status != 0) {
-				goto hash_cancel;
+				goto hash_done;
 			}
 		}
 
 		if (include_version) {
 			status = hash->update (hash, &pcr->measurement_list[measurement_index].version, 1);
 			if (status != 0) {
-				goto hash_cancel;
+				goto hash_done;
 			}
 		}
 
@@ -1026,14 +1032,17 @@ int pcr_hash_measurement_data (struct pcr_bank *pcr, uint8_t measurement_index,
 				break;
 		};
 		if (status != 0) {
-			goto hash_cancel;
+			goto hash_done;
 		}
 
 		status = hash->finish (hash, buffer, length);
 	}
 
-hash_cancel:
-	if (status != 0) {
+hash_done:
+	if (status == 0) {
+		status = hash_length;
+	}
+	else {
 		hash->cancel (hash);
 	}
 

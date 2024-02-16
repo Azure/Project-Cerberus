@@ -110,9 +110,9 @@ int pcr_store_check_measurement_type (struct pcr_store *store, uint16_t measurem
  * Determine the measurement type identifier for a measurement referenced with a sequential
  * identifier.
  *
- * The mapping will determined by assigning the first measurement in the first PCR to 0, followed by
- * the rest of the measurements in the first PCR.  Once those are exhausted, the next sequential ID
- * will assigned to the first measurement of the second PCR, and so on.
+ * The mapping will be determined by assigning the first measurement in the first PCR to 0, followed
+ * by the rest of the measurements in the first PCR.  Once those are exhausted, the next sequential
+ * ID will assigned to the first measurement of the second PCR, and so on.
  *
  * For example, the sequential IDs for measurements in 3 PCRs with 3, 2, and 1 measurements would
  * look like:
@@ -577,7 +577,8 @@ int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measuremen
  * @param buffer Output buffer for the measurement hash.
  * @param length Size of the output buffer.
  *
- * @return 0 if the hash was successfully generated for the measurement or an error code.
+ * @return Length of the hash that was generated for the measurement or an error code.  Use
+ * ROT_IS_ERROR to check the return value.
  */
 int pcr_store_hash_measurement_data (struct pcr_store *store, uint16_t measurement_type,
 	struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length)

@@ -137,6 +137,7 @@ enum {
 	ROT_MODULE_DEVICE_RMA_TRANSITION = 0x007d,			/**< Device interface for RMA configuration. */
 	ROT_MODULE_SPDM_TRANSCRIPT_MANAGER = 0x007e,		/**< SPDM Transcript Manager. */
 	ROT_MODULE_CMD_HANDLER_SPDM_RESPONDER = 0x007f,		/**< Handler for SPDM protocol request commands. */
+	ROT_MODULE_SPDM_MEASUREMENTS = 0x0080,				/**< SPDM measurement block handler. */
 };
 
 

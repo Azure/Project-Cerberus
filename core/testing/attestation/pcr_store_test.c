@@ -3188,9 +3188,9 @@ static void pcr_store_test_hash_measurement_data (CuTest *test)
 
 	status = pcr_store_hash_measurement_data (&store.test, PCR_MEASUREMENT (0, 2), &store.hash.base,
 		HASH_TYPE_SHA256, buffer, sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA256_TEST_HASH, buffer, SHA256_HASH_LENGTH);
+	status = testing_validate_array (SHA256_TEST_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_update_digest (&store.test, PCR_MEASUREMENT (1, 4), SHA256_TEST2_HASH,
@@ -3199,9 +3199,9 @@ static void pcr_store_test_hash_measurement_data (CuTest *test)
 
 	status = pcr_store_hash_measurement_data (&store.test, PCR_MEASUREMENT (1, 4), &store.hash.base,
 		HASH_TYPE_SHA256, buffer, sizeof (buffer));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
-	status = testing_validate_array (SHA256_TEST2_HASH, buffer, SHA256_HASH_LENGTH);
+	status = testing_validate_array (SHA256_TEST2_HASH, buffer, status);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_store_testing_release (test, &store);
