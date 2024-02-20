@@ -117,9 +117,10 @@ int pcr_store_set_tcg_event_type (struct pcr_store *store, uint16_t measurement_
 	uint32_t event_type);
 
 int pcr_store_set_dmtf_value_type (struct pcr_store *store, uint16_t measurement_type,
-	enum pcr_dmtf_value_type value_type);
+	enum pcr_dmtf_value_type value_type, bool is_not_tcb);
 int pcr_store_get_dmtf_value_type (struct pcr_store *store, uint16_t measurement_type,
 	enum pcr_dmtf_value_type *value_type);
+int pcr_store_is_measurement_in_tcb (struct pcr_store *store, uint16_t measurement_type);
 
 int pcr_store_update_digest (struct pcr_store *store, uint16_t measurement_type,
 	const uint8_t *digest, size_t digest_len);

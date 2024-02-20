@@ -9236,20 +9236,26 @@ static void pcr_store_test_set_dmtf_value_type (CuTest *test)
 	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
 
 	status = pcr_store_set_dmtf_value_type (&store.test, PCR_MEASUREMENT (0, 2),
-		PCR_DMTF_VALUE_TYPE_HW_CONFIG);
+		PCR_DMTF_VALUE_TYPE_HW_CONFIG, true);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_dmtf_value_type (&store.test, PCR_MEASUREMENT (0, 2), &value);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_HW_CONFIG, value);
 
+	status = pcr_store_is_measurement_in_tcb (&store.test, PCR_MEASUREMENT (0, 2));
+	CuAssertIntEquals (test, 0, status);
+
 	status = pcr_store_set_dmtf_value_type (&store.test, PCR_MEASUREMENT (1, 3),
-		PCR_DMTF_VALUE_TYPE_MEAS_MANIFEST);
+		PCR_DMTF_VALUE_TYPE_MEAS_MANIFEST, false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_store_get_dmtf_value_type (&store.test, PCR_MEASUREMENT (1, 3), &value);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_MEAS_MANIFEST, value);
+
+	status = pcr_store_is_measurement_in_tcb (&store.test, PCR_MEASUREMENT (1, 3));
+	CuAssertIntEquals (test, 1, status);
 
 	pcr_store_testing_release (test, &store);
 }
@@ -9274,7 +9280,7 @@ static void pcr_store_test_set_dmtf_value_type_null (CuTest *test)
 	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
 
 	status = pcr_store_set_dmtf_value_type (NULL, PCR_MEASUREMENT (0, 2),
-		PCR_DMTF_VALUE_TYPE_HW_CONFIG);
+		PCR_DMTF_VALUE_TYPE_HW_CONFIG, false);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 
 	pcr_store_testing_release (test, &store);
@@ -9300,7 +9306,7 @@ static void pcr_store_test_set_dmtf_value_type_invalid_pcr (CuTest *test)
 	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
 
 	status = pcr_store_set_dmtf_value_type (&store.test, PCR_MEASUREMENT (2, 0),
-		PCR_DMTF_VALUE_TYPE_HW_CONFIG);
+		PCR_DMTF_VALUE_TYPE_HW_CONFIG, true);
 	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
 
 	pcr_store_testing_release (test, &store);
@@ -9326,7 +9332,7 @@ static void pcr_store_test_set_dmtf_value_type_update_fail (CuTest *test)
 	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
 
 	status = pcr_store_set_dmtf_value_type (&store.test, PCR_MEASUREMENT (0, 6),
-		PCR_DMTF_VALUE_TYPE_HW_CONFIG);
+		PCR_DMTF_VALUE_TYPE_HW_CONFIG, false);
 	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
 
 	pcr_store_testing_release (test, &store);
@@ -9408,6 +9414,82 @@ static void pcr_store_test_get_dmtf_value_type_get_fail (CuTest *test)
 	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
 
 	status = pcr_store_get_dmtf_value_type (&store.test, PCR_MEASUREMENT (0, 6), &value);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_is_measurement_in_tcb_null (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_is_measurement_in_tcb (NULL, PCR_MEASUREMENT (0, 2));
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_is_measurement_in_tcb_invalid_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_is_measurement_in_tcb (&store.test, PCR_MEASUREMENT (2, 0));
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_is_measurement_in_tcb_get_fail (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_is_measurement_in_tcb (&store.test, PCR_MEASUREMENT (0, 6));
 	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
 
 	pcr_store_testing_release (test, &store);
@@ -9855,6 +9937,9 @@ TEST (pcr_store_test_set_dmtf_value_type_update_fail);
 TEST (pcr_store_test_get_dmtf_value_type_null);
 TEST (pcr_store_test_get_dmtf_value_type_invalid_pcr);
 TEST (pcr_store_test_get_dmtf_value_type_get_fail);
+TEST (pcr_store_test_is_measurement_in_tcb_null);
+TEST (pcr_store_test_is_measurement_in_tcb_invalid_pcr);
+TEST (pcr_store_test_is_measurement_in_tcb_get_fail);
 TEST (pcr_store_test_get_measurement_type_first_pcr);
 TEST (pcr_store_test_get_measurement_type_multiple_pcr);
 TEST (pcr_store_test_get_measurement_type_explicit);

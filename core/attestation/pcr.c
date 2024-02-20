@@ -215,11 +215,13 @@ int pcr_get_tcg_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uin
  * @param pcr PCR containing the measurement to update.
  * @param measurement_index The index of the measurement being updated.
  * @param value_type DMTF value type to associate with the measurement.
+ * @param is_not_tcb Flag to indicate that a measurement should not be considered part of the TCB
+ * when responding to SPDM requests.
  *
  * @return Completion status, 0 if success or an error code.
  */
 int pcr_set_dmtf_value_type (struct pcr_bank *pcr, uint8_t measurement_index,
-	enum pcr_dmtf_value_type value_type)
+	enum pcr_dmtf_value_type value_type, bool is_not_tcb)
 {
 	if (pcr == NULL) {
 		return PCR_INVALID_ARGUMENT;
@@ -236,6 +238,7 @@ int pcr_set_dmtf_value_type (struct pcr_bank *pcr, uint8_t measurement_index,
 	platform_mutex_lock (&pcr->lock);
 
 	pcr->measurement_list[measurement_index].dmtf_type = value_type;
+	pcr->measurement_list[measurement_index].spdm_not_tcb = is_not_tcb;
 
 	platform_mutex_unlock (&pcr->lock);
 
@@ -265,6 +268,27 @@ int pcr_get_dmtf_value_type (struct pcr_bank *pcr, uint8_t measurement_index,
 	*value_type = pcr->measurement_list[measurement_index].dmtf_type;
 
 	return 0;
+}
+
+/**
+ * Determine if a measurement is part of the Trusted Computing Base (TCB) for the device.
+ *
+ * @param pcr PCR containing the measurement to query.
+ * @param measurement_index The index of the measurement being queried.
+ *
+ * @return 1 if the measurement is part of the TCB, 0 if not, or an error code.
+ */
+int pcr_is_measurement_in_tcb (struct pcr_bank *pcr, uint8_t measurement_index)
+{
+	if (pcr == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (measurement_index >= pcr->config.num_measurements) {
+		return PCR_INVALID_INDEX;
+	}
+
+	return !pcr->measurement_list[measurement_index].spdm_not_tcb;
 }
 
 /**

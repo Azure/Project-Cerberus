@@ -175,11 +175,13 @@ struct spdm_measurements {
 	 * Generate an SPDM measurement summary hash of the device measurements.
 	 *
 	 * @param handler The measurement handler that will generate the summary hash.
-	 * @param hash Hash engine to use for summary hash calculation.
-	 * @param measurement_hash_type The hash algorithm to use for calculating each individual
-	 * measurement hash included in the summary hash.
+	 * @param summary_hash Hash engine to use for summary hash calculation.
 	 * @param summary_hash_type The hash algorithm to use for calculating the measurement summary
 	 * hash.
+	 * @param measurement_hash Hash engine to use for measurement hash calculation.  This must be a
+	 * different hash engine from the one used for the summary hash calculation.
+	 * @param measurement_hash_type The hash algorithm to use for calculating each individual
+	 * measurement hash included in the summary hash.
 	 * @param only_tcb Flag indicating if only measurements that are part of the device's Trusted
 	 * Computing Base (TCB) should be included in the summary hash.
 	 * @param buffer Output buffer for the measurement summary hash.
@@ -189,8 +191,9 @@ struct spdm_measurements {
 	 * determined by the summary hash algorithm.
 	 */
 	int (*get_measurement_summary) (const struct spdm_measurements *handler,
-		struct hash_engine *hash, enum hash_type measurement_hash_type,
-		enum hash_type summary_hash_type, bool only_tcb, uint8_t *buffer, size_t length);
+		struct hash_engine *summary_hash, enum hash_type summary_hash_type,
+		struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
+		uint8_t *buffer, size_t length);
 
 	struct pcr_store *store;			/**< Device measurement management. */
 };
@@ -219,6 +222,7 @@ enum {
 	SPDM_MEASUREMENTS_HASH_NOT_POSSIBLE = SPDM_MEASUREMENTS_ERROR (0x0a),				/**< It's not possible to hash the measurement with the requested algorithm. */
 	SPDM_MEASUREMENTS_BUFFER_TOO_SMALL = SPDM_MEASUREMENTS_ERROR (0x0b),				/**< The output buffer is not large enough for the measurement record. */
 	SPDM_MEASUREMENTS_RESERVED_BLOCK_ID = SPDM_MEASUREMENTS_ERROR (0x0c),				/**< The request uses a reserved block ID. */
+	SPDM_MEASUREMENTS_SAME_HASH_ENGINE = SPDM_MEASUREMENTS_ERROR (0x0d),				/**< Non-unique hash engines have been provided. */
 };
 
 

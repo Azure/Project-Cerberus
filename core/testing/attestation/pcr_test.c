@@ -2790,12 +2790,15 @@ static void pcr_test_set_dmtf_value_type (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_dmtf_value_type (&pcr.test, 2, PCR_DMTF_VALUE_TYPE_FIRMWARE);
+	status = pcr_set_dmtf_value_type (&pcr.test, 2, PCR_DMTF_VALUE_TYPE_FIRMWARE, true);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_dmtf_value_type (&pcr.test, 2, &type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_FIRMWARE, type);
+
+	status = pcr_is_measurement_in_tcb (&pcr.test, 2);
+	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
 }
@@ -2810,19 +2813,25 @@ static void pcr_test_set_dmtf_value_type_change_type (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_dmtf_value_type (&pcr.test, 4, PCR_DMTF_VALUE_TYPE_FIRMWARE);
+	status = pcr_set_dmtf_value_type (&pcr.test, 4, PCR_DMTF_VALUE_TYPE_FIRMWARE, true);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_dmtf_value_type (&pcr.test, 4, &type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_FIRMWARE, type);
 
-	status = pcr_set_dmtf_value_type (&pcr.test, 4, PCR_DMTF_VALUE_TYPE_FW_CONFIG);
+	status = pcr_is_measurement_in_tcb (&pcr.test, 4);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_set_dmtf_value_type (&pcr.test, 4, PCR_DMTF_VALUE_TYPE_FW_CONFIG, false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcr_get_dmtf_value_type (&pcr.test, 4, &type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, PCR_DMTF_VALUE_TYPE_FW_CONFIG, type);
+
+	status = pcr_is_measurement_in_tcb (&pcr.test, 4);
+	CuAssertIntEquals (test, 1, status);
 
 	pcr_testing_release (test, &pcr);
 }
@@ -2836,7 +2845,7 @@ static void pcr_test_set_dmtf_value_type_null (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_dmtf_value_type (NULL, 2, PCR_DMTF_VALUE_TYPE_FIRMWARE);
+	status = pcr_set_dmtf_value_type (NULL, 2, PCR_DMTF_VALUE_TYPE_FIRMWARE, false);
 	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
 
 	pcr_testing_release (test, &pcr);
@@ -2851,7 +2860,7 @@ static void pcr_test_set_dmtf_value_type_invalid_index (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_dmtf_value_type (&pcr.test, 5, PCR_DMTF_VALUE_TYPE_FIRMWARE);
+	status = pcr_set_dmtf_value_type (&pcr.test, 5, PCR_DMTF_VALUE_TYPE_FIRMWARE, true);
 	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
 
 	pcr_testing_release (test, &pcr);
@@ -2866,10 +2875,10 @@ static void pcr_test_set_dmtf_value_type_invalid_type (CuTest *test)
 
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
-	status = pcr_set_dmtf_value_type (&pcr.test, 2, PCR_DMTF_VALUE_TYPE_UNUSED);
+	status = pcr_set_dmtf_value_type (&pcr.test, 2, PCR_DMTF_VALUE_TYPE_UNUSED, false);
 	CuAssertIntEquals (test, PCR_INVALID_VALUE_TYPE, status);
 
-	status = pcr_set_dmtf_value_type (&pcr.test, 2, PCR_DMTF_VALUE_TYPE_RESERVED);
+	status = pcr_set_dmtf_value_type (&pcr.test, 2, PCR_DMTF_VALUE_TYPE_RESERVED, true);
 	CuAssertIntEquals (test, PCR_INVALID_VALUE_TYPE, status);
 
 	pcr_testing_release (test, &pcr);
@@ -2922,6 +2931,51 @@ static void pcr_test_get_dmtf_value_type_invalid_index (CuTest *test)
 	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
 
 	status = pcr_get_dmtf_value_type (&pcr.test, 5, &type);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_is_measurement_in_tcb_unset (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_is_measurement_in_tcb (&pcr.test, 2);
+	CuAssertIntEquals (test, 1, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_is_measurement_in_tcb_null (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_is_measurement_in_tcb (NULL, 2);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_is_measurement_in_tcb_invalid_index (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_is_measurement_in_tcb (&pcr.test, 5);
 	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
 
 	pcr_testing_release (test, &pcr);
@@ -22756,6 +22810,9 @@ TEST (pcr_test_set_dmtf_value_type_invalid_type);
 TEST (pcr_test_get_dmtf_value_type_unset);
 TEST (pcr_test_get_dmtf_value_type_null);
 TEST (pcr_test_get_dmtf_value_type_invalid_index);
+TEST (pcr_test_is_measurement_in_tcb_unset);
+TEST (pcr_test_is_measurement_in_tcb_null);
+TEST (pcr_test_is_measurement_in_tcb_invalid_index);
 TEST (pcr_test_get_all_measurements_sha256);
 TEST (pcr_test_get_all_measurements_sha256_explicit);
 #if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)

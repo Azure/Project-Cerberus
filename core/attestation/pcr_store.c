@@ -280,11 +280,13 @@ int pcr_store_set_tcg_event_type (struct pcr_store *store, uint16_t measurement_
  * @param store The PCR store containing the measurement to update.
  * @param measurement_type Identifier for the measurement to update.
  * @param value_type DMTF value type to associate with the measurement.
+ * @param is_not_tcb Flag to indicate that a measurement should not be considered part of the TCB
+ * when responding to SPDM requests.
  *
  * @return 0 if the value type was set successfully or an error code.
  */
 int pcr_store_set_dmtf_value_type (struct pcr_store *store, uint16_t measurement_type,
-	enum pcr_dmtf_value_type value_type)
+	enum pcr_dmtf_value_type value_type, bool is_not_tcb)
 {
 	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
 	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
@@ -297,7 +299,8 @@ int pcr_store_set_dmtf_value_type (struct pcr_store *store, uint16_t measurement
 		return PCR_INVALID_PCR;
 	}
 
-	return pcr_set_dmtf_value_type (&store->pcrs[pcr_index], measurement_index, value_type);
+	return pcr_set_dmtf_value_type (&store->pcrs[pcr_index], measurement_index, value_type,
+		is_not_tcb);
 }
 
 /**
@@ -324,6 +327,30 @@ int pcr_store_get_dmtf_value_type (struct pcr_store *store, uint16_t measurement
 	}
 
 	return pcr_get_dmtf_value_type (&store->pcrs[pcr_index], measurement_index, value_type);
+}
+
+/**
+ * Determine if a single measurement is part of the Trusted Computing Base (TCB) for the device.
+ *
+ * @param store The PCR store containing the measurement to query.
+ * @param measurement_type Identifier for the measurement to query.
+ *
+ * @return 1 if the measurement is part of the TCB, 0 if not, or an error code.
+ */
+int pcr_store_is_measurement_in_tcb (struct pcr_store *store, uint16_t measurement_type)
+{
+	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
+	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_index >= store->num_pcrs) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_is_measurement_in_tcb (&store->pcrs[pcr_index], measurement_index);
 }
 
 /**

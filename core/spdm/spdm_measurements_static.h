@@ -20,8 +20,9 @@ int spdm_measurements_get_all_measurement_blocks (const struct spdm_measurements
 int spdm_measurements_get_all_measurement_blocks_length (const struct spdm_measurements *handler,
 	bool raw_bit_stream, enum hash_type hash_type);
 int spdm_measurements_get_measurement_summary (const struct spdm_measurements *handler,
-	struct hash_engine *hash, enum hash_type measurement_hash_type,
-	enum hash_type summary_hash_type, bool only_tcb, uint8_t *buffer, size_t length);
+	struct hash_engine *summary_hash, enum hash_type summary_hash_type,
+	struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
+	uint8_t *buffer, size_t length);
 
 
 /**
@@ -37,8 +38,7 @@ int spdm_measurements_get_measurement_summary (const struct spdm_measurements *h
 
 
 /**
- * Initialize a static instance of a handler for retrieving SPDM measurements records for the
- * device.
+ * Initialize a static instance of a handler for retrieving SPDM measurement records for the device.
  *
  * There is no validation done on the arguments.
  *

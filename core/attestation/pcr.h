@@ -80,6 +80,7 @@ struct pcr_measurement {
 	uint8_t version;								/**< Version associated with the measurement data. */
 	uint8_t measurement_config;						/**< Indicates additional data to include in measurement digests. */
 	enum pcr_dmtf_value_type dmtf_type;				/**< DMTF value type identifier. */
+	bool spdm_not_tcb;								/**< Flag to skip the measurement from SPDM TCB reports. */
 };
 
 /**
@@ -181,9 +182,10 @@ int pcr_set_tcg_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uin
 int pcr_get_tcg_event_type (struct pcr_bank *pcr, uint8_t measurement_index, uint32_t *event_type);
 
 int pcr_set_dmtf_value_type (struct pcr_bank *pcr, uint8_t measurement_index,
-	enum pcr_dmtf_value_type value_type);
+	enum pcr_dmtf_value_type value_type, bool is_not_tcb);
 int pcr_get_dmtf_value_type (struct pcr_bank *pcr, uint8_t measurement_index,
 	enum pcr_dmtf_value_type *value_type);
+int pcr_is_measurement_in_tcb (struct pcr_bank *pcr, uint8_t measurement_index);
 
 int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const uint8_t *digest,
 	size_t digest_len);

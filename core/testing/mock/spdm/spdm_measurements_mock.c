@@ -75,8 +75,9 @@ static int spdm_measurements_mock_get_all_measurement_blocks_length (
 }
 
 static int spdm_measurements_mock_get_measurement_summary (const struct spdm_measurements *handler,
-	struct hash_engine *hash, enum hash_type measurement_hash_type,
-	enum hash_type summary_hash_type, bool only_tcb, uint8_t *buffer, size_t length)
+	struct hash_engine *summary_hash, enum hash_type summary_hash_type,
+	struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
+	uint8_t *buffer, size_t length)
 {
 	struct spdm_measurements_mock *mock = (struct spdm_measurements_mock*) handler;
 
@@ -85,15 +86,17 @@ static int spdm_measurements_mock_get_measurement_summary (const struct spdm_mea
 	}
 
 	MOCK_RETURN (&mock->mock, spdm_measurements_mock_get_measurement_summary, handler,
-		MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (measurement_hash_type),
-		MOCK_ARG_CALL (summary_hash_type), MOCK_ARG_CALL (only_tcb), MOCK_ARG_PTR_CALL (buffer),
-		MOCK_ARG_CALL (length));
+		MOCK_ARG_PTR_CALL (summary_hash), MOCK_ARG_CALL (summary_hash_type),
+		MOCK_ARG_PTR_CALL (measurement_hash), MOCK_ARG_CALL (measurement_hash_type),
+		MOCK_ARG_CALL (only_tcb), MOCK_ARG_PTR_CALL (buffer), MOCK_ARG_CALL (length));
 }
 
 static int spdm_measurements_mock_func_arg_count (void *func)
 {
-	if ((func == spdm_measurements_mock_get_measurement_block) ||
-		(func == spdm_measurements_mock_get_measurement_summary)) {
+	if (func == spdm_measurements_mock_get_measurement_summary) {
+		return 7;
+	}
+	else if (func == spdm_measurements_mock_get_measurement_block) {
 		return 6;
 	}
 	else if (func == spdm_measurements_mock_get_all_measurement_blocks) {
@@ -194,21 +197,24 @@ static const char* spdm_measurements_mock_arg_name_map (void *func, int arg)
 	else if (func == spdm_measurements_mock_get_measurement_summary) {
 		switch (arg) {
 			case 0:
-				return "hash";
+				return "summary_hash";
 
 			case 1:
-				return "measurement_hast_type";
-
-			case 2:
 				return "summary_hash_type";
 
+			case 2:
+				return "measurement_hash";
+
 			case 3:
-				return "only_tcb";
+				return "measurement_hash_type";
 
 			case 4:
-				return "buffer";
+				return "only_tcb";
 
 			case 5:
+				return "buffer";
+
+			case 6:
 				return "length";
 		}
 	}
