@@ -2126,6 +2126,968 @@ static void pcr_store_test_set_tcg_event_type_update_fail (CuTest *test)
 	pcr_store_testing_release (test, &store);
 }
 
+static void pcr_store_test_const_update_digest_sha256 (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_digest (&store.test, PCR_MEASUREMENT (1, 1), SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (1, 1), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_store_test_const_update_digest_sha384 (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA384
+		},
+		{
+			.num_measurements = 3,
+			.measurement_algo = HASH_TYPE_SHA384
+		}
+	};
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_digest (&store.test, PCR_MEASUREMENT (0, 3), SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (0, 3), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_digest (&store.test, PCR_MEASUREMENT (2, 2), SHA384_TEST_HASH,
+		SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (2, 2), &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA384_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_store_test_const_update_digest_sha512 (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA512
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_digest (&store.test, PCR_MEASUREMENT (1, 0), SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (1, 0), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_digest (&store.test, PCR_MEASUREMENT (0, 5), SHA512_TEST_HASH,
+		SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (0, 5), &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA512_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+#endif
+
+static void pcr_store_test_const_update_digest_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = pcr_store_const_update_digest (NULL, 5, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+}
+
+static void pcr_store_test_const_update_digest_twice (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_digest (&store.test, PCR_MEASUREMENT (1, 1), SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (1, 1), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_digest (&store.test, PCR_MEASUREMENT (1, 1), SHA256_TEST2_HASH,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (1, 1), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_digest_invalid_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_digest (&store.test, PCR_MEASUREMENT (2, 1), SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_buffer_sha256 (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	uint16_t measurement_type = PCR_MEASUREMENT (0, 5);
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, measurement_type,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_CONSTANT, measurement.measurement_config);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_buffer_sha256_with_event (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	uint16_t measurement_type = PCR_MEASUREMENT (1, 3);
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_set_tcg_event_type (&store.test, measurement_type, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, measurement_type,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_store_test_const_update_buffer_sha384 (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA384
+		}
+	};
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, PCR_MEASUREMENT (0, 5),
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (0, 5), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_CONSTANT, measurement.measurement_config);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, PCR_MEASUREMENT (1, 0),
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (1, 0), &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_CONSTANT, measurement.measurement_config);
+
+	status = testing_validate_array (SHA384_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_buffer_sha384_with_event (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA384
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA384
+		}
+	};
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	uint16_t measurement_type = PCR_MEASUREMENT (1, 3);
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_set_tcg_event_type (&store.test, measurement_type, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, measurement_type,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_store_test_const_update_buffer_sha512 (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA512
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, PCR_MEASUREMENT (1, 5),
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (1, 5), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_CONSTANT, measurement.measurement_config);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, PCR_MEASUREMENT (0, 0),
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (0, 0), &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_CONSTANT, measurement.measurement_config);
+
+	status = testing_validate_array (SHA512_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_buffer_sha512_with_event (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA512
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA512
+		}
+	};
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	uint16_t measurement_type = PCR_MEASUREMENT (1, 3);
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_set_tcg_event_type (&store.test, measurement_type, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, measurement_type,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+#endif
+
+static void pcr_store_test_const_update_buffer_null (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 3,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 0,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_buffer (NULL, &store.hash.base, PCR_MEASUREMENT (0, 5),
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_store_const_update_buffer (&store.test, NULL, PCR_MEASUREMENT (0, 5),
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_buffer_twice (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	uint16_t measurement_type = PCR_MEASUREMENT (0, 5);
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, measurement_type,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_CONSTANT, measurement.measurement_config);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, measurement_type,
+		HASH_TESTING_FULL_BLOCK_1024, HASH_TESTING_FULL_BLOCK_1024_LEN, true);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_CONSTANT, measurement.measurement_config);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_buffer_invalid_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_buffer (&store.test, &store.hash.base, PCR_MEASUREMENT (4, 1),
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_versioned_buffer_sha256 (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	uint16_t measurement_type = PCR_MEASUREMENT (0, 5);
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		measurement_type, HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, version, measurement.version);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_versioned_buffer_sha256_with_event (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	uint16_t measurement_type = PCR_MEASUREMENT (1, 3);
+	uint8_t version = 0x24;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_set_tcg_event_type (&store.test, measurement_type, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		measurement_type, HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, version, measurement.version);
+	CuAssertIntEquals (test,
+		PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_store_test_const_update_versioned_buffer_sha384 (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA384
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		PCR_MEASUREMENT (1, 5), HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (1, 5), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, version, measurement.version);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		PCR_MEASUREMENT (0, 4), HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (0, 4), &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test, version, measurement.version);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_versioned_buffer_sha384_with_event (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA384
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA384
+		}
+	};
+	struct pcr_measurement measurement;
+	uint16_t measurement_type = PCR_MEASUREMENT (1, 3);
+	uint8_t version = 0x24;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_set_tcg_event_type (&store.test, measurement_type, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		measurement_type, HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test, version, measurement.version);
+	CuAssertIntEquals (test,
+		PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_store_test_const_update_versioned_buffer_sha512 (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA512
+		}
+	};
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		PCR_MEASUREMENT (0, 5), HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (0, 5), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, version, measurement.version);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		PCR_MEASUREMENT (1, 2), HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (1, 2), &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test, version, measurement.version);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_versioned_buffer_sha512_with_event (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA512
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA512
+		}
+	};
+	struct pcr_measurement measurement;
+	uint16_t measurement_type = PCR_MEASUREMENT (1, 3);
+	uint8_t version = 0x24;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_set_tcg_event_type (&store.test, measurement_type, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		measurement_type, HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test, version, measurement.version);
+	CuAssertIntEquals (test,
+		PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+#endif
+
+static void pcr_store_test_const_update_versioned_buffer_null (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	uint16_t measurement_type = PCR_MEASUREMENT (0, 5);
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_versioned_buffer (NULL, &store.hash.base, measurement_type,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, NULL, measurement_type,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_versioned_buffer_twice (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	uint16_t measurement_type = PCR_MEASUREMENT (0, 5);
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		measurement_type, HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, version, measurement.version);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		measurement_type, HASH_TESTING_FULL_BLOCK_1024, HASH_TESTING_FULL_BLOCK_1024_LEN, true,
+		version);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_store_get_measurement (&store.test, measurement_type, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, version, measurement.version);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_const_update_versioned_buffer_invalid_pcr (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_versioned_buffer (&store.test, &store.hash.base,
+		PCR_MEASUREMENT (4, 1), HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false,
+		version);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
 static void pcr_store_test_invalidate_measurement (CuTest *test)
 {
 	struct pcr_store_testing store;
@@ -2206,6 +3168,48 @@ static void pcr_store_test_invalidate_measurement_explicit (CuTest *test)
 	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
 
 	status = testing_validate_array (invalid_measurement, measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_store_testing_release (test, &store);
+}
+
+static void pcr_store_test_invalidate_measurement_constant (CuTest *test)
+{
+	struct pcr_store_testing store;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 6,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_store_testing_init (test, &store, pcr_config, ARRAY_SIZE (pcr_config));
+
+	status = pcr_store_const_update_digest (&store.test, PCR_MEASUREMENT (1, 1), SHA256_TEST_HASH,
+		SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (1, 1), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_invalidate_measurement (&store.test, PCR_MEASUREMENT (1, 1));
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_store_get_measurement (&store.test, PCR_MEASUREMENT (1, 1), &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_store_testing_release (test, &store);
@@ -9815,8 +10819,45 @@ TEST (pcr_store_test_update_versioned_buffer_with_event_update_fail);
 TEST (pcr_store_test_set_tcg_event_type_null);
 TEST (pcr_store_test_set_tcg_event_type_invalid_pcr);
 TEST (pcr_store_test_set_tcg_event_type_update_fail);
+TEST (pcr_store_test_const_update_digest_sha256);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_store_test_const_update_digest_sha384);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_store_test_const_update_digest_sha512);
+#endif
+TEST (pcr_store_test_const_update_digest_null);
+TEST (pcr_store_test_const_update_digest_twice);
+TEST (pcr_store_test_const_update_digest_invalid_pcr);
+TEST (pcr_store_test_const_update_buffer_sha256);
+TEST (pcr_store_test_const_update_buffer_sha256_with_event);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_store_test_const_update_buffer_sha384);
+TEST (pcr_store_test_const_update_buffer_sha384_with_event);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_store_test_const_update_buffer_sha512);
+TEST (pcr_store_test_const_update_buffer_sha512_with_event);
+#endif
+TEST (pcr_store_test_const_update_buffer_null);
+TEST (pcr_store_test_const_update_buffer_twice);
+TEST (pcr_store_test_const_update_buffer_invalid_pcr);
+TEST (pcr_store_test_const_update_versioned_buffer_sha256);
+TEST (pcr_store_test_const_update_versioned_buffer_sha256_with_event);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_store_test_const_update_versioned_buffer_sha384);
+TEST (pcr_store_test_const_update_versioned_buffer_sha384_with_event);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_store_test_const_update_versioned_buffer_sha512);
+TEST (pcr_store_test_const_update_versioned_buffer_sha512_with_event);
+#endif
+TEST (pcr_store_test_const_update_versioned_buffer_null);
+TEST (pcr_store_test_const_update_versioned_buffer_twice);
+TEST (pcr_store_test_const_update_versioned_buffer_invalid_pcr);
 TEST (pcr_store_test_invalidate_measurement);
 TEST (pcr_store_test_invalidate_measurement_explicit);
+TEST (pcr_store_test_invalidate_measurement_constant);
 TEST (pcr_store_test_invalidate_measurement_null);
 TEST (pcr_store_test_invalidate_measurement_invalid_pcr);
 TEST (pcr_store_test_invalidate_measurement_invalid_index);

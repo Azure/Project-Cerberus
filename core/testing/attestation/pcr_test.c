@@ -1283,6 +1283,37 @@ static void pcr_test_update_digest_sha512_explicit (CuTest *test)
 }
 #endif
 
+static void pcr_test_update_digest_twice (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_update_digest (&pcr.test, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_digest (&pcr.test, 2, SHA256_TEST2_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST2_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
 static void pcr_test_update_digest_null (CuTest *test)
 {
 	struct pcr_testing pcr;
@@ -1695,6 +1726,39 @@ static void pcr_test_update_buffer_sha512_with_event_no_data (CuTest *test)
 	pcr_testing_release (test, &pcr);
 }
 #endif
+
+static void pcr_test_update_buffer_twice (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_1024_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
 
 static void pcr_test_update_buffer_with_event_then_update_digest (CuTest *test)
 {
@@ -2364,6 +2428,45 @@ static void pcr_test_update_versioned_buffer_sha512_with_event (CuTest *test)
 }
 #endif
 
+static void pcr_test_update_versioned_buffer_twice (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t data = 0x11223344;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION, measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, (uint8_t*) &data,
+		sizeof (data), false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION, measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED, measurement.digest,
+		status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
 static void pcr_test_update_versioned_buffer_with_event_then_update_digest (CuTest *test)
 {
 	struct pcr_testing pcr;
@@ -2700,6 +2803,1797 @@ static void pcr_test_set_tcg_event_type_invalid_index (CuTest *test)
 	pcr_testing_init (test, &pcr, 1, HASH_TYPE_SHA256);
 
 	status = pcr_set_tcg_event_type (&pcr.test, 2, 0x0a);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_digest_sha256 (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_digest_sha256_explicit (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 0, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_digest (&pcr.test, 0, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 0, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_test_const_update_digest_sha384 (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 3, HASH_TYPE_SHA384);
+
+	status = pcr_const_update_digest (&pcr.test, 1, SHA384_TEST_HASH, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 1, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA384_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_digest_sha384_explicit (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 0, HASH_TYPE_SHA384);
+
+	status = pcr_const_update_digest (&pcr.test, 0, SHA384_TEST_HASH, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 0, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA384_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_test_const_update_digest_sha512 (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_const_update_digest (&pcr.test, 4, SHA512_TEST_HASH, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 4, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA512_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_digest_sha512_explicit (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 0, HASH_TYPE_SHA512);
+
+	status = pcr_const_update_digest (&pcr.test, 0, SHA512_TEST_HASH, SHA512_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 0, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA512_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+static void pcr_test_const_update_digest_then_update_different_measurement (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_digest (&pcr.test, 4, SHA256_TEST2_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 4, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST2_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_digest_null (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_digest (NULL, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_const_update_digest (&pcr.test, 2, NULL, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_digest_twice (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST2_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_digest_then_update_with_other_calls (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_digest (&pcr.test, 2, SHA256_TEST2_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false, 0x23);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, 0x23);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_digest_wrong_digest_length (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH - 1);
+	CuAssertIntEquals (test, PCR_INCORRECT_DIGEST_LENGTH, status);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH + 1);
+	CuAssertIntEquals (test, PCR_INCORRECT_DIGEST_LENGTH, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_test_const_update_digest_sha384_with_sha256 (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 3, HASH_TYPE_SHA384);
+
+	status = pcr_const_update_digest (&pcr.test, 1, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_INCORRECT_DIGEST_LENGTH, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+static void pcr_test_const_update_digest_invalid_index (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 1, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha256 (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha256_explicit (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 0, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 0, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 0, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha256_with_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha256_with_event_no_data (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 1, NULL, 0, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 1, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_EVENT_TYPE, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_test_const_update_buffer_sha384 (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 4, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 4, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA384_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha384_explicit (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 0, HASH_TYPE_SHA384);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 0, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 0, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA384_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha384_with_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 1, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 1, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha384_with_event_no_data (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 1, NULL, 0, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 1, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_EVENT_TYPE, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_test_const_update_buffer_sha512 (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA512_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha512_explicit (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 0, HASH_TYPE_SHA512);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 0, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 0, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA512_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha512_with_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha512_with_event_no_data (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 1, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 1, NULL, 0, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 1, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_EVENT_TYPE, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+static void pcr_test_const_update_buffer_then_update_different_measurement (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 3, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 3, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_1024_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_null (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_buffer (NULL, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_const_update_buffer (&pcr.test, NULL, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, NULL,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		0, false);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_twice (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, false);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_then_update_with_other_calls (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_digest (&pcr.test, 2, SHA256_TEST2_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, false);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_1024, HASH_TESTING_FULL_BLOCK_1024_LEN, false, 0x23);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST2_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_1024, HASH_TESTING_FULL_BLOCK_1024_LEN, false, 0x23);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_sha256_start_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA256_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_test_const_update_buffer_sha384_start_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha384, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA384_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_test_const_update_buffer_sha512_start_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha512, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA512_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+static void pcr_test_const_update_buffer_update_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN),
+		MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_finish_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN),
+		MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.finish, &pcr.hash_mock,
+		HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_with_event_sha256_start_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA256_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_with_event_event_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)), MOCK_ARG (sizeof (event)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_with_event_update_buffer_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)), MOCK_ARG (sizeof (event)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN),
+		MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_with_event_finish_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)), MOCK_ARG (sizeof (event)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN),
+		MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.finish, &pcr.hash_mock,
+		HASH_ENGINE_FINISH_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_buffer_update_digest_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init(test, &pcr, 1, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false);
+	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha256 (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha256_explicit (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 0, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 0, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha256_no_data (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 4, NULL, 0, false,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 4, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_VERSIONED, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha256_with_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 3, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 3, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test,
+		PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_test_const_update_versioned_buffer_sha384 (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha384_explicit (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 0, HASH_TYPE_SHA384);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 0, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha384_no_data (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 4, NULL, 0, false,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 4, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_VERSIONED, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha384_with_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 3, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 3, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test,
+		PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA384_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_test_const_update_versioned_buffer_sha512 (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha512_explicit (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 0, HASH_TYPE_SHA512);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 0,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 0, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha512_no_data (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 4, NULL, 0, false,
+		version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 4, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_VERSIONED, measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha512_with_event (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 3, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 3,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 3, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test,
+		PCR_MEASUREMENT_FLAG_EVENT | PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA512_FULL_BLOCK_512_HASH_VERSIONED_WITH_EVENT,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+static void pcr_test_const_update_versioned_buffer_then_update_different_measurement (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint32_t data = 0x11223344;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 4, (uint8_t*) &data,
+		sizeof (data), false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 4, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_4BYTE_DATA_VERSIONED, measurement.digest,
+		status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_null (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_versioned_buffer (NULL, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, NULL, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, PCR_INVALID_ARGUMENT, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_twice (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_1024, HASH_TESTING_FULL_BLOCK_1024_LEN, false, version);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_then_update_with_other_calls (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_update_digest (&pcr.test, 2, SHA256_TEST2_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, false);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2,
+		HASH_TESTING_FULL_BLOCK_1024, HASH_TESTING_FULL_BLOCK_1024_LEN, false, 0x23);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST2_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_const_update_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_1024,
+		HASH_TESTING_FULL_BLOCK_1024_LEN, false);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, PCR_MEASUREMENT_FLAG_VERSION | PCR_MEASUREMENT_FLAG_CONSTANT,
+		measurement.measurement_config);
+
+	status = testing_validate_array (PCR_TESTING_SHA256_FULL_BLOCK_512_HASH_VERSIONED,
+		measurement.digest, status);
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_sha256_start_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA256_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.version);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+static void pcr_test_const_update_versioned_buffer_sha384_start_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA384);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha384, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA384_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA384_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.version);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+static void pcr_test_const_update_versioned_buffer_sha512_start_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA512);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha512, &pcr.hash_mock,
+		HASH_ENGINE_START_SHA512_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA512_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA512_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.version);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+#endif
+
+static void pcr_test_const_update_versioned_buffer_with_event_update_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	uint32_t event = 0xaabbccdd;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_set_tcg_event_type (&pcr.test, 2, event);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)), MOCK_ARG (sizeof (event)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, true, version);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.version);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_update_version_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (&version, sizeof (version)), MOCK_ARG (sizeof (version)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.version);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_update_buffer_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&version, sizeof (version)), MOCK_ARG (sizeof (version)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock,
+		HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN),
+		MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.version);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_finish_hash_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.start_sha256, &pcr.hash_mock, 0);
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&version, sizeof (version)), MOCK_ARG (sizeof (version)));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.update, &pcr.hash_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN),
+		MOCK_ARG (HASH_TESTING_FULL_BLOCK_512_LEN));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.finish, &pcr.hash_mock,
+		HASH_ENGINE_FINISH_FAILED,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+
+	status |= mock_expect (&pcr.hash_mock.mock, pcr.hash_mock.base.cancel, &pcr.hash_mock, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_const_update_versioned_buffer (&pcr.test, &pcr.hash_mock.base, 2,
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
+	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+	CuAssertIntEquals (test, 0, measurement.version);
+	CuAssertIntEquals (test, 0, measurement.measurement_config);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_const_update_versioned_buffer_update_digest_fail (CuTest *test)
+{
+	struct pcr_testing pcr;
+	uint8_t version = 0x24;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 1, HASH_TYPE_SHA256);
+
+	status = pcr_update_versioned_buffer (&pcr.test, &pcr.hash.base, 2, HASH_TESTING_FULL_BLOCK_512,
+		HASH_TESTING_FULL_BLOCK_512_LEN, false, version);
 	CuAssertIntEquals (test, PCR_INVALID_INDEX, status);
 
 	pcr_testing_release (test, &pcr);
@@ -3221,6 +5115,37 @@ static void pcr_test_invalidate_measurement_explicit (CuTest *test)
 
 	status = testing_validate_array (invalid_measurement, measurement.digest,
 		sizeof (invalid_measurement));
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_testing_release (test, &pcr);
+}
+
+static void pcr_test_invalidate_measurement_constant (CuTest *test)
+{
+	struct pcr_testing pcr;
+	struct pcr_measurement measurement;
+	int status;
+
+	TEST_START;
+
+	pcr_testing_init (test, &pcr, 5, HASH_TYPE_SHA256);
+
+	status = pcr_const_update_digest (&pcr.test, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_invalidate_measurement (&pcr.test, 2);
+	CuAssertIntEquals (test, PCR_CONSTANT_MEASUREMENT, status);
+
+	status = pcr_get_measurement (&pcr.test, 2, &measurement);
+	CuAssertIntEquals (test, SHA256_HASH_LENGTH, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, measurement.digest, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_testing_release (test, &pcr);
@@ -22726,6 +24651,7 @@ TEST (pcr_test_update_digest_sha384_explicit);
 TEST (pcr_test_update_digest_sha512);
 TEST (pcr_test_update_digest_sha512_explicit);
 #endif
+TEST (pcr_test_update_digest_twice);
 TEST (pcr_test_update_digest_null);
 TEST (pcr_test_update_digest_wrong_digest_length);
 #if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
@@ -22750,6 +24676,7 @@ TEST (pcr_test_update_buffer_sha512_explicit);
 TEST (pcr_test_update_buffer_sha512_with_event);
 TEST (pcr_test_update_buffer_sha512_with_event_no_data);
 #endif
+TEST (pcr_test_update_buffer_twice);
 TEST (pcr_test_update_buffer_with_event_then_update_digest);
 TEST (pcr_test_update_buffer_null);
 TEST (pcr_test_update_buffer_sha256_start_hash_fail);
@@ -22782,6 +24709,7 @@ TEST (pcr_test_update_versioned_buffer_sha512_explicit);
 TEST (pcr_test_update_versioned_buffer_sha512_no_data);
 TEST (pcr_test_update_versioned_buffer_sha512_with_event);
 #endif
+TEST (pcr_test_update_versioned_buffer_twice);
 TEST (pcr_test_update_versioned_buffer_with_event_then_update_digest);
 TEST (pcr_test_update_versioned_buffer_null);
 TEST (pcr_test_update_versioned_buffer_sha256_start_hash_fail);
@@ -22798,6 +24726,91 @@ TEST (pcr_test_update_versioned_buffer_finish_hash_fail);
 TEST (pcr_test_update_versioned_buffer_update_digest_fail);
 TEST (pcr_test_set_tcg_event_type_null);
 TEST (pcr_test_set_tcg_event_type_invalid_index);
+TEST (pcr_test_const_update_digest_sha256);
+TEST (pcr_test_const_update_digest_sha256_explicit);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_test_const_update_digest_sha384);
+TEST (pcr_test_const_update_digest_sha384_explicit);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_test_const_update_digest_sha512);
+TEST (pcr_test_const_update_digest_sha512_explicit);
+#endif
+TEST (pcr_test_const_update_digest_then_update_different_measurement);
+TEST (pcr_test_const_update_digest_null);
+TEST (pcr_test_const_update_digest_twice);
+TEST (pcr_test_const_update_digest_then_update_with_other_calls);
+TEST (pcr_test_const_update_digest_wrong_digest_length);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_test_const_update_digest_sha384_with_sha256);
+#endif
+TEST (pcr_test_const_update_digest_invalid_index);
+TEST (pcr_test_const_update_buffer_sha256);
+TEST (pcr_test_const_update_buffer_sha256_explicit);
+TEST (pcr_test_const_update_buffer_sha256_with_event);
+TEST (pcr_test_const_update_buffer_sha256_with_event_no_data);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_test_const_update_buffer_sha384);
+TEST (pcr_test_const_update_buffer_sha384_explicit);
+TEST (pcr_test_const_update_buffer_sha384_with_event);
+TEST (pcr_test_const_update_buffer_sha384_with_event_no_data);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_test_const_update_buffer_sha512);
+TEST (pcr_test_const_update_buffer_sha512_explicit);
+TEST (pcr_test_const_update_buffer_sha512_with_event);
+TEST (pcr_test_const_update_buffer_sha512_with_event_no_data);
+#endif
+TEST (pcr_test_const_update_buffer_then_update_different_measurement);
+TEST (pcr_test_const_update_buffer_null);
+TEST (pcr_test_const_update_buffer_twice);
+TEST (pcr_test_const_update_buffer_then_update_with_other_calls);
+TEST (pcr_test_const_update_buffer_sha256_start_hash_fail);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_test_const_update_buffer_sha384_start_hash_fail);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_test_const_update_buffer_sha512_start_hash_fail);
+#endif
+TEST (pcr_test_const_update_buffer_update_hash_fail);
+TEST (pcr_test_const_update_buffer_finish_hash_fail);
+TEST (pcr_test_const_update_buffer_with_event_sha256_start_hash_fail);
+TEST (pcr_test_const_update_buffer_with_event_event_hash_fail);
+TEST (pcr_test_const_update_buffer_with_event_update_buffer_hash_fail);
+TEST (pcr_test_const_update_buffer_with_event_finish_hash_fail);
+TEST (pcr_test_const_update_buffer_update_digest_fail);
+TEST (pcr_test_const_update_versioned_buffer_sha256);
+TEST (pcr_test_const_update_versioned_buffer_sha256_explicit);
+TEST (pcr_test_const_update_versioned_buffer_sha256_no_data);
+TEST (pcr_test_const_update_versioned_buffer_sha256_with_event);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_test_const_update_versioned_buffer_sha384);
+TEST (pcr_test_const_update_versioned_buffer_sha384_explicit);
+TEST (pcr_test_const_update_versioned_buffer_sha384_no_data);
+TEST (pcr_test_const_update_versioned_buffer_sha384_with_event);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_test_const_update_versioned_buffer_sha512);
+TEST (pcr_test_const_update_versioned_buffer_sha512_explicit);
+TEST (pcr_test_const_update_versioned_buffer_sha512_no_data);
+TEST (pcr_test_const_update_versioned_buffer_sha512_with_event);
+#endif
+TEST (pcr_test_const_update_versioned_buffer_then_update_different_measurement);
+TEST (pcr_test_const_update_versioned_buffer_null);
+TEST (pcr_test_const_update_versioned_buffer_twice);
+TEST (pcr_test_const_update_versioned_buffer_then_update_with_other_calls);
+TEST (pcr_test_const_update_versioned_buffer_sha256_start_hash_fail);
+#if defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)
+TEST (pcr_test_const_update_versioned_buffer_sha384_start_hash_fail);
+#endif
+#if defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH)
+TEST (pcr_test_const_update_versioned_buffer_sha512_start_hash_fail);
+#endif
+TEST (pcr_test_const_update_versioned_buffer_with_event_update_hash_fail);
+TEST (pcr_test_const_update_versioned_buffer_update_version_hash_fail);
+TEST (pcr_test_const_update_versioned_buffer_update_buffer_hash_fail);
+TEST (pcr_test_const_update_versioned_buffer_finish_hash_fail);
+TEST (pcr_test_const_update_versioned_buffer_update_digest_fail);
 TEST (pcr_test_get_tcg_event_type);
 TEST (pcr_test_get_tcg_event_type_explicit);
 TEST (pcr_test_get_tcg_event_type_null);
@@ -22826,6 +24839,7 @@ TEST (pcr_test_get_all_measurements_sha512_explicit);
 TEST (pcr_test_get_all_measurements_null);
 TEST (pcr_test_invalidate_measurement);
 TEST (pcr_test_invalidate_measurement_explicit);
+TEST (pcr_test_invalidate_measurement_constant);
 TEST (pcr_test_invalidate_measurement_null);
 TEST (pcr_test_invalidate_measurement_bad_index);
 TEST (pcr_test_compute_sha256);

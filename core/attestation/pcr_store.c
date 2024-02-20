@@ -447,6 +447,101 @@ int pcr_store_update_versioned_buffer (struct pcr_store *store, struct hash_engi
 }
 
 /**
+ * Store a pre-computed digest for a single measurement in the PCR store.  Future updates to the
+ * measurement will be prevented.
+ *
+ * @param store The PCR store containing measurement to update.
+ * @param measurement_type Identifier for the measurement to update.
+ * @param digest The digest data that should be stored for the measurement.
+ * @param digest_len Length of digest.  This must match exactly the digest length for the PCR.
+ *
+ * @return 0 if the digest was stored successfully or an error code.
+ */
+int pcr_store_const_update_digest (struct pcr_store *store, uint16_t measurement_type,
+	const uint8_t *digest, size_t digest_len)
+{
+	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
+	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_index >= store->num_pcrs) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_const_update_digest (&store->pcrs[pcr_index], measurement_index, digest, digest_len);
+}
+
+/**
+ * Update a specified measurement in the PCR store by computing the digest of a data buffer.  Future
+ * updates to the measurement will be prevented.
+ *
+ * @param store The PCR store containing measurement to update.
+ * @param hash Hashing engine to use for digest calculation.
+ * @param measurement_type Identifier for the measurement to update.
+ * @param buf Buffer holding the data to measure.
+ * @param buf_len Length of data buffer.
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations.
+ *
+ * @return 0 if the measurement was updated successfully or an error code.
+ */
+int pcr_store_const_update_buffer (struct pcr_store *store, struct hash_engine *hash,
+	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event)
+{
+	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
+	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_index >= store->num_pcrs) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_const_update_buffer (&store->pcrs[pcr_index], hash, measurement_index, buf, buf_len,
+		include_event);
+}
+
+/**
+ * Update a specified measurement in the PCR store by computing the digest of a versioned data
+ * buffer.  Future updates to the measurement will be prevented.
+ *
+ * @param store The PCR store containing measurement to update.
+ * @param hash Hashing engine to use for digest calculation.
+ * @param measurement_type Identifier for the measurement to update.
+ * @param buf Buffer holding the data to measure.
+ * @param buf_len Length of data buffer.
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations
+ * @param version The version associated with the measurement data, which will prepended when
+ * calculating the digest.
+ *
+ * @return 0 if the measurement was updated successfully or an error code.
+ */
+int pcr_store_const_update_versioned_buffer (struct pcr_store *store, struct hash_engine *hash,
+	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event,
+	uint8_t version)
+{
+	uint8_t pcr_index = PCR_STORE_PCR_INDEX (measurement_type);
+	uint8_t measurement_index = PCR_STORE_MEASUREMENT_INDEX (measurement_type);
+
+	if (store == NULL) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	if (pcr_index >= store->num_pcrs) {
+		return PCR_INVALID_PCR;
+	}
+
+	return pcr_const_update_versioned_buffer (&store->pcrs[pcr_index], hash, measurement_index, buf,
+		buf_len, include_event, version);
+}
+
+/**
  * Clear the currently stored digest for a measurement in the PCR store.
  *
  * @param store The PCR store containing measurement to be cleared.

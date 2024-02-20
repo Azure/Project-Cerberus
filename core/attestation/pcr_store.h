@@ -129,6 +129,15 @@ int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
 int pcr_store_update_versioned_buffer (struct pcr_store *store, struct hash_engine *hash,
 	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event,
 	uint8_t version);
+
+int pcr_store_const_update_digest (struct pcr_store *store, uint16_t measurement_type,
+	const uint8_t *digest, size_t digest_len);
+int pcr_store_const_update_buffer (struct pcr_store *store, struct hash_engine *hash,
+	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event);
+int pcr_store_const_update_versioned_buffer (struct pcr_store *store, struct hash_engine *hash,
+	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event,
+	uint8_t version);
+
 int pcr_store_invalidate_measurement (struct pcr_store *store, uint16_t measurement_type);
 
 int pcr_store_compute_pcr (struct pcr_store *store, struct hash_engine *hash, uint8_t pcr_num,

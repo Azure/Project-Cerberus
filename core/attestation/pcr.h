@@ -26,6 +26,7 @@
 /* PCR flag to include data included in the measurement calculations */
 #define PCR_MEASUREMENT_FLAG_EVENT							(1U << 0)
 #define PCR_MEASUREMENT_FLAG_VERSION						(1U << 1)
+#define PCR_MEASUREMENT_FLAG_CONSTANT						(1U << 7)
 
 /* TCG log definitions */
 #define PCR_TCG_SHA256_ALG_ID								0x0B
@@ -194,6 +195,15 @@ int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t m
 int pcr_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
 	uint8_t version);
+
+int pcr_const_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const uint8_t *digest,
+	size_t digest_len);
+int pcr_const_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event);
+int pcr_const_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
+	uint8_t version);
+
 int pcr_invalidate_measurement (struct pcr_bank *pcr, uint8_t measurement_index);
 
 int pcr_compute (struct pcr_bank *pcr, struct hash_engine *hash, bool lock, uint8_t *measurement,
@@ -240,6 +250,7 @@ enum {
 	PCR_INVALID_SEQUENTIAL_ID = PCR_ERROR (0x0e),				/**< Invalid sequential measurement ID. */
 	PCR_MEASURED_DATA_NOT_AVIALABLE = PCR_ERROR (0x0f),			/**< The raw measured data is not available for the measurement. */
 	PCR_MEASURED_DATA_NO_HASH_CALLBACK = PCR_ERROR (0x10),		/**< The measured data does not provide a hash callback. */
+	PCR_CONSTANT_MEASUREMENT = PCR_ERROR (0x11),				/**< Attempt to update a constant measurement. */
 };
 
 

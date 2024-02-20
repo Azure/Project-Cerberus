@@ -306,6 +306,9 @@ int pcr_is_measurement_in_tcb (struct pcr_bank *pcr, uint8_t measurement_index)
 static int pcr_update_digest_common (struct pcr_bank *pcr, uint8_t measurement_index,
 	const uint8_t *digest, size_t digest_len, uint8_t measurement_config, uint8_t version)
 {
+	bool is_constant;
+	int status = 0;
+
 	if ((pcr == NULL) || (digest == NULL)) {
 		return PCR_INVALID_ARGUMENT;
 	}
@@ -320,13 +323,21 @@ static int pcr_update_digest_common (struct pcr_bank *pcr, uint8_t measurement_i
 
 	platform_mutex_lock (&pcr->lock);
 
-	memcpy (pcr->measurement_list[measurement_index].digest, digest, digest_len);
-	pcr->measurement_list[measurement_index].measurement_config = measurement_config;
-	pcr->measurement_list[measurement_index].version = version;
+	is_constant = !!(pcr->measurement_list[measurement_index].measurement_config &
+		PCR_MEASUREMENT_FLAG_CONSTANT);
+
+	if (!is_constant) {
+		memcpy (pcr->measurement_list[measurement_index].digest, digest, digest_len);
+		pcr->measurement_list[measurement_index].measurement_config = measurement_config;
+		pcr->measurement_list[measurement_index].version = version;
+	}
+	else {
+		status = PCR_CONSTANT_MEASUREMENT;
+	}
 
 	platform_mutex_unlock (&pcr->lock);
 
-	return 0;
+	return status;
 }
 
 /**
@@ -358,13 +369,14 @@ int pcr_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const ui
  * calculations.
  * @param include_version Flag that indicates whether to include the version in measurement
  * calculations.
+ * @param is_constant Flag that indicates whether the measurement should prevent future updates.
  * @param version The version associated with the measurement data.
  *
  * @return Completion status, 0 if success or an error code
  */
 static int pcr_update_buffer_common (struct pcr_bank *pcr, struct hash_engine *hash,
 	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
-	bool include_version, uint8_t version)
+	bool include_version, bool is_constant, uint8_t version)
 {
 	uint8_t digest[PCR_MAX_DIGEST_LENGTH];
 	uint8_t config = 0;
@@ -402,6 +414,10 @@ static int pcr_update_buffer_common (struct pcr_bank *pcr, struct hash_engine *h
 	}
 	else {
 		version = 0;
+	}
+
+	if (is_constant) {
+		config |= PCR_MEASUREMENT_FLAG_CONSTANT;
 	}
 
 	status = hash->update (hash, buf, buf_len);
@@ -444,7 +460,7 @@ int pcr_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash, uint8_t m
 	}
 
 	return pcr_update_buffer_common (pcr, hash, measurement_index, buf, buf_len, include_event,
-		false, 0);
+		false, false, 0);
 }
 
 /**
@@ -470,8 +486,79 @@ int pcr_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
 		return PCR_INVALID_ARGUMENT;
 	}
 
-	return pcr_update_buffer_common (pcr, hash, measurement_index, buf, buf_len,
-		include_event, true, version);
+	return pcr_update_buffer_common (pcr, hash, measurement_index, buf, buf_len, include_event,
+		true, false, version);
+}
+
+/**
+ * Store a pre-computed digest for a measurement in the PCR.  The measurement will be locked from
+ * any future modification.
+ *
+ * @param pcr PCR containing the measurement to update.
+ * @param measurement_index The index of measurement being updated.
+ * @param digest The digest data that should be stored for the measurement.
+ * @param digest_len Length of digest.  This must match exactly the digest length for the PCR.
+ *
+ * @return 0 if successful or an error code.
+ */
+int pcr_const_update_digest (struct pcr_bank *pcr, uint8_t measurement_index, const uint8_t *digest,
+	size_t digest_len)
+{
+	return pcr_update_digest_common (pcr, measurement_index, digest, digest_len,
+		PCR_MEASUREMENT_FLAG_CONSTANT, 0);
+}
+
+/**
+ * Update a specified measurement in a PCR by computing the digest of a data buffer.  The
+ * measurement will be locked from any future modification.
+ *
+ * @param pcr PCR containing the measurement to update.
+ * @param hash Hashing engine to use for digest calculation.
+ * @param measurement_index The index of the measurement being updated.
+ * @param buf Buffer holding the data to measure.
+ * @param buf_len Length of data buffer.
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int pcr_const_update_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event)
+{
+	if ((pcr == NULL) || (hash == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	return pcr_update_buffer_common (pcr, hash, measurement_index, buf, buf_len, include_event,
+		false, true, 0);
+}
+
+/**
+ * Update a specified measurement in a PCR by computing the digest of a versioned data buffer.  The
+ * measurement will be locked from any future modification.
+ *
+ * @param pcr PCR containing the measurement to update.
+ * @param hash Hashing engine to use for digest calculation.
+ * @param measurement_index The index of the measurement being updated.
+ * @param buf Buffer holding the data to measure.
+ * @param buf_len Length of data buffer.
+ * @param include_event Flag that indicates whether to include the event type in measurement
+ * calculations
+ * @param version The version associated with the measurement data, which will prepended when
+ * calculating the digest.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int pcr_const_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
+	uint8_t measurement_index, const uint8_t *buf, size_t buf_len, bool include_event,
+	uint8_t version)
+{
+	if ((pcr == NULL) || (hash == NULL)) {
+		return PCR_INVALID_ARGUMENT;
+	}
+
+	return pcr_update_buffer_common (pcr, hash, measurement_index, buf, buf_len, include_event,
+		true, true, version);
 }
 
 /**
@@ -484,6 +571,9 @@ int pcr_update_versioned_buffer (struct pcr_bank *pcr, struct hash_engine *hash,
  */
 int pcr_invalidate_measurement (struct pcr_bank *pcr, uint8_t measurement_index)
 {
+	bool is_constant;
+	int status = 0;
+
 	if (pcr == NULL) {
 		return PCR_INVALID_ARGUMENT;
 	}
@@ -494,12 +584,20 @@ int pcr_invalidate_measurement (struct pcr_bank *pcr, uint8_t measurement_index)
 
 	platform_mutex_lock (&pcr->lock);
 
-	memset (pcr->measurement_list[measurement_index].digest, 0,
-		sizeof (pcr->measurement_list[measurement_index].digest));
+	is_constant = !!(pcr->measurement_list[measurement_index].measurement_config &
+		PCR_MEASUREMENT_FLAG_CONSTANT);
+
+	if (!is_constant) {
+		memset (pcr->measurement_list[measurement_index].digest, 0,
+			sizeof (pcr->measurement_list[measurement_index].digest));
+	}
+	else {
+		status = PCR_CONSTANT_MEASUREMENT;
+	}
 
 	platform_mutex_unlock (&pcr->lock);
 
-	return 0;
+	return status;
 }
 
 /**
