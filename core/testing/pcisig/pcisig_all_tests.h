@@ -8,6 +8,7 @@
 #include "platform_all_tests.h"
 #include "common/unused.h"
 #include "doe/doe_all_tests.h"
+#include "ide/ide_all_tests.h"
 
 
 /**
@@ -23,6 +24,7 @@ static void add_all_pcisig_tests (CuSuite *suite)
 	UNUSED (suite);
 
 	add_all_doe_tests (suite);
+	add_all_ide_tests (suite);
 }
 
 
