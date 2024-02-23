@@ -114,3 +114,112 @@ fail:
 
 	return status;
 }
+
+/**
+ * Expands keying material from a pseudorandom key and optional additional information using the
+ * HKDF expand algorithm as described in RFC#5869.
+ *
+ * @param hash The hash engine to use for HMAC operations.
+ * @param hash_type The hash type to use for HMAC operations.
+ * @param pseudorandom_key The pseudorandom key to use for key extraction.
+ * @param pseudorandom_key_len The length of the pseudorandom key.
+ * @param info Additional information to use for key extraction.  Can be NULL if not used.
+ * @param info_len The length of the additional information.
+ * @param output_keying_material The buffer to store the extracted keying material.
+ * @param output_keying_material_len The length of the buffer for the extracted keying material.
+ *
+ * @return 0 if the keying material was successfully expanded or an error code.
+ */
+int kdf_hkdf_expand (struct hash_engine *hash, enum hmac_hash hash_type,
+	const uint8_t *pseudorandom_key, size_t pseudorandom_key_len, const uint8_t *info,
+	size_t info_len, uint8_t *output_keying_material, size_t output_keying_material_len)
+{
+	struct hmac_engine hmac;
+	uint32_t hash_len;
+	uint32_t i;
+	int status = 0;
+	size_t n;
+	uint8_t t[HASH_MAX_HASH_LEN];
+	size_t t_len = 0;
+	size_t where = 0;
+	unsigned char c;
+	size_t num_to_copy;
+
+	if ((hash == NULL) || (pseudorandom_key == NULL) || (output_keying_material == NULL)) {
+		return KDF_INVALID_ARGUMENT;
+	}
+
+	hash_len = hash_hmac_get_hmac_length (hash_type);
+	if (hash_len == HASH_ENGINE_UNKNOWN_HASH) {
+		return KDF_OPERATION_UNSUPPORTED;
+	}
+
+	if (pseudorandom_key_len < hash_len) {
+		return KDF_BAD_INPUT_DATA;
+	}
+
+	if (info == NULL) {
+		info = (const uint8_t*) "";
+		info_len = 0;
+	}
+
+	n = output_keying_material_len / hash_len;
+	if ((output_keying_material_len % hash_len) != 0) {
+		n++;
+	}
+
+	/**
+	 * Per RFC 5869 Section 2.3, output_keying_material_len must not exceed
+	 * 255 times the hash length. */
+	if (n > 255) {
+		return KDF_BAD_INPUT_DATA;
+	}
+
+	memset (t, 0, hash_len);
+
+	/**
+	 * Compute T = T(1) | T(2) | T(3) | ... | T(N)
+	 * Where T(N) is defined in RFC 5869 Section 2.3. */
+	for (i = 1; i <= n; i++) {
+		c = i & 0xff;
+
+		status = hash_hmac_init (&hmac, hash, hash_type, pseudorandom_key, pseudorandom_key_len);
+		if (status != 0) {
+			return status;
+		}
+
+		status = hash_hmac_update (&hmac, t, t_len);
+		if (status != 0) {
+			goto fail;
+		}
+
+		status = hash_hmac_update (&hmac, info, info_len);
+		if (status != 0) {
+			goto fail;
+		}
+
+		/* The constant concatenated to the end of each T(n) is a single octet. */
+		status = hash_hmac_update (&hmac, &c, 1);
+		if (status != 0) {
+			goto fail;
+		}
+
+		status = hash_hmac_finish (&hmac, t, sizeof (t));
+		if (status != 0) {
+			return status;
+		}
+
+		num_to_copy = (i != n) ? hash_len : (output_keying_material_len - where);
+		memcpy (output_keying_material + where, t, num_to_copy);
+		where += hash_len;
+		t_len = hash_len;
+	}
+
+	return status;
+
+fail:
+	hash_hmac_cancel (&hmac);
+
+	return status;
+}
+
