@@ -15,6 +15,9 @@ extern const uint8_t AES_KEY[];
 extern const uint8_t AES_IV[];
 #define AES_IV_LEN 12
 
+extern const uint8_t AES_ADD_DATA[];
+#define AES_ADD_DATA_LEN 6
+
 extern const uint8_t AES_PLAINTEXT[];
 extern const size_t AES_PLAINTEXT_LEN;
 
@@ -22,6 +25,7 @@ extern const uint8_t AES_CIPHERTEXT[];
 extern const size_t AES_CIPHERTEXT_LEN;
 
 extern const uint8_t AES_GCM_TAG[];
+extern const uint8_t AES_GCM_ADD_DATA_TAG[];
 #define AES_GCM_TAG_LEN 16
 
 extern const uint8_t AES_RSA_PRIVKEY_DER[];

@@ -133,6 +133,15 @@ static int aes_openssl_encrypt_data (struct aes_engine *engine, const uint8_t *p
 	return 0;
 }
 
+static int aes_openssl_encrypt_with_add_data (struct aes_engine *engine, const uint8_t *plaintext,
+	size_t length, const uint8_t *iv, size_t iv_length, const uint8_t *additional_data,
+	size_t additional_data_length, uint8_t *ciphertext, size_t out_length,
+	uint8_t *tag, size_t tag_length)
+{
+	/* [TODO] Reminder to implement this later. */
+	return AES_UNSUPPORTED_OPERATION;
+}
+
 static int aes_openssl_decrypt_data (struct aes_engine *engine, const uint8_t *ciphertext,
 	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length, uint8_t *plaintext,
 	size_t out_length)
@@ -185,6 +194,15 @@ static int aes_openssl_decrypt_data (struct aes_engine *engine, const uint8_t *c
 	}
 }
 
+static int aes_openssl_decrypt_with_add_data (struct aes_engine *engine, const uint8_t *ciphertext,
+	size_t length, const uint8_t *tag, const uint8_t *iv, size_t iv_length,
+	const uint8_t *additional_data, size_t additional_data_length, uint8_t *plaintext,
+	size_t out_length)
+{
+	/* [TODO] Reminder to implement this later. */
+	return AES_UNSUPPORTED_OPERATION;
+}
+
 /**
  * Initialize an instance for run AES operations using OpenSSL.
  *
@@ -210,6 +228,8 @@ int aes_openssl_init (struct aes_engine_openssl *engine)
 	engine->base.set_key = aes_openssl_set_key;
 	engine->base.encrypt_data = aes_openssl_encrypt_data;
 	engine->base.decrypt_data = aes_openssl_decrypt_data;
+	engine->base.encrypt_with_add_data = aes_openssl_encrypt_with_add_data;
+	engine->base.decrypt_with_add_data = aes_openssl_decrypt_with_add_data;
 
 	return 0;
 }

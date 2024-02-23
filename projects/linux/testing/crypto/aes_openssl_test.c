@@ -30,6 +30,8 @@ static void aes_openssl_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.set_key);
 	CuAssertPtrNotNull (test, engine.base.encrypt_data);
 	CuAssertPtrNotNull (test, engine.base.decrypt_data);
+	CuAssertPtrNotNull (test, engine.base.encrypt_with_add_data);
+	CuAssertPtrNotNull (test, engine.base.decrypt_with_add_data);
 
 	aes_openssl_release (&engine);
 }
