@@ -19,11 +19,12 @@
 static void host_processor_observer_pcr_update (struct host_processor_observer_pcr *observer,
 	int event)
 {
+	uint32_t event_copy = event;
 	int status;
 
-	*observer->state = event;
+	*observer->state = event_copy;
 	status = pcr_store_update_versioned_buffer (observer->store, observer->hash, observer->pcr,
-		(uint8_t*) observer->state, sizeof (uint32_t), true, 0);
+		(uint8_t*) &event_copy, sizeof (uint32_t), true, 0);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_HOST_FW,
 			HOST_LOGGING_PCR_UPDATE_ERROR, observer->pcr, status);
@@ -74,13 +75,15 @@ static void host_processor_observer_pcr_on_inactive_dirty (struct host_state_obs
 int host_processor_observer_pcr_init (struct host_processor_observer_pcr *host,
 	struct hash_engine *hash, struct pcr_store *store, uint16_t pcr, uint32_t *init_state)
 {
+	uint32_t state_copy;
 	int status;
 
 	if ((host == NULL) || (hash == NULL) || (store == NULL) || (init_state == NULL)) {
 		return HOST_PROCESSOR_OBSERVER_INVALID_ARGUMENT;
 	}
 
-	status = pcr_store_update_versioned_buffer (store, hash, pcr, (uint8_t*) init_state,
+	state_copy = *init_state;
+	status = pcr_store_update_versioned_buffer (store, hash, pcr, (uint8_t*) &state_copy,
 		sizeof (uint32_t), true, 0);
 	if (status != 0) {
 		return status;
