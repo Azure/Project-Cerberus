@@ -158,8 +158,8 @@ static void cmd_interface_ide_responder_test_process_request_query (CuTest *test
 	uint8_t dev_func_num = 2;
 	uint8_t segment = 3;
 	uint8_t max_port_index = 4;
-	struct ide_capability_register capability_register;
-	struct ide_control_register control_register;
+	struct ide_capability_register capability_register = {0};
+	struct ide_control_register control_register = {0};
 	const uint32_t selective_ide_stream_register_block_count = 100;
 	struct ide_selective_ide_stream_register_block
 		selective_ide_reg_block[selective_ide_stream_register_block_count];

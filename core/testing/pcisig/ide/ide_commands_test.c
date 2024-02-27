@@ -553,8 +553,8 @@ static void ide_commands_test_ide_km_query (CuTest *test)
 	uint8_t dev_func_num = 2;
 	uint8_t segment = 3;
 	uint8_t max_port_index = 4;
-	struct ide_capability_register capability_register;
-	struct ide_control_register control_register;
+	struct ide_capability_register capability_register = {0};
+	struct ide_control_register control_register = {0};
 	const uint32_t selective_ide_stream_register_block_count = 100;
 	struct ide_selective_ide_stream_register_block
 		selective_ide_reg_block[selective_ide_stream_register_block_count];
@@ -918,7 +918,7 @@ static void ide_commands_test_ide_km_query_get_link_ide_register_block_insuffici
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
 	msg.payload_length = sizeof (struct ide_km_query);
-	msg.max_response = 
+	msg.max_response =
 		sizeof (struct ide_km_query_resp) + sizeof (struct ide_link_ide_stream_register_block) - 1;
 	rq->header.object_id = IDE_KM_OBJECT_ID_QUERY;
 	rq->port_index = 1;
@@ -1023,7 +1023,7 @@ static void ide_commands_test_ide_km_query_get_selective_ide_stream_register_ins
 	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
 	struct ide_km_query *rq = (struct ide_km_query*) buf;
 	int status;
-	struct ide_capability_register capability_register;
+	struct ide_capability_register capability_register = {0};
 
 	TEST_START;
 
@@ -1081,7 +1081,7 @@ static void ide_commands_test_ide_km_query_get_selective_ide_stream_register_blo
 	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
 	struct ide_km_query *rq = (struct ide_km_query*) buf;
 	int status;
-	struct ide_capability_register capability_register;
+	struct ide_capability_register capability_register = {0};
 
 	TEST_START;
 
