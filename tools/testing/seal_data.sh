@@ -48,7 +48,9 @@ fi
 if [ "$1" = "1" ]; then
 	ecc=`mktemp -p .`
 	if [ -z "$privkey" ]; then
-		openssl ecparam -name prime256v1 -genkey -noout -out $ecc
+		key_curve=`openssl ec -noout -pubin -text -in $key | grep 'ASN1 OID' | awk '{print $3}'`
+		
+		openssl ecparam -name $key_curve -genkey -noout -out $ecc
 		if [ $? -ne 0 ]; then
 			rm -f $key $ecc
 			exit 1
@@ -146,40 +148,26 @@ fi
 sealing="sealing.bin"
 dd if=/dev/random bs=1 count=$CIPHER_LEN > cipher.bin 2> /dev/null
 
-dd if=/dev/zero bs=1 count=32 > $sealing 2> /dev/null
-if [ -n "$PMR0" ]; then
-	echo -ne "$(echo $PMR0 | sed -e 's/../\\x&/g')" >> $sealing
-else
-	dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
-fi
+add_pmr_policy () {
+	pmr=$1
+	
+	if [ -n "$pmr" ]; then
+		pmr_length=${#pmr}
+		let 'padding = 64 - (pmr_length / 2)'
+		dd if=/dev/zero bs=1 count=$padding >> $sealing 2> /dev/null
+		
+		echo -ne "$(echo $pmr | sed -e 's/../\\x&/g')" >> $sealing
+	else
+		dd if=/dev/zero bs=1 count=64 >> $sealing 2> /dev/null
+	fi
+}
 
-dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
-if [ -n "$PMR1" ]; then
-	echo -ne "$(echo $PMR1 | sed -e 's/../\\x&/g')" >> $sealing
-else
-	dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
-fi
-
-dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
-if [ -n "$PMR2" ]; then
-	echo -ne "$(echo $PMR2 | sed -e 's/../\\x&/g')" >> $sealing
-else
-	dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
-fi
-
-dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
-if [ -n "$PMR3" ]; then
-	echo -ne "$(echo $PMR3 | sed -e 's/../\\x&/g')" >> $sealing
-else
-	dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
-fi
-
-dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
-if [ -n "$PMR4" ]; then
-	echo -ne "$(echo $PMR4 | sed -e 's/../\\x&/g')" >> $sealing
-else
-	dd if=/dev/zero bs=1 count=32 >> $sealing 2> /dev/null
-fi
+echo -n "" > $sealing
+add_pmr_policy "$PMR0"
+add_pmr_policy "$PMR1"
+add_pmr_policy "$PMR2"
+add_pmr_policy "$PMR3"
+add_pmr_policy "$PMR4"
 
 sign=`cat $sign_key | hexdump -ve '/1 "%02x"' | tr -d '\n'`
 
