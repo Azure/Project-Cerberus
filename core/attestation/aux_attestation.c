@@ -454,8 +454,16 @@ int aux_attestation_unseal (struct aux_attestation *aux, struct hash_engine *has
 		bypass = true;
 
 		pcr_length = pcr_store_get_pcr_digest_length (pcr, i);
-		if (ROT_IS_ERROR (pcr_length)) {
-			return pcr_length;
+		if (pcr_length == PCR_INVALID_PCR) {
+			/* The PCR is not supported by the device, but is present in the sealing data.  This
+			 * is fine as long as the unsupported PCR is bypassed by the sealing.  If it's not, this
+			 * same error will get triggered when attempting to calculate the PCR value.
+			 *
+			 * For now, just use the maximum length, which skips the zero-padding check on this PCR,
+			 * since it's not meaningful.  There are going to either be all zeros and bypassed or
+			 * not all zeros and trigger an invalid PCR error (which is more descriptive than a
+			 * length mismatch error). */
+			pcr_length = 64;
 		}
 
 		while (bypass && (j < 64)) {

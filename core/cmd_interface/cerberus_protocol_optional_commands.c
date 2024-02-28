@@ -643,16 +643,19 @@ int cerberus_protocol_unseal_message (const struct cmd_background *background,
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	if ((rq->seed_length == 0) || (cerberus_protocol_unseal_ciphertext_length_ptr (rq) >= end)) {
+	if ((buffer_unaligned_read16 (&rq->seed_length) == 0) ||
+		(cerberus_protocol_unseal_ciphertext_length_ptr (rq) >= end)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if ((cerberus_protocol_unseal_ciphertext_length (rq) == 0) ||
+	if ((buffer_unaligned_read16 (
+			(uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (rq)) == 0) ||
 		(cerberus_protocol_unseal_hmac_length_ptr (rq) >= end)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if ((cerberus_protocol_unseal_hmac_length (rq) != SHA256_HASH_LENGTH) ||
+	if ((buffer_unaligned_read16 (
+			(uint16_t*) cerberus_protocol_unseal_hmac_length_ptr (rq)) != SHA256_HASH_LENGTH) ||
 		((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (rq) >= end)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}

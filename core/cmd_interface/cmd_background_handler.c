@@ -9,6 +9,7 @@
 #include "cerberus_protocol_optional_commands.h"
 #include "cmd_background_handler.h"
 #include "cmd_logging.h"
+#include "common/buffer_util.h"
 #include "common/type_cast.h"
 #include "common/unused.h"
 #include "flash/flash_common.h"
@@ -116,7 +117,7 @@ int cmd_background_handler_unseal_result (const struct cmd_background *cmd, uint
 
 	handler->task->lock (handler->task);
 
-	*unseal_status = handler->state->attestation_status;
+	buffer_unaligned_write32 (unseal_status, handler->state->attestation_status);
 
 	if (handler->state->attestation_status == ATTESTATION_CMD_STATUS_SUCCESS) {
 		if (*key_length < sizeof (handler->state->key)) {
@@ -306,11 +307,13 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 			}
 
 			status = cmd->attestation->aux_attestation_unseal (cmd->attestation, cmd->hash,
-				AUX_ATTESTATION_KEY_256BIT, &unseal->seed, unseal->seed_length,
+				AUX_ATTESTATION_KEY_256BIT, &unseal->seed,
+				buffer_unaligned_read16 (&unseal->seed_length),
 				(enum aux_attestation_seed_type) unseal->seed_type, seed_param,
 				cerberus_protocol_unseal_hmac (unseal), HMAC_SHA256,
 				cerberus_protocol_unseal_ciphertext (unseal),
-				cerberus_protocol_unseal_ciphertext_length (unseal),
+				buffer_unaligned_read16 (
+					(uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (unseal)),
 				cerberus_protocol_get_unseal_pmr_sealing (unseal)->pmr, CERBERUS_PROTOCOL_MAX_PMR,
 				cmd->state->key, sizeof (cmd->state->key));
 			if (status != 0) {

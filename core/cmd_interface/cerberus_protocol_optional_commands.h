@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common/buffer_util.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cmd_authorization.h"
 #include "cmd_interface/cmd_background.h"
@@ -810,7 +811,8 @@ struct cerberus_protocol_unseal_pmrs {
  * Get the pointer to the ciphertext length entry
  */
 #define	cerberus_protocol_unseal_ciphertext_length_ptr(req) \
-	(((uint8_t*) req) + sizeof (*req) + req->seed_length - sizeof (req->seed))
+	(((uint8_t*) req) + sizeof (*req) + buffer_unaligned_read16 (&req->seed_length) - \
+		sizeof (req->seed))
 
 /**
  * Get the ciphertext length in an unseal request message
@@ -827,8 +829,8 @@ struct cerberus_protocol_unseal_pmrs {
 /**
  * Get the pointer to the HMAC length entry
  */
-#define	cerberus_protocol_unseal_hmac_length_ptr(req) \
-	(cerberus_protocol_unseal_ciphertext (req) + cerberus_protocol_unseal_ciphertext_length (req))
+#define	cerberus_protocol_unseal_hmac_length_ptr(req) (cerberus_protocol_unseal_ciphertext (req) + \
+	buffer_unaligned_read16 ((uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (req)))
 
 /**
  * Get the HMAC length in an unseal request message
@@ -847,7 +849,8 @@ struct cerberus_protocol_unseal_pmrs {
  * struct cerberus_protocol_unseal_pmrs.
  */
 #define	cerberus_protocol_get_unseal_pmr_sealing(req) \
-	((const struct cerberus_protocol_unseal_pmrs*) (cerberus_protocol_unseal_hmac (req) + cerberus_protocol_unseal_hmac_length (req)))
+	((const struct cerberus_protocol_unseal_pmrs*) (cerberus_protocol_unseal_hmac (req) + \
+		cerberus_protocol_unseal_hmac_length (req)))
 
 /**
  * Cerberus protocol message unseal result request format
@@ -880,15 +883,16 @@ struct cerberus_protocol_message_unseal_result_completed_response {
  * @param len Length of the key data.
  */
 #define	cerberus_protocol_get_unseal_response_length(len)	\
-	((len + sizeof (struct cerberus_protocol_message_unseal_result_completed_response)) - sizeof (uint8_t))
+	((len + sizeof (struct cerberus_protocol_message_unseal_result_completed_response)) - \
+		sizeof (uint8_t))
 
 /**
  * Maximum amount of key data that can be returned from an unseal request
  *
  * @param req The command request structure containing the message.
  */
-#define	CERBERUS_PROTOCOL_MAX_UNSEAL_KEY_DATA(req)	\
-	((req->max_response - sizeof (struct cerberus_protocol_message_unseal_result_completed_response)) + sizeof (uint8_t))
+#define	CERBERUS_PROTOCOL_MAX_UNSEAL_KEY_DATA(req)	((req->max_response - \
+	sizeof (struct cerberus_protocol_message_unseal_result_completed_response)) + sizeof (uint8_t))
 
 /**
  * Cerberus protocol session sync request format

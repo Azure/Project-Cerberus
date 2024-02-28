@@ -4185,6 +4185,123 @@ static void aux_attestation_test_unseal_unused_pcrs (CuTest *test)
 	pcr_store_release (&pcr);
 }
 
+static void aux_attestation_test_unseal_unsupported_pcr_bypassed (CuTest *test)
+{
+	struct aux_attestation_testing aux;
+	struct pcr_store pcr;
+	const struct pcr_config pcr_config[2] = {
+		{
+			.num_measurements = 0,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 0,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	int status;
+	uint8_t *key_der;
+	uint8_t attestation_key[32];
+	uint8_t separator = 0;
+
+	TEST_START;
+
+	key_der = platform_malloc (RSA3K_PRIVKEY_DER_LEN);
+	CuAssertPtrNotNull (test, key_der);
+
+	memcpy (key_der, RSA3K_PRIVKEY_DER, RSA3K_PRIVKEY_DER_LEN);
+
+	aux_attestation_testing_init (test, &aux);
+
+	status = pcr_store_init (&pcr, pcr_config, ARRAY_SIZE (pcr_config));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_update_digest (&pcr, PCR_MEASUREMENT (0, 0), PCR0_VALUE, PCR0_VALUE_LEN);
+	status |= pcr_store_update_digest (&pcr, PCR_MEASUREMENT (1, 0), PCR1_VALUE, PCR1_VALUE_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&aux.keystore.mock, aux.keystore.base.load_key, &aux.keystore, 0,
+		MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&aux.keystore.mock, 1, &key_der, sizeof (key_der), -1);
+	status |= mock_expect_output (&aux.keystore.mock, 2, &RSA3K_PRIVKEY_DER_LEN,
+		sizeof (RSA3K_PRIVKEY_DER_LEN), -1);
+
+	/* Decrypt seed */
+	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.init_private_key, &aux.rsa, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (RSA3K_PRIVKEY_DER, RSA3K_PRIVKEY_DER_LEN),
+		MOCK_ARG (RSA3K_PRIVKEY_DER_LEN));
+	status |= mock_expect_save_arg (&aux.rsa.mock, 0, 0);
+
+	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.decrypt, &aux.rsa, KEY_SEED_LEN,
+		MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS (KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN),
+		MOCK_ARG (KEY_SEED_ENCRYPT_OAEP_LEN), MOCK_ARG_PTR (NULL), MOCK_ARG (0),
+		MOCK_ARG (HASH_TYPE_SHA1), MOCK_ARG_NOT_NULL, MOCK_ARG (3072 / 8));
+	status |= mock_expect_output (&aux.rsa.mock, 6, KEY_SEED, KEY_SEED_LEN, 7);
+
+	status |= mock_expect (&aux.rsa.mock, aux.rsa.base.release_key, &aux.rsa, 0,
+		MOCK_ARG_SAVED_ARG (0));
+
+	/* Derive signing key */
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
+		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) SIGNING_KEY_LABEL, SIGNING_KEY_LABEL_LEN),
+		MOCK_ARG (SIGNING_KEY_LABEL_LEN - 1));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
+		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
+	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, SIGNING_KEY, SIGNING_KEY_LEN);
+
+	/* Validate cipher text and sealing policy */
+	status |= hash_mock_expect_hmac_init (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN,
+		HASH_TYPE_SHA256);
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (CIPHER_TEXT, CIPHER_TEXT_LEN), MOCK_ARG (CIPHER_TEXT_LEN));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (SEALING_POLICY_BYPASS_MULTIPLE, SEALING_POLICY_BYPASS_MULTIPLE_LEN),
+		MOCK_ARG (SEALING_POLICY_BYPASS_MULTIPLE_LEN));
+	status |= hash_mock_expect_hmac_finish (&aux.hash, SIGNING_KEY, SIGNING_KEY_LEN, NULL,
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, PAYLOAD_BYPASS_MULTIPLE_HMAC,
+		PAYLOAD_BYPASS_MULTIPLE_HMAC_LEN);
+
+	/* Derive encryption key */
+	status |= hash_mock_expect_hmac_init (&aux.hash, KEY_SEED, KEY_SEED_LEN, HASH_TYPE_SHA256);
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_I, NIST_KEY_DERIVE_I_LEN),
+		MOCK_ARG (NIST_KEY_DERIVE_I_LEN));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) ENCRYPTION_KEY_LABEL, ENCRYPTION_KEY_LABEL_LEN),
+		MOCK_ARG (ENCRYPTION_KEY_LABEL_LEN - 1));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (&separator, sizeof (separator)), MOCK_ARG (sizeof (separator)));
+	status |= mock_expect (&aux.hash.mock, aux.hash.base.update, &aux.hash, 0,
+		MOCK_ARG_PTR_CONTAINS (NIST_KEY_DERIVE_L, NIST_KEY_DERIVE_L_LEN),
+		MOCK_ARG (NIST_KEY_DERIVE_L_LEN));
+	status |= hash_mock_expect_hmac_finish (&aux.hash, KEY_SEED, KEY_SEED_LEN, NULL,
+		SHA256_HASH_LENGTH, HASH_TYPE_SHA256, ENCRYPTION_KEY, ENCRYPTION_KEY_LEN);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = aux_attestation_unseal (&aux.test, &aux.hash.base, &pcr, AUX_ATTESTATION_KEY_256BIT,
+		KEY_SEED_ENCRYPT_OAEP, KEY_SEED_ENCRYPT_OAEP_LEN, AUX_ATTESTATION_SEED_RSA,
+		AUX_ATTESTATION_PARAM_OAEP_SHA1, PAYLOAD_BYPASS_MULTIPLE_HMAC, HMAC_SHA256, CIPHER_TEXT,
+		CIPHER_TEXT_LEN, SEALING_POLICY_BYPASS_MULTIPLE, 3, attestation_key,
+		sizeof (attestation_key));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (ENCRYPTION_KEY, attestation_key, ENCRYPTION_KEY_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	aux_attestation_testing_validate_and_release (test, &aux);
+	pcr_store_release (&pcr);
+}
+
 static void aux_attestation_test_unseal_bad_hmac (CuTest *test)
 {
 	struct aux_attestation_testing aux;
@@ -7346,6 +7463,7 @@ TEST (aux_attestation_test_unseal_multiple_pcr_unused_byte_nonzero);
 TEST (aux_attestation_test_unseal_multiple_pcr_bypass_single);
 TEST (aux_attestation_test_unseal_multiple_pcr_bypass_multiple);
 TEST (aux_attestation_test_unseal_unused_pcrs);
+TEST (aux_attestation_test_unseal_unsupported_pcr_bypassed);
 TEST (aux_attestation_test_unseal_bad_hmac);
 TEST (aux_attestation_test_unseal_rsa_oaep_sha1_no_mock);
 TEST (aux_attestation_test_unseal_rsa_oaep_sha256_no_mock);
