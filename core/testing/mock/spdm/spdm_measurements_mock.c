@@ -74,10 +74,10 @@ static int spdm_measurements_mock_get_all_measurement_blocks_length (
 		MOCK_ARG_CALL (raw_bit_stream), MOCK_ARG_CALL (hash_type));
 }
 
-static int spdm_measurements_mock_get_measurement_summary (const struct spdm_measurements *handler,
-	struct hash_engine *summary_hash, enum hash_type summary_hash_type,
-	struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
-	uint8_t *buffer, size_t length)
+static int spdm_measurements_mock_get_measurement_summary_hash (
+	const struct spdm_measurements *handler, struct hash_engine *summary_hash,
+	enum hash_type summary_hash_type, struct hash_engine *measurement_hash,
+	enum hash_type measurement_hash_type, bool only_tcb, uint8_t *buffer, size_t length)
 {
 	struct spdm_measurements_mock *mock = (struct spdm_measurements_mock*) handler;
 
@@ -85,7 +85,7 @@ static int spdm_measurements_mock_get_measurement_summary (const struct spdm_mea
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, spdm_measurements_mock_get_measurement_summary, handler,
+	MOCK_RETURN (&mock->mock, spdm_measurements_mock_get_measurement_summary_hash, handler,
 		MOCK_ARG_PTR_CALL (summary_hash), MOCK_ARG_CALL (summary_hash_type),
 		MOCK_ARG_PTR_CALL (measurement_hash), MOCK_ARG_CALL (measurement_hash_type),
 		MOCK_ARG_CALL (only_tcb), MOCK_ARG_PTR_CALL (buffer), MOCK_ARG_CALL (length));
@@ -93,7 +93,7 @@ static int spdm_measurements_mock_get_measurement_summary (const struct spdm_mea
 
 static int spdm_measurements_mock_func_arg_count (void *func)
 {
-	if (func == spdm_measurements_mock_get_measurement_summary) {
+	if (func == spdm_measurements_mock_get_measurement_summary_hash) {
 		return 7;
 	}
 	else if (func == spdm_measurements_mock_get_measurement_block) {
@@ -130,8 +130,8 @@ static const char* spdm_measurements_mock_func_name_map (void *func)
 	else if (func == spdm_measurements_mock_get_all_measurement_blocks_length) {
 		return "get_all_measurement_blocks_length";
 	}
-	else if (func == spdm_measurements_mock_get_measurement_summary) {
-		return "get_measurement_summary";
+	else if (func == spdm_measurements_mock_get_measurement_summary_hash) {
+		return "get_measurement_summary_hash";
 	}
 	else {
 		return "unknown";
@@ -194,7 +194,7 @@ static const char* spdm_measurements_mock_arg_name_map (void *func, int arg)
 				return "hash_type";
 		}
 	}
-	else if (func == spdm_measurements_mock_get_measurement_summary) {
+	else if (func == spdm_measurements_mock_get_measurement_summary_hash) {
 		switch (arg) {
 			case 0:
 				return "summary_hash";
@@ -252,7 +252,7 @@ int spdm_measurements_mock_init (struct spdm_measurements_mock *mock)
 	mock->base.get_all_measurement_blocks = spdm_measurements_mock_get_all_measurement_blocks;
 	mock->base.get_all_measurement_blocks_length =
 		spdm_measurements_mock_get_all_measurement_blocks_length;
-	mock->base.get_measurement_summary = spdm_measurements_mock_get_measurement_summary;
+	mock->base.get_measurement_summary_hash = spdm_measurements_mock_get_measurement_summary_hash;
 
 	mock->mock.func_arg_count = spdm_measurements_mock_func_arg_count;
 	mock->mock.func_name_map = spdm_measurements_mock_func_name_map;

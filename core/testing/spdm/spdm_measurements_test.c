@@ -182,7 +182,7 @@ static void spdm_measurements_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, handler.test.get_measurement_block_length);
 	CuAssertPtrNotNull (test, handler.test.get_all_measurement_blocks);
 	CuAssertPtrNotNull (test, handler.test.get_all_measurement_blocks_length);
-	CuAssertPtrNotNull (test, handler.test.get_measurement_summary);
+	CuAssertPtrNotNull (test, handler.test.get_measurement_summary_hash);
 
 	spdm_measurements_testing_release (test, &handler);
 }
@@ -231,7 +231,7 @@ static void spdm_measurements_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, handler.test.get_measurement_block_length);
 	CuAssertPtrNotNull (test, handler.test.get_all_measurement_blocks);
 	CuAssertPtrNotNull (test, handler.test.get_all_measurement_blocks_length);
-	CuAssertPtrNotNull (test, handler.test.get_measurement_summary);
+	CuAssertPtrNotNull (test, handler.test.get_measurement_summary_hash);
 
 	spdm_measurements_testing_init_dependencies (test, &handler, pcr_config,
 		ARRAY_SIZE (pcr_config));
@@ -2920,7 +2920,7 @@ static void spdm_measurements_test_get_all_measurement_blocks_length_data_length
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_summary_sha256_meas_sha256_all_blocks (
+static void spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha256_all_blocks (
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -3002,7 +3002,7 @@ static void spdm_measurements_test_get_measurement_summary_summary_sha256_meas_s
 		exp_digest, sizeof (exp_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3012,7 +3012,7 @@ static void spdm_measurements_test_get_measurement_summary_summary_sha256_meas_s
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_summary_sha384_meas_sha256_only_tcb (
+static void spdm_measurements_test_get_measurement_summary_hash_summary_sha384_meas_sha256_only_tcb (
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -3094,7 +3094,7 @@ static void spdm_measurements_test_get_measurement_summary_summary_sha384_meas_s
 		exp_digest, sizeof (exp_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA384, &handler.hash2.base, HASH_TYPE_SHA256, true, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3104,7 +3104,8 @@ static void spdm_measurements_test_get_measurement_summary_summary_sha384_meas_s
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_summary_sha512_meas_sha256 (CuTest *test)
+static void spdm_measurements_test_get_measurement_summary_hash_summary_sha512_meas_sha256 (
+	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
 	const struct pcr_config pcr_config[] = {
@@ -3185,7 +3186,7 @@ static void spdm_measurements_test_get_measurement_summary_summary_sha512_meas_s
 		exp_digest, sizeof (exp_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA512, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3195,7 +3196,7 @@ static void spdm_measurements_test_get_measurement_summary_summary_sha512_meas_s
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_summary_sha256_meas_sha384_all_blocks (
+static void spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha384_all_blocks (
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -3276,7 +3277,7 @@ static void spdm_measurements_test_get_measurement_summary_summary_sha256_meas_s
 		exp_digest, sizeof (exp_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA384, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3286,7 +3287,7 @@ static void spdm_measurements_test_get_measurement_summary_summary_sha256_meas_s
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_summary_sha256_meas_sha512_only_tcb (
+static void spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha512_only_tcb (
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -3368,7 +3369,7 @@ static void spdm_measurements_test_get_measurement_summary_summary_sha256_meas_s
 		exp_digest, sizeof (exp_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA512, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3378,7 +3379,7 @@ static void spdm_measurements_test_get_measurement_summary_summary_sha256_meas_s
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_non_tcb_measurements_all_blocks (
+static void spdm_measurements_test_get_measurement_summary_hash_non_tcb_measurements_all_blocks (
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -3475,7 +3476,7 @@ static void spdm_measurements_test_get_measurement_summary_non_tcb_measurements_
 		exp_digest, sizeof (exp_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3485,7 +3486,7 @@ static void spdm_measurements_test_get_measurement_summary_non_tcb_measurements_
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_non_tcb_measurements_only_tcb (
+static void spdm_measurements_test_get_measurement_summary_hash_non_tcb_measurements_only_tcb (
 	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -3584,7 +3585,7 @@ static void spdm_measurements_test_get_measurement_summary_non_tcb_measurements_
 		exp_digest, sizeof (exp_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, true, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3594,7 +3595,7 @@ static void spdm_measurements_test_get_measurement_summary_non_tcb_measurements_
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_static_init (CuTest *test)
+static void spdm_measurements_test_get_measurement_summary_hash_static_init (CuTest *test)
 {
 	struct spdm_measurements_testing handler = {
 		.test = spdm_measurements_static_init (&handler.store),
@@ -3678,7 +3679,7 @@ static void spdm_measurements_test_get_measurement_summary_static_init (CuTest *
 		exp_digest, sizeof (exp_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, 0, status);
 
@@ -3688,7 +3689,7 @@ static void spdm_measurements_test_get_measurement_summary_static_init (CuTest *
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_null (CuTest *test)
+static void spdm_measurements_test_get_measurement_summary_hash_null (CuTest *test)
 {
 	struct spdm_measurements_testing handler;
 	const struct pcr_config pcr_config[] = {
@@ -3708,26 +3709,26 @@ static void spdm_measurements_test_get_measurement_summary_null (CuTest *test)
 
 	spdm_measurements_testing_init (test, &handler, pcr_config, ARRAY_SIZE (pcr_config));
 
-	status = handler.test.get_measurement_summary (NULL, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (NULL, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, NULL,
+	status = handler.test.get_measurement_summary_hash (&handler.test, NULL,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, NULL, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, NULL, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_INVALID_ARGUMENT, status);
 
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_same_hash_engine (CuTest *test)
+static void spdm_measurements_test_get_measurement_summary_hash_same_hash_engine (CuTest *test)
 {
 	struct spdm_measurements_testing handler;
 	const struct pcr_config pcr_config[] = {
@@ -3747,14 +3748,15 @@ static void spdm_measurements_test_get_measurement_summary_same_hash_engine (CuT
 
 	spdm_measurements_testing_init (test, &handler, pcr_config, ARRAY_SIZE (pcr_config));
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_SAME_HASH_ENGINE, status);
 
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_summary_hash_start_error (CuTest *test)
+static void spdm_measurements_test_get_measurement_summary_hash_summary_hash_start_error (
+	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
 	const struct pcr_config pcr_config[] = {
@@ -3778,14 +3780,15 @@ static void spdm_measurements_test_get_measurement_summary_summary_hash_start_er
 		&handler.hash_mock, HASH_ENGINE_START_SHA256_FAILED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash_mock.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash_mock.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_summary_hash_update_error (CuTest *test)
+static void spdm_measurements_test_get_measurement_summary_hash_summary_hash_update_error (
+	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
 	const struct pcr_config pcr_config[] = {
@@ -3878,14 +3881,15 @@ static void spdm_measurements_test_get_measurement_summary_summary_hash_update_e
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash_mock.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash_mock.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
 
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_summary_hash_finish_error (CuTest *test)
+static void spdm_measurements_test_get_measurement_summary_hash_summary_hash_finish_error (
+	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
 	const struct pcr_config pcr_config[] = {
@@ -3985,14 +3989,14 @@ static void spdm_measurements_test_get_measurement_summary_summary_hash_finish_e
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash_mock.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash_mock.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_small_buffer (CuTest *test)
+static void spdm_measurements_test_get_measurement_summary_hash_small_buffer (CuTest *test)
 {
 	struct spdm_measurements_testing handler;
 	const struct pcr_config pcr_config[] = {
@@ -4012,7 +4016,7 @@ static void spdm_measurements_test_get_measurement_summary_small_buffer (CuTest 
 
 	spdm_measurements_testing_init (test, &handler, pcr_config, ARRAY_SIZE (pcr_config));
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash2.base, HASH_TYPE_SHA256, false, buffer,
 		SHA256_HASH_LENGTH - 1);
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_BUFFER_TOO_SMALL, status);
@@ -4020,7 +4024,8 @@ static void spdm_measurements_test_get_measurement_summary_small_buffer (CuTest 
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_measurement_block_error (CuTest *test)
+static void spdm_measurements_test_get_measurement_summary_hash_measurement_block_error (
+	CuTest *test)
 {
 	struct spdm_measurements_testing handler;
 	const struct pcr_config pcr_config[] = {
@@ -4075,7 +4080,7 @@ static void spdm_measurements_test_get_measurement_summary_measurement_block_err
 		&handler.hash_mock, HASH_ENGINE_START_SHA384_FAILED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash.base,
 		HASH_TYPE_SHA256, &handler.hash_mock.base, HASH_TYPE_SHA384, false, buffer,
 		sizeof (buffer));
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
@@ -4083,7 +4088,7 @@ static void spdm_measurements_test_get_measurement_summary_measurement_block_err
 	spdm_measurements_testing_release (test, &handler);
 }
 
-static void spdm_measurements_test_get_measurement_summary_hash_not_possible (CuTest *test)
+static void spdm_measurements_test_get_measurement_summary_hash_hash_not_possible (CuTest *test)
 {
 	struct spdm_measurements_testing handler;
 	const struct pcr_config pcr_config[] = {
@@ -4110,7 +4115,7 @@ static void spdm_measurements_test_get_measurement_summary_hash_not_possible (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = handler.test.get_measurement_summary (&handler.test, &handler.hash_mock.base,
+	status = handler.test.get_measurement_summary_hash (&handler.test, &handler.hash_mock.base,
 		HASH_TYPE_SHA256, &handler.hash.base, HASH_TYPE_SHA384, false, buffer, sizeof (buffer));
 	CuAssertIntEquals (test, SPDM_MEASUREMENTS_HASH_NOT_POSSIBLE, status);
 
@@ -4178,21 +4183,21 @@ TEST (spdm_measurements_test_get_all_measurement_blocks_length_static_init);
 TEST (spdm_measurements_test_get_all_measurement_blocks_length_null);
 TEST (spdm_measurements_test_get_all_measurement_blocks_length_unknown_hash);
 TEST (spdm_measurements_test_get_all_measurement_blocks_length_data_length_error);
-TEST (spdm_measurements_test_get_measurement_summary_summary_sha256_meas_sha256_all_blocks);
-TEST (spdm_measurements_test_get_measurement_summary_summary_sha384_meas_sha256_only_tcb);
-TEST (spdm_measurements_test_get_measurement_summary_summary_sha512_meas_sha256);
-TEST (spdm_measurements_test_get_measurement_summary_summary_sha256_meas_sha384_all_blocks);
-TEST (spdm_measurements_test_get_measurement_summary_summary_sha256_meas_sha512_only_tcb);
-TEST (spdm_measurements_test_get_measurement_summary_non_tcb_measurements_all_blocks);
-TEST (spdm_measurements_test_get_measurement_summary_non_tcb_measurements_only_tcb);
-TEST (spdm_measurements_test_get_measurement_summary_static_init);
-TEST (spdm_measurements_test_get_measurement_summary_null);
-TEST (spdm_measurements_test_get_measurement_summary_same_hash_engine);
-TEST (spdm_measurements_test_get_measurement_summary_summary_hash_start_error);
-TEST (spdm_measurements_test_get_measurement_summary_summary_hash_update_error);
-TEST (spdm_measurements_test_get_measurement_summary_summary_hash_finish_error);
-TEST (spdm_measurements_test_get_measurement_summary_small_buffer);
-TEST (spdm_measurements_test_get_measurement_summary_measurement_block_error);
-TEST (spdm_measurements_test_get_measurement_summary_hash_not_possible);
+TEST (spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha256_all_blocks);
+TEST (spdm_measurements_test_get_measurement_summary_hash_summary_sha384_meas_sha256_only_tcb);
+TEST (spdm_measurements_test_get_measurement_summary_hash_summary_sha512_meas_sha256);
+TEST (spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha384_all_blocks);
+TEST (spdm_measurements_test_get_measurement_summary_hash_summary_sha256_meas_sha512_only_tcb);
+TEST (spdm_measurements_test_get_measurement_summary_hash_non_tcb_measurements_all_blocks);
+TEST (spdm_measurements_test_get_measurement_summary_hash_non_tcb_measurements_only_tcb);
+TEST (spdm_measurements_test_get_measurement_summary_hash_static_init);
+TEST (spdm_measurements_test_get_measurement_summary_hash_null);
+TEST (spdm_measurements_test_get_measurement_summary_hash_same_hash_engine);
+TEST (spdm_measurements_test_get_measurement_summary_hash_summary_hash_start_error);
+TEST (spdm_measurements_test_get_measurement_summary_hash_summary_hash_update_error);
+TEST (spdm_measurements_test_get_measurement_summary_hash_summary_hash_finish_error);
+TEST (spdm_measurements_test_get_measurement_summary_hash_small_buffer);
+TEST (spdm_measurements_test_get_measurement_summary_hash_measurement_block_error);
+TEST (spdm_measurements_test_get_measurement_summary_hash_hash_not_possible);
 
 TEST_SUITE_END;

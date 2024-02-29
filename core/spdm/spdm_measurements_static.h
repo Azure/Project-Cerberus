@@ -19,7 +19,7 @@ int spdm_measurements_get_all_measurement_blocks (const struct spdm_measurements
 	size_t length);
 int spdm_measurements_get_all_measurement_blocks_length (const struct spdm_measurements *handler,
 	bool raw_bit_stream, enum hash_type hash_type);
-int spdm_measurements_get_measurement_summary (const struct spdm_measurements *handler,
+int spdm_measurements_get_measurement_summary_hash (const struct spdm_measurements *handler,
 	struct hash_engine *summary_hash, enum hash_type summary_hash_type,
 	struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
 	uint8_t *buffer, size_t length);
@@ -34,7 +34,7 @@ int spdm_measurements_get_measurement_summary (const struct spdm_measurements *h
 	.get_measurement_block_length = spdm_measurements_get_measurement_block_length, \
 	.get_all_measurement_blocks = spdm_measurements_get_all_measurement_blocks, \
 	.get_all_measurement_blocks_length = spdm_measurements_get_all_measurement_blocks_length, \
-	.get_measurement_summary = spdm_measurements_get_measurement_summary
+	.get_measurement_summary_hash = spdm_measurements_get_measurement_summary_hash
 
 
 /**

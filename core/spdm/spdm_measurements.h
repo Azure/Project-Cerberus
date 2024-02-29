@@ -190,7 +190,7 @@ struct spdm_measurements {
 	 * @param 0 if summary hash was generated successfully or an error code.  The hash length is
 	 * determined by the summary hash algorithm.
 	 */
-	int (*get_measurement_summary) (const struct spdm_measurements *handler,
+	int (*get_measurement_summary_hash) (const struct spdm_measurements *handler,
 		struct hash_engine *summary_hash, enum hash_type summary_hash_type,
 		struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
 		uint8_t *buffer, size_t length);
