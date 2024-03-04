@@ -20,6 +20,7 @@ enum {
 	INTRUSION_LOGGING_STORE_DATA_FAIL,					/**< Received a store data failure response. */
 	INTRUSION_LOGGING_CHALLENGE_DATA_FAIL,				/**< Received a challenge data failure response. */
 	INTRUSION_LOGGING_CHALLENGE_DATA_INVALID_HASH_LEN,	/**< Received a challenge data response with an incorrect hash len. */
+	INTRUSION_LOGGING_HW_ERROR,							/**< Intrusion HW error, including register access failure. */
 };
 
 
