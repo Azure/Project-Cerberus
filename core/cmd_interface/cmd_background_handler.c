@@ -544,6 +544,9 @@ int cmd_background_handler_init (struct cmd_background_handler *handler,
 
 	handler->attestation = attestation;
 	handler->hash = hash;
+#else
+	UNUSED (attestation);
+	UNUSED (hash);
 #endif
 
 	/* Configuration reset operations. */
@@ -560,6 +563,8 @@ int cmd_background_handler_init (struct cmd_background_handler *handler,
 	handler->base_cmd.get_config_reset_status = cmd_background_handler_get_config_reset_status;
 
 	handler->reset = reset;
+#else
+	UNUSED (reset);
 #endif
 
 	/* Debug log operations. */

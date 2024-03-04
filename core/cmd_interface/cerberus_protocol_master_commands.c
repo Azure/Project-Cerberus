@@ -968,6 +968,8 @@ int cerberus_protocol_get_reset_config_status (const struct cmd_background *back
 	rsp->update_status = background->get_config_reset_status (background);
 	return 0;
 #else
+	UNUSED (background);
+	UNUSED (rsp);
 	return CMD_HANDLER_UNSUPPORTED_COMMAND;
 #endif
 }

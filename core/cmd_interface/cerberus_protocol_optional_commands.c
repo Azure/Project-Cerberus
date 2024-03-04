@@ -7,6 +7,7 @@
 #include <string.h>
 #include "common/certificate.h"
 #include "common/common_math.h"
+#include "common/unused.h"
 #include "host_fw/host_processor.h"
 #include "firmware/firmware_update_control.h"
 #include "i2c/i2c_slave_common.h"
@@ -670,6 +671,8 @@ int cerberus_protocol_unseal_message (const struct cmd_background *background,
 	request->length = 0;
 	return status;
 #else
+	UNUSED (background);
+	UNUSED (request);
 	return CMD_HANDLER_UNSUPPORTED_COMMAND;
 #endif
 }
@@ -718,6 +721,8 @@ int cerberus_protocol_unseal_message_result (const struct cmd_background *backgr
 
 	return 0;
 #else
+	UNUSED (background);
+	UNUSED (request);
 	return CMD_HANDLER_UNSUPPORTED_COMMAND;
 #endif
 }
@@ -807,6 +812,9 @@ int cerberus_protocol_reset_config (struct cmd_authorization *cmd_auth,
 
 	return status;
 #else
+	UNUSED (background);
+	UNUSED (request);
+	UNUSED (cmd_auth);
 	return CMD_HANDLER_UNSUPPORTED_COMMAND;
 #endif
 }
