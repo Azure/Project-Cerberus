@@ -19,6 +19,7 @@
 #include <linux/i2c-dev.h>
 #include "crypto/checksum.h"
 #include "logging/debug_log.h"
+#include "i2c_platform.h"
 
 
 /**
@@ -332,8 +333,6 @@ void hex_dump (const uint8_t *data, uint32_t length, uint32_t start_offset)
  */
 uint8_t smbus_block_read (uint8_t cmd, uint8_t *payload, uint8_t min_length, uint8_t length)
 {
-	struct i2c_msg msgs[2];
-	struct i2c_rdwr_ioctl_data xfer;
 	int smbus_overhead = 1;
 	uint8_t *rx_smbus;
 	uint8_t crc;
@@ -350,24 +349,12 @@ uint8_t smbus_block_read (uint8_t cmd, uint8_t *payload, uint8_t min_length, uin
 		exit (1);
 	}
 
-	msgs[0].addr = addr;
-	msgs[0].buf = &cmd;
-	msgs[0].len = 1;
-	msgs[0].flags = 0;
-
-	msgs[1].addr = addr;
-	msgs[1].buf = rx_smbus;
-	msgs[1].len = length + smbus_overhead;
-	msgs[1].flags = I2C_M_RD;
-
-	xfer.nmsgs = 2;
-	xfer.msgs = msgs;
-
 	get_current_time (&start);
-	if (ioctl (i2c, I2C_RDWR, &xfer) < 0) {
-		printf ("Failed SMBus block read: %s\n", strerror (errno));
+
+	if (i2c_read (cmd, addr, rx_smbus, length + smbus_overhead) < 0) {
 		exit (1);
 	}
+
 	get_current_time (&end);
 
 	if (verbose >= 1) {
@@ -421,8 +408,6 @@ uint8_t smbus_block_read (uint8_t cmd, uint8_t *payload, uint8_t min_length, uin
  */
 void smbus_block_write (uint8_t cmd, uint8_t *payload, uint8_t length)
 {
-	struct i2c_msg msgs[1];
-	struct i2c_rdwr_ioctl_data xfer;
 	int smbus_overhead = 2;
 	uint8_t *tx_smbus;
 	uint8_t crc;
@@ -453,19 +438,12 @@ void smbus_block_write (uint8_t cmd, uint8_t *payload, uint8_t length)
 		}
 	}
 
-	msgs[0].addr = addr;
-	msgs[0].buf = tx_smbus;
-	msgs[0].len = length + smbus_overhead;
-	msgs[0].flags = 0;
-
-	xfer.nmsgs = 1;
-	xfer.msgs = msgs;
-
 	get_current_time (&start);
-	if (ioctl (i2c, I2C_RDWR, &xfer) < 0) {
-		printf ("Failed SMBus block write: %s\n", strerror (errno));
+
+	if (i2c_write (addr, tx_smbus, length + smbus_overhead) < 0) {
 		exit (1);
 	}
+
 	get_current_time (&end);
 
 	if (verbose >= 1) {
@@ -1987,7 +1965,6 @@ bool is_raw_command ()
  */
 int main (int argc, char *argv[])
 {
-	char dev_name[64];
 	const char *opts = "a:bc:d:efhlo:prsS:vwW:";
 	int opt;
 	int device_num = -1;
@@ -2109,10 +2086,8 @@ int main (int argc, char *argv[])
 		}
 	}
 
-	sprintf (dev_name, "/dev/i2c-%d", device_num);
-	i2c = open (dev_name, O_RDWR);
+	i2c = i2c_init (device_num);
 	if (i2c < 0) {
-		printf ("Failed to open I2C device %s: %s\n", dev_name, strerror (errno));
 		return 1;
 	}
 
