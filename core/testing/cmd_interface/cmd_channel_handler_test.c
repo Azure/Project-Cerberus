@@ -27,7 +27,8 @@ struct cmd_channel_handler_testing {
 	struct cmd_interface_mock cmd_cerberus;	/**< Cerberus protocol command interface mock instance. */
 	struct cmd_interface_mock cmd_mctp;		/**< MCTP control protocol command interface mock instance. */
 	struct device_manager device_mgr;		/**< Device manager. */
-	struct mctp_interface mctp;				/**< MCTP interface instance */
+	struct mctp_interface_state mctp_state;	/**< Variable context for the MCTP handler. */
+	struct mctp_interface mctp;				/**< MCTP message handler. */
 	struct cmd_channel_handler test;		/**< Command processor for testing. */
 };
 
@@ -63,8 +64,8 @@ static void cmd_channel_handler_testing_init_dependencies (CuTest *test,
 		MCTP_BASE_PROTOCOL_BMC_EID, 0x51, DEVICE_MANAGER_NOT_PCD_COMPONENT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&handler->mctp, &handler->cmd_cerberus.base,
-		&handler->cmd_mctp.base, NULL, &handler->device_mgr);
+	status = mctp_interface_init (&handler->mctp, &handler->mctp_state, &handler->cmd_cerberus.base,
+		&handler->cmd_mctp.base, NULL, &handler->device_mgr, &handler->channel.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -103,7 +104,7 @@ static void cmd_channel_handler_testing_release_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&handler->device_mgr);
-	mctp_interface_deinit (&handler->mctp);
+	mctp_interface_release (&handler->mctp);
 }
 
 /**

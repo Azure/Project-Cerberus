@@ -88,7 +88,7 @@ struct attestation_requester {
 	struct cfm_observer cfm_observer; 							/**< Observer to CFM notifications. */
 	struct attestation_requester_state *state;					/**< Variable context for the attestation requester. */
 	const struct cmd_channel *channel;							/**< Channel for communicating with BMC. */
-	struct mctp_interface *mctp;								/**< MCTP interface to utilize for communication with BMC. */
+	const struct mctp_interface *mctp;							/**< MCTP interface to utilize for communication with BMC. */
 	struct hash_engine *primary_hash;							/**< The hashing engine for attestation authentication operations. */
 	struct hash_engine *secondary_hash;							/**< Secondary hash engine for SPDM attestation. Instance provided needs to be capable of running simultaneously with primary hash instance. */
 	struct ecc_engine *ecc;										/**< The ECC engine for attestation authentication operations. */
@@ -102,7 +102,7 @@ struct attestation_requester {
 
 
 int attestation_requester_init (struct attestation_requester *attestation,
-	struct attestation_requester_state *state, struct mctp_interface *mctp,
+	struct attestation_requester_state *state, const struct mctp_interface *mctp,
 	const struct cmd_channel *channel, struct hash_engine *primary_hash,
 	struct hash_engine *secondary_hash, struct ecc_engine *ecc, struct rsa_engine *rsa,
 	struct x509_engine *x509, struct rng_engine *rng, struct riot_key_manager *riot,

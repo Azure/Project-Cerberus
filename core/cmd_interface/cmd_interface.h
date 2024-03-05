@@ -15,30 +15,83 @@
  * Container for message data.
  */
 struct cmd_interface_msg {
-	uint8_t *data;					/**< The raw message data buffer.  This contains the full
-										message to process, including all protocol headers. If the
-										message is a request, this buffer can be updated with the
-										response data, while providing sufficient space before the
-										data for any protocol headers that will need to be added. */
-	size_t length;					/**< Length of the data buffer contents. */
-	size_t max_response;			/**< Maximum length allowed for a response. */
-	uint8_t *payload;				/**< Payload data for the message.  This is a pointer to a
-										location in the message buffer indicating the payload start,
-										after accounting for protocol headers.  The protocol stack
-										will move this pointer as messages pass through the various
-										processing layers.  This can be filled with response data
-										without needing to account for protocol header space. */
-	size_t payload_length;			/**< Length of the message payload. */
-	uint8_t source_eid;				/**< Endpoint ID that generated the message. */
-	uint8_t source_addr;			/**< Address of device that generated the message. */
-	uint8_t target_eid;				/**< Endpoint ID that should process the message. */
-	bool is_encrypted;				/**< Flag indicating if the message is encrypted or should be
-										encrypted. */
-	bool crypto_timeout;			/**< Flag indicating if the message is a request and required
-										cryptographic operations and should be granted a longer
-										timeout.  This is set for every message, even when there is
-										an error. */
-	int channel_id;					/**< Channel on which the message is received. */
+	/**
+	 * The raw message data buffer.
+	 *
+	 * This contains the full message to process, including all protocol headers. If the message is
+	 * a request, this buffer can be updated with the response data, while providing sufficient
+	 * space before the data for any protocol headers that will need to be added.
+	 */
+	uint8_t *data;
+
+	/**
+	 * Length of the data buffer contents.
+	 *
+	 * This doesn't necessarily equate to the maximum size of the data buffer, since a message may
+	 * only be using part of the overall buffer.
+	 */
+	size_t length;
+
+	/**
+	 * Maximum length allowed for a response.
+	 *
+	 * This indicates the maximum amount of data that should be written into the data buffer when
+	 * constructing a response payload.  When using the payload pointer for response building, this
+	 * field should not be accessed directly, but instead should be queried using
+	 * {@link cmd_interface_msg_get_max_response}.
+	 */
+	size_t max_response;
+
+	/**
+	 * Payload data for the message.
+	 *
+	 * This is a pointer to a location in the message buffer indicating where the payload starts,
+	 * after accounting for protocol headers.  The protocol stack will move this pointer as messages
+	 * pass through the various processing layers.  This can be filled with response data without
+	 * needing to account for protocol header space.
+	 */
+	uint8_t *payload;
+
+	/**
+	 * Length of the message payload.
+	 *
+	 * This does not indicate the maximum length of the payload buffer for building responses.  This
+	 * value can be determined with {@link cmd_interface_msg_get_max_payload}.
+	 */
+	size_t payload_length;
+
+	/**
+	 * Endpoint ID that generated the message.
+	 */
+	uint8_t source_eid;
+
+	/**
+	 * Address of the device that generated the message.
+	 */
+	uint8_t source_addr;
+
+	/**
+	 * Endpoint ID that should process the message.
+	 */
+	uint8_t target_eid;
+
+	/**
+	 * Flag indicating if the message is encrypted or should be encrypted.
+	 */
+	bool is_encrypted;
+
+	/**
+	 * Flag indicating if the message is a request and required cryptographic operations.  If so, it
+	 * should be granted a longer timeout for request processing.
+	 *
+	 * This is set for every message, even when there is an error.
+	 */
+	bool crypto_timeout;
+
+	/**
+	 * Channel on which the message was received.
+	 */
+	int channel_id;
 };
 
 /**

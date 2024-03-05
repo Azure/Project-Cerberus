@@ -15,12 +15,12 @@
 struct cmd_channel_handler {
 	struct periodic_task_handler base;		/**< Base interface for task integration. */
 	const struct cmd_channel *channel;		/**< Command channel for receiving messages. */
-	struct mctp_interface *mctp;			/**< MCTP protocol layer. */
+	const struct mctp_interface *mctp;		/**< MCTP protocol layer. */
 };
 
 
 int cmd_channel_handler_init (struct cmd_channel_handler *handler,
-	const struct cmd_channel *channel, struct mctp_interface *mctp);
+	const struct cmd_channel *channel, const struct mctp_interface *mctp);
 void cmd_channel_handler_release (const struct cmd_channel_handler *handler);
 
 

@@ -140,6 +140,7 @@ enum {
 	ROT_MODULE_SPDM_MEASUREMENTS = 0x0080,				/**< SPDM measurement block handler. */
 	ROT_MODULE_CMD_INTERFACE_IDE_RESPONDER = 0x0081,	/**< Handler for IDE protocol request commands. */
 	ROT_MODULE_IDE_DRIVER = 0x0082,						/**< Driver interface for programming IDE registers. */
+	ROT_MODULE_MSG_TRANSPORT = 0x0083,					/**< Handler for issuing remote requests. */
 };
 
 

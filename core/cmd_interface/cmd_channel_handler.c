@@ -13,7 +13,7 @@ void cmd_channel_handler_prepare (const struct periodic_task_handler *handler)
 {
 	const struct cmd_channel_handler *cmd = (const struct cmd_channel_handler*) handler;
 
-	mctp_interface_send_discovery_notify (cmd->mctp, cmd->channel);
+	mctp_interface_send_discovery_notify (cmd->mctp, 0, NULL);
 }
 #endif
 
@@ -42,7 +42,7 @@ void cmd_channel_handler_execute (const struct periodic_task_handler *handler)
  * @return 0 if the handler was successfully initialized or an error code.
  */
 int cmd_channel_handler_init (struct cmd_channel_handler *handler,
-	const struct cmd_channel *channel, struct mctp_interface *mctp)
+	const struct cmd_channel *channel, const struct mctp_interface *mctp)
 {
 	if ((handler == NULL) || (channel == NULL) || (mctp == NULL)) {
 		return CMD_CHANNEL_INVALID_ARGUMENT;

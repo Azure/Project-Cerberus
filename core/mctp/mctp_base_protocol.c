@@ -31,10 +31,10 @@
  *
  * @return Completion status, 0 if success or an error code.
  */
-int mctp_base_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_addr,
+int mctp_base_protocol_interpret (const uint8_t *buf, size_t buf_len, uint8_t dest_addr,
 	uint8_t *source_addr, bool *som, bool *eom, uint8_t *src_eid, uint8_t *dest_eid,
-	uint8_t **payload, size_t *payload_len, uint8_t *msg_tag, uint8_t *packet_seq, uint8_t *crc,
-	uint8_t *msg_type, uint8_t *tag_owner)
+	const uint8_t **payload, size_t *payload_len, uint8_t *msg_tag, uint8_t *packet_seq,
+	uint8_t *crc, uint8_t *msg_type, uint8_t *tag_owner)
 {
 	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) buf;
@@ -51,6 +51,12 @@ int mctp_base_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_add
 	if (buf_len <= sizeof (struct mctp_base_protocol_transport_header)) {
 		return MCTP_BASE_PROTOCOL_MSG_TOO_SHORT;
 	}
+
+	/* TODO:  Remove checking for message type when parsing the message.  Also have better and more
+	 * flexible handling of the SMBus PEC byte.  The MCTP SMBus binding mandates that all MCTP
+	 * packets must have the PEC appended.  However, so implementation don't follow this.  This
+	 * implementation can be leinent and check the PEC if the packet size is sufficient to contain
+	 * one and skip it if not. */
 
 	/* At this point, we do not know if the current packet is a control or vendor defined message.
 	 * Control message might not contain a PEC byte. So, here we check if the message length is at
@@ -137,7 +143,7 @@ int mctp_base_protocol_interpret (uint8_t *buf, size_t buf_len, uint8_t dest_add
  *
  * @return Packet length if completed successfully or an error code.
  */
-int mctp_base_protocol_construct (uint8_t *buf, size_t buf_len, uint8_t *out_buf,
+int mctp_base_protocol_construct (const uint8_t *buf, size_t buf_len, uint8_t *out_buf,
 	size_t out_buf_len, uint8_t source_addr, uint8_t dest_eid, uint8_t source_eid, bool som,
 	bool eom, uint8_t packet_seq, uint8_t msg_tag, uint8_t tag_owner, uint8_t dest_addr)
 {

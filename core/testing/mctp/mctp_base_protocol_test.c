@@ -34,7 +34,7 @@ static void mctp_base_protocol_test_interpret_control_message (CuTest *test)
 	uint8_t crc = 0;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -71,7 +71,7 @@ static void mctp_base_protocol_test_interpret_control_message (CuTest *test)
 	CuAssertIntEquals (test, 2, packet_seq);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
@@ -91,7 +91,7 @@ static void mctp_base_protocol_test_interpret_control_message_response (CuTest *
 	uint8_t crc = 0;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -128,7 +128,7 @@ static void mctp_base_protocol_test_interpret_control_message_response (CuTest *
 	CuAssertIntEquals (test, 2, packet_seq);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_RESPONSE, tag_owner);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
@@ -148,7 +148,7 @@ static void mctp_base_protocol_test_interpret_control_message_not_som (CuTest *t
 	uint8_t crc = 0;
 	uint8_t msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -185,7 +185,7 @@ static void mctp_base_protocol_test_interpret_control_message_not_som (CuTest *t
 	CuAssertIntEquals (test, 2, packet_seq);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
@@ -205,7 +205,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message (CuTest *te
 	uint8_t crc = 0;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -244,7 +244,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message (CuTest *te
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[13], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
@@ -264,7 +264,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	uint8_t crc = 0;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -306,7 +306,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[MCTP_BASE_PROTOCOL_MAX_PACKET_LEN - 1], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT, payload_len);
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
@@ -343,7 +343,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[13], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
@@ -364,7 +364,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	uint8_t crc = 0;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -406,7 +406,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[MCTP_BASE_PROTOCOL_MAX_PACKET_LEN - 1], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT, payload_len);
 
 	memset (buf, 0, MCTP_BASE_PROTOCOL_MAX_PACKET_LEN);
@@ -444,7 +444,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[13], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 
 	memset (buf, 0, MCTP_BASE_PROTOCOL_MAX_PACKET_LEN);
@@ -478,7 +478,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[9], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 0xAA, payload[1]);
 	CuAssertIntEquals (test, 2, payload_len);
 }
@@ -500,7 +500,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	uint8_t crc = 0;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -542,7 +542,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[MCTP_BASE_PROTOCOL_MAX_PACKET_LEN - 1], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT, payload_len);
 
 	memset (buf, 0, MCTP_BASE_PROTOCOL_MAX_PACKET_LEN);
@@ -580,7 +580,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[13], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 
 	memset (buf, 0, MCTP_BASE_PROTOCOL_MAX_PACKET_LEN);
@@ -615,7 +615,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_multi_packe
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[10], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 3, payload_len);
 }
 
@@ -635,7 +635,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_response (C
 	uint8_t crc = 0;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -674,7 +674,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_response (C
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_RESPONSE, tag_owner);
 	CuAssertIntEquals (test, buf[13], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
@@ -694,7 +694,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_not_som (Cu
 	uint8_t crc = 0;
 	uint8_t msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -733,7 +733,7 @@ static void mctp_base_protocol_test_interpret_vendor_defined_message_not_som (Cu
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[13], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
@@ -753,7 +753,7 @@ static void mctp_base_protocol_test_interpret_spdm_request (CuTest *test)
 	uint8_t crc = 0;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -792,7 +792,7 @@ static void mctp_base_protocol_test_interpret_spdm_request (CuTest *test)
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[13], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
@@ -812,7 +812,7 @@ static void mctp_base_protocol_test_interpret_spdm_response (CuTest *test)
 	uint8_t crc = 0;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -851,7 +851,7 @@ static void mctp_base_protocol_test_interpret_spdm_response (CuTest *test)
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_RESPONSE, tag_owner);
 	CuAssertIntEquals (test, buf[13], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
@@ -871,7 +871,7 @@ static void mctp_base_protocol_test_interpret_spdm_not_som (CuTest *test)
 	uint8_t crc = 0;
 	uint8_t msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -910,7 +910,7 @@ static void mctp_base_protocol_test_interpret_spdm_not_som (CuTest *test)
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_REQUEST, tag_owner);
 	CuAssertIntEquals (test, buf[13], crc);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM, msg_type);
-	CuAssertPtrEquals (test, &buf[7], payload);
+	CuAssertPtrEquals (test, &buf[7], (void*) payload);
 	CuAssertIntEquals (test, 6, payload_len);
 }
 
@@ -930,7 +930,7 @@ static void mctp_base_protocol_test_interpret_not_som_unsupported_message_type (
 	uint8_t crc = 0;
 	uint8_t msg_type = 0xAA;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -974,7 +974,7 @@ static void mctp_base_protocol_test_interpret_null (CuTest *test)
 	uint8_t crc;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -1048,7 +1048,7 @@ static void mctp_base_protocol_test_interpret_invalid_message (CuTest *test)
 	uint8_t crc = 0;
 	uint8_t msg_type;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -1103,7 +1103,7 @@ static void mctp_base_protocol_test_interpret_invalid_message_type (CuTest *test
 	uint8_t msg_type;
 	uint8_t crc = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -1144,7 +1144,7 @@ static void mctp_base_protocol_test_interpret_invalid_header_version (CuTest *te
 	uint8_t msg_type;
 	uint8_t crc = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -1186,7 +1186,7 @@ static void mctp_base_protocol_test_interpret_invalid_crc (CuTest *test)
 	uint8_t msg_type;
 	uint8_t crc = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -1234,7 +1234,7 @@ static void mctp_base_protocol_test_interpret_invalid_header_byte_count (CuTest 
 	uint8_t msg_type;
 	uint8_t crc = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -1277,7 +1277,7 @@ static void mctp_base_protocol_test_interpret_invalid_header_byte_count_control_
 	uint8_t msg_type;
 	uint8_t crc = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -1317,7 +1317,7 @@ static void mctp_base_protocol_test_interpret_invalid_buffer_length (CuTest *tes
 	uint8_t msg_type;
 	uint8_t crc = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;
@@ -1359,7 +1359,7 @@ static void mctp_base_protocol_test_interpret_dest_eid_matches_src_eid (CuTest *
 	uint8_t crc = 0;
 	uint8_t msg_type = 0;
 	uint8_t tag_owner;
-	uint8_t *payload;
+	const uint8_t *payload;
 	size_t payload_len;
 
 	TEST_START;

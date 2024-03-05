@@ -544,7 +544,7 @@ int device_manager_update_device_capabilities (struct device_manager *mgr, int d
  * Retrieve the device capabilites for a request.  This will only retrieve the local devices's
  * capabilities.
  *
- * @param mgr The devcie manager to query.
+ * @param mgr The device manager to query.
  * @param capabilites Output buffer for the device capabilities.
  *
  * @return Completion status, 0 if success or an error code.

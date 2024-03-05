@@ -1594,7 +1594,7 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
  * @return Initialization status, 0 if success or an error code.
  */
 int attestation_requester_init (struct attestation_requester *attestation,
-	struct attestation_requester_state *state, struct mctp_interface *mctp,
+	struct attestation_requester_state *state, const struct mctp_interface *mctp,
 	const struct cmd_channel *channel, struct hash_engine *primary_hash,
 	struct hash_engine *secondary_hash, struct ecc_engine *ecc, struct rsa_engine *rsa,
 	struct x509_engine *x509, struct rng_engine *rng, struct riot_key_manager *riot,

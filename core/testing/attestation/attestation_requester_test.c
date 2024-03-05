@@ -93,6 +93,7 @@ struct attestation_requester_testing {
 	struct cfm_mock cfm;										/**< CFM mock */
 	struct device_manager device_mgr;							/**< Device manager instance */
 	struct mctp_interface mctp;									/**< MCTP interface instance */
+	struct mctp_interface_state mctp_state;						/**< MCTP interface variable context. */
 	struct cmd_interface_fw_version fw_version;					/**< The firmware version data. */
 	struct cmd_interface_system cmd_cerberus;					/**< Cerberus command interface */
 	struct cmd_interface_mctp_control cmd_mctp;					/**< MCTP command interface */
@@ -378,8 +379,9 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	status = cmd_interface_spdm_init (&testing->cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&testing->mctp, &testing->cmd_cerberus.base,
-		&testing->cmd_mctp.base, &testing->cmd_spdm.base, &testing->device_mgr);
+	status = mctp_interface_init (&testing->mctp, &testing->mctp_state, &testing->cmd_cerberus.base,
+		&testing->cmd_mctp.base, &testing->cmd_spdm.base, &testing->device_mgr,
+		&testing->channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	if (init_attestation) {
@@ -605,7 +607,7 @@ static void complete_attestation_requester_mock_test (CuTest *test,
 	cmd_interface_system_deinit (&testing->cmd_cerberus);
 	riot_key_manager_release (&testing->riot);
 	device_manager_release (&testing->device_mgr);
-	mctp_interface_deinit (&testing->mctp);
+	mctp_interface_release (&testing->mctp);
 
 	status = x509_mock_validate_and_release (&testing->x509_mock);
 	CuAssertIntEquals (test, 0, status);
@@ -4792,8 +4794,8 @@ static void attestation_requester_test_init_state (CuTest *test)
 	status = cmd_interface_spdm_init (&testing.cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&testing.mctp, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr);
+	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.cmd_cerberus.base,
+		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr, &testing.channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_init_state (&attestation);
@@ -22438,8 +22440,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = cmd_interface_spdm_init (&testing.cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&testing.mctp, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr);
+	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.cmd_cerberus.base,
+		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr, &testing.channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	testing.max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
@@ -28910,8 +28912,8 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	status = cmd_interface_spdm_init (&testing.cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&testing.mctp, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr);
+	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.cmd_cerberus.base,
+		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr, &testing.channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
@@ -30663,8 +30665,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = cmd_interface_spdm_init (&testing.cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&testing.mctp, &testing.cmd_cerberus.base, &testing.cmd_mctp.base,
-		&testing.cmd_spdm.base, &testing.device_mgr);
+	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.cmd_cerberus.base,
+		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr, &testing.channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	testing.max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
@@ -31028,7 +31030,8 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
-		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM, component_id);
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
 
 	attestation_requester_testing_receive_mctp_set_eid_request (test, &testing);
 

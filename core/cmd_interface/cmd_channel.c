@@ -160,7 +160,7 @@ static int cmd_channel_send_packets (const struct cmd_channel *channel,
  * @return 0 if a packet was processed successfully or an error code.
  */
 int cmd_channel_receive_and_process (const struct cmd_channel *channel,
-	struct mctp_interface *mctp, int ms_timeout)
+	const struct mctp_interface *mctp, int ms_timeout)
 {
 	struct cmd_packet packet;
 	struct cmd_message *message;

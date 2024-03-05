@@ -20,11 +20,12 @@ TEST_SUITE_LABEL ("cmd_channel");
  * Dependencies for testing the command channel.
  */
 struct cmd_channel_testing {
-	struct cmd_channel_mock test;					/**< Command channel mock instance. */
-	struct cmd_interface_mock cmd_cerberus;			/**< Cerberus protocol command interface mock instance. */
-	struct cmd_interface_mock cmd_mctp;				/**< MCTP control protocol command interface mock instance. */
-	struct device_manager device_mgr;				/**< Device manager. */
-	struct mctp_interface mctp;						/**< MCTP interface instance */
+	struct cmd_channel_mock test;				/**< Command channel mock instance. */
+	struct cmd_interface_mock cmd_cerberus;		/**< Cerberus protocol command interface mock instance. */
+	struct cmd_interface_mock cmd_mctp;			/**< MCTP control protocol command interface mock instance. */
+	struct device_manager device_mgr;			/**< Device manager. */
+	struct mctp_interface_state mctp_state;		/**< Variable context for the MCTP handler. */
+	struct mctp_interface mctp;					/**< MCTP message handler. */
 };
 
 
@@ -74,8 +75,8 @@ static void setup_mock_cmd_channel_test (CuTest *test, struct cmd_channel_testin
 		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x5D, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&channel->mctp, &channel->cmd_cerberus.base,
-		&channel->cmd_mctp.base, NULL, &channel->device_mgr);
+	status = mctp_interface_init (&channel->mctp, &channel->mctp_state, &channel->cmd_cerberus.base,
+		&channel->cmd_mctp.base, NULL, &channel->device_mgr, &channel->test.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -99,7 +100,7 @@ static void complete_mock_cmd_channel_test (CuTest *test, struct cmd_channel_tes
 	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&channel->device_mgr);
-	mctp_interface_deinit (&channel->mctp);
+	mctp_interface_release (&channel->mctp);
 }
 
 /*******************

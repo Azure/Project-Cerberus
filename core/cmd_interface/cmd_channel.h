@@ -80,7 +80,8 @@ struct cmd_channel {
 	 *
 	 * @return 0 if a packet was successfully received or an error code.
 	 */
-	int (*receive_packet) (const struct cmd_channel *channel, struct cmd_packet *packet, int ms_timeout);
+	int (*receive_packet) (const struct cmd_channel *channel, struct cmd_packet *packet,
+		int ms_timeout);
 
 	/**
 	 * Send a command packet over a communication channel.
@@ -104,8 +105,8 @@ struct cmd_channel {
 int cmd_channel_get_id (const struct cmd_channel *channel);
 
 int cmd_channel_validate_packet_for_send (const struct cmd_packet *packet);
-int cmd_channel_receive_and_process (const struct cmd_channel *channel, struct mctp_interface *mctp,
-	int ms_timeout);
+int cmd_channel_receive_and_process (const struct cmd_channel *channel,
+	const struct mctp_interface *mctp, int ms_timeout);
 int cmd_channel_send_message (const struct cmd_channel *channel,
 	const struct cmd_message *message);
 

@@ -13,7 +13,7 @@ static int cmd_interface_mock_process_request (const struct cmd_interface *intf,
 {
 	struct cmd_interface_mock *mock = (struct cmd_interface_mock*) intf;
 
-	if ((mock == NULL) || (request == NULL)) {
+	if (mock == NULL) {
 		return MOCK_INVALID_ARGUMENT;
 	}
 
@@ -26,7 +26,7 @@ static int cmd_interface_mock_process_response (const struct cmd_interface *intf
 {
 	struct cmd_interface_mock *mock = (struct cmd_interface_mock*) intf;
 
-	if ((mock == NULL) || (response == NULL)) {
+	if (mock == NULL) {
 		return MOCK_INVALID_ARGUMENT;
 	}
 
@@ -54,7 +54,7 @@ static int cmd_interface_mock_func_arg_count (void *func)
 		return 4;
 	}
 	else if ((func == cmd_interface_mock_process_request) ||
-			(func == cmd_interface_mock_process_response)) {
+		(func == cmd_interface_mock_process_response)) {
 		return 1;
 	}
 	else {
@@ -129,7 +129,6 @@ int cmd_interface_mock_init (struct cmd_interface_mock *mock)
 	memset (mock, 0, sizeof (struct cmd_interface_mock));
 
 	status = mock_init (&mock->mock);
-
 	if (status != 0) {
 		return status;
 	}
