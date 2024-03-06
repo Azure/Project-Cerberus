@@ -71,6 +71,8 @@ enum {
 	HOST_LOGGING_FORCE_RESET,					/**< Forced reset issued to host. */
 	HOST_LOGGING_HOST_BOOTING_TIME,				/**< Time taken in ms for host to boot. */
 	HOST_LOGGING_RECOVERY_RETRIES,				/**< Number of recovery attempts. */
+	HOST_LOGGING_ACTIVE_UPDATE_SUCCESSFUL,		/**< Host active flash update successful. */
+	HOST_LOGGING_ACTIVE_UPDATE_FAIL,			/**< Host active flash update failed. */
 };
 
 
