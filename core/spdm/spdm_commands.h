@@ -211,12 +211,78 @@ struct spdm_get_capabilities {
  * SPDM cryptographic hashing algorithm bitmask selection for measurements in Negotiate Algorithm
  * response, from section 10.4 in DSP0274 SPDM spec.
  */
+#define SPDM_MEAS_RSP_ALG_RAW_BIT_STREAM_ONLY					(1 << 0)
 #define SPDM_MEAS_RSP_TPM_ALG_SHA_256	 						(1 << 1)
 #define SPDM_MEAS_RSP_TPM_ALG_SHA_384	 						(1 << 2)
 #define SPDM_MEAS_RSP_TPM_ALG_SHA_512	 						(1 << 3)
 #define SPDM_MEAS_RSP_TPM_ALG_SHA3_256	 						(1 << 4)
 #define SPDM_MEAS_RSP_TPM_ALG_SHA3_384	 						(1 << 5)
 #define SPDM_MEAS_RSP_TPM_ALG_SHA3_512	 						(1 << 6)
+
+/**
+ * SPDM algorithm type for an algorithm request structure, from section 10.4 in DSP0274 SPDM spec.
+ */
+#define SPDM_ALG_REQ_STRUCT_MAX_NUM_STRUCT_TABLE_ALG		4
+#define SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE 					2
+#define SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD 					3
+#define SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG 		4
+#define SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE 			5
+
+/**
+ * SPDM negotiate alorithms maximum request size, from section 10.4 in DSP0274 SPDM spec.
+ */
+#define SPDM_NEGOTIATE_ALGORITHMS_REQUEST_MAX_LENGTH	0x80
+
+/**
+ * SPDM negotiate alorithms maximum extension algorithm count, from section 10.4 in DSP0274 SPDM spec.
+ */
+#define SPDM_NEGOTIATE_ALGORITHMS_REQUEST_MAX_EXT_ALG_COUNT_VERSION		0x14
+
+/**
+ * SPDM Opaque Data Format (v1.2).
+ */
+#define SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_NONE		0x0
+#define SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_0		0x1
+#define SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1		0x2
+
+/**
+ *  SPDM Negotiate Algorithm request KEY_SCHEDULE algorithm.
+ */
+#define SPDM_ALG_KEY_SCHEDULE_HMAC_HASH		0x00000001
+
+/**
+ * SPDM Negotiate Algorithm request AEAD algorithms.
+ */
+#define SPDM_ALG_AEAD_CIPHER_SUITE_AES_128_GCM 			0x00000001
+#define SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM 			0x00000002
+#define SPDM_ALG_AEAD_CIPHER_SUITE_CHACHA20_POLY1305 	0x00000004
+#define SPDM_ALG_AEAD_CIPHER_SUITE_AEAD_SM4_GCM			0x00000008
+
+/**
+ *  SPDM Negotiate Algorithm request DHE algorithms.
+ */
+#define SPDM_ALG_DHE_NAMED_GROUP_FFDHE_2048		0x00000001
+#define SPDM_ALG_DHE_NAMED_GROUP_FFDHE_3072		0x00000002
+#define SPDM_ALG_DHE_NAMED_GROUP_FFDHE_4096		0x00000004
+#define SPDM_ALG_DHE_NAMED_GROUP_SECP_256_R1	0x00000008
+#define SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1	0x00000010
+#define SPDM_ALG_DHE_NAMED_GROUP_SECP_521_R1	0x00000020
+
+/**
+ * SPDM Negotiate Algorithm request algorithm structure types.
+ */
+#define SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_DHE					2
+#define SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_AEAD				3
+#define SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_REQ_BASE_ASYM_ALG	4
+#define SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_KEY_SCHEDULE		5
+
+/**
+ * SPDM Negotiate Algorithm 'OtherParamsSupport' format.
+ */
+struct spdm_other_params_support {
+	uint8_t opaque_data_format:4;		/**< Opaque Data Format Support and Selection */
+	uint8_t reserved:4;					/**< Reserved */
+};
 
 /**
  * SPDM negotiate algorithms request format
@@ -227,7 +293,7 @@ struct spdm_negotiate_algorithms_request {
 	uint8_t reserved;						/**< Reserved */
 	uint16_t length;						/**< Length of the entire message in bytes */
 	uint8_t measurement_specification;		/**< Measurement specification bitmask */
-	uint8_t reserved2;						/**< Reserved */
+	struct spdm_other_params_support other_params_support; /**< Additional params supported */
 	uint32_t base_asym_algo;				/**< Supported asymmetric key signature algorithms */
 	uint32_t base_hash_algo;				/**< Supported cryptographic hashing algorithms */
 	uint8_t reserved3[12];					/**< Reserved */
@@ -266,6 +332,16 @@ struct spdm_algorithm_request {
 	(sizeof (struct spdm_algorithm_request) * req->num_alg_structure_tables))
 
 /**
+ * Get the next algorithm struct table entry.
+ * 
+ * @param curr_alg_struct_table_entry Current algorithm struct table entry.
+*/
+#define spdm_negotiate_algorithms_get_next_alg_struct_table_entry(curr_alg_struct_table_entry) ( \
+	(struct spdm_algorithm_request*)((size_t) curr_alg_struct_table_entry + \
+	sizeof (struct spdm_algorithm_request) + \
+	sizeof (struct spdm_extended_algorithm) * curr_alg_struct_table_entry->ext_alg_count))
+
+/**
  * Get the extended asymmetric key signature algorithms table from a negotiate algorithms request
  *
  * @param req Buffer with struct spdm_negotiate_algorithms_request
@@ -292,6 +368,24 @@ struct spdm_algorithm_request {
 	req->ext_hash_count * (sizeof (struct spdm_extended_algorithm))))
 
 /**
+ * Get the expected extended algorithm structure total size.
+ * 
+ * @param algstruct_table Algorithm structure table.
+ */
+#define spdm_negotiate_algorithms_expected_extended_algo_size(algstruct_table) ( \
+	sizeof (struct spdm_extended_algorithm) * algstruct_table->ext_alg_count)
+
+/**
+ * Get the actual extended algorithm structure total size.
+ * 
+ * @param rq Buffer containing extended algorithm structure
+ * @param algstruct_table Algorithm structure table.
+ */
+#define spdm_negotiate_algorithms_actual_extended_algo_size(req, algstruct_table) ( \
+	(size_t) (req) + request->payload_length - (size_t) (algstruct_table) - \
+	sizeof (struct spdm_algorithm_request))
+
+/**
  * SPDM negotiate algorithms response format
  */
 struct spdm_negotiate_algorithms_response {
@@ -300,7 +394,7 @@ struct spdm_negotiate_algorithms_response {
 	uint8_t reserved;						/**< Reserved */
 	uint16_t length;						/**< Length of the entire message in bytes */
 	uint8_t measurement_specification;		/**< Measurement specification bitmask */
-	uint8_t reserved2;						/**< Reserved */
+	struct spdm_other_params_support other_params_selection;	/**< Additional params selected */
 	uint32_t measurement_hash_algo;			/**< SPDM-enumerated hashing algorithm selected for measurements */
 	uint32_t base_asym_sel;					/**< Asymmetric key signature algorithm selected */
 	uint32_t base_hash_sel;					/**< Cryptographic hashing algorithm selected */
@@ -308,6 +402,20 @@ struct spdm_negotiate_algorithms_response {
 	uint8_t ext_asym_sel_count;				/**< Number of extended asymmetric key signature algorithms selected */
 	uint8_t ext_hash_sel_count;				/**< Number of extended cryptographic hashing algorithms selected */
 	uint16_t reserved4;						/**< Reserved */
+};
+
+/**
+ * Maximum algorithm structs in negotiate algorithms response.
+ */
+#define SPDM_NEGOTIATE_ALGORITHMS_MAX_NUM_STRUCT_TABLE_ALG		4
+
+/**
+ * SPDM negotiate algorithms response with no external algorithms.
+ */
+struct spdm_negotiate_algorithms_response_no_ext_alg {
+	struct spdm_negotiate_algorithms_response base;
+	struct spdm_algorithm_request
+		algstruct_table[SPDM_NEGOTIATE_ALGORITHMS_MAX_NUM_STRUCT_TABLE_ALG];
 };
 
 /**
@@ -346,6 +454,17 @@ struct spdm_negotiate_algorithms_response {
 #define	spdm_negotiate_algorithms_rsp_algstruct_table(resp)	((struct spdm_algorithm_request*) \
 	((uint8_t*) spdm_negotiate_algorithms_rsp_ext_hash_table (resp) + \
 		(resp->ext_hash_sel_count * (sizeof (struct spdm_extended_algorithm)))))
+
+
+/**
+ * Get the negotiate algorithm response size. This is based on the negotiate algorithms request.
+ * 
+ * @param req Buffer containing the negotiate algorithms request.
+ */
+#define spdm_negotiate_algorithms_rsp_size(req) ( \
+	sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg) - \
+	((SPDM_ALG_REQ_STRUCT_MAX_NUM_STRUCT_TABLE_ALG - req->num_alg_structure_tables) * \
+	sizeof (struct spdm_algorithm_request)));
 
 /**
  * SPDM get digests request format
@@ -863,12 +982,58 @@ struct spdm_device_capability {
 };
 
 /**
+ * SPDM algorithms.
+ */
+struct spdm_device_algorithms {
+	uint8_t measurement_spec;			/**< Measurement specification */
+	struct spdm_other_params_support other_params_support;	/**< Additional params supported */
+	uint32_t measurement_hash_algo;		/**< Measurement hash algorithm. */
+	uint32_t base_asym_algo;			/**< Base asymmetric algorithm. */
+	uint32_t base_hash_algo;			/**< Base hash algorithm. */
+	uint16_t dhe_named_group;			/**< DHE named group. */
+	uint16_t aead_cipher_suite;			/**< AEAD cipher suite. */
+	uint16_t req_base_asym_alg;			/**< Requested base asymmetric algorithm. */
+	uint16_t key_schedule;				/**< Key schedule. */
+};
+
+/**
+ * SPDM local device algorithms priority tables.
+ */
+struct spdm_local_device_algorithms_priority_table {
+	uint32_t *hash_priority_table;						/**< Hash algorithms priority table. */
+	uint32_t *asym_priority_table;						/**< Asymmetric key signature algorithms priority table. */
+	uint32_t *req_asym_priority_table;					/**< Requested asymmetric key signature algorithms priority table. */
+	uint32_t *dhe_priority_table;						/**< DHE named groups priority table. */
+	uint32_t *aead_priority_table;						/**< AEAD cipher suites priority table. */
+	uint32_t *key_schedule_priority_table;				/**< Key schedule priority table. */
+	uint32_t *measurement_spec_priority_table;			/**< Measurement specification priority table. */
+	uint32_t *other_params_support_priority_table;		/**< Other params support priority table. */
+	uint8_t hash_priority_table_count;					/**< Number of hash algorithms in priority table. */
+	uint8_t asym_priority_table_count;					/**< Number of asymmetric key signature algorithms in priority table. */
+	uint8_t req_asym_priority_table_count;				/**< Number of requested asymmetric key signature algorithms in priority table. */
+	uint8_t dhe_priority_table_count;					/**< Number of DHE named groups in priority table. */
+	uint8_t aead_priority_table_count;					/**< Number of AEAD cipher suites in priority table. */
+	uint8_t key_schedule_priority_table_count;			/**< Number of key schedules in priority table. */
+	uint8_t measurement_spec_priority_table_count;		/**< Number of measurement specifications in priority table. */
+	uint8_t other_params_support_priority_table_count;	/**< Number of other params support in priority table. */
+};
+
+/**
+ * SPDM local device algorithms and their selection priorities.
+ */
+struct spdm_local_device_algorithms {
+	struct spdm_device_algorithms device_algorithms;								/**< Local device algorithms. */
+	struct spdm_local_device_algorithms_priority_table algorithms_priority_table;	/**< Algorithm priority tables. */
+};
+
+/**
  * SPDM connection info.
  */
 struct spdm_connection_info {
 	enum spdm_connection_state connection_state;		/**< State of the SPDM connection. */
 	struct spdm_version_number version; 				/**< Negotiated version */
 	struct spdm_device_capability peer_capabilities;	/**< Peer capabilities. */
+	struct spdm_device_algorithms peer_algorithms;		/**< Negotiated algorithms. */
 };
 
 /**
@@ -896,7 +1061,8 @@ struct spdm_state {
 
 int spdm_init_state (struct spdm_state *state);
 
-int spdm_validate_local_capabilities (const struct cmd_interface_spdm_responder *spdm_responder);
+bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_flags_format flags,
+	uint8_t version);
 
 int spdm_get_command_id (struct cmd_interface_msg *message, uint8_t *command_id);
 
@@ -917,7 +1083,8 @@ int spdm_generate_get_capabilities_request (uint8_t *buf, size_t buf_len,
 	uint8_t spdm_minor_version);
 int spdm_process_get_capabilities_response (struct cmd_interface_msg *response);
 
-int spdm_negotiate_algorithms (struct cmd_interface_msg *request, struct hash_engine *hash);
+int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
 int spdm_generate_negotiate_algorithms_request (uint8_t *buf, size_t buf_len,
 	uint32_t base_asym_algo, uint32_t base_hash_algo, uint8_t spdm_minor_version);
 int spdm_process_negotiate_algorithms_response (struct cmd_interface_msg *response);

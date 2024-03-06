@@ -15,20 +15,22 @@
  * Command interface for processing SPDM protocol requests.
  */
 struct cmd_interface_spdm_responder {
-	struct cmd_interface base;							/**< Base command interface. */
-	struct spdm_state *state;							/**< SPDM state. */
-	struct hash_engine *hash_engine;					/**< Hash engine for hashing operations. */
-	struct spdm_transcript_manager *transcript_manager;	/**< Transcript manager for SPDM. */
-	const struct spdm_version_num_entry *version_num;	/**< Supported version number(s). */
-	uint8_t version_num_count;							/**< Number of supported version number(s). */
-	const struct spdm_device_capability *local_capabilities;	/**< Local SPDM capabilities. */
+	struct cmd_interface base;											/**< Base command interface. */
+	struct spdm_state *state;											/**< SPDM state. */
+	struct hash_engine *hash_engine;									/**< Hash engine for hashing operations. */
+	struct spdm_transcript_manager *transcript_manager;					/**< Transcript manager for SPDM. */
+	const struct spdm_version_num_entry *version_num;					/**< Supported version number(s). */
+	uint8_t version_num_count;											/**< Number of supported version number(s). */
+	const struct spdm_device_capability *local_capabilities;			/**< Local SPDM capabilities. */
+	const struct spdm_local_device_algorithms *local_algorithms;		/**< Local SPDM algorithms and their priorities. */
 };
 
 
 int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_state *state, struct spdm_transcript_manager *transcript_manager,
 	struct hash_engine *hash_engine, const struct spdm_version_num_entry *version_num,
-	uint8_t version_num_count, const struct spdm_device_capability *local_capabilities);
+	uint8_t version_num_count, const struct spdm_device_capability *local_capabilities,
+	const struct spdm_local_device_algorithms *local_algorithms);
 
 int cmd_interface_spdm_responder_init_state (
 	const struct cmd_interface_spdm_responder *spdm_responder);

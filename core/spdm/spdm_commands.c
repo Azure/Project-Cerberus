@@ -5,6 +5,7 @@
 #include <string.h>
 #include "attestation/attestation_responder.h"
 #include "cmd_interface/device_manager.h"
+#include "common/array_size.h"
 #include "common/common_math.h"
 #include "crypto/hash.h"
 #include "crypto/ecc.h"
@@ -113,8 +114,8 @@ void spdm_generate_error_response (struct cmd_interface_msg *response, uint8_t s
 /**
  * Set the SPDM connection state.
  *
- * @param  state SPDM state.
- * @param  connection_state SPDM connection state.
+ * @param state SPDM state.
+ * @param connection_state SPDM connection state.
  */
 static void spdm_set_connection_state (struct spdm_state *state,
 	enum spdm_connection_state connection_state)
@@ -171,7 +172,7 @@ static void spdm_handle_response_state (struct spdm_state *state, struct cmd_int
  *
  * @return true if the received capabilities are valid, false otherwise.
  */
-static bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_flags_format flags,
+bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_flags_format flags,
 	uint8_t version)
 {
 	/* Illegal to return reserved values. */
@@ -195,7 +196,7 @@ static bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_
 		 *
 		 * heartbeat messages are sent in a secure session, the setup of which also require
 		 * either key exchange or pre-shared key capability.
-		 * 
+		 *
 		 * handshake_in_the_clear_cap requires key_ex_cap.
 		 */
 		if ((flags.mac_cap == 1) || (flags.encrypt_cap == 1) ||
@@ -216,7 +217,7 @@ static bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_
 		if ((flags.cert_cap == 1) && (flags.pub_key_id_cap == 1)) {
 			return false;
 		}
-		/** 
+		/**
 		 * cert_cap and/or pub_key_id_cap are not needed if both chal_cap and key_ex_cap are 0.
 		 * Theoretically, this might be ok, but libSPDM has this check, so keeping it.
 		 */
@@ -245,32 +246,6 @@ static bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_
 }
 
 /**
- * Get the maximum supported version from the version number table.
- *
- * @param version_num Version number table.
- * @param version_num_count Number of entries in the version number table.
- *
- * @return Maximum supported version.
- */
-static uint8_t spdm_get_max_supported_version (
-	const struct spdm_version_num_entry *version_num, const uint8_t version_num_count) 
-{
-	uint8_t max_version = 0;
-	uint8_t temp_version;
-	uint8_t i;
-
-	for (i = 0; i < version_num_count; i++) {
-		temp_version = 
-			SPDM_MAKE_VERSION (version_num[i].major_version, version_num[i].minor_version);
-		if (temp_version > max_version) {
-			max_version = temp_version;
-		}
-	}
-
-	return max_version;
-}
-
-/**
  * Check if the received SPDM version is supported.
  *
  * @param peer_version SPDM message version in <major.minor> format.
@@ -285,55 +260,13 @@ static bool spdm_is_version_supported (uint8_t peer_version,
 	uint8_t i;
 
 	for (i = 0; i < version_num_count; i++) {
-		if (SPDM_MAKE_VERSION (version_num[i].major_version, version_num[i].minor_version) == 
+		if (SPDM_MAKE_VERSION (version_num[i].major_version, version_num[i].minor_version) ==
 			peer_version) {
 			return true;
 		}
 	}
 
 	return false;
-}
-
-/**
- * Validate the capabilites of the local SPDM device.
- *
- * @param local_capabilities Local SPDM device capabilities.
- *
- * @return 0 if capabilities are valid or an error code.
- */
-int spdm_validate_local_capabilities (const struct cmd_interface_spdm_responder *spdm_responder)
-{
-	int status = 0;
-	const struct spdm_device_capability *local_capabilities;
-
-	if (spdm_responder == NULL) {
-		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
-		goto exit;
-	}
-	local_capabilities = spdm_responder->local_capabilities;
-
-	if (spdm_check_request_flag_compatibility (spdm_responder->local_capabilities->flags, 
-			spdm_get_max_supported_version (spdm_responder->version_num,
-				spdm_responder->version_num_count)) == false) {
-		status = CMD_HANDLER_SPDM_RESPONDER_INCOMPATIBLE_CAPABILITIES;
-		goto exit;
-	}
-
-	if (local_capabilities->ct_exponent > SPDM_MAX_CT_EXPONENT) {
-		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
-		goto exit;
-	}
-
-	if ((local_capabilities->data_transfer_size < SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2) ||
-		(local_capabilities->data_transfer_size > local_capabilities->max_spdm_msg_size) ||
-		((local_capabilities->flags.chunk_cap == 0) &&
-		 (local_capabilities->data_transfer_size != local_capabilities->max_spdm_msg_size))) {
-		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
-		goto exit;
-	}
-
-exit:
-	return status;
 }
 
 /**
@@ -349,7 +282,7 @@ static bool spdm_check_request_version_compatibility (struct spdm_state *state,
 	const struct spdm_version_num_entry *version_num, const uint8_t version_num_count,
 	uint8_t peer_version)
 {
-	if (spdm_is_version_supported (peer_version, version_num, version_num_count) 
+	if (spdm_is_version_supported (peer_version, version_num, version_num_count)
 		== true) {
 		state->connection_info.version.major_version = SPDM_GET_MAJOR_VERSION (peer_version);
 		state->connection_info.version.minor_version = SPDM_GET_MINOR_VERSION (peer_version);
@@ -357,6 +290,82 @@ static bool spdm_check_request_version_compatibility (struct spdm_state *state,
 	}
 
 	return false;
+}
+
+/**
+ * Get the connection version negotiated by the GET_VERSION/VERSION messages.
+ *
+ * @param state SPDM state.
+ *
+ * @return Negotiated version.
+ */
+static uint8_t spdm_get_connection_version (const struct spdm_state *state)
+{
+	return SPDM_MAKE_VERSION (state->connection_info.version.major_version,
+		state->connection_info.version.minor_version);
+}
+
+/**
+ * Select the preferred supported algorithm according to the priority table. If no priority table is
+ * provided, the first common lowest numbered algorithm is selected.
+ *
+ * @param priority_table The priority table.
+ * @param priority_table_count The count of the priority table entries.
+ * @param local_algo Local supported algorithm.
+ * @param peer_algo Peer supported algorithm.
+
+ * @return Preferred supported algorithm.
+ */
+static uint32_t spdm_prioritize_algorithm (const uint32_t *priority_table,
+	size_t priority_table_count, uint32_t local_algo, uint32_t peer_algo)
+{
+	uint32_t common_algos;
+	size_t index;
+	uint32_t mask;
+
+	common_algos = (local_algo & peer_algo);
+	if (priority_table != NULL) {
+		for (index = 0; index < priority_table_count; index++) {
+			if ((common_algos & priority_table[index]) != 0) {
+				return priority_table[index];
+			}
+		}
+	}
+	else {
+		/* If a priority table was not provided, use the first common lowest numbered algorithm. */
+		 mask = common_algos & -common_algos;
+		 return (common_algos & mask);
+	}
+
+	return 0;
+}
+
+/**
+ * Get the hash type for a single SPDM hash algorithm.
+ *
+ * @param hash_algo	A single SPDM Hash algorithm.
+ *
+ * @return Hash type if algorithm is supported, HASH_TYPE_INVALID otherwise.
+ */
+static enum hash_type spdm_get_hash_type (uint32_t hash_algo)
+{
+	enum hmac_hash hash_type = HASH_TYPE_INVALID;
+
+	switch (hash_algo) {
+		case SPDM_TPM_ALG_SHA_256:
+			hash_type = HASH_TYPE_SHA256;
+			break;
+
+		case SPDM_TPM_ALG_SHA_384:
+			hash_type = HASH_TYPE_SHA384;
+			break;
+
+		case SPDM_TPM_ALG_SHA_512:
+			hash_type = HASH_TYPE_SHA512;
+			break;
+	}
+
+	return hash_type;
 }
 
 /**
@@ -435,7 +444,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	if (request->payload_length < sizeof (struct spdm_get_version_request)) {
 		/* [TODO] Look into the possiblity of having a common place to encode the error msg. */
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, 
+			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION,
 			CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST);
 		goto exit;
 	}
@@ -446,7 +455,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	if (SPDM_MAKE_VERSION (rq->header.spdm_major_version, rq->header.spdm_minor_version) !=
 		SPDM_VERSION_1_0) {
 		spdm_generate_error_response (request, 0,
-			SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION, 
+			SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0, SPDM_REQUEST_GET_VERSION,
 			CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH);
 		goto exit;
 	}
@@ -608,7 +617,7 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 		goto exit;
 	}
 
-	/* Validate the request. */
+	/* Validate request version and save it in the connection info. */
 	header = (struct spdm_protocol_header*) request->payload;
 	spdm_version = SPDM_MAKE_VERSION (header->spdm_major_version, header->spdm_minor_version);
 	if (spdm_check_request_version_compatibility (state, spdm_responder->version_num,
@@ -839,118 +848,393 @@ int spdm_process_get_capabilities_response (struct cmd_interface_msg *response)
 }
 
 /**
- * Process SPDM negotiate algorithms request
+ * Constructs a NEGOTIATE_ALGORITHMS response.
  *
- * @param request Negotiate algorithms request to process
- * @param hash Hashing engine to utilize. Must be same engine used in other SPDM commands for
- * 	transcript hashing, and must be independent of other hash instances.
+ * @param state SPDM state.
+ * @param local_capabilities Local SPDM device capabilities.
+ * @param local_device_algorithms Local SPDM device algorithms and their priority order.
+ * @param rq NEGOTIATE_ALGORITHMS request to process.
+ * @param resp_no_ext_alg NEGOTIATE_ALGORITHMS response to be filled.
+ * @param spdm_error SPDM error code.
+ *
+ * @return 0 if response was populated successfully or an error code.
+ */
+static int spdm_negotiate_algorithms_construct_response (struct spdm_state *state,
+	const struct spdm_device_capability *local_capabilities,
+	const struct spdm_local_device_algorithms *local_device_algorithms,
+	struct spdm_negotiate_algorithms_request *rq,
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg, int *spdm_error)
+{
+	int status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+	size_t response_size;
+	uint8_t spdm_version;
+	struct spdm_algorithm_request *algstruct_table;
+	size_t i_algstruct;
+	struct spdm_negotiate_algorithms_response *resp =
+		(struct spdm_negotiate_algorithms_response*) resp_no_ext_alg;
+	const struct spdm_device_algorithms *local_algorithms;
+	const struct spdm_local_device_algorithms_priority_table *local_algo_priority_table;
+	uint32_t measurement_hash_algo;
+
+	*spdm_error = SPDM_ERROR_INVALID_REQUEST;
+	local_algorithms = &local_device_algorithms->device_algorithms;
+	local_algo_priority_table = &local_device_algorithms->algorithms_priority_table;
+
+	/* Construct the response. */
+	memset (resp, 0, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg));
+	resp->header.spdm_major_version = rq->header.spdm_major_version;
+	resp->header.spdm_minor_version = rq->header.spdm_minor_version;
+	resp->num_alg_structure_tables = rq->num_alg_structure_tables;
+
+	/* Respond with the same number of Algorithms Structure Tables as requested. */
+	response_size = spdm_negotiate_algorithms_rsp_size (rq);
+
+	resp->header.req_rsp_code = SPDM_RESPONSE_NEGOTIATE_ALGORITHMS;
+	resp->reserved = 0;
+	resp->length = (uint16_t) response_size;
+
+	/* Save requester algorithms in connection info. */
+	state->connection_info.peer_algorithms.measurement_spec = rq->measurement_specification;
+	if (rq->measurement_specification != 0) {
+		/* Measurement hash algorithm is a responder selected value. It is not negotiated. */
+		measurement_hash_algo = local_algorithms->measurement_hash_algo;
+	}
+	else {
+		measurement_hash_algo = 0;
+	}
+	state->connection_info.peer_algorithms.base_asym_algo = rq->base_asym_algo;
+	state->connection_info.peer_algorithms.base_hash_algo = rq->base_hash_algo;
+
+	/* Process the request algorithm structures. */
+	spdm_version = SPDM_MAKE_VERSION (rq->header.spdm_major_version, rq->header.spdm_minor_version);
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+
+	for (i_algstruct = 0; i_algstruct < rq->num_alg_structure_tables; ++i_algstruct) {
+		switch (algstruct_table->alg_type) {
+			case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_DHE:
+				if (algstruct_table->alg_supported == 0) {
+					goto exit;
+				}
+
+				resp_no_ext_alg->algstruct_table[i_algstruct].alg_type = algstruct_table->alg_type;
+				resp_no_ext_alg->algstruct_table[i_algstruct].fixed_alg_count = 2;
+				resp_no_ext_alg->algstruct_table[i_algstruct].ext_alg_count = 0;
+				resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported =
+					(uint16_t) spdm_prioritize_algorithm (
+						local_algo_priority_table->dhe_priority_table,
+						local_algo_priority_table->dhe_priority_table_count,
+						local_algorithms->dhe_named_group,
+						algstruct_table->alg_supported);
+
+				state->connection_info.peer_algorithms.dhe_named_group =
+					resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported;
+				break;
+
+			case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_AEAD:
+				if (algstruct_table->alg_supported == 0) {
+					goto exit;
+				}
+
+				resp_no_ext_alg->algstruct_table[i_algstruct].alg_type = algstruct_table->alg_type;
+				resp_no_ext_alg->algstruct_table[i_algstruct].fixed_alg_count = 2;
+				resp_no_ext_alg->algstruct_table[i_algstruct].ext_alg_count = 0;
+				resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported =
+					(uint16_t) spdm_prioritize_algorithm (
+						local_algo_priority_table->aead_priority_table,
+						local_algo_priority_table->aead_priority_table_count,
+						local_algorithms->aead_cipher_suite,
+						algstruct_table->alg_supported);
+
+				state->connection_info.peer_algorithms.aead_cipher_suite =
+					resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported;
+				break;
+
+			case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_REQ_BASE_ASYM_ALG:
+				if (algstruct_table->alg_supported == 0) {
+					goto exit;
+				}
+
+				resp_no_ext_alg->algstruct_table[i_algstruct].alg_type = algstruct_table->alg_type;
+				resp_no_ext_alg->algstruct_table[i_algstruct].fixed_alg_count = 2;
+				resp_no_ext_alg->algstruct_table[i_algstruct].ext_alg_count = 0;
+				resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported =
+					(uint16_t) spdm_prioritize_algorithm (
+						local_algo_priority_table->req_asym_priority_table,
+						local_algo_priority_table->req_asym_priority_table_count,
+						local_algorithms->req_base_asym_alg,
+						algstruct_table->alg_supported);
+
+				state->connection_info.peer_algorithms.req_base_asym_alg =
+					resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported;
+				break;
+
+			case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_KEY_SCHEDULE:
+				if (algstruct_table->alg_supported == 0) {
+					goto exit;
+				}
+
+				resp_no_ext_alg->algstruct_table[i_algstruct].alg_type = algstruct_table->alg_type;;
+				resp_no_ext_alg->algstruct_table[i_algstruct].fixed_alg_count = 2;
+				resp_no_ext_alg->algstruct_table[i_algstruct].ext_alg_count = 0;
+				resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported =
+					(uint16_t) spdm_prioritize_algorithm (
+						local_algo_priority_table->key_schedule_priority_table,
+						local_algo_priority_table->key_schedule_priority_table_count,
+						local_algorithms->key_schedule,
+						algstruct_table->alg_supported);
+
+				state->connection_info.peer_algorithms.key_schedule =
+					resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported;
+				break;
+			}
+
+		/* Go to the next algstruct_table entry. */
+		algstruct_table =
+			spdm_negotiate_algorithms_get_next_alg_struct_table_entry (algstruct_table);
+	}
+
+	if (local_capabilities->flags.meas_cap == 1) {
+		resp->measurement_specification = (uint8_t) spdm_prioritize_algorithm (
+			local_algo_priority_table->measurement_spec_priority_table,
+			local_algo_priority_table->measurement_spec_priority_table_count,
+			local_algorithms->measurement_spec,
+			state->connection_info.peer_algorithms.measurement_spec);
+
+		/* Measurement hash algorithm is not negotiated but rather selected by the responder.
+		 * Thus, there is no priority table for measurement hash algorithm. */
+		resp->measurement_hash_algo = spdm_prioritize_algorithm (NULL, 0,
+			local_algorithms->measurement_hash_algo, measurement_hash_algo);
+	}
+	else {
+		resp->measurement_specification = 0;
+		resp->measurement_hash_algo = 0;
+	}
+
+	state->connection_info.peer_algorithms.measurement_spec = resp->measurement_specification;
+	state->connection_info.peer_algorithms.measurement_hash_algo = resp->measurement_hash_algo;
+
+	resp->base_asym_sel = spdm_prioritize_algorithm (
+		local_algo_priority_table->asym_priority_table,
+		local_algo_priority_table->asym_priority_table_count,
+		local_algorithms->base_asym_algo,
+		state->connection_info.peer_algorithms.base_asym_algo);
+	state->connection_info.peer_algorithms.base_asym_algo = resp->base_asym_sel;
+
+	resp->base_hash_sel = spdm_prioritize_algorithm (
+		local_algo_priority_table->hash_priority_table,
+		local_algo_priority_table->hash_priority_table_count,
+		local_algorithms->base_hash_algo,
+		state->connection_info.peer_algorithms.base_hash_algo);
+	state->connection_info.peer_algorithms.base_hash_algo = resp->base_hash_sel;
+
+	if (spdm_version >= SPDM_VERSION_1_2) {
+		resp->other_params_selection.opaque_data_format = (uint8_t) spdm_prioritize_algorithm (
+			local_algo_priority_table->other_params_support_priority_table,
+			local_algo_priority_table->other_params_support_priority_table_count,
+			local_algorithms->other_params_support.opaque_data_format,
+			rq->other_params_support.opaque_data_format);
+
+			state->connection_info.peer_algorithms.other_params_support.opaque_data_format =
+				resp->other_params_selection.opaque_data_format;
+	}
+
+	status = 0;
+	*spdm_error = SPDM_ERROR_RESERVED;
+
+exit:
+	return status;
+}
+
+/**
+ * Process the SPDM NEGOTIATE_ALGORITHMS request.
+ *
+ * @param spdm_responder SPDM responder instance.
+ * @param request NEGOTIATE_ALGORITHMS request to process.
  *
  * @return 0 if request processed successfully or an error code.
  */
-int spdm_negotiate_algorithms (struct cmd_interface_msg *request, struct hash_engine *hash)
+int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request)
 {
-	struct spdm_negotiate_algorithms_request *req;
-	struct spdm_negotiate_algorithms_response *resp;
+	int status = 0;
+	int spdm_error;
+	struct spdm_protocol_header *header;
+	struct spdm_negotiate_algorithms_request *rq;
+	struct spdm_negotiate_algorithms_response_no_ext_alg resp_no_ext_alg;
 	struct spdm_algorithm_request *algstruct_table;
 	size_t i_algstruct;
-	size_t offset;
-	int status;
+	uint8_t spdm_version;
+	uint8_t alg_type_pre;
+	uint16_t ext_alg_total_count = 0;
+	size_t request_size;
+	struct spdm_transcript_manager *transcript_manager;
+	struct spdm_state *state;
+	const struct spdm_device_capability *local_capabilities;
+	const struct spdm_local_device_algorithms *local_algorithms;
 
-	if ((request == NULL) || (hash == NULL)) {
-		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	if ((spdm_responder == NULL) || (request == NULL)) {
+		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
-	req = (struct spdm_negotiate_algorithms_request*) request->payload;
-	resp = (struct spdm_negotiate_algorithms_response*) request->payload;
+	transcript_manager = spdm_responder->transcript_manager;
+	state = spdm_responder->state;
+	local_capabilities = spdm_responder->local_capabilities;
+	local_algorithms = spdm_responder->local_algorithms;
 
+	/* Validate the request. */
+	header = (struct spdm_protocol_header*) request->payload;
+	spdm_version = SPDM_MAKE_VERSION (header->spdm_major_version, header->spdm_minor_version);
+	if (spdm_version != spdm_get_connection_version (state)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
+		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
+		goto exit;
+	}
+
+	/* Verify the state */
+	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
+		spdm_handle_response_state (state, request, SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
+		goto exit;
+	}
+	if (state->connection_info.connection_state != SPDM_CONNECTION_STATE_AFTER_CAPABILITIES) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
+		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check request size. */
+	rq = (struct spdm_negotiate_algorithms_request*) request->payload;
 	if ((request->payload_length < sizeof (struct spdm_negotiate_algorithms_request)) ||
-		(request->payload_length != req->length) ||
-		(request->payload_length < spdm_negotiate_algorithms_min_req_length (req))) {
-		return CMD_HANDLER_SPDM_BAD_LENGTH;
+		(request->payload_length < spdm_negotiate_algorithms_min_req_length (rq))) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
 	}
 
-	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (req);
-	offset = spdm_negotiate_algorithms_min_req_length (req);
+	if (rq->length > SPDM_NEGOTIATE_ALGORITHMS_REQUEST_MAX_LENGTH) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
 
-	for (i_algstruct = 0; i_algstruct < req->num_alg_structure_tables; ++i_algstruct) {
-		/* TODO: Should probably define macros for these length and pointer calculations. */
-		if (request->payload_length <
-			(offset + (algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm)))) {
-			return CMD_HANDLER_SPDM_BAD_LENGTH;
+	/* Validate the algorithm structs. */
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	for (i_algstruct = 0; i_algstruct < rq->num_alg_structure_tables; i_algstruct++) {
+
+		/* Check if alg_type is valid. */
+		 if ((algstruct_table->alg_type < SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE) ||
+			 (algstruct_table->alg_type > SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE)) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
 		}
 
-		algstruct_table = (struct spdm_algorithm_request*) (((uint8_t*) (algstruct_table + 1)) +
-			(algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm)));
-		offset += (algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm));
+		/* Check if alg_type is monotonically increasing for subsequent entries. */
+		if ((i_algstruct != 0) && (algstruct_table->alg_type <= alg_type_pre)) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
+		}
+		alg_type_pre = algstruct_table->alg_type;
+		ext_alg_total_count += algstruct_table->ext_alg_count;
+		if (algstruct_table->fixed_alg_count != 2) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
+		}
+
+		/* Check if payload contains the extended algorithm(s) in the algstruct_table entry. */
+		if (spdm_negotiate_algorithms_actual_extended_algo_size (rq, algstruct_table) <
+			spdm_negotiate_algorithms_expected_extended_algo_size (algstruct_table)) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
+		}
+
+		/* Go to the next algstruct_table entry. */
+		algstruct_table = spdm_negotiate_algorithms_get_next_alg_struct_table_entry (
+			algstruct_table);
+	}
+	ext_alg_total_count += (rq->ext_asym_count + rq->ext_hash_count);
+
+	/* Check the algorithm count and message size. */
+	if (ext_alg_total_count > SPDM_NEGOTIATE_ALGORITHMS_REQUEST_MAX_EXT_ALG_COUNT_VERSION) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
 	}
 
-	if ((req->measurement_specification & SPDM_MEASUREMENT_SPEC_DMTF) == 0) {
-		spdm_generate_error_response (request, req->header.spdm_minor_version,
-			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_NEGOTIATE_ALGORITHMS,
-			CMD_HANDLER_SPDM_UNSUPPORTED_MEAS_SPEC);
+	/* Check Opaque Data Format. */
+	if (spdm_version >= SPDM_VERSION_1_2) {
+		switch (rq->other_params_support.opaque_data_format) {
+			case SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_NONE:
+			case SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_0:
+			case SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1:
+				break;
 
-		goto hash_cancel;
+			default:
+				status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+				spdm_error = SPDM_ERROR_INVALID_REQUEST;
+				goto exit;
+		}
 	}
 
-	if ((req->base_asym_algo & SPDM_TPM_ALG_ECDSA_ECC_NIST_P256) == 0) {
-		spdm_generate_error_response (request, req->header.spdm_minor_version,
-			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_NEGOTIATE_ALGORITHMS,
-			CMD_HANDLER_SPDM_UNSUPPORTED_ASYM_ALGO);
-
-		goto hash_cancel;
+	request_size = (size_t) algstruct_table - (size_t) rq;
+	if (request_size != rq->length) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
 	}
 
-	if ((req->base_hash_algo & SPDM_TPM_ALG_SHA_256) == 0) {
-		spdm_generate_error_response (request, req->header.spdm_minor_version,
-			SPDM_ERROR_INVALID_REQUEST, 0x00, NULL, 0, SPDM_REQUEST_NEGOTIATE_ALGORITHMS,
-			CMD_HANDLER_SPDM_UNSUPPORTED_HASH_ALGO);
-
-		goto hash_cancel;
-	}
-
-	// TODO: Move hashing to a transcript hash manager
-	status = hash->update (hash, (uint8_t*) req, request->payload_length);
+	/* Construct the response. */
+	status = spdm_negotiate_algorithms_construct_response (state, local_capabilities,
+		local_algorithms, rq, &resp_no_ext_alg, &spdm_error);
 	if (status != 0) {
-		spdm_generate_error_response (request, req->header.spdm_minor_version,
-			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_NEGOTIATE_ALGORITHMS, status);
-
-		goto hash_cancel;
+		goto exit;
 	}
 
-	resp->header.req_rsp_code = SPDM_RESPONSE_NEGOTIATE_ALGORITHMS;
+	/* Reset transcript manager state as per request code. */
+	spdm_reset_transcript_via_request_code (state, transcript_manager,
+		SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
 
-	resp->num_alg_structure_tables = 0;
-	resp->reserved = 0;
-	resp->length = sizeof (struct spdm_negotiate_algorithms_response);
-	resp->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	resp->reserved2 = 0;
-	resp->measurement_hash_algo = SPDM_TPM_ALG_SHA_256;
-	resp->base_asym_sel = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
-	resp->base_hash_sel = SPDM_TPM_ALG_SHA_256;
-
-	memset (resp->reserved3, 0, sizeof (resp->reserved3));
-
-	resp->ext_asym_sel_count = 0;
-	resp->ext_hash_sel_count = 0;
-	resp->reserved4 = 0;
-
-	cmd_interface_msg_set_message_payload_length (request,
-		sizeof (struct spdm_negotiate_algorithms_response));
-
-	// TODO: Move hashing to a transcript hash manager.
-	status = hash->update (hash, (uint8_t*) resp, resp->length);
+	/* Append the request to the VCA buffer. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
+		(const uint8_t*) rq, request_size, false, SPDM_MAX_SESSION_COUNT);
 	if (status != 0) {
-		spdm_generate_error_response (request, req->header.spdm_minor_version,
-			SPDM_ERROR_UNSPECIFIED, 0x00, NULL, 0, SPDM_REQUEST_NEGOTIATE_ALGORITHMS, status);
-
-		goto hash_cancel;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
 	}
 
-	return 0;
+	/* Append the response to the VCA buffer. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_VCA,
+		(const uint8_t*) &resp_no_ext_alg, resp_no_ext_alg.base.length, false,
+		SPDM_MAX_SESSION_COUNT);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
 
-hash_cancel:
-	hash->cancel (hash);
+	/* Set the negotiated hash algorithm on the Transcript Manager. */
+	if (state->connection_info.peer_algorithms.base_hash_algo != 0) {
+		status = transcript_manager->set_hash_algo (transcript_manager,
+			spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo));
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+	}
 
+	/* Copy response in the payload buffer. */
+	memcpy (request->payload, &resp_no_ext_alg, resp_no_ext_alg.base.length);
+	cmd_interface_msg_set_message_payload_length (request, resp_no_ext_alg.base.length);
+
+	/* Update the connection state */
+	spdm_set_connection_state (state, SPDM_CONNECTION_STATE_NEGOTIATED);
+
+exit:
+	if (status != 0) {
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_NEGOTIATE_ALGORITHMS, status);
+	}
 	return 0;
 }
 
@@ -1380,7 +1664,7 @@ fail:
  * Initialize the SPDM state.
  *
  * @param state SPDM state.
- * 
+ *
  * @return 0 if the state was successfully initialized or an error code.
  */
 int spdm_init_state (struct spdm_state *state)

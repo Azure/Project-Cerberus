@@ -28,6 +28,45 @@
 
 TEST_SUITE_LABEL ("spdm_commands");
 
+uint32_t spdm_command_testing_hash_priority_table[] = {
+	SPDM_TPM_ALG_SHA_512,
+	SPDM_TPM_ALG_SHA_384,
+	SPDM_TPM_ALG_SHA_256,
+};
+
+uint32_t spdm_command_testing_asym_priority_table[] = {
+	SPDM_TPM_ALG_ECDSA_ECC_NIST_P384,
+};
+
+uint32_t spdm_command_testing_req_asym_priority_table[] = {
+	SPDM_TPM_ALG_ECDSA_ECC_NIST_P384,
+};
+
+uint32_t spdm_command_testing_dhe_priority_table[] = {
+	SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1,
+};
+
+uint32_t spdm_command_testing_aead_priority_table[] = {
+	SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM,
+};
+
+uint32_t spdm_command_testing_key_schedule_priority_table[] = {
+	SPDM_ALG_KEY_SCHEDULE_HMAC_HASH,
+};
+
+uint32_t spdm_command_testing_measurement_hash_priority_table[] = {
+	SPDM_MEAS_RSP_TPM_ALG_SHA_384,
+};
+
+uint32_t spdm_command_testing_measurement_spec_priority_table[] = {
+	SPDM_MEASUREMENT_SPEC_DMTF,
+};
+
+uint32_t spdm_command_testing_other_params_support_priority_table[] = {
+	SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1,
+	SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_0,
+	SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_NONE
+};
 
 /**
  * Dependencies for testing.
@@ -42,6 +81,7 @@ struct spdm_command_testing {
 	struct hash_engine_mock hash_engine_mock;						/**< Mock hash engine for the responder. */
 	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION];	/**< Version number entries. */
 	struct spdm_device_capability local_capabilities;				/**< Local capabilities. */
+	struct spdm_local_device_algorithms local_algorithms;			/**< Local algorithms. */
 };
 
 /**
@@ -69,14 +109,14 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 	memset (&testing->local_capabilities, 0, sizeof (testing->local_capabilities));
 	testing->local_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 	testing->local_capabilities.flags.cache_cap = 0;
-	testing->local_capabilities.flags.cert_cap = 0;
+	testing->local_capabilities.flags.cert_cap = 1;
 	testing->local_capabilities.flags.chal_cap = 0;
-	testing->local_capabilities.flags.meas_cap = 0;
+	testing->local_capabilities.flags.meas_cap = 1;
 	testing->local_capabilities.flags.meas_fresh_cap = 0;
-	testing->local_capabilities.flags.encrypt_cap = 0;
-	testing->local_capabilities.flags.mac_cap = 0;
+	testing->local_capabilities.flags.encrypt_cap = 1;
+	testing->local_capabilities.flags.mac_cap = 1;
 	testing->local_capabilities.flags.mut_auth_cap = 0;
-	testing->local_capabilities.flags.key_ex_cap = 0;
+	testing->local_capabilities.flags.key_ex_cap = 1;
 	testing->local_capabilities.flags.psk_cap = SPDM_PSK_NOT_SUPPORTED;
 	testing->local_capabilities.flags.encap_cap = 0;
 	testing->local_capabilities.flags.hbeat_cap = 0;
@@ -84,16 +124,75 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 	testing->local_capabilities.flags.handshake_in_the_clear_cap = 0;
 	testing->local_capabilities.flags.pub_key_id_cap = 0;
 	testing->local_capabilities.flags.chunk_cap = 0;
-	testing->local_capabilities.flags.alias_cert_cap = 0;
+	testing->local_capabilities.flags.alias_cert_cap = 1;
 	testing->local_capabilities.data_transfer_size = DOE_MESSAGE_MAX_SIZE_IN_BYTES;
 	testing->local_capabilities.max_spdm_msg_size = DOE_MESSAGE_MAX_SIZE_IN_BYTES;
 	testing->local_capabilities.flags.reserved = 0;
 	testing->local_capabilities.flags.reserved2 = 0;
 
+	/* Set the default algorithms. */
+	memset (&testing->local_algorithms, 0, sizeof (testing->local_algorithms));
+	testing->local_algorithms.device_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
+	testing->local_algorithms.device_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	testing->local_algorithms.device_algorithms.measurement_hash_algo
+		= SPDM_MEAS_RSP_TPM_ALG_SHA_384;
+	testing->local_algorithms.device_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
+	testing->local_algorithms.device_algorithms.aead_cipher_suite =
+		SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM;
+	testing->local_algorithms.device_algorithms.dhe_named_group =
+		SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+	testing->local_algorithms.device_algorithms.req_base_asym_alg =
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
+	testing->local_algorithms.device_algorithms.key_schedule = SPDM_ALG_KEY_SCHEDULE_HMAC_HASH;
+	testing->local_algorithms.device_algorithms.other_params_support.opaque_data_format =
+			SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
+
+	/* Set the algorithm priorities. */
+	testing->local_algorithms.algorithms_priority_table.aead_priority_table =
+			spdm_command_testing_aead_priority_table;
+	testing->local_algorithms.algorithms_priority_table.aead_priority_table_count =
+		ARRAY_SIZE (spdm_command_testing_aead_priority_table);
+
+	testing->local_algorithms.algorithms_priority_table.asym_priority_table =
+		spdm_command_testing_asym_priority_table;
+	testing->local_algorithms.algorithms_priority_table.asym_priority_table_count =
+		ARRAY_SIZE (spdm_command_testing_asym_priority_table);
+
+	testing->local_algorithms.algorithms_priority_table.dhe_priority_table =
+			spdm_command_testing_dhe_priority_table;
+	testing->local_algorithms.algorithms_priority_table.dhe_priority_table_count =
+		ARRAY_SIZE (spdm_command_testing_dhe_priority_table);
+
+	testing->local_algorithms.algorithms_priority_table.hash_priority_table =
+			spdm_command_testing_hash_priority_table;
+	testing->local_algorithms.algorithms_priority_table.hash_priority_table_count =
+		ARRAY_SIZE (spdm_command_testing_hash_priority_table);
+
+	testing->local_algorithms.algorithms_priority_table.key_schedule_priority_table =
+			spdm_command_testing_key_schedule_priority_table;
+	testing->local_algorithms.algorithms_priority_table.key_schedule_priority_table_count =
+		ARRAY_SIZE (spdm_command_testing_key_schedule_priority_table);
+
+
+	testing->local_algorithms.algorithms_priority_table.measurement_spec_priority_table =
+			spdm_command_testing_measurement_spec_priority_table;
+	testing->local_algorithms.algorithms_priority_table.measurement_spec_priority_table_count =
+		ARRAY_SIZE (spdm_command_testing_measurement_spec_priority_table);
+
+	testing->local_algorithms.algorithms_priority_table.other_params_support_priority_table =
+			spdm_command_testing_other_params_support_priority_table;
+	testing->local_algorithms.algorithms_priority_table.other_params_support_priority_table_count =
+		ARRAY_SIZE (spdm_command_testing_other_params_support_priority_table);
+
+	testing->local_algorithms.algorithms_priority_table.req_asym_priority_table =
+			spdm_command_testing_req_asym_priority_table;
+	testing->local_algorithms.algorithms_priority_table.req_asym_priority_table_count =
+		ARRAY_SIZE (spdm_command_testing_req_asym_priority_table);
+
 	status = cmd_interface_spdm_responder_init (&testing->spdm_responder,
 		&testing->spdm_responder_state, &testing->transcript_manager_mock.base,
 		&testing->hash_engine_mock.base, testing->version_num, ARRAY_SIZE (testing->version_num),
-		&testing->local_capabilities);
+		&testing->local_capabilities, &testing->local_algorithms);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -336,7 +435,7 @@ static void spdm_test_negotiate_algorithms_request_format (CuTest *test)
 	CuAssertIntEquals (test, 0, req->reserved);
 	CuAssertIntEquals (test, 0xaa, req->length);
 	CuAssertIntEquals (test, 0x03, req->measurement_specification);
-	CuAssertIntEquals (test, 0, req->reserved2);
+	CuAssertIntEquals (test, 0, req->other_params_support.opaque_data_format);
 	CuAssertIntEquals (test, 0xddccbbaa, req->base_asym_algo);
 	CuAssertIntEquals (test, 0xd4c3b2a1, req->base_hash_algo);
 	CuAssertIntEquals (test, 1, req->ext_asym_count);
@@ -401,7 +500,7 @@ static void spdm_test_negotiate_algorithms_response_format (CuTest *test)
 	CuAssertIntEquals (test, 0, resp->reserved);
 	CuAssertIntEquals (test, 0xaa, resp->length);
 	CuAssertIntEquals (test, 0x03, resp->measurement_specification);
-	CuAssertIntEquals (test, 0, resp->reserved2);
+	CuAssertIntEquals (test, 0, resp->other_params_selection.opaque_data_format);
 	CuAssertIntEquals (test, 0x44332211, resp->measurement_hash_algo);
 	CuAssertIntEquals (test, 0xddccbbaa, resp->base_asym_sel);
 	CuAssertIntEquals (test, 0xd4c3b2a1, resp->base_hash_sel);
@@ -1655,7 +1754,7 @@ static void spdm_test_get_capabilities_1_2 (CuTest *test)
 		resp->base_capabilities.header.req_rsp_code);
 	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved);
 	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved2);
-	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved3);	
+	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved3);
 	CuAssertIntEquals (test, 0, resp->base_capabilities.reserved4);
 	CuAssertIntEquals (test, local_capabilities->ct_exponent, resp->base_capabilities.ct_exponent);
 	CuAssertIntEquals (test, local_capabilities->data_transfer_size, resp->data_transfer_size);
@@ -1664,7 +1763,7 @@ static void spdm_test_get_capabilities_1_2 (CuTest *test)
 	status = memcmp (&local_capabilities->flags, &resp->base_capabilities.flags,
 		sizeof (struct spdm_get_capabilities_flags_format));
 	CuAssertIntEquals (test, 0, status);
-	
+
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
@@ -1701,7 +1800,7 @@ static void spdm_test_get_capabilities_1_1 (CuTest *test)
 	rq.ct_exponent = local_capabilities->ct_exponent;
 	rq.flags = local_capabilities->flags;
 	memcpy (msg.payload, &rq, sizeof (struct spdm_get_capabilities_1_1));
-	
+
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
 
 	status = mock_expect (&testing.transcript_manager_mock.mock,
@@ -3527,735 +3626,3910 @@ static void spdm_test_process_get_capabilities_response_1_1_bad_length (CuTest *
 
 static void spdm_test_negotiate_algorithms (CuTest *test)
 {
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
 	struct spdm_negotiate_algorithms_request *rq =
-		(struct spdm_negotiate_algorithms_request*) &buf[8];
+		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_negotiate_algorithms_response *rsp =
-		(struct spdm_negotiate_algorithms_response*) &buf[8];
-	struct spdm_negotiate_algorithms_response expected_rsp = {0};
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
 	struct spdm_algorithm_request *algstruct_table;
 	struct cmd_interface_msg msg;
-	struct hash_engine_mock hash;
-	uint8_t zeroes[12] = {0};
 	int status;
-	size_t length = sizeof (struct spdm_negotiate_algorithms_request) +
-		(sizeof (struct spdm_extended_algorithm) * 4) +
-		(sizeof (struct spdm_algorithm_request) * 2);
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
 
 	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = length;
-	msg.length = msg.payload_length + 8;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
 
 	rq->header.spdm_minor_version = 2;
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
 
-	rq->num_alg_structure_tables = 2;
+	rq->num_alg_structure_tables = 4;
 	rq->reserved = 0;
-	rq->length = length;
-	rq->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	rq->reserved2 = 0;
-	rq->base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P521 | SPDM_TPM_ALG_ECDSA_ECC_NIST_P384 |
-		SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
-	rq->base_hash_algo = SPDM_TPM_ALG_SHA_512 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_256;
-	rq->ext_asym_count = 1;
-	rq->ext_hash_count = 1;
+	rq->length = req_length;
+	rq->measurement_specification = local_algorithms->device_algorithms.measurement_spec;
+	rq->other_params_support.opaque_data_format =
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format;
+	rq->base_asym_algo = local_algorithms->device_algorithms.base_asym_algo;
+	rq->base_hash_algo = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_512;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
 	rq->reserved4 = 0;
 
 	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
-	algstruct_table->ext_alg_count = 1;
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
 
-	algstruct_table = (struct spdm_algorithm_request*) (((uint8_t*) (algstruct_table + 1)) +
-		sizeof (struct spdm_extended_algorithm));
-	algstruct_table->ext_alg_count = 1;
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
 
 	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
 
-	expected_rsp.header.spdm_minor_version = 2;
-	expected_rsp.header.spdm_major_version = 1;
-	expected_rsp.header.req_rsp_code = SPDM_RESPONSE_NEGOTIATE_ALGORITHMS;
-	expected_rsp.num_alg_structure_tables = 0;
-	expected_rsp.reserved = 0;
-	expected_rsp.length = sizeof (struct spdm_negotiate_algorithms_response);
-	expected_rsp.measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	expected_rsp.reserved2 = 0;
-	expected_rsp.measurement_hash_algo = SPDM_TPM_ALG_SHA_256;
-	expected_rsp.base_asym_sel = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
-	expected_rsp.base_hash_sel = SPDM_TPM_ALG_SHA_256;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->connection_info.peer_capabilities.flags = testing.local_capabilities.flags;
 
-	memset (expected_rsp.reserved3, 0, sizeof (expected_rsp.reserved3));
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
-	expected_rsp.ext_asym_sel_count = 0;
-	expected_rsp.ext_hash_sel_count = 0;
-	expected_rsp.reserved4 = 0;
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
-	status = hash_mock_init (&hash);
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, length), MOCK_ARG (length));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS (&expected_rsp, sizeof (expected_rsp)),
-		MOCK_ARG (sizeof (expected_rsp)));
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response), msg.length);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
 	CuAssertIntEquals (test, msg.length, msg.payload_length);
 	CuAssertPtrEquals (test, buf, msg.data);
 	CuAssertPtrEquals (test, rsp, msg.payload);
 	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
 	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, 0, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
 	CuAssertIntEquals (test, 0, rsp->reserved);
-	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response), rsp->length);
-	CuAssertIntEquals (test, SPDM_MEASUREMENT_SPEC_DMTF, rsp->measurement_specification);
-	CuAssertIntEquals (test, 0, rsp->reserved2);
-	CuAssertIntEquals (test, SPDM_TPM_ALG_SHA_256, rsp->measurement_hash_algo);
-	CuAssertIntEquals (test, SPDM_TPM_ALG_ECDSA_ECC_NIST_P256, rsp->base_asym_sel);
-	CuAssertIntEquals (test, SPDM_TPM_ALG_SHA_256, rsp->base_hash_sel);
-
-	status = testing_validate_array (zeroes, rsp->reserved3, sizeof (zeroes));
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		rsp->measurement_specification);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		rsp->other_params_selection.opaque_data_format);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.measurement_hash_algo, rsp->measurement_hash_algo);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.base_asym_algo, rsp->base_asym_sel);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.base_hash_algo, rsp->base_hash_sel);
 
 	CuAssertIntEquals (test, 0, rsp->ext_asym_sel_count);
 	CuAssertIntEquals (test, 0, rsp->ext_hash_sel_count);
 	CuAssertIntEquals (test, 0, rsp->reserved4);
 
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE,
+		resp_no_ext_alg->algstruct_table[0].alg_type);
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[0].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].ext_alg_count);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		resp_no_ext_alg->algstruct_table[0].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[1].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[1].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD,
+		resp_no_ext_alg->algstruct_table[1].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		resp_no_ext_alg->algstruct_table[1].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[2].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[2].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG,
+		resp_no_ext_alg->algstruct_table[2].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		resp_no_ext_alg->algstruct_table[2].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[3].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[3].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE,
+		resp_no_ext_alg->algstruct_table[3].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		resp_no_ext_alg->algstruct_table[3].alg_supported) ;
+
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		spdm_state->connection_info.peer_algorithms.aead_cipher_suite);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_asym_algo,
+		spdm_state->connection_info.peer_algorithms.base_asym_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_hash_algo,
+		spdm_state->connection_info.peer_algorithms.base_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		spdm_state->connection_info.peer_algorithms.dhe_named_group);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		spdm_state->connection_info.peer_algorithms.key_schedule);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_hash_algo,
+		spdm_state->connection_info.peer_algorithms.measurement_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		spdm_state->connection_info.peer_algorithms.measurement_spec);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		spdm_state->connection_info.peer_algorithms.req_base_asym_alg);
+
+	spdm_command_testing_release_dependencies (test, &testing);
 }
+
+static void spdm_test_negotiate_algorithms_highest_pri_hash_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+	local_algorithms->device_algorithms.base_hash_algo = 
+		local_algorithms->device_algorithms.base_hash_algo | SPDM_TPM_ALG_SHA_512;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->measurement_specification = local_algorithms->device_algorithms.measurement_spec;
+	rq->other_params_support.opaque_data_format =
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format;
+	rq->base_asym_algo = local_algorithms->device_algorithms.base_asym_algo;
+	rq->base_hash_algo = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_512;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->connection_info.peer_capabilities.flags = testing.local_capabilities.flags;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		rsp->measurement_specification);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		rsp->other_params_selection.opaque_data_format);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.measurement_hash_algo, rsp->measurement_hash_algo);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.base_asym_algo, rsp->base_asym_sel);
+	CuAssertIntEquals (test, SPDM_TPM_ALG_SHA_512, rsp->base_hash_sel);
+
+	CuAssertIntEquals (test, 0, rsp->ext_asym_sel_count);
+	CuAssertIntEquals (test, 0, rsp->ext_hash_sel_count);
+	CuAssertIntEquals (test, 0, rsp->reserved4);
+
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE,
+		resp_no_ext_alg->algstruct_table[0].alg_type);
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[0].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].ext_alg_count);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		resp_no_ext_alg->algstruct_table[0].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[1].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[1].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD,
+		resp_no_ext_alg->algstruct_table[1].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		resp_no_ext_alg->algstruct_table[1].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[2].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[2].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG,
+		resp_no_ext_alg->algstruct_table[2].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		resp_no_ext_alg->algstruct_table[2].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[3].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[3].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE,
+		resp_no_ext_alg->algstruct_table[3].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		resp_no_ext_alg->algstruct_table[3].alg_supported) ;
+
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		spdm_state->connection_info.peer_algorithms.aead_cipher_suite);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_asym_algo,
+		spdm_state->connection_info.peer_algorithms.base_asym_algo);
+	CuAssertIntEquals (test, SPDM_TPM_ALG_SHA_512,
+		spdm_state->connection_info.peer_algorithms.base_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		spdm_state->connection_info.peer_algorithms.dhe_named_group);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		spdm_state->connection_info.peer_algorithms.key_schedule);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_hash_algo,
+		spdm_state->connection_info.peer_algorithms.measurement_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		spdm_state->connection_info.peer_algorithms.measurement_spec);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		spdm_state->connection_info.peer_algorithms.req_base_asym_alg);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_lowest_pri_hash_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+	local_algorithms->device_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_256;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->measurement_specification = local_algorithms->device_algorithms.measurement_spec;
+	rq->other_params_support.opaque_data_format =
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format;
+	rq->base_asym_algo = local_algorithms->device_algorithms.base_asym_algo;
+	rq->base_hash_algo = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_512;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->connection_info.peer_capabilities.flags = testing.local_capabilities.flags;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		rsp->measurement_specification);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		rsp->other_params_selection.opaque_data_format);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.measurement_hash_algo, rsp->measurement_hash_algo);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.base_asym_algo, rsp->base_asym_sel);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.base_hash_algo, rsp->base_hash_sel);
+
+	CuAssertIntEquals (test, 0, rsp->ext_asym_sel_count);
+	CuAssertIntEquals (test, 0, rsp->ext_hash_sel_count);
+	CuAssertIntEquals (test, 0, rsp->reserved4);
+
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE,
+		resp_no_ext_alg->algstruct_table[0].alg_type);
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[0].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].ext_alg_count);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		resp_no_ext_alg->algstruct_table[0].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[1].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[1].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD,
+		resp_no_ext_alg->algstruct_table[1].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		resp_no_ext_alg->algstruct_table[1].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[2].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[2].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG,
+		resp_no_ext_alg->algstruct_table[2].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		resp_no_ext_alg->algstruct_table[2].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[3].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[3].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE,
+		resp_no_ext_alg->algstruct_table[3].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		resp_no_ext_alg->algstruct_table[3].alg_supported) ;
+
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		spdm_state->connection_info.peer_algorithms.aead_cipher_suite);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_asym_algo,
+		spdm_state->connection_info.peer_algorithms.base_asym_algo);
+	CuAssertIntEquals (test, SPDM_TPM_ALG_SHA_256,
+		spdm_state->connection_info.peer_algorithms.base_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		spdm_state->connection_info.peer_algorithms.dhe_named_group);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		spdm_state->connection_info.peer_algorithms.key_schedule);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_hash_algo,
+		spdm_state->connection_info.peer_algorithms.measurement_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		spdm_state->connection_info.peer_algorithms.measurement_spec);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		spdm_state->connection_info.peer_algorithms.req_base_asym_alg);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_no_priority_table (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	/* Remove the algorithm prioty info. */
+	memset ((void *) &spdm_responder->local_algorithms->algorithms_priority_table, 0,
+		sizeof (struct spdm_local_device_algorithms_priority_table));
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->measurement_specification = local_algorithms->device_algorithms.measurement_spec;
+	rq->other_params_support.opaque_data_format =
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format;
+	rq->base_asym_algo = local_algorithms->device_algorithms.base_asym_algo;
+	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->connection_info.peer_capabilities.flags = testing.local_capabilities.flags;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		rsp->measurement_specification);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		rsp->other_params_selection.opaque_data_format);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.measurement_hash_algo, rsp->measurement_hash_algo);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.base_asym_algo, rsp->base_asym_sel);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.base_hash_algo, rsp->base_hash_sel);
+
+	CuAssertIntEquals (test, 0, rsp->ext_asym_sel_count);
+	CuAssertIntEquals (test, 0, rsp->ext_hash_sel_count);
+	CuAssertIntEquals (test, 0, rsp->reserved4);
+
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE,
+		resp_no_ext_alg->algstruct_table[0].alg_type);
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[0].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].ext_alg_count);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		resp_no_ext_alg->algstruct_table[0].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[1].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[1].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD,
+		resp_no_ext_alg->algstruct_table[1].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		resp_no_ext_alg->algstruct_table[1].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[2].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[2].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG,
+		resp_no_ext_alg->algstruct_table[2].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		resp_no_ext_alg->algstruct_table[2].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[3].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[3].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE,
+		resp_no_ext_alg->algstruct_table[3].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		resp_no_ext_alg->algstruct_table[3].alg_supported) ;
+
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		spdm_state->connection_info.peer_algorithms.aead_cipher_suite);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_asym_algo,
+		spdm_state->connection_info.peer_algorithms.base_asym_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_hash_algo,
+		spdm_state->connection_info.peer_algorithms.base_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		spdm_state->connection_info.peer_algorithms.dhe_named_group);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		spdm_state->connection_info.peer_algorithms.key_schedule);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_hash_algo,
+		spdm_state->connection_info.peer_algorithms.measurement_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		spdm_state->connection_info.peer_algorithms.measurement_spec);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		spdm_state->connection_info.peer_algorithms.req_base_asym_alg);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_no_priority_table_first_common_leftmost_hash_algo (
+	CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	/* Remove the algorithm prioty info. */
+	memset ((void *) &spdm_responder->local_algorithms->algorithms_priority_table, 0,
+		sizeof (struct spdm_local_device_algorithms_priority_table));
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+	local_algorithms->device_algorithms.base_hash_algo = 
+		SPDM_TPM_ALG_SHA_512 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_256;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->measurement_specification = local_algorithms->device_algorithms.measurement_spec;
+	rq->other_params_support.opaque_data_format =
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format;
+	rq->base_asym_algo = local_algorithms->device_algorithms.base_asym_algo;
+	rq->base_hash_algo = SPDM_TPM_ALG_SHA_512;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->connection_info.peer_capabilities.flags = testing.local_capabilities.flags;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		rsp->measurement_specification);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		rsp->other_params_selection.opaque_data_format);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.measurement_hash_algo, rsp->measurement_hash_algo);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.base_asym_algo, rsp->base_asym_sel);
+	CuAssertIntEquals (test, SPDM_TPM_ALG_SHA_512, rsp->base_hash_sel);
+
+	CuAssertIntEquals (test, 0, rsp->ext_asym_sel_count);
+	CuAssertIntEquals (test, 0, rsp->ext_hash_sel_count);
+	CuAssertIntEquals (test, 0, rsp->reserved4);
+
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE,
+		resp_no_ext_alg->algstruct_table[0].alg_type);
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[0].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].ext_alg_count);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		resp_no_ext_alg->algstruct_table[0].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[1].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[1].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD,
+		resp_no_ext_alg->algstruct_table[1].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		resp_no_ext_alg->algstruct_table[1].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[2].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[2].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG,
+		resp_no_ext_alg->algstruct_table[2].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		resp_no_ext_alg->algstruct_table[2].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[3].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[3].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE,
+		resp_no_ext_alg->algstruct_table[3].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		resp_no_ext_alg->algstruct_table[3].alg_supported) ;
+
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		spdm_state->connection_info.peer_algorithms.aead_cipher_suite);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_asym_algo,
+		spdm_state->connection_info.peer_algorithms.base_asym_algo);
+	CuAssertIntEquals (test, SPDM_TPM_ALG_SHA_512,
+		spdm_state->connection_info.peer_algorithms.base_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		spdm_state->connection_info.peer_algorithms.dhe_named_group);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		spdm_state->connection_info.peer_algorithms.key_schedule);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_hash_algo,
+		spdm_state->connection_info.peer_algorithms.measurement_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		spdm_state->connection_info.peer_algorithms.measurement_spec);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		spdm_state->connection_info.peer_algorithms.req_base_asym_alg);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_no_priority_table_first_common_rightmost_hash_algo (
+	CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	/* Remove the algorithm prioty info. */
+	memset ((void *) &spdm_responder->local_algorithms->algorithms_priority_table, 0,
+		sizeof (struct spdm_local_device_algorithms_priority_table));
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+	local_algorithms->device_algorithms.base_hash_algo = 
+		SPDM_TPM_ALG_SHA_512 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_256;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->measurement_specification = local_algorithms->device_algorithms.measurement_spec;
+	rq->other_params_support.opaque_data_format =
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format;
+	rq->base_asym_algo = local_algorithms->device_algorithms.base_asym_algo;
+	rq->base_hash_algo = SPDM_TPM_ALG_SHA_256;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->connection_info.peer_capabilities.flags = testing.local_capabilities.flags;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		rsp->measurement_specification);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		rsp->other_params_selection.opaque_data_format);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.measurement_hash_algo, rsp->measurement_hash_algo);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.base_asym_algo, rsp->base_asym_sel);
+	CuAssertIntEquals (test, SPDM_TPM_ALG_SHA_256, rsp->base_hash_sel);
+
+	CuAssertIntEquals (test, 0, rsp->ext_asym_sel_count);
+	CuAssertIntEquals (test, 0, rsp->ext_hash_sel_count);
+	CuAssertIntEquals (test, 0, rsp->reserved4);
+
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE,
+		resp_no_ext_alg->algstruct_table[0].alg_type);
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[0].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].ext_alg_count);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		resp_no_ext_alg->algstruct_table[0].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[1].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[1].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD,
+		resp_no_ext_alg->algstruct_table[1].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		resp_no_ext_alg->algstruct_table[1].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[2].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[2].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG,
+		resp_no_ext_alg->algstruct_table[2].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		resp_no_ext_alg->algstruct_table[2].alg_supported);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[3].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[3].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE,
+		resp_no_ext_alg->algstruct_table[3].alg_type);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		resp_no_ext_alg->algstruct_table[3].alg_supported) ;
+
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
+		spdm_state->connection_info.peer_algorithms.aead_cipher_suite);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_asym_algo,
+		spdm_state->connection_info.peer_algorithms.base_asym_algo);
+	CuAssertIntEquals (test, SPDM_TPM_ALG_SHA_256,
+		spdm_state->connection_info.peer_algorithms.base_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.dhe_named_group,
+		spdm_state->connection_info.peer_algorithms.dhe_named_group);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
+		spdm_state->connection_info.peer_algorithms.key_schedule);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_hash_algo,
+		spdm_state->connection_info.peer_algorithms.measurement_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		spdm_state->connection_info.peer_algorithms.measurement_spec);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+		spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
+		spdm_state->connection_info.peer_algorithms.req_base_asym_alg);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
 
 static void spdm_test_negotiate_algorithms_null (CuTest *test)
 {
-	struct cmd_interface_msg msg;
-	struct hash_engine_mock hash;
 	int status;
 
 	TEST_START;
 
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
+	status = spdm_negotiate_algorithms (NULL, (struct cmd_interface_msg*) (0xDEADBEEF));
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 
-	status = spdm_negotiate_algorithms (NULL, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
-
-	status = spdm_negotiate_algorithms (&msg, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_INVALID_ARGUMENT, status);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
+	status = spdm_negotiate_algorithms ((struct cmd_interface_spdm_responder *) (0xBAADF00D), NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT, status);
 }
 
-static void spdm_test_negotiate_algorithms_dmtf_measurement_specification_not_supported (
-	CuTest *test)
+static void spdm_test_negotiate_algorithms_incorrect_negotiated_version (CuTest *test)
 {
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
-	struct spdm_negotiate_algorithms_request *rq =
-		(struct spdm_negotiate_algorithms_request*) &buf[8];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[8];
-	struct spdm_algorithm_request *algstruct_table;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct cmd_interface_msg msg;
-	struct hash_engine_mock hash;
-	struct logging_mock log;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_SPDM,
-		.msg_index = SPDM_LOGGING_ERR_MSG,
-		.arg1 = (((uint32_t) SPDM_REQUEST_NEGOTIATE_ALGORITHMS) << 24 | 0xab << 16 |
-			SPDM_ERROR_INVALID_REQUEST << 8 | 0),
-		.arg2 = CMD_HANDLER_SPDM_UNSUPPORTED_MEAS_SPEC
-	};
 	int status;
-	size_t length = sizeof (struct spdm_negotiate_algorithms_request) +
-		(sizeof (struct spdm_extended_algorithm) * 4) +
-		(sizeof (struct spdm_algorithm_request) * 2);
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
 
 	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = length;
-	msg.length = msg.payload_length + 8;
-	msg.source_eid = 0xab;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_negotiate_algorithms_request);
+	msg.length = msg.payload_length;
 
-	rq->header.spdm_minor_version = 2;
+	/* Negotiated Version: 1.2; Request Version: 1.1 */
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 1;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
 
-	rq->num_alg_structure_tables = 2;
-	rq->reserved = 0;
-	rq->length = length;
-	rq->measurement_specification = 0;
-	rq->reserved2 = 0;
-	rq->base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
-	rq->base_hash_algo = SPDM_TPM_ALG_SHA_256;
-	rq->ext_asym_count = 1;
-	rq->ext_hash_count = 1;
-	rq->reserved4 = 0;
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
-	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
-	algstruct_table->ext_alg_count = 1;
-
-	algstruct_table = (struct spdm_algorithm_request*) (((uint8_t*) (algstruct_table + 1)) +
-		sizeof (struct spdm_extended_algorithm));
-	algstruct_table->ext_alg_count = 1;
-
-	memset (rq->reserved3, 0, sizeof (rq->reserved3));
-
-	status = logging_mock_init (&log);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_VERSION_MISMATCH, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
 
-	debug_log = &log.base;
+	/* Negotiated Version: 1.1; Request Version: 1.2 */
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_negotiate_algorithms_request);
+	msg.length = msg.payload_length;
 
-	status = mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 1;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_VERSION_MISMATCH, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
 
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	debug_log = NULL;
-
-	status = logging_mock_validate_and_release (&log);
-	CuAssertIntEquals (test, 0, status);
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
-static void spdm_test_negotiate_algorithms_no_common_asym_algo (CuTest *test)
+static void spdm_test_negotiate_algorithms_incorrect_response_state (CuTest *test)
 {
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
-	struct spdm_negotiate_algorithms_request *rq =
-		(struct spdm_negotiate_algorithms_request*) &buf[8];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[8];
-	struct spdm_algorithm_request *algstruct_table;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct cmd_interface_msg msg;
-	struct hash_engine_mock hash;
-	struct logging_mock log;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_SPDM,
-		.msg_index = SPDM_LOGGING_ERR_MSG,
-		.arg1 = (((uint32_t) SPDM_REQUEST_NEGOTIATE_ALGORITHMS) << 24 | 0xba << 16 |
-			SPDM_ERROR_INVALID_REQUEST << 8 | 0),
-		.arg2 = CMD_HANDLER_SPDM_UNSUPPORTED_ASYM_ALGO
-	};
 	int status;
-	size_t length = sizeof (struct spdm_negotiate_algorithms_request) +
-		(sizeof (struct spdm_extended_algorithm) * 4) +
-		(sizeof (struct spdm_algorithm_request) * 2);
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
 
 	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = length;
-	msg.length = msg.payload_length + 8;
-	msg.source_eid = 0xba;
+	msg.max_response = sizeof (buf);
 
-	rq->header.spdm_minor_version = 2;
+	/* Response State: SPDM_RESPONSE_STATE_BUSY */
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
-
-	rq->num_alg_structure_tables = 2;
-	rq->reserved = 0;
-	rq->length = length;
-	rq->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	rq->reserved2 = 0;
-	rq->base_asym_algo = 0;
-	rq->base_hash_algo = SPDM_TPM_ALG_SHA_256;
-	rq->ext_asym_count = 1;
-	rq->ext_hash_count = 1;
-	rq->reserved4 = 0;
-
-	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
-	algstruct_table->ext_alg_count = 1;
-
-	algstruct_table = (struct spdm_algorithm_request*) (((uint8_t*) (algstruct_table + 1)) +
-		sizeof (struct spdm_extended_algorithm));
-	algstruct_table->ext_alg_count = 1;
-
-	memset (rq->reserved3, 0, sizeof (rq->reserved3));
-
-	status = logging_mock_init (&log);
-	CuAssertIntEquals (test, 0, status);
-
-	debug_log = &log.base;
-
-	status = mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	debug_log = NULL;
-
-	status = logging_mock_validate_and_release (&log);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void spdm_test_negotiate_algorithms_no_common_hash_algo (CuTest *test)
-{
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
-	struct spdm_negotiate_algorithms_request *rq =
-		(struct spdm_negotiate_algorithms_request*) &buf[8];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[8];
-	struct spdm_algorithm_request *algstruct_table;
-	struct cmd_interface_msg msg;
-	struct hash_engine_mock hash;
-	struct logging_mock log;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_SPDM,
-		.msg_index = SPDM_LOGGING_ERR_MSG,
-		.arg1 = (((uint32_t) SPDM_REQUEST_NEGOTIATE_ALGORITHMS) << 24 | 0xab << 16 |
-			SPDM_ERROR_INVALID_REQUEST << 8 | 0),
-		.arg2 = CMD_HANDLER_SPDM_UNSUPPORTED_HASH_ALGO
-	};
-	int status;
-	size_t length = sizeof (struct spdm_negotiate_algorithms_request) +
-		(sizeof (struct spdm_extended_algorithm) * 4) +
-		(sizeof (struct spdm_algorithm_request) * 2);
-
-	TEST_START;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = length;
-	msg.length = msg.payload_length + 8;
-	msg.source_eid = 0xab;
+	msg.max_response = sizeof (buf);
+	spdm_state->response_state = SPDM_RESPONSE_STATE_BUSY;
 
-	rq->header.spdm_minor_version = 2;
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_BUSY, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	/* Response State: SPDM_RESPONSE_STATE_NEED_RESYNC */
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
 
-	rq->num_alg_structure_tables = 2;
-	rq->reserved = 0;
-	rq->length = length;
-	rq->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	rq->reserved2 = 0;
-	rq->base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
-	rq->base_hash_algo = 0;
-	rq->ext_asym_count = 1;
-	rq->ext_hash_count = 1;
-	rq->reserved4 = 0;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NEED_RESYNC;
 
-	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
-	algstruct_table->ext_alg_count = 1;
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
-	algstruct_table = (struct spdm_algorithm_request*) (((uint8_t*) (algstruct_table + 1)) +
-		sizeof (struct spdm_extended_algorithm));
-	algstruct_table->ext_alg_count = 1;
-
-	memset (rq->reserved3, 0, sizeof (rq->reserved3));
-
-	status = logging_mock_init (&log);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_REQUEST_RESYNCH, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
 
-	debug_log = &log.base;
+	/* Response State: SPDM_RESPONSE_STATE_PROCESSING_ENCAP */
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
 
-	status = mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+
+	spdm_state->response_state = SPDM_RESPONSE_STATE_PROCESSING_ENCAP;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_REQUEST_IN_FLIGHT, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
 
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	msg.length = rq->length + 1;
-	msg.source_eid = 0xab;
-
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	debug_log = NULL;
-
-	status = logging_mock_validate_and_release (&log);
-	CuAssertIntEquals (test, 0, status);
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
-static void spdm_test_negotiate_algorithms_bad_length (CuTest *test)
+static void spdm_test_negotiate_algorithms_incorrect_connection_state (CuTest *test)
 {
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
-	struct spdm_negotiate_algorithms_request *rq =
-		(struct spdm_negotiate_algorithms_request*) &buf[8];
-	struct spdm_algorithm_request *algstruct_table;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct cmd_interface_msg msg;
-	struct hash_engine_mock hash;
 	int status;
-	size_t length = sizeof (struct spdm_negotiate_algorithms_request) +
-		(sizeof (struct spdm_extended_algorithm) * 4) +
-		(sizeof (struct spdm_algorithm_request) * 2);
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
 
 	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = length;
-	msg.length = msg.payload_length + 8;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_negotiate_algorithms_request);
+	msg.length = msg.payload_length;
 
-	rq->header.spdm_minor_version = 2;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
 
-	rq->num_alg_structure_tables = 2;
-	rq->reserved = 0;
-	rq->length = length;
-	rq->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	rq->reserved2 = 0;
-	rq->base_asym_algo = 0xabcdef;
-	rq->base_hash_algo = 0xfedcba;
-	rq->ext_asym_count = 1;
-	rq->ext_hash_count = 1;
-	rq->reserved4 = 0;
 
-	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
-	algstruct_table->ext_alg_count = 1;
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
-	algstruct_table = (struct spdm_algorithm_request*) (((uint8_t*) (algstruct_table + 1)) +
-		sizeof (struct spdm_extended_algorithm));
-	algstruct_table->ext_alg_count = 1;
-
-	memset (rq->reserved3, 0, sizeof (rq->reserved3));
-
-	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNEXPECTED_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
 
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_request_length_lt_min (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
 	msg.payload_length = sizeof (struct spdm_negotiate_algorithms_request) - 1;
-	rq->length = sizeof (struct spdm_negotiate_algorithms_request) - 1;
-
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);
-
-	msg.payload_length = length - 1;
-	rq->length = length;
-
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);
-
-	msg.payload_length = length + 1;
-
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);
-
-	msg.payload_length = sizeof (struct spdm_negotiate_algorithms_request) +
-		(sizeof (struct spdm_extended_algorithm) * (rq->ext_asym_count + rq->ext_hash_count)) +
-		(sizeof (struct spdm_algorithm_request) * rq->num_alg_structure_tables) - 1;
-	rq->length = msg.payload_length;
-
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);
-
-	msg.payload_length = sizeof (struct spdm_negotiate_algorithms_request) +
-		(sizeof (struct spdm_extended_algorithm) * 3) +
-		(sizeof (struct spdm_algorithm_request) * 2);
-	rq->length = msg.payload_length;
-
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);
-
-	msg.payload_length = sizeof (struct spdm_negotiate_algorithms_request) +
-		(sizeof (struct spdm_extended_algorithm) * 4) +
-		(sizeof (struct spdm_algorithm_request) * 2) - 1;
-	rq->length = msg.payload_length;
-
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-}
-
-static void spdm_test_negotiate_algorithms_hash_update_rq_fail (CuTest *test)
-{
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
-	struct spdm_negotiate_algorithms_request *rq =
-		(struct spdm_negotiate_algorithms_request*) &buf[8];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[8];
-	struct spdm_algorithm_request *algstruct_table;
-	struct cmd_interface_msg msg;
-	struct hash_engine_mock hash;
-	struct logging_mock log;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_SPDM,
-		.msg_index = SPDM_LOGGING_ERR_MSG,
-		.arg1 = (((uint32_t) SPDM_REQUEST_NEGOTIATE_ALGORITHMS) << 24 | 0xab << 16 |
-			SPDM_ERROR_UNSPECIFIED << 8 | 0),
-		.arg2 = HASH_ENGINE_NO_MEMORY
-	};
-	int status;
-	size_t length = sizeof (struct spdm_negotiate_algorithms_request) +
-		(sizeof (struct spdm_extended_algorithm) * 4) +
-		(sizeof (struct spdm_algorithm_request) * 2);
-
-	TEST_START;
-
-	memset (&msg, 0, sizeof (msg));
-	msg.data = buf;
-	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = length;
-	msg.length = msg.payload_length + 8;
-	msg.source_eid = 0xab;
+	msg.length = msg.payload_length;
 
 	rq->header.spdm_minor_version = 2;
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
-
-	rq->num_alg_structure_tables = 2;
+	rq->num_alg_structure_tables = 4;
 	rq->reserved = 0;
-	rq->length = length;
-	rq->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	rq->reserved2 = 0;
-	rq->base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P521 | SPDM_TPM_ALG_ECDSA_ECC_NIST_P384 |
-		SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
-	rq->base_hash_algo = SPDM_TPM_ALG_SHA_512 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_256;
-	rq->ext_asym_count = 1;
-	rq->ext_hash_count = 1;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
 	rq->reserved4 = 0;
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
 
-	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table(rq);
-	algstruct_table->ext_alg_count = 1;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
-	algstruct_table = (struct spdm_algorithm_request*) (((uint8_t*) (algstruct_table + 1)) +
-		sizeof (struct spdm_extended_algorithm));
-	algstruct_table->ext_alg_count = 1;
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_invalid_request_length (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 1; /* Invalid req_length */
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_request_length_gt_max (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = SPDM_NEGOTIATE_ALGORITHMS_REQUEST_MAX_LENGTH + 1;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->length = req_length;
 
 	memset (rq->reserved3, 0, sizeof (rq->reserved3));
 
-	status = logging_mock_init (&log);
-	CuAssertIntEquals (test, 0, status);
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
-	debug_log = &log.base;
-
-	status = mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, length), MOCK_ARG (length));
-	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
 
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
-
-	status = hash_mock_validate_and_release (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	debug_log = NULL;
-
-	status = logging_mock_validate_and_release (&log);
-	CuAssertIntEquals (test, 0, status);
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
-static void spdm_test_negotiate_algorithms_hash_update_rsp_fail (CuTest *test)
+static void spdm_test_negotiate_algorithms_invalid_req_alg_type (CuTest *test)
 {
-	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
-		(struct spdm_negotiate_algorithms_request*) &buf[16];
-	struct spdm_error_response *rsp = (struct spdm_error_response*) &buf[16];
-	struct spdm_negotiate_algorithms_response expected_rsp;
+		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
 	struct cmd_interface_msg msg;
-	struct hash_engine_mock hash;
-	struct logging_mock log;
-	struct debug_log_entry_info entry = {
-		.format = DEBUG_LOG_ENTRY_FORMAT,
-		.severity = DEBUG_LOG_SEVERITY_ERROR,
-		.component = DEBUG_LOG_COMPONENT_SPDM,
-		.msg_index = SPDM_LOGGING_ERR_MSG,
-		.arg1 = (((uint32_t) SPDM_REQUEST_NEGOTIATE_ALGORITHMS) << 24 | 0xab << 16 |
-			SPDM_ERROR_UNSPECIFIED << 8 | 0),
-		.arg2 = HASH_ENGINE_NO_MEMORY
-	};
 	int status;
-	size_t length = sizeof (struct spdm_negotiate_algorithms_request) +
-		(sizeof (struct spdm_extended_algorithm) * 4) +
-		(sizeof (struct spdm_algorithm_request) * 2);
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
 
 	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
 
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
-	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-	msg.payload_length = length;
-	msg.length = msg.payload_length + 16;
-	msg.source_eid = 0xab;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
 
 	rq->header.spdm_minor_version = 2;
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
-
-	rq->num_alg_structure_tables = 2;
+	rq->num_alg_structure_tables = 4;
 	rq->reserved = 0;
-	rq->length = length;
-	rq->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	rq->reserved2 = 0;
-	rq->base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P521 | SPDM_TPM_ALG_ECDSA_ECC_NIST_P384 |
-		SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
-	rq->base_hash_algo = SPDM_TPM_ALG_SHA_512 | SPDM_TPM_ALG_SHA_384 | SPDM_TPM_ALG_SHA_256;
-	rq->ext_asym_count = 1;
-	rq->ext_hash_count = 1;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
 	rq->reserved4 = 0;
 
 	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
-	algstruct_table->ext_alg_count = 1;
-
-	algstruct_table = (struct spdm_algorithm_request*) (((uint8_t*) (algstruct_table + 1)) +
-		sizeof (struct spdm_extended_algorithm));
-	algstruct_table->ext_alg_count = 1;
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = 0;
+	algstruct_table[0].alg_supported = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
 
 	memset (rq->reserved3, 0, sizeof (rq->reserved3));
 
-	expected_rsp.header.spdm_minor_version = 2;
-	expected_rsp.header.spdm_major_version = 1;
-	expected_rsp.header.req_rsp_code = SPDM_RESPONSE_NEGOTIATE_ALGORITHMS;
-	expected_rsp.num_alg_structure_tables = 0;
-	expected_rsp.reserved = 0;
-	expected_rsp.length = sizeof (struct spdm_negotiate_algorithms_response);
-	expected_rsp.measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	expected_rsp.reserved2 = 0;
-	expected_rsp.measurement_hash_algo = SPDM_TPM_ALG_SHA_256;
-	expected_rsp.base_asym_sel = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
-	expected_rsp.base_hash_sel = SPDM_TPM_ALG_SHA_256;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
 
-	memset (expected_rsp.reserved3, 0, sizeof (expected_rsp.reserved3));
-
-	expected_rsp.ext_asym_sel_count = 0;
-	expected_rsp.ext_hash_sel_count = 0;
-	expected_rsp.reserved4 = 0;
-
-	status = logging_mock_init (&log);
-	CuAssertIntEquals (test, 0, status);
-
-	debug_log = &log.base;
-
-	status = mock_expect (&log.mock, log.base.create_entry, &log, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-	CuAssertIntEquals (test, 0, status);
-
-	status = hash_mock_init (&hash);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&hash.mock, hash.base.update, &hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (rq, length), MOCK_ARG (length));
-	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_NO_MEMORY,
-		MOCK_ARG_PTR_CONTAINS (&expected_rsp, sizeof (expected_rsp)),
-		MOCK_ARG (sizeof (expected_rsp)));
-	status |= mock_expect (&hash.mock, hash.base.cancel, &hash, 0);
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
 
-	status = spdm_negotiate_algorithms (&msg, &hash.base);
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_req_alg_not_monotonic (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[0].alg_supported = SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[1].alg_supported = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.length);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_unsupported_fixed_algo_count (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 1);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 1;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 3; /* Unsupported */
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_ext_algo_count_gt_max_supported (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table->fixed_alg_count = 2;
+	algstruct_table->alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table->alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+	algstruct_table->ext_alg_count = 5;
+
+	algstruct_table = (struct spdm_algorithm_request*)(((uint8_t*) algstruct_table) +
+		sizeof (struct spdm_algorithm_request) +
+		sizeof (struct spdm_extended_algorithm) * algstruct_table->ext_alg_count);
+
+	algstruct_table->fixed_alg_count = 2;
+	algstruct_table->alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table->alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+	algstruct_table->ext_alg_count = 5;
+
+	algstruct_table = (struct spdm_algorithm_request*)(((uint8_t*) algstruct_table) +
+		sizeof (struct spdm_algorithm_request) +
+		sizeof (struct spdm_extended_algorithm) * algstruct_table->ext_alg_count);
+
+	algstruct_table->fixed_alg_count = 2;
+	algstruct_table->alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table->alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+	algstruct_table->ext_alg_count = 5;
+
+	algstruct_table = (struct spdm_algorithm_request*)(((uint8_t*) algstruct_table) +
+		sizeof (struct spdm_algorithm_request) +
+		sizeof (struct spdm_extended_algorithm) * algstruct_table->ext_alg_count);
+
+	algstruct_table->fixed_alg_count = 2;
+	algstruct_table->alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table->alg_supported = local_algorithms->device_algorithms.key_schedule;
+	algstruct_table->ext_alg_count = 6;
+
+	algstruct_table = (struct spdm_algorithm_request*)(((uint8_t*) algstruct_table) +
+		sizeof (struct spdm_algorithm_request) +
+		sizeof (struct spdm_extended_algorithm) * algstruct_table->ext_alg_count);
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	rq->length = SPDM_NEGOTIATE_ALGORITHMS_REQUEST_MAX_LENGTH;
+
+	msg.payload_length = (size_t) algstruct_table - (size_t) rq;
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	rq->other_params_support.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_invalid_ext_algo_count (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+	algstruct_table[0].ext_alg_count = 10; /* Count is non-zero but no alg specified. */
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	rq->other_params_support.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_invalid_opaque_data_format (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	rq->other_params_support.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1 + 1;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_payload_length_ne_request_length (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length - 1;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_illegal_dhe_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = 0; /* Illegal value */
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_no_common_dhe_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	/* No common algo  */
+	algstruct_table[0].alg_supported = ~local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
 	CuAssertIntEquals (test, msg.length, msg.payload_length);
 	CuAssertPtrEquals (test, buf, msg.data);
 	CuAssertPtrEquals (test, rsp, msg.payload);
 	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, 1, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, rsp->error_code);
-	CuAssertIntEquals (test, 0, rsp->error_data);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
 
-	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE,
+		resp_no_ext_alg->algstruct_table[0].alg_type);
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[0].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].ext_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].alg_supported);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_no_local_dhe_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+	local_algorithms->algorithms_priority_table.dhe_priority_table_count = 0;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
 	CuAssertIntEquals (test, 0, status);
 
-	debug_log = NULL;
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
 
-	status = logging_mock_validate_and_release (&log);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE,
+		resp_no_ext_alg->algstruct_table[0].alg_type);
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[0].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].ext_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].alg_supported);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+
+static void spdm_test_negotiate_algorithms_illegal_aead_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = 0; /* Illegal value */
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_no_common_aead_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
+	rq->base_asym_algo = local_algorithms->device_algorithms.base_asym_algo;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	/* No common algo  */
+	algstruct_table[1].alg_supported = ~local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[1].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[1].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD,
+		resp_no_ext_alg->algstruct_table[1].alg_type);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[1].alg_supported);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_illegal_req_asym_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = 0; /* Illegal value */
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_no_common_req_asym_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	/* No common algo  */
+	algstruct_table[2].alg_supported = ~local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[2].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[2].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG,
+		resp_no_ext_alg->algstruct_table[2].alg_type);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[2].alg_supported);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_illegal_key_schedule_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = 0; /* Illegal value */
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_no_common_key_schedule_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
+		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = ~local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+
+	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[3].fixed_alg_count);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[3].ext_alg_count);
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE,
+		resp_no_ext_alg->algstruct_table[3].alg_type);
+	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[3].alg_supported) ;
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_unsupported_measurement_spec (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
+	rq->measurement_specification = ~SPDM_MEASUREMENT_SPEC_DMTF;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+
+	CuAssertIntEquals (test, 0, rsp->measurement_specification);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_unsupported_measurement_spec_hash_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+	local_algorithms->device_algorithms.measurement_hash_algo = 0;	/* None supported */
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
+	rq->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+
+	CuAssertIntEquals (test, 0, rsp->measurement_hash_algo);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_no_local_measurement_capability (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+	testing.local_capabilities.flags.meas_cap = 0;	/* No local measurement capability */
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
+	rq->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+
+	CuAssertIntEquals (test, 0, rsp->measurement_hash_algo);
+	CuAssertIntEquals (test, 0, rsp->measurement_specification);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_unsupported_base_hash_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->base_hash_algo = ~local_algorithms->device_algorithms.base_hash_algo;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+
+	CuAssertIntEquals (test, 0, rsp->base_hash_sel);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_unsupported_base_asym_algo (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_negotiate_algorithms_response *rsp =
+		(struct spdm_negotiate_algorithms_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
+	rq->base_asym_algo = ~local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+	memcpy (rq_copy, rq, rq->length);
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_PTR_CONTAINS (&rq_copy, req_length),
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_PTR_PTR_NOT_NULL,
+		MOCK_ARG (sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, rsp, msg.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_NEGOTIATE_ALGORITHMS, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 4, rsp->num_alg_structure_tables);
+	CuAssertIntEquals (test, 0, rsp->reserved);
+	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
+		rsp->length);
+
+	CuAssertIntEquals (test, 0, rsp->base_asym_sel);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_append_request_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	rq->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	rq->base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
+		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, SPDM_TRANSCRIPT_MANAGER_UPDATE_FAILED,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_append_response_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	rq->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	rq->base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, SPDM_TRANSCRIPT_MANAGER_UPDATE_FAILED,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
+static void spdm_test_negotiate_algorithms_set_hash_algo_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_negotiate_algorithms_request *rq =
+		(struct spdm_negotiate_algorithms_request*) buf;
+	struct spdm_algorithm_request *algstruct_table;
+	struct cmd_interface_msg msg;
+	int status;
+	size_t req_length = sizeof (struct spdm_negotiate_algorithms_request) +
+		(sizeof (struct spdm_algorithm_request) * 4);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct spdm_command_testing testing;
+	struct spdm_local_device_algorithms *local_algorithms;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing);
+
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	local_algorithms = &testing.local_algorithms;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = req_length;
+	msg.length = msg.payload_length;
+
+	rq->header.spdm_minor_version = 2;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
+	rq->num_alg_structure_tables = 4;
+	rq->reserved = 0;
+	rq->length = req_length;
+	rq->ext_asym_count = 0;
+	rq->ext_hash_count = 0;
+	rq->reserved4 = 0;
+
+	algstruct_table = spdm_negotiate_algorithms_req_algstruct_table (rq);
+	algstruct_table[0].fixed_alg_count = 2;
+	algstruct_table[0].ext_alg_count = 0;
+	algstruct_table[0].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE;
+	algstruct_table[0].alg_supported = local_algorithms->device_algorithms.dhe_named_group;
+
+	algstruct_table[1].fixed_alg_count = 2;
+	algstruct_table[1].ext_alg_count = 0;
+	algstruct_table[1].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_AEAD;
+	algstruct_table[1].alg_supported = local_algorithms->device_algorithms.aead_cipher_suite;
+
+	algstruct_table[2].fixed_alg_count = 2;
+	algstruct_table[2].ext_alg_count = 0;
+	algstruct_table[2].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_REQ_BASE_ASYM_ALG;
+	algstruct_table[2].alg_supported = local_algorithms->device_algorithms.req_base_asym_alg;
+
+	algstruct_table[3].fixed_alg_count = 2;
+	algstruct_table[3].ext_alg_count = 0;
+	algstruct_table[3].alg_type = SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE;
+	algstruct_table[3].alg_supported = local_algorithms->device_algorithms.key_schedule;
+
+	memset (rq->reserved3, 0, sizeof (rq->reserved3));
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CAPABILITIES;
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	rq->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	rq->base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_VCA), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (req_length), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.set_hash_algo,
+		&testing.transcript_manager_mock.base, SPDM_TRANSCRIPT_MANAGER_SET_HASH_ALGO_FAILED,
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_negotiate_algorithms (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
 }
 
 static void spdm_test_generate_negotiate_algorithms_request (CuTest *test)
@@ -4279,7 +7553,8 @@ static void spdm_test_generate_negotiate_algorithms_request (CuTest *test)
 	CuAssertIntEquals (test, 0, rq->reserved);
 	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_request), rq->length);
 	CuAssertIntEquals (test, SPDM_MEASUREMENT_SPEC_DMTF, rq->measurement_specification);
-	CuAssertIntEquals (test, 0, rq->reserved2);
+	CuAssertIntEquals (test, SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_NONE,
+		 rq->other_params_support.opaque_data_format);
 	CuAssertIntEquals (test, 0xa0b0c0d0, rq->base_asym_algo);
 	CuAssertIntEquals (test, 0x10203040, rq->base_hash_algo);
 	CuAssertIntEquals (test, 0, rq->ext_asym_count);
@@ -4337,7 +7612,7 @@ static void spdm_test_process_negotiate_algorithms_response (CuTest *test)
 	resp->reserved = 0;
 	resp->length = sizeof (struct spdm_negotiate_algorithms_response);
 	resp->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	resp->reserved2 = 0;
+	resp->other_params_selection.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_NONE;
 	resp->measurement_hash_algo = 0xaabbccdd;
 	resp->base_asym_sel = 0xabcdef;
 	resp->base_hash_sel = 0xfedcba;
@@ -4395,7 +7670,7 @@ static void spdm_test_process_negotiate_algorithms_response_bad_length (CuTest *
 	resp->reserved = 0;
 	resp->length = length;
 	resp->measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
-	resp->reserved2 = 0;
+	resp->other_params_selection.opaque_data_format = SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_NONE;
 	resp->measurement_hash_algo = 0xaabbccdd;
 	resp->base_asym_sel = 0xabcdef;
 	resp->base_hash_sel = 0xfedcba;
@@ -5485,7 +8760,7 @@ TEST (spdm_test_generate_error_response_with_optional_data);
 TEST (spdm_test_generate_error_response_with_optional_data_too_large);
 TEST (spdm_test_get_version);
 TEST (spdm_test_get_version_response_state_need_resync);
-TEST (spdm_test_get_version_response_state_processing_encap);	
+TEST (spdm_test_get_version_response_state_processing_encap);
 TEST (spdm_test_get_version_null);
 TEST (spdm_test_get_version_bad_length);
 TEST (spdm_test_get_version_incorrect_version);
@@ -5528,13 +8803,42 @@ TEST (spdm_test_process_get_capabilities_response_null);
 TEST (spdm_test_process_get_capabilities_response_bad_length);
 TEST (spdm_test_process_get_capabilities_response_1_1_bad_length);
 TEST (spdm_test_negotiate_algorithms);
+TEST (spdm_test_negotiate_algorithms_highest_pri_hash_algo);
+TEST (spdm_test_negotiate_algorithms_lowest_pri_hash_algo);
+TEST (spdm_test_negotiate_algorithms_no_priority_table);
+TEST (spdm_test_negotiate_algorithms_no_priority_table_first_common_leftmost_hash_algo);
+TEST (spdm_test_negotiate_algorithms_no_priority_table_first_common_rightmost_hash_algo);
 TEST (spdm_test_negotiate_algorithms_null);
-TEST (spdm_test_negotiate_algorithms_dmtf_measurement_specification_not_supported);
-TEST (spdm_test_negotiate_algorithms_no_common_asym_algo);
-TEST (spdm_test_negotiate_algorithms_no_common_hash_algo);
-TEST (spdm_test_negotiate_algorithms_bad_length);
-TEST (spdm_test_negotiate_algorithms_hash_update_rq_fail);
-TEST (spdm_test_negotiate_algorithms_hash_update_rsp_fail);
+TEST (spdm_test_negotiate_algorithms_incorrect_negotiated_version);
+TEST (spdm_test_negotiate_algorithms_incorrect_response_state);
+TEST (spdm_test_negotiate_algorithms_incorrect_connection_state);
+TEST (spdm_test_negotiate_algorithms_request_length_lt_min);
+TEST (spdm_test_negotiate_algorithms_invalid_request_length);
+TEST (spdm_test_negotiate_algorithms_request_length_gt_max);
+TEST (spdm_test_negotiate_algorithms_invalid_req_alg_type);
+TEST (spdm_test_negotiate_algorithms_req_alg_not_monotonic);
+TEST (spdm_test_negotiate_algorithms_unsupported_fixed_algo_count);
+TEST (spdm_test_negotiate_algorithms_invalid_ext_algo_count);
+TEST (spdm_test_negotiate_algorithms_ext_algo_count_gt_max_supported);
+TEST (spdm_test_negotiate_algorithms_invalid_opaque_data_format);
+TEST (spdm_test_negotiate_algorithms_payload_length_ne_request_length);
+TEST (spdm_test_negotiate_algorithms_illegal_dhe_algo);
+TEST (spdm_test_negotiate_algorithms_no_common_dhe_algo);
+TEST (spdm_test_negotiate_algorithms_no_local_dhe_algo);
+TEST (spdm_test_negotiate_algorithms_illegal_aead_algo);
+TEST (spdm_test_negotiate_algorithms_no_common_aead_algo);
+TEST (spdm_test_negotiate_algorithms_illegal_req_asym_algo);
+TEST (spdm_test_negotiate_algorithms_no_common_req_asym_algo);
+TEST (spdm_test_negotiate_algorithms_illegal_key_schedule_algo);
+TEST (spdm_test_negotiate_algorithms_no_common_key_schedule_algo);
+TEST (spdm_test_negotiate_algorithms_unsupported_measurement_spec);
+TEST (spdm_test_negotiate_algorithms_unsupported_measurement_spec_hash_algo);
+TEST (spdm_test_negotiate_algorithms_no_local_measurement_capability);
+TEST (spdm_test_negotiate_algorithms_unsupported_base_hash_algo);
+TEST (spdm_test_negotiate_algorithms_unsupported_base_asym_algo);
+TEST (spdm_test_negotiate_algorithms_append_request_fail);
+TEST (spdm_test_negotiate_algorithms_append_response_fail);
+TEST (spdm_test_negotiate_algorithms_set_hash_algo_fail);
 TEST (spdm_test_generate_negotiate_algorithms_request);
 TEST (spdm_test_generate_negotiate_algorithms_request_null);
 TEST (spdm_test_generate_negotiate_algorithms_request_buf_too_small);

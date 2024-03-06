@@ -47,16 +47,18 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
  * @param version_num_ptr Array of supported version numbers.
  * @param version_num_count_arg Number of supported version numbers.
  * @param local_capabilities_ptr Local SPDM capabilities.
+ * @param local_algorithms_ptr Local SPDM algorithms.
  */
 #define	cmd_interface_spdm_responder_static_init(state_ptr, transcript_manager_ptr, hash_engine_ptr, \
-		version_num_ptr, version_num_count_arg, local_capabilities_ptr) { \
+		version_num_ptr, version_num_count_arg, local_capabilities_ptr, local_algorithms_ptr) { \
 		.base = CMD_INTERFACE_SPDM_RESPONDER_API_INIT, \
 		.state = state_ptr, \
 		.transcript_manager = transcript_manager_ptr, \
 		.hash_engine = hash_engine_ptr, \
 		.version_num = version_num_ptr, \
 		.version_num_count = version_num_count_arg, \
-		.local_capabilities = local_capabilities_ptr \
+		.local_capabilities = local_capabilities_ptr, \
+		.local_algorithms = local_algorithms_ptr \
 	}
 
 
