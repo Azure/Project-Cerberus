@@ -3195,14 +3195,13 @@ void cerberus_protocol_master_commands_testing_process_get_pcd_component_ids_inv
 		(struct cerberus_protocol_get_pcd_component_ids*) data;
 	struct cerberus_protocol_get_pcd_component_ids_response *resp =
 		(struct cerberus_protocol_get_pcd_component_ids_response*) data;
-	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
 	uint32_t pcd_id = 0xAABBCCDD;
 	uint32_t offset = 0;
 	size_t length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY -
 		sizeof (struct cerberus_protocol_get_pcd_component_ids_response);
 	int status;
 
-	offset = sizeof (supported_component);
+	offset = sizeof (struct pcd_supported_component) * 2;
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));

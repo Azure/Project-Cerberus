@@ -843,6 +843,8 @@ static int pcr_testing_measurement_data_callback (void *context, size_t offset, 
 	return bytes;
 }
 
+#if (defined HASH_ENABLE_SHA384 && (PCR_MAX_DIGEST_LENGTH >= SHA384_HASH_LENGTH)) || \
+	(defined HASH_ENABLE_SHA512 && (PCR_MAX_DIGEST_LENGTH >= SHA512_HASH_LENGTH))
 /**
  * Callback function to test callback based PCR measurement data hashing.
  *
@@ -859,6 +861,7 @@ static int pcr_testing_measurement_hash_callback (void *context, struct hash_eng
 
 	return hash->update (hash, context, 4);
 }
+#endif
 
 /*******************
  * Test cases

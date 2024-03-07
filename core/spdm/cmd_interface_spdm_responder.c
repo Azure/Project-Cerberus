@@ -263,4 +263,3 @@ void cmd_interface_spdm_responder_deinit (const struct cmd_interface_spdm_respon
 {
 	UNUSED (spdm_responder);
 }
-

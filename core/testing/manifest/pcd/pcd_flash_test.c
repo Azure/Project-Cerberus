@@ -3467,17 +3467,17 @@ static void pcd_flash_test_buffer_supported_components_offset_too_large (CuTest 
 	struct pcd_flash_testing pcd;
 	uint8_t components[4096];
 	size_t components_len = sizeof (components);
-	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
 	int status;
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false,
+		0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
 
 	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
 		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
@@ -3498,7 +3498,7 @@ static void pcd_flash_test_buffer_supported_components_offset_too_large (CuTest 
 		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
 
 	status = pcd.test.base.buffer_supported_components (&pcd.test.base,
-		sizeof (supported_component), components_len, (uint8_t*) components);
+		sizeof (struct pcd_supported_component) * 2, components_len, (uint8_t*) components);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3518,12 +3518,13 @@ static void pcd_flash_test_buffer_supported_components_offset_not_word_aligned (
 
 	components[0] = 1;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false,
+		0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
 
 	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
 		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
@@ -3552,12 +3553,13 @@ static void pcd_flash_test_buffer_supported_components_smaller_length (CuTest *t
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false,
+		0);
 
-	manifest_flash_v2_testing_read_element (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
 
 	manifest_flash_v2_testing_read_element (test, &pcd.manifest,
 		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
@@ -3646,8 +3648,7 @@ static void pcd_flash_test_buffer_supported_components_malformed_component_devic
 {
 	struct pcd_flash_testing pcd;
 	uint8_t components[4096];
-	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
-	size_t component_len = sizeof (supported_component[0]);
+	size_t component_len = sizeof (struct pcd_supported_component);
 	int status;
 	struct manifest_toc_entry bad_entry;
 	uint8_t bad_data[3];
@@ -3663,15 +3664,17 @@ static void pcd_flash_test_buffer_supported_components_malformed_component_devic
 
 	memset (bad_data, 0x55, sizeof (bad_data));
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, true, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, true,
+		0);
 
-	manifest_flash_v2_testing_read_element_mocked_hash (test, &pcd.manifest, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+	manifest_flash_v2_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
 
 	manifest_flash_v2_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
 		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
 		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset, bad_entry.length,
 		bad_entry.length, 0, &bad_entry, NULL);

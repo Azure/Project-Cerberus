@@ -349,7 +349,7 @@ static uint32_t spdm_prioritize_algorithm (const uint32_t *priority_table,
  */
 static enum hash_type spdm_get_hash_type (uint32_t hash_algo)
 {
-	enum hmac_hash hash_type = HASH_TYPE_INVALID;
+	enum hash_type hash_type = HASH_TYPE_INVALID;
 
 	switch (hash_algo) {
 		case SPDM_TPM_ALG_SHA_256:
