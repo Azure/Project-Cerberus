@@ -108,6 +108,41 @@ void buffer_reverse_copy (uint8_t *dest, const uint8_t *src, size_t length)
 }
 
 /**
+ * Make a copy of a buffer, reversing the buffer contents one DWORD at a time.  This function will
+ * return error if either buffer is null or not DWORD aligned.
+ * 
+ * These buffers must not be overlapping.
+ *
+ * The arguments on this function are reverse the normal semantics of input args first and output
+ * args last, but this signature more closely maps to memcpy, making it more intuitive.
+ *
+ * @param dest Destination buffer for the reversed data.
+ * @param src The buffer data to copy.
+ * @param length The number of dwords to copy.
+ * 
+ * @return 0 if the operation was successful or an error code.
+ */
+int buffer_reverse_copy_dwords (uint32_t *dest, const uint32_t *src, size_t length)
+{
+	size_t i;
+	size_t j;
+
+	if (((uintptr_t) src & 0x3U) || ((uintptr_t) dest & 0x3U)) {
+		return BUFFER_UTIL_UNEXPETCED_ALIGNMENT;
+	}
+	
+	if ((src == NULL) || (dest == NULL)) {
+		return BUFFER_UTIL_INVALID_ARGUMENT;
+	}
+
+	for (i = 0, j = (length - 1); i < length; i++, j--) {
+		dest[i] = src[j];
+	}
+
+	return 0;
+}
+
+/**
  * A constant time replacement for memcmp for use in secure contexts.
  *
  * @param buf1 First input buffer for the comparison.

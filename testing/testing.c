@@ -14,7 +14,7 @@
  *
  * @return 0 if the actual array is correct or 1 if not.
  */
-int testing_validate_array (const uint8_t *expected, const uint8_t *actual, size_t length)
+int testing_validate_array (const void *expected, const void *actual, size_t length)
 {
 	return testing_validate_array_prefix (expected, actual, length, "");
 }
@@ -29,10 +29,11 @@ int testing_validate_array (const uint8_t *expected, const uint8_t *actual, size
  *
  * @return 0 if the actual array is correct or 1 if not.
  */
-int testing_validate_array_prefix (const uint8_t *expected, const uint8_t *actual, size_t length,
+int testing_validate_array_prefix (const void *expected, const void *actual, size_t length,
 	const char *prefix)
 {
-	return testing_validate_array_prefix_with_extra_info (expected, actual, length, prefix, "");
+	return testing_validate_array_prefix_with_extra_info ((const uint8_t*) expected,
+		(const uint8_t*) actual, length, prefix, "");
 }
 
 /**

@@ -28,6 +28,7 @@ size_t buffer_copy (const uint8_t *src, size_t src_length, size_t *offset, size_
 	uint8_t *dest);
 void buffer_reverse (uint8_t *buffer, size_t length);
 void buffer_reverse_copy (uint8_t *dest, const uint8_t *src, size_t length);
+int buffer_reverse_copy_dwords (uint32_t *dest, const uint32_t *src, size_t length);
 
 int buffer_compare (const uint8_t *buf1, const uint8_t *buf2, size_t length);
 int buffer_compare_dwords (const uint32_t *buf1, const uint32_t *buf2, size_t dwords);
@@ -56,6 +57,7 @@ enum {
 	BUFFER_UTIL_INVALID_ARGUMENT = BUFFER_UTIL_ERROR (0x00),		/**< Input parameter is null or not valid. */
 	BUFFER_UTIL_NO_MEMORY = BUFFER_UTIL_ERROR (0x01),				/**< Memory allocation failed. */
 	BUFFER_UTIL_DATA_MISMATCH = BUFFER_UTIL_ERROR (0x02),			/**< A buffer does not contain the expected data. */
+	BUFFER_UTIL_UNEXPETCED_ALIGNMENT = BUFFER_UTIL_ERROR (0x03),	/**< Detected unexpected buffer address alignment. */
 };
 
 

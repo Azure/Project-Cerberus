@@ -757,6 +757,198 @@ static void buffer_reverse_copy_test_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void buffer_reverse_copy_dwords_test_empty_buffer (CuTest *test)
+{
+	const size_t length = 0;
+	uint32_t buffer[1];
+	uint32_t out[1];
+	uint32_t forward[1];
+	uint32_t reverse[1];
+	size_t i;
+	size_t j;
+	int status;
+
+	TEST_START;
+
+	for (i = 0, j = (length - 1); i < length; i++, j--) {
+		buffer[i] = i;
+		forward[i] = i;
+		reverse[j] = i;
+	}
+
+	status = buffer_reverse_copy_dwords (out, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (reverse, out, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (forward, buffer, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void buffer_reverse_copy_dwords_test_single_dowrd (CuTest *test)
+{
+	const size_t length = 1;
+	uint32_t buffer[length];
+	uint32_t out[length];
+	uint32_t forward[length];
+	uint32_t reverse[length];
+	size_t i;
+	size_t j;
+	int status;
+
+	TEST_START;
+
+	for (i = 0, j = (length - 1); i < length; i++, j--) {
+		buffer[i] = i;
+		forward[i] = i;
+		reverse[j] = i;
+	}
+
+	status = buffer_reverse_copy_dwords (out, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (reverse, out, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (forward, buffer, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void buffer_reverse_copy_dwords_test_even_dword_count (CuTest *test)
+{
+	const size_t length = 16;
+	uint32_t buffer[length];
+	uint32_t out[length];
+	uint32_t forward[length];
+	uint32_t reverse[length];
+	size_t i;
+	size_t j;
+	int status;
+
+	TEST_START;
+
+	for (i = 0, j = (length - 1); i < length; i++, j--) {
+		buffer[i] = i;
+		forward[i] = i;
+		reverse[j] = i;
+	}
+
+	status = buffer_reverse_copy_dwords (out, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (reverse, out, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (forward, buffer, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void buffer_reverse_copy_dwords_test_odd_dword_count (CuTest *test)
+{
+	const size_t length = 21;
+	uint32_t buffer[length];
+	uint32_t out[length];
+	uint32_t forward[length];
+	uint32_t reverse[length];
+	size_t i;
+	size_t j;
+	int status;
+
+	TEST_START;
+
+	for (i = 0, j = (length - 1); i < length; i++, j--) {
+		buffer[i] = i;
+		forward[i] = i;
+		reverse[j] = i;
+	}
+
+	status = buffer_reverse_copy_dwords (out, buffer, length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (reverse, out, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (forward, buffer, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void buffer_reverse_copy_dwords_test_null (CuTest *test)
+{
+	const size_t length = 10;
+	uint32_t buffer[length];
+	uint32_t out[length];
+	uint32_t forward[length];
+	uint32_t reverse[length];
+	size_t i;
+	int status;
+
+	TEST_START;
+
+	for (i = 0; i < length; i++) {
+		buffer[i] = i;
+		forward[i] = i;
+		reverse[i] = 0;
+		out[i] = 0;
+	}
+
+	status = buffer_reverse_copy_dwords (NULL, buffer, length);
+	CuAssertIntEquals (test, BUFFER_UTIL_INVALID_ARGUMENT, status);
+
+	status = testing_validate_array (reverse, out, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (forward, buffer, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+
+	status = buffer_reverse_copy_dwords (out, NULL, length);
+	CuAssertIntEquals (test, BUFFER_UTIL_INVALID_ARGUMENT, status);
+
+	status = testing_validate_array (reverse, out, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (forward, buffer, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void buffer_reverse_copy_dwords_test_unaligned_buffer (CuTest *test)
+{
+	const size_t length = 16;
+	uint32_t buffer[length];
+	uint32_t out[length];
+	uint32_t forward[length];
+	uint32_t reverse[length];
+	size_t i;
+	int status;
+
+	TEST_START;
+
+	for (i = 0; i < length; i++) {
+		buffer[i] = i;
+		forward[i] = i;
+		reverse[i] = 0;
+		out[i] = 0;
+	}
+
+	status = buffer_reverse_copy_dwords ((uint32_t*) (((uint8_t*) out) + 1), buffer, length);
+	CuAssertIntEquals (test, BUFFER_UTIL_UNEXPETCED_ALIGNMENT, status);
+
+	status = testing_validate_array (reverse, out, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (forward, buffer, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+
+	status = buffer_reverse_copy_dwords (out, (uint32_t*) (((uint8_t*) buffer) + 1), length);
+	CuAssertIntEquals (test, BUFFER_UTIL_UNEXPETCED_ALIGNMENT, status);
+
+	status = testing_validate_array (reverse, out, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (forward, buffer, length * sizeof (uint32_t));
+	CuAssertIntEquals (test, 0, status);
+}
+
 static void buffer_compare_test_match (CuTest *test)
 {
 	const size_t length = 14;
@@ -1499,6 +1691,12 @@ TEST (buffer_reverse_copy_test_single_byte);
 TEST (buffer_reverse_copy_test_even_byte_count);
 TEST (buffer_reverse_copy_test_odd_byte_count);
 TEST (buffer_reverse_copy_test_null);
+TEST (buffer_reverse_copy_dwords_test_empty_buffer);
+TEST (buffer_reverse_copy_dwords_test_single_dowrd);
+TEST (buffer_reverse_copy_dwords_test_even_dword_count);
+TEST (buffer_reverse_copy_dwords_test_odd_dword_count);
+TEST (buffer_reverse_copy_dwords_test_null);
+TEST (buffer_reverse_copy_dwords_test_unaligned_buffer);
 TEST (buffer_compare_test_match);
 TEST (buffer_compare_test_no_match);
 TEST (buffer_compare_test_no_match_last_byte);
