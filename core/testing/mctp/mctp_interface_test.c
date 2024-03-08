@@ -289,6 +289,7 @@ static void mctp_interface_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, mctp.test.base.get_max_message_overhead);
 	CuAssertPtrNotNull (test, mctp.test.base.get_max_message_payload_length);
 	CuAssertPtrNotNull (test, mctp.test.base.get_max_encapsulated_message_length);
+	CuAssertPtrNotNull (test, mctp.test.base.get_buffer_overhead);
 	CuAssertPtrNotNull (test, mctp.test.base.send_request_message);
 #endif
 
@@ -373,6 +374,7 @@ static void mctp_interface_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, mctp.test.base.get_max_message_overhead);
 	CuAssertPtrNotNull (test, mctp.test.base.get_max_message_payload_length);
 	CuAssertPtrNotNull (test, mctp.test.base.get_max_encapsulated_message_length);
+	CuAssertPtrNotNull (test, mctp.test.base.get_buffer_overhead);
 	CuAssertPtrNotNull (test, mctp.test.base.send_request_message);
 #endif
 
@@ -6419,6 +6421,383 @@ static void mctp_interface_test_get_max_encapsulated_message_length_null (CuTest
 
 	status = mctp.test.base.get_max_encapsulated_message_length (NULL, eid);
 	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_get_buffer_overhead_less_than_one_packet (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct device_manager_full_capabilities capabilities;
+	uint8_t eid = 0x12;
+	size_t max_packet = 128;
+	size_t max_message = 1024;
+	int status;
+	size_t smbus_overhead = 8;
+	size_t buffer_length = 100;
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	status = device_manager_update_not_attestable_device_entry (&mctp.device_mgr, 1, eid, 0x51,
+		DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length);
+	CuAssertIntEquals (test, smbus_overhead, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_get_buffer_overhead_one_packet_payload (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct device_manager_full_capabilities capabilities;
+	uint8_t eid = 0x12;
+	size_t max_packet = 128;
+	size_t max_message = 1024;
+	int status;
+	size_t smbus_overhead = 8;
+	size_t buffer_length = max_packet;
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	status = device_manager_update_not_attestable_device_entry (&mctp.device_mgr, 1, eid, 0x51,
+		DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length);
+	CuAssertIntEquals (test, smbus_overhead, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_get_buffer_overhead_one_packet_including_overhead (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct device_manager_full_capabilities capabilities;
+	uint8_t eid = 0x23;
+	size_t max_packet = 96;
+	size_t max_message = 1024;
+	int status;
+	size_t smbus_overhead = 8;
+	size_t buffer_length = max_packet + smbus_overhead;
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	status = device_manager_update_not_attestable_device_entry (&mctp.device_mgr, 1, eid, 0x51,
+		DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length);
+	CuAssertIntEquals (test, smbus_overhead, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_get_buffer_overhead_two_packets_second_smaller_than_overhead (
+	CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct device_manager_full_capabilities capabilities;
+	uint8_t eid = 0x34;
+	size_t max_packet = 247;
+	size_t max_message = 1024;
+	int status;
+	size_t smbus_overhead = 8;
+	size_t buffer_length = max_packet + smbus_overhead;
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	status = device_manager_update_not_attestable_device_entry (&mctp.device_mgr, 1, eid, 0x51,
+		DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length + 1);
+	CuAssertIntEquals (test, smbus_overhead + 1, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid,
+		buffer_length + (smbus_overhead - 1));
+	CuAssertIntEquals (test, (2 * smbus_overhead) - 1, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_get_buffer_overhead_two_packets_second_no_data (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct device_manager_full_capabilities capabilities;
+	uint8_t eid = 0x45;
+	size_t max_packet = 64;
+	size_t max_message = 1024;
+	int status;
+	size_t smbus_overhead = 8;
+	size_t buffer_length = max_packet + (smbus_overhead * 2);
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	status = device_manager_update_not_attestable_device_entry (&mctp.device_mgr, 1, eid, 0x51,
+		DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length);
+	CuAssertIntEquals (test, smbus_overhead * 2, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_get_buffer_overhead_two_packets_second_not_full (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct device_manager_full_capabilities capabilities;
+	uint8_t eid = 0x45;
+	size_t max_packet = 64;
+	size_t max_message = 1024;
+	int status;
+	size_t smbus_overhead = 8;
+	size_t buffer_length = max_packet + 1 + (smbus_overhead * 2);
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	status = device_manager_update_not_attestable_device_entry (&mctp.device_mgr, 1, eid, 0x51,
+		DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length);
+	CuAssertIntEquals (test, smbus_overhead * 2, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length + 30);
+	CuAssertIntEquals (test, smbus_overhead * 2, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_get_buffer_overhead_two_max_length_packets (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct device_manager_full_capabilities capabilities;
+	uint8_t eid = 0x45;
+	size_t max_packet = 64;
+	size_t max_message = 1024;
+	int status;
+	size_t smbus_overhead = 8;
+	size_t buffer_length = (max_packet + smbus_overhead) * 2;
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	status = device_manager_update_not_attestable_device_entry (&mctp.device_mgr, 1, eid, 0x51,
+		DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length);
+	CuAssertIntEquals (test, smbus_overhead * 2, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_get_buffer_overhead_packet_length_determined_by_target (
+	CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct device_manager_full_capabilities capabilities;
+	uint8_t eid = 0x56;
+	size_t max_packet = 128;
+	size_t max_message = 1024;
+	int status;
+	size_t smbus_overhead = 8;
+	size_t buffer_length = max_packet + smbus_overhead;
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	status = device_manager_update_not_attestable_device_entry (&mctp.device_mgr, 1, eid, 0x51,
+		DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	capabilities.request.max_packet_size = 70;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 1, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length);
+	CuAssertIntEquals (test, smbus_overhead * 2, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_get_buffer_overhead_packet_length_unknown_target (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct device_manager_full_capabilities capabilities;
+	uint8_t eid = 0x56;
+	size_t max_packet = 178;
+	size_t max_message = 1024;
+	int status;
+	size_t smbus_overhead = 8;
+	size_t buffer_length = ((max_packet + smbus_overhead) * 4) + 96;
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length);
+	CuAssertIntEquals (test, smbus_overhead * 5, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_get_buffer_overhead_max_message_min_packet (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct device_manager_full_capabilities capabilities;
+	uint8_t eid = 0x56;
+	size_t max_packet = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
+	size_t max_message = MCTP_BASE_PROTOCOL_MAX_CERBERUS_MESSAGE_BODY;
+	int status;
+	size_t smbus_overhead = 8;
+	size_t buffer_length = (max_packet + smbus_overhead) * 64;
+
+	TEST_START;
+
+	mctp_interface_testing_init (test, &mctp);
+
+	device_manager_get_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	capabilities.request.max_packet_size = max_packet;
+	capabilities.request.max_message_size = max_message;
+
+	status = device_manager_update_device_capabilities (&mctp.device_mgr, 0, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.get_buffer_overhead (&mctp.test.base, eid, buffer_length);
+	CuAssertIntEquals (test, smbus_overhead * 64, status);
 
 	mctp_interface_testing_release (test, &mctp);
 }
@@ -14275,6 +14654,16 @@ TEST (mctp_interface_test_get_max_encapsulated_message_length);
 TEST (mctp_interface_test_get_max_encapsulated_message_length_unknown_device);
 TEST (mctp_interface_test_get_max_encapsulated_message_length_static_init);
 TEST (mctp_interface_test_get_max_encapsulated_message_length_null);
+TEST (mctp_interface_test_get_buffer_overhead_less_than_one_packet);
+TEST (mctp_interface_test_get_buffer_overhead_one_packet_payload);
+TEST (mctp_interface_test_get_buffer_overhead_one_packet_including_overhead);
+TEST (mctp_interface_test_get_buffer_overhead_two_packets_second_smaller_than_overhead);
+TEST (mctp_interface_test_get_buffer_overhead_two_packets_second_no_data);
+TEST (mctp_interface_test_get_buffer_overhead_two_packets_second_not_full);
+TEST (mctp_interface_test_get_buffer_overhead_two_max_length_packets);
+TEST (mctp_interface_test_get_buffer_overhead_packet_length_determined_by_target);
+TEST (mctp_interface_test_get_buffer_overhead_packet_length_unknown_target);
+TEST (mctp_interface_test_get_buffer_overhead_max_message_min_packet);
 TEST (mctp_interface_test_send_request_message);
 TEST (mctp_interface_test_send_request_message_max_size);
 TEST (mctp_interface_test_send_request_message_max_size_min_packets);

@@ -98,7 +98,7 @@ int mctp_interface_get_max_message_overhead (const struct msg_transport *transpo
 	max_message = device_manager_get_max_message_len_by_eid (mctp->device_manager, dest_id);
 	packet_size = device_manager_get_max_transmission_unit_by_eid (mctp->device_manager, dest_id);
 
-	max_packets = (MCTP_BASE_PROTOCOL_PACKETS_IN_MESSAGE (max_message, packet_size));
+	max_packets = MCTP_BASE_PROTOCOL_PACKETS_IN_MESSAGE (max_message, packet_size);
 
 	return MCTP_BASE_PROTOCOL_PACKET_OVERHEAD * max_packets;
 }
@@ -130,9 +130,37 @@ int mctp_interface_get_max_encapsulated_message_length (const struct msg_transpo
 	max_message = device_manager_get_max_message_len_by_eid (mctp->device_manager, dest_id);
 	packet_size = device_manager_get_max_transmission_unit_by_eid (mctp->device_manager, dest_id);
 
-	max_packets = (MCTP_BASE_PROTOCOL_PACKETS_IN_MESSAGE (max_message, packet_size));
+	max_packets = MCTP_BASE_PROTOCOL_PACKETS_IN_MESSAGE (max_message, packet_size);
 
 	return MCTP_BASE_PROTOCOL_MESSAGE_LEN (max_packets, max_message);
+}
+
+int mctp_interface_get_buffer_overhead (const struct msg_transport *transport, uint8_t dest_id,
+	size_t length)
+{
+	const struct mctp_interface *mctp = (const struct mctp_interface*) transport;
+	size_t packet_size;
+	size_t full_packets;
+	size_t total_overhead;
+	size_t last_remaining;
+
+	packet_size = device_manager_get_max_transmission_unit_by_eid (mctp->device_manager, dest_id);
+	packet_size += MCTP_BASE_PROTOCOL_PACKET_OVERHEAD;
+
+	full_packets = length / packet_size;
+	total_overhead = full_packets * MCTP_BASE_PROTOCOL_PACKET_OVERHEAD;
+
+	/* Add overhead for the last possible packet in the buffer, which may not even have enough room
+	 * for the MCTP packet header. */
+	last_remaining = length % packet_size;
+	if (last_remaining < MCTP_BASE_PROTOCOL_PACKET_OVERHEAD) {
+		total_overhead += last_remaining;
+	}
+	else {
+		total_overhead += MCTP_BASE_PROTOCOL_PACKET_OVERHEAD;
+	}
+
+	return total_overhead;
 }
 
 /**
@@ -437,6 +465,7 @@ int mctp_interface_init (struct mctp_interface *mctp, struct mctp_interface_stat
 	mctp->base.get_max_message_payload_length = mctp_interface_get_max_message_payload_length;
 	mctp->base.get_max_encapsulated_message_length =
 		mctp_interface_get_max_encapsulated_message_length;
+	mctp->base.get_buffer_overhead = mctp_interface_get_buffer_overhead;
 	mctp->base.send_request_message = mctp_interface_send_request_message;
 
 	mctp->channel = channel;
@@ -1036,7 +1065,7 @@ int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, uin
 	struct cmd_interface_msg *response)
 {
 	uint8_t request_data[MCTP_BASE_PROTOCOL_MIN_MESSAGE_LEN];
-	struct cmd_interface_msg request = {0};
+	struct cmd_interface_msg request;
 	int bridge_eid;
 	int status;
 
@@ -1050,16 +1079,8 @@ int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, uin
 		return bridge_eid;
 	}
 
-	/* Don't use msg_transport_create_empty_request to initialize the request structure since that
-	 * will allocate header space assuming the worst case message sizes.  Since this is a small
-	 * buffer, just initialize the structure directly.
-	 *
-	 * TODO:  Update to using a new msg_transport call to handle the small request/buffer case. */
-	request.data = request_data;
-	request.max_response = sizeof (request_data);
-	request.payload = &request_data[MCTP_BASE_PROTOCOL_PACKET_OVERHEAD];
-	request.payload_length = sizeof (request_data) - MCTP_BASE_PROTOCOL_PACKET_OVERHEAD;
-	request.target_eid = bridge_eid;
+	msg_transport_create_empty_request (&mctp->base, request_data, sizeof (request_data),
+		bridge_eid, &request);
 
 	cmd_interface_msg_set_message_payload_length (&request,
 		mctp_control_protocol_generate_discovery_notify_request (request.payload,

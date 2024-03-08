@@ -14,6 +14,8 @@ int mctp_interface_get_max_message_payload_length (const struct msg_transport *t
 	uint8_t dest_id);
 int mctp_interface_get_max_encapsulated_message_length (const struct msg_transport *transport,
 	uint8_t dest_id);
+int mctp_interface_get_buffer_overhead (const struct msg_transport *transport, uint8_t dest_id,
+	size_t max_message);
 int mctp_interface_send_request_message (const struct msg_transport *transport,
 	struct cmd_interface_msg *request, uint32_t timeout_ms, struct cmd_interface_msg *response);
 
@@ -25,6 +27,7 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
 		.get_max_message_overhead = mctp_interface_get_max_message_overhead, \
 		.get_max_message_payload_length = mctp_interface_get_max_message_payload_length, \
 		.get_max_encapsulated_message_length = mctp_interface_get_max_encapsulated_message_length, \
+		.get_buffer_overhead = mctp_interface_get_buffer_overhead, \
 		.send_request_message = mctp_interface_send_request_message, \
 	}
 

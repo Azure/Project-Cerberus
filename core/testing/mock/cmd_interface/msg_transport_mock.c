@@ -45,6 +45,19 @@ static int msg_transport_mock_get_max_encapsulated_message_length (
 		MOCK_ARG_CALL (dest_id));
 }
 
+static int msg_transport_mock_get_buffer_overhead (const struct msg_transport *transport,
+	uint8_t dest_id, size_t length)
+{
+	struct msg_transport_mock *mock = (struct msg_transport_mock*) transport;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, msg_transport_mock_get_buffer_overhead, transport,
+		MOCK_ARG_CALL (dest_id), MOCK_ARG_CALL (length));
+}
+
 static int msg_transport_mock_send_request_message (const struct msg_transport *transport,
 	struct cmd_interface_msg *request, uint32_t timeout_ms, struct cmd_interface_msg *response)
 {
@@ -62,6 +75,9 @@ static int msg_transport_mock_func_arg_count (void *func)
 {
 	if (func == msg_transport_mock_send_request_message) {
 		return 3;
+	}
+	else if (func == msg_transport_mock_get_buffer_overhead) {
+		return 2;
 	}
 	else if ((func == msg_transport_mock_get_max_message_overhead) ||
 		(func == msg_transport_mock_get_max_message_payload_length) ||
@@ -84,6 +100,9 @@ static const char* msg_transport_mock_func_name_map (void *func)
 	else if (func == msg_transport_mock_get_max_encapsulated_message_length) {
 		return "get_max_encapsulated_message_length";
 	}
+	else if (func == msg_transport_mock_get_buffer_overhead) {
+		return  "get_buffer_overhead";
+	}
 	else if (func == msg_transport_mock_send_request_message) {
 		return "send_request_message";
 	}
@@ -94,19 +113,7 @@ static const char* msg_transport_mock_func_name_map (void *func)
 
 static const char* msg_transport_mock_arg_name_map (void *func, int arg)
 {
-	if (func == msg_transport_mock_send_request_message) {
-		switch (arg) {
-			case 0:
-				return "request";
-
-			case 1:
-				return "timeout_ms";
-
-			case 2:
-				return "response";
-		}
-	}
-	else if (func == msg_transport_mock_get_max_message_overhead) {
+	if (func == msg_transport_mock_get_max_message_overhead) {
 		switch (arg) {
 			case 0:
 				return "dest_id";
@@ -122,6 +129,27 @@ static const char* msg_transport_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "dest_id";
+		}
+	}
+	else if (func == msg_transport_mock_get_buffer_overhead) {
+		switch (arg) {
+			case 0:
+				return "dest_id";
+
+			case 1:
+				return "length";
+		}
+	}
+	else if (func == msg_transport_mock_send_request_message) {
+		switch (arg) {
+			case 0:
+				return "request";
+
+			case 1:
+				return "timeout_ms";
+
+			case 2:
+				return "response";
 		}
 	}
 
@@ -156,6 +184,7 @@ int msg_transport_mock_init (struct msg_transport_mock *mock)
 	mock->base.get_max_message_payload_length = msg_transport_mock_get_max_message_payload_length;
 	mock->base.get_max_encapsulated_message_length =
 		msg_transport_mock_get_max_encapsulated_message_length;
+	mock->base.get_buffer_overhead = msg_transport_mock_get_buffer_overhead;
 	mock->base.send_request_message = msg_transport_mock_send_request_message;
 
 	mock->mock.func_arg_count = msg_transport_mock_func_arg_count;

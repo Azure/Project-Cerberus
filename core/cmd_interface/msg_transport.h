@@ -56,6 +56,21 @@ struct msg_transport {
 		uint8_t dest_id);
 
 	/**
+	 * Get the amount of overhead the transport would add to a message buffer of a specified size,
+	 * assuming the buffer is filled with the maximum amount of payload data that could fit into the
+	 * buffer.  For transports that will packetize the message, this represents the total overhead
+	 * across all packets, not the just the length on a single packet.
+	 *
+	 * @param transport The message transport to query.
+	 * @param dest_id Identifier for the intended recipient of the request.
+	 * @param length The length of the message buffer to use when determining message overhead.
+	 *
+	 * @return The number of bytes that can be added to the message or an error code.
+	 */
+	int (*get_buffer_overhead) (const struct msg_transport *transport, uint8_t dest_id,
+		size_t length);
+
+	/**
 	 * Encapsulate message data for the transport and send the request to a remote receiver.  Wait
 	 * for a response to be received for the request.
 	 *
@@ -102,12 +117,13 @@ enum {
 	MSG_TRANSPORT_MAX_OVERHEAD_FAILED = MSG_TRANSPORT_ERROR (0x02),			/**< Failed to determine the maximum transport overhead. */
 	MSG_TRANSPORT_MAX_PAYLOAD_FAILED = MSG_TRANSPORT_ERROR (0x03),			/**< Failed to determine the maximum transport payload. */
 	MSG_TRANSPORT_MAX_BUFFER_FAILED = MSG_TRANSPORT_ERROR (0x04),			/**< Failed to determine tha maximum encapsulated length. */
-	MSG_TRANSPORT_SEND_REQUEST_FAILED = MSG_TRANSPORT_ERROR (0x05),			/**< Failed to send a request message. */
-	MSG_TRANSPORT_REQUEST_TIMEOUT = MSG_TRANSPORT_ERROR (0x06),				/**< Timeout while waiting for a response. */
-	MSG_TRANSPORT_NO_WAIT_RESPONSE = MSG_TRANSPORT_ERROR (0x07),			/**< Did not wait for a response after sending a request. */
-	MSG_TRANSPORT_OVERHEAD_MORE_THAN_BUFFER = MSG_TRANSPORT_ERROR (0x08),	/**< The request buffer is smaller than the transport overhead. */
-	MSG_TRANSPORT_REQUEST_TOO_LARGE = MSG_TRANSPORT_ERROR (0x09),			/**< The request payload exceeds the transport maximum. */
-	MSG_TRANSPORT_RESPONSE_TOO_LARGE = MSG_TRANSPORT_ERROR (0x0a),			/**< The response payload exceeds the provided buffer space. */
+	MSG_TRANSPORT_OVERHEAD_FAILED = MSG_TRANSPORT_ERROR (0x05),				/**< Failed to determine the message overhead size. */
+	MSG_TRANSPORT_SEND_REQUEST_FAILED = MSG_TRANSPORT_ERROR (0x06),			/**< Failed to send a request message. */
+	MSG_TRANSPORT_REQUEST_TIMEOUT = MSG_TRANSPORT_ERROR (0x07),				/**< Timeout while waiting for a response. */
+	MSG_TRANSPORT_NO_WAIT_RESPONSE = MSG_TRANSPORT_ERROR (0x08),			/**< Did not wait for a response after sending a request. */
+	MSG_TRANSPORT_OVERHEAD_MORE_THAN_BUFFER = MSG_TRANSPORT_ERROR (0x09),	/**< The request buffer is smaller than the transport overhead. */
+	MSG_TRANSPORT_REQUEST_TOO_LARGE = MSG_TRANSPORT_ERROR (0x0a),			/**< The request payload exceeds the transport maximum. */
+	MSG_TRANSPORT_RESPONSE_TOO_LARGE = MSG_TRANSPORT_ERROR (0x0b),			/**< The response payload exceeds the provided buffer space. */
 };
 
 

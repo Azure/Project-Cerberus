@@ -38,7 +38,7 @@ int msg_transport_create_empty_request (const struct msg_transport *transport, u
 		return MSG_TRANSPORT_INVALID_ARGUMENT;
 	}
 
-	overhead = transport->get_max_message_overhead (transport, dest_id);
+	overhead = transport->get_buffer_overhead (transport, dest_id, length);
 	if (ROT_IS_ERROR (overhead)) {
 		return overhead;
 	}
