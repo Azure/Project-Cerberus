@@ -68,6 +68,8 @@ struct ide_km_sub_stream_info {
 	/**
 	 * The Key Direction field indicates the Key Direction,
 	 * corresponding to the D bit value in the IDE TLP Prefix.
+	 * 0b – Receive
+	 * 1b - Transmit
 	 */
 	uint8_t rx_tx:1;
 

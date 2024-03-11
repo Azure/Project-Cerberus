@@ -717,7 +717,6 @@ static void ide_commands_test_ide_km_query_invalid_params (CuTest *test)
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
 }
 
-
 static void ide_commands_test_ide_km_query_invalid_msg_size (CuTest *test)
 {
 	struct ide_commands_testing testing;
@@ -1136,6 +1135,169 @@ static void ide_commands_test_ide_km_query_get_selective_ide_stream_register_blo
 	ide_commands_testing_release_dependencies (test, &testing);
 }
 
+static void ide_commands_test_ide_km_key_prog (CuTest *test)
+{
+	struct ide_commands_testing testing;
+	struct cmd_interface_msg msg;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct ide_km_key_prog *rq = (struct ide_km_key_prog*) buf;
+	struct ide_km_kp_ack *rsp = (struct ide_km_kp_ack*) buf;
+	int status;
+	struct ide_km_aes_256_gcm_key_buffer *key_buffer;
+
+	TEST_START;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.payload_length = sizeof (struct ide_km_key_prog) +
+		sizeof (struct ide_km_aes_256_gcm_key_buffer);
+	msg.max_response = ARRAY_SIZE (buf);
+	rq->header.object_id = IDE_KM_OBJECT_ID_KEY_PROG;
+	rq->port_index = 1;
+	rq->stream_id = 2;
+	rq->sub_stream_info.key_set = 1;
+	rq->sub_stream_info.rx_tx = 1;
+	rq->sub_stream_info.key_sub_stream = 3;
+
+	key_buffer = (struct ide_km_aes_256_gcm_key_buffer*) (rq + 1);
+
+	ide_commands_testing_init_dependencies (test, &testing);
+
+	status = mock_expect (&testing.ide_driver_mock.mock,
+		testing.ide_driver_mock.base.key_prog, &testing.ide_driver_mock, 0,
+		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
+		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream),
+		MOCK_ARG_PTR (&key_buffer->key), MOCK_ARG (sizeof (key_buffer->key)),
+		MOCK_ARG_PTR (&key_buffer->iv), MOCK_ARG (sizeof (key_buffer->iv)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ide_km_key_prog (&testing.ide_driver_mock.base, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct ide_km_kp_ack), msg.payload_length);
+	CuAssertIntEquals (test, IDE_KM_OBJECT_ID_KP_ACK, rsp->header.object_id);
+	CuAssertIntEquals (test, rq->stream_id, rsp->stream_id);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_set, rsp->sub_stream_info.key_set);
+	CuAssertIntEquals (test, rq->sub_stream_info.rx_tx, rsp->sub_stream_info.rx_tx);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_sub_stream,
+		rsp->sub_stream_info.key_sub_stream);
+	CuAssertIntEquals (test, rq->port_index, rsp->port_index);
+	CuAssertIntEquals (test, 0, rsp->status);
+
+	ide_commands_testing_release_dependencies (test, &testing);
+}
+
+static void ide_commands_test_ide_km_key_prog_invalid_params (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = ide_km_key_prog ((struct ide_driver*) NULL, (struct cmd_interface_msg *) 0xDEADBEEF);
+	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
+
+	status = ide_km_key_prog ((struct ide_driver*) 0xDEADBEEF, (struct cmd_interface_msg *) NULL);
+	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT, status);
+}
+
+static void ide_commands_test_ide_km_key_prog_invalid_msg_size (CuTest *test)
+{
+	int status;
+	struct ide_commands_testing testing;
+	struct cmd_interface_msg msg;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct ide_km_key_prog *rq = (struct ide_km_key_prog*) buf;
+	struct ide_km_kp_ack *rsp = (struct ide_km_kp_ack*) buf;
+
+	TEST_START;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.payload_length = sizeof (struct ide_km_key_prog) +
+		sizeof (struct ide_km_aes_256_gcm_key_buffer) - 1;
+	msg.max_response = ARRAY_SIZE (buf);
+	rq->header.object_id = IDE_KM_OBJECT_ID_KEY_PROG;
+	rq->port_index = 1;
+	rq->stream_id = 2;
+	rq->sub_stream_info.key_set = 1;
+	rq->sub_stream_info.rx_tx = 1;
+	rq->sub_stream_info.key_sub_stream = 3;
+
+	ide_commands_testing_init_dependencies (test, &testing);
+
+	status = ide_km_key_prog (&testing.ide_driver_mock.base, &msg);
+	
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct ide_km_kp_ack), msg.payload_length);
+	CuAssertIntEquals (test, IDE_KM_OBJECT_ID_KP_ACK, rsp->header.object_id);
+	CuAssertIntEquals (test, rq->stream_id, rsp->stream_id);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_set, rsp->sub_stream_info.key_set);
+	CuAssertIntEquals (test, rq->sub_stream_info.rx_tx, rsp->sub_stream_info.rx_tx);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_sub_stream,
+		rsp->sub_stream_info.key_sub_stream);
+	CuAssertIntEquals (test, rq->port_index, rsp->port_index);
+	CuAssertIntEquals (test, IDE_KM_KP_ACK_STATUS_INCORRECT_LENGTH, rsp->status);
+
+	ide_commands_testing_release_dependencies (test, &testing);
+}
+
+static void ide_commands_test_ide_km_key_prog_key_prog_fail (CuTest *test)
+{
+	int status;
+	struct ide_commands_testing testing;
+	struct cmd_interface_msg msg;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct ide_km_key_prog *rq = (struct ide_km_key_prog*) buf;
+	struct ide_km_kp_ack *rsp = (struct ide_km_kp_ack*) buf;
+	struct ide_km_aes_256_gcm_key_buffer *key_buffer;
+
+	TEST_START;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.payload_length = sizeof (struct ide_km_key_prog) +
+		sizeof (struct ide_km_aes_256_gcm_key_buffer);
+	msg.max_response = ARRAY_SIZE (buf);
+	rq->header.object_id = IDE_KM_OBJECT_ID_KEY_PROG;
+	rq->port_index = 1;
+	rq->stream_id = 2;
+	rq->sub_stream_info.key_set = 1;
+	rq->sub_stream_info.rx_tx = 1;
+	rq->sub_stream_info.key_sub_stream = 3;
+
+	key_buffer = (struct ide_km_aes_256_gcm_key_buffer*) (rq + 1);
+
+	ide_commands_testing_init_dependencies (test, &testing);
+
+	status = mock_expect (&testing.ide_driver_mock.mock,
+		testing.ide_driver_mock.base.key_prog, &testing.ide_driver_mock, IDE_DRIVER_KEY_PROG_FAILED,
+		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
+		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream),
+		MOCK_ARG_PTR (&key_buffer->key), MOCK_ARG (sizeof (key_buffer->key)),
+		MOCK_ARG_PTR (&key_buffer->iv), MOCK_ARG (sizeof (key_buffer->iv)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = ide_km_key_prog (&testing.ide_driver_mock.base, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct ide_km_kp_ack), msg.payload_length);
+	CuAssertIntEquals (test, IDE_KM_OBJECT_ID_KP_ACK, rsp->header.object_id);
+	CuAssertIntEquals (test, rq->stream_id, rsp->stream_id);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_set, rsp->sub_stream_info.key_set);
+	CuAssertIntEquals (test, rq->sub_stream_info.rx_tx, rsp->sub_stream_info.rx_tx);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_sub_stream,
+		rsp->sub_stream_info.key_sub_stream);
+	CuAssertIntEquals (test, rq->port_index, rsp->port_index);
+	CuAssertIntEquals (test, IDE_KM_KP_ACK_STATUS_UNSPECIFIED_FAILURE, rsp->status);
+
+	ide_commands_testing_release_dependencies (test, &testing);
+}
+
 
 TEST_SUITE_START (ide_commands);
 
@@ -1169,5 +1331,9 @@ TEST (ide_commands_test_ide_km_query_get_link_ide_register_block_insufficient_ou
 TEST (ide_commands_test_ide_km_query_get_link_ide_register_block_fail);
 TEST (ide_commands_test_ide_km_query_get_selective_ide_stream_register_insufficient_output_buffer);
 TEST (ide_commands_test_ide_km_query_get_selective_ide_stream_register_block_fail);
+TEST (ide_commands_test_ide_km_key_prog);
+TEST (ide_commands_test_ide_km_key_prog_invalid_params);
+TEST (ide_commands_test_ide_km_key_prog_invalid_msg_size);
+TEST (ide_commands_test_ide_km_key_prog_key_prog_fail);
 
 TEST_SUITE_END;

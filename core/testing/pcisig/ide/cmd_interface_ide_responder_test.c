@@ -310,6 +310,89 @@ static void cmd_interface_ide_responder_test_process_request_query (CuTest *test
 	cmd_interface_ide_responder_testing_release (test, &testing);
 }
 
+static void cmd_interface_ide_responder_test_process_request_query_fail (CuTest *test)
+{
+	struct cmd_interface_ide_responder_testing testing;
+	struct cmd_interface_msg msg;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct ide_km_query *rq = (struct ide_km_query*) buf;
+	int status;
+
+	TEST_START;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.payload_length = sizeof (struct ide_km_query) - 1;
+	msg.max_response = ARRAY_SIZE (buf);
+	rq->header.object_id = IDE_KM_OBJECT_ID_QUERY;
+	rq->port_index = 1;
+
+	cmd_interface_ide_responder_testing_init (test, &testing);
+	
+	status = cmd_interface_ide_responder_process_request (
+		(const struct cmd_interface*) (&testing.ide_responder), &msg);
+
+	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_MSG_SIZE, status);
+	
+	cmd_interface_ide_responder_testing_release (test, &testing);
+}
+
+static void cmd_interface_ide_responder_test_process_request_key_prog (CuTest *test)
+{
+	struct cmd_interface_ide_responder_testing testing;
+	struct cmd_interface_msg msg;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct ide_km_key_prog *rq = (struct ide_km_key_prog*) buf;
+	struct ide_km_kp_ack *rsp = (struct ide_km_kp_ack*) buf;
+	int status;
+	struct ide_km_aes_256_gcm_key_buffer *key_buffer;
+
+	TEST_START;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.payload_length = sizeof (struct ide_km_key_prog) +
+		sizeof (struct ide_km_aes_256_gcm_key_buffer);
+	msg.max_response = ARRAY_SIZE (buf);
+	rq->header.object_id = IDE_KM_OBJECT_ID_KEY_PROG;
+	rq->port_index = 1;
+	rq->stream_id = 2;
+	rq->sub_stream_info.key_set = 1;
+	rq->sub_stream_info.rx_tx = 1;
+	rq->sub_stream_info.key_sub_stream = 3;
+
+	key_buffer = (struct ide_km_aes_256_gcm_key_buffer*) (rq + 1);
+
+	cmd_interface_ide_responder_testing_init (test, &testing);
+
+	status = mock_expect (&testing.ide_driver_mock.mock,
+		testing.ide_driver_mock.base.key_prog, &testing.ide_driver_mock, 0,
+		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
+		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream),
+		MOCK_ARG_PTR (&key_buffer->key), MOCK_ARG (sizeof (key_buffer->key)),
+		MOCK_ARG_PTR (&key_buffer->iv), MOCK_ARG (sizeof (key_buffer->iv)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_ide_responder_process_request (
+		(const struct cmd_interface*) (&testing.ide_responder), &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct ide_km_kp_ack), msg.payload_length);
+	CuAssertIntEquals (test, IDE_KM_OBJECT_ID_KP_ACK, rsp->header.object_id);
+	CuAssertIntEquals (test, rq->stream_id, rsp->stream_id);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_set, rsp->sub_stream_info.key_set);
+	CuAssertIntEquals (test, rq->sub_stream_info.rx_tx, rsp->sub_stream_info.rx_tx);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_sub_stream,
+		rsp->sub_stream_info.key_sub_stream);
+	CuAssertIntEquals (test, rq->port_index, rsp->port_index);
+	CuAssertIntEquals (test, 0, rsp->status);
+
+	cmd_interface_ide_responder_testing_release (test, &testing);
+}
+
 static void cmd_interface_ide_responder_test_process_request_invalid_params (CuTest *test)
 {
 	int status;
@@ -416,6 +499,8 @@ TEST (cmd_interface_ide_responder_test_init);
 TEST (cmd_interface_ide_responder_test_init_invalid_param);
 TEST (cmd_interface_ide_responder_test_release_null);
 TEST (cmd_interface_ide_responder_test_process_request_query);
+TEST (cmd_interface_ide_responder_test_process_request_query_fail);
+TEST (cmd_interface_ide_responder_test_process_request_key_prog);
 TEST (cmd_interface_ide_responder_test_process_request_invalid_params);
 TEST (cmd_interface_ide_responder_test_process_request_invalid_msg_size);
 TEST (cmd_interface_ide_responder_test_process_request_unkown_command);

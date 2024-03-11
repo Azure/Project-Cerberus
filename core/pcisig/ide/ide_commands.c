@@ -143,3 +143,58 @@ exit:
 	return status;
 }
 
+/**
+ * Process an IDE_KM_KEY_PROG message.
+ *
+ * @param ide_driver The IDE driver to program the key.
+ * @param request The IDE_KM request message.
+ * 
+ *  @return 0 if the message was successfully processed or an error code.
+ */
+int ide_km_key_prog (const struct ide_driver *ide_driver, struct cmd_interface_msg *request)
+{
+	int status = IDE_KM_KP_ACK_STATUS_SUCCESS;
+	const struct ide_km_key_prog *ide_km_request;
+	struct ide_km_kp_ack *ide_km_response;
+	struct ide_km_aes_256_gcm_key_buffer *key_buffer;
+
+	if ((ide_driver == NULL) || (request == NULL)) {
+		return CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT;
+	}
+
+	/* Per IDE spec, a strict size check is required. */
+	if (request->payload_length !=
+		(sizeof (struct ide_km_key_prog) + sizeof (struct ide_km_aes_256_gcm_key_buffer))) {
+		status = IDE_KM_KP_ACK_STATUS_INCORRECT_LENGTH;
+		goto construct_response;
+	}
+
+	ide_km_request = (const struct ide_km_key_prog*) request->payload;
+	key_buffer = (struct ide_km_aes_256_gcm_key_buffer*) (ide_km_request + 1);
+
+	/* Stash the key and IV in the driver. */
+	status = ide_driver->key_prog (ide_driver, ide_km_request->port_index,
+		ide_km_request->stream_id, ide_km_request->sub_stream_info.key_set,
+		ide_km_request->sub_stream_info.rx_tx, ide_km_request->sub_stream_info.key_sub_stream,
+		key_buffer->key, sizeof (key_buffer->key), key_buffer->iv, sizeof (key_buffer->iv));
+	if (status != 0) {
+		status = IDE_KM_KP_ACK_STATUS_UNSPECIFIED_FAILURE;
+	}
+
+	/* Clear the key info. */
+	memset (key_buffer, 0, sizeof (struct ide_km_aes_256_gcm_key_buffer));
+
+construct_response:
+	/* Construct the response. */
+	ide_km_response = (struct ide_km_kp_ack*) request->payload;
+
+	ide_km_response->header.object_id = IDE_KM_OBJECT_ID_KP_ACK;
+	/* stream_id, key_set, rx_tx, key_sub_stream and port_index fields are reused from the request
+	 * since these fields are common between the request and response. */
+	ide_km_response->status = status;
+
+	cmd_interface_msg_set_message_payload_length (request, sizeof (struct ide_km_kp_ack));
+	return 0;
+}
+
+
