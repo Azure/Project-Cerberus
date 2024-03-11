@@ -330,6 +330,10 @@ extern const size_t X509_CERTSS_ECC_CA_PL1_DER_LEN;
 /* Self-signed certificate with no path length constraint */
 extern const uint8_t X509_CERTSS_ECC_CA_NOPL_DER[];
 extern const size_t X509_CERTSS_ECC_CA_NOPL_DER_LEN;
+extern const uint8_t X509_CERTSS_ECC384_CA_NOPL_DER[];
+extern const size_t X509_CERTSS_ECC384_CA_NOPL_DER_LEN;
+extern const uint8_t X509_CERTSS_ECC521_CA_NOPL_DER[];
+extern const size_t X509_CERTSS_ECC521_CA_NOPL_DER_LEN;
 extern const uint8_t X509_CERTSS_RSA_CA_NOPL_DER[];
 extern const size_t X509_CERTSS_RSA_CA_NOPL_DER_LEN;
 
@@ -376,10 +380,14 @@ extern const size_t X509_CERTCA_ECC_CA2_PL15_DER_LEN;
 /* CA-signed certificate with no path length constraint */
 extern const uint8_t X509_CERTCA_ECC_CA_NOPL_DER[];
 extern const size_t X509_CERTCA_ECC_CA_NOPL_DER_LEN;
-extern const uint8_t X509_CERTCA_RSA_CA_NOPL_DER[];
-extern const size_t X509_CERTCA_RSA_CA_NOPL_DER_LEN;
 extern const uint8_t X509_CERTCA_ECC_CA2_NOPL_DER[];
 extern const size_t X509_CERTCA_ECC_CA2_NOPL_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC384_CA2_NOPL_DER[];
+extern const size_t X509_CERTCA_ECC384_CA2_NOPL_DER_LEN;
+extern const uint8_t X509_CERTCA_ECC521_CA2_NOPL_DER[];
+extern const size_t X509_CERTCA_ECC521_CA2_NOPL_DER_LEN;
+extern const uint8_t X509_CERTCA_RSA_CA_NOPL_DER[];
+extern const size_t X509_CERTCA_RSA_CA_NOPL_DER_LEN;
 
 
 /* End entity certificates */

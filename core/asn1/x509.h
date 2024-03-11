@@ -44,7 +44,12 @@ enum {
 /**
  * The maximum length for a certificate serial number.
  */
-#define	X509_MAX_SERIAL_NUMBER	20
+#define	X509_MAX_SERIAL_NUMBER		20
+
+/**
+ * The maximum length allowed for a certificate common name.
+ */
+#define	X509_MAX_COMMON_NAME		64
 
 
 /**

@@ -39,6 +39,7 @@ static const char DICE_KDF_CONTEXT[] = "DICE";
 int riot_core_common_create_device_id_certificate (const struct riot_core_common *riot)
 {
 	uint8_t serial_num[HASH_MAX_HASH_LEN];
+	char common_name[BASE64_LENGTH (HASH_MAX_HASH_LEN)];
 	int status;
 
 	riot->state->dev_id_valid = true;
@@ -56,9 +57,17 @@ int riot_core_common_create_device_id_certificate (const struct riot_core_common
 	}
 
 	status = riot->base64->encode (riot->base64, serial_num, riot->state->digest_length,
-		(uint8_t*) riot->state->dev_id_name, sizeof (riot->state->dev_id_name));
+		(uint8_t*) common_name, sizeof (common_name));
 	if (status != 0) {
 		return status;
+	}
+
+	if (strlen (common_name) > X509_MAX_COMMON_NAME) {
+		memcpy (riot->state->dev_id_name, common_name, X509_MAX_COMMON_NAME);
+		riot->state->dev_id_name[X509_MAX_COMMON_NAME] = '\0';
+	}
+	else {
+		strcpy (riot->state->dev_id_name, common_name);
 	}
 
 	status = riot->x509->create_self_signed_certificate (riot->x509, &riot->state->dev_id_cert,
@@ -180,7 +189,7 @@ int riot_core_common_generate_alias_key (const struct riot_core *riot, const uin
 	const struct riot_core_common *core = (const struct riot_core_common*) riot;
 	uint8_t fwid_hmac[HASH_MAX_HASH_LEN];
 	uint8_t alias_kdf[ECC_MAX_KEY_LENGTH];
-	uint8_t subject[BASE64_LENGTH (HASH_MAX_HASH_LEN)];
+	char common_name[BASE64_LENGTH (HASH_MAX_HASH_LEN)];
 	int status;
 
 	if ((riot == NULL) || (fwid == NULL) || (length == 0)) {
@@ -230,14 +239,18 @@ int riot_core_common_generate_alias_key (const struct riot_core *riot, const uin
 		return status;
 	}
 
-	status = core->base64->encode (core->base64, alias_kdf, core->state->digest_length, subject,
-		sizeof (subject));
+	status = core->base64->encode (core->base64, alias_kdf, core->state->digest_length,
+		(uint8_t*) common_name, sizeof (common_name));
 	if (status != 0) {
 		return status;
 	}
 
+	if (strlen (common_name) > X509_MAX_COMMON_NAME) {
+		common_name[X509_MAX_COMMON_NAME] = '\0';
+	}
+
 	status = core->x509->create_ca_signed_certificate (core->x509, &core->state->alias_cert,
-		core->state->alias_der, core->state->alias_length, alias_kdf, 8, (char*) subject,
+		core->state->alias_der, core->state->alias_length, alias_kdf, 8, common_name,
 		X509_CERT_END_ENTITY, core->state->dev_id_der, core->state->dev_id_length,
 		core->state->hash_algo, &core->state->dev_id_cert, core->alias_ext, core->alias_ext_count);
 	if (status != 0) {

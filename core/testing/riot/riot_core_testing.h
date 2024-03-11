@@ -69,6 +69,8 @@ extern const char RIOT_CORE_DEVID_NAME_384[];
 extern const size_t RIOT_CORE_DEVID_NAME_384_LEN;
 extern const char RIOT_CORE_DEVID_NAME_521[];
 extern const size_t RIOT_CORE_DEVID_NAME_521_LEN;
+extern const char RIOT_CORE_DEVID_NAME_521_TRUNCATED[];
+extern const size_t RIOT_CORE_DEVID_NAME_521_TRUNCATED_LEN;
 
 extern const uint8_t RIOT_CORE_DEVID_CSR[];
 extern const size_t RIOT_CORE_DEVID_CSR_LEN;
@@ -86,9 +88,17 @@ extern const size_t RIOT_CORE_DEVID_CERT_521_LEN;
 
 extern const uint8_t RIOT_CORE_DEVID_SIGNED_CERT[];
 extern const size_t RIOT_CORE_DEVID_SIGNED_CERT_LEN;
+extern const uint8_t RIOT_CORE_DEVID_SIGNED_CERT_384[];
+extern const size_t RIOT_CORE_DEVID_SIGNED_CERT_384_LEN;
+extern const uint8_t RIOT_CORE_DEVID_SIGNED_CERT_521[];
+extern const size_t RIOT_CORE_DEVID_SIGNED_CERT_521_LEN;
 
 extern const uint8_t RIOT_CORE_DEVID_INTR_SIGNED_CERT[];
 extern const size_t RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN;
+extern const uint8_t RIOT_CORE_DEVID_INTR_SIGNED_CERT_384[];
+extern const size_t RIOT_CORE_DEVID_INTR_SIGNED_CERT_384_LEN;
+extern const uint8_t RIOT_CORE_DEVID_INTR_SIGNED_CERT_521[];
+extern const size_t RIOT_CORE_DEVID_INTR_SIGNED_CERT_521_LEN;
 
 extern const char *RIOT_CORE_ALIAS_VERSION;
 extern const uint32_t RIOT_CORE_ALIAS_SVN;
@@ -175,6 +185,8 @@ extern const char RIOT_CORE_ALIAS_NAME_384[];
 extern const size_t RIOT_CORE_ALIAS_NAME_384_LEN;
 extern const char RIOT_CORE_ALIAS_NAME_521[];
 extern const size_t RIOT_CORE_ALIAS_NAME_521_LEN;
+extern const char RIOT_CORE_ALIAS_NAME_521_TRUNCATED[];
+extern const size_t RIOT_CORE_ALIAS_NAME_521_TRUNCATED_LEN;
 
 extern const uint8_t RIOT_CORE_ALIAS_CERT[];
 extern const size_t RIOT_CORE_ALIAS_CERT_LEN;
