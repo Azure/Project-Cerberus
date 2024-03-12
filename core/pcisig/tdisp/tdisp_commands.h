@@ -43,5 +43,8 @@ void tdisp_generate_error_response (struct cmd_interface_msg *response, uint8_t 
 int tdisp_get_version (struct tdisp_state *tdisp_state,
 	const uint8_t *version_num, uint8_t version_num_count, struct cmd_interface_msg *request);
 
+int tdisp_get_capabilities (const struct tdisp_driver *tdisp_driver,
+	struct cmd_interface_msg *request);
+
 
 #endif /* TDISP_COMMANDS_H */

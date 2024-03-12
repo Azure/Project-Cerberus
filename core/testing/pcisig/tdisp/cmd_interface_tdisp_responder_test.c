@@ -266,6 +266,73 @@ static void cmd_interface_tdisp_responder_test_process_request_get_version (CuTe
 	cmd_interface_tdisp_responder_testing_release (test, &testing);
 }
 
+static void cmd_interface_tdisp_responder_test_process_request_get_capabilities (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct tdisp_get_capabilities_request *rq = (struct tdisp_get_capabilities_request*) buf;
+	struct tdisp_get_capabilities_request rq_copy;
+	struct tdisp_capabilities_response *resp = (struct tdisp_capabilities_response*) buf;
+	struct cmd_interface_msg request;
+	int status;
+	struct cmd_interface_tdisp_responder *tdisp_responder;
+	struct cmd_interface_tdisp_responder_testing testing;
+	struct tdisp_responder_capabilities expected_rsp_caps = {0};
+	uint8_t i;
+
+	TEST_START;
+
+	cmd_interface_tdisp_responder_testing_init (test, &testing);
+
+	tdisp_responder = &testing.tdisp_responder;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = buf;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct tdisp_get_capabilities_request);
+	request.length = request.payload_length;
+
+	rq->header.version = TDISP_CURRENT_VERSION;
+	rq->header.message_type = TDISP_REQUEST_GET_CAPABILITIES;
+	rq->header.interface_id.function_id = 0;
+	rq->req_caps.tsm_caps = rand ();
+
+	expected_rsp_caps.dsm_caps = rand ();
+	for (i = 0; i < sizeof (expected_rsp_caps.req_msg_supported); i++) {
+		expected_rsp_caps.req_msg_supported[i] = rand ();
+	}
+	expected_rsp_caps.lock_interface_flags_supported = rand ();
+	expected_rsp_caps.dev_addr_width = rand ();
+	expected_rsp_caps.num_req_this = rand ();
+	expected_rsp_caps.num_req_all = rand ();
+
+	memcpy (&rq_copy, rq, sizeof (rq_copy));
+	status = mock_expect (&testing.tdisp_driver_mock.mock,
+		testing.tdisp_driver_mock.base.get_tdisp_capabilities, &testing.tdisp_driver_mock, 0,
+		MOCK_ARG_PTR_CONTAINS (&rq_copy.req_caps, sizeof (struct tdisp_requester_capabilities)),
+		MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect_output (&testing.tdisp_driver_mock.mock, 1, &expected_rsp_caps,
+		sizeof (struct tdisp_responder_capabilities), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = tdisp_responder->base.process_request (&tdisp_responder->base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct tdisp_capabilities_response), request.length);
+	CuAssertIntEquals (test, request.length, request.payload_length);
+	CuAssertPtrEquals (test, buf, request.data);
+	CuAssertPtrEquals (test, resp, request.payload);
+	CuAssertIntEquals (test, TDISP_CURRENT_VERSION, resp->header.version);
+	CuAssertIntEquals (test, TDISP_RESPONSE_GET_CAPABILITIES, resp->header.message_type);
+	CuAssertIntEquals (test, 0, resp->header.interface_id.function_id);
+	CuAssertIntEquals (test, 0, memcmp (&expected_rsp_caps, &resp->rsp_caps,
+		sizeof (struct tdisp_responder_capabilities)));
+
+	cmd_interface_tdisp_responder_testing_release (test, &testing);
+}
+
 static void cmd_interface_tdisp_responder_test_process_request_invalid_params (CuTest *test)
 {
 	int status;
@@ -403,6 +470,7 @@ TEST (cmd_interface_tdisp_responder_test_init);
 TEST (cmd_interface_tdisp_responder_test_init_invalid_param);
 TEST (cmd_interface_tdisp_responder_test_release_null);
 TEST (cmd_interface_tdisp_responder_test_process_request_get_version);
+TEST (cmd_interface_tdisp_responder_test_process_request_get_capabilities);
 TEST (cmd_interface_tdisp_responder_test_process_request_invalid_params);
 TEST (cmd_interface_tdisp_responder_test_process_request_payload_lt_min_length);
 TEST (cmd_interface_tdisp_responder_test_process_request_unsupported_message_type);

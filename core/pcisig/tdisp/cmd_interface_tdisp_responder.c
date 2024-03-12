@@ -29,10 +29,15 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 	}
 	tdisp_request = (const struct tdisp_header*) request->payload;
 
+	/* [TODO] If possible, consolidate error response generation in this function. */
 	switch (tdisp_request->message_type) {
 		case TDISP_REQUEST_GET_VERSION:
 			status = tdisp_get_version (tdisp_responder->state, tdisp_responder->version_num,
 				tdisp_responder->version_num_count, request);
+			break;
+
+		case TDISP_REQUEST_GET_CAPABILITIES:
+			status = tdisp_get_capabilities (tdisp_responder->tdisp_driver, request);
 			break;
 
 		default:

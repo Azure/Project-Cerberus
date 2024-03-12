@@ -185,3 +185,65 @@ exit:
 
 	return 0;
 }
+
+/**
+ * Process the TDISP GET_CAPABILITIES request and return the response.
+ *
+ * @param tdisp_driver The TDISP driver to use for processing the request.
+ * @param request The GET_CAPABILITIES request to process.
+ *
+ * @return 0 if request processed successfully (including TDISP error msg) or an error code.
+ */
+int tdisp_get_capabilities (const struct tdisp_driver *tdisp_driver,
+	struct cmd_interface_msg *request)
+{
+	int status = 0;
+	const struct tdisp_get_capabilities_request *tdisp_request;
+	struct tdisp_capabilities_response *tdisp_response;
+	uint32_t function_id = 0;
+	struct tdisp_responder_capabilities rsp_caps = {0};
+
+	if ((tdisp_driver == NULL) || (request == NULL)) {
+		return CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
+	}
+
+	if (request->payload_length != sizeof (struct tdisp_get_capabilities_request)) {
+		status = TDISP_ERROR_CODE_INVALID_REQUEST;
+		goto exit;
+	}
+	tdisp_request = (const struct tdisp_get_capabilities_request*) request->payload;
+	tdisp_response = (struct tdisp_capabilities_response*) request->payload;
+	function_id = tdisp_request->header.interface_id.function_id;
+
+	if (tdisp_request->header.version != TDISP_VERSION_1_0) {
+		status = TDISP_ERROR_CODE_VERSION_MISMATCH;
+		goto exit;
+	}
+
+	/* Provide requester capabilities to the driver. Also get the responder's capabilities. */
+	status = tdisp_driver->get_tdisp_capabilities (tdisp_driver, &tdisp_request->req_caps,
+		&rsp_caps);
+	if (status != 0) {
+		status = TDISP_ERROR_CODE_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Construct the response message. */
+	tdisp_response->header.version = TDISP_VERSION_1_0;
+	tdisp_response->header.message_type = TDISP_RESPONSE_GET_CAPABILITIES;
+	tdisp_response->header.interface_id.function_id = function_id;
+	tdisp_response->rsp_caps = rsp_caps;
+
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct tdisp_capabilities_response));
+
+exit:
+	if (status != 0) {
+		tdisp_generate_error_response (request, TDISP_VERSION_1_0, function_id, status, 0);
+	}
+
+	return 0;
+}
+
+
+
