@@ -9,6 +9,7 @@
 #include "spdm_protocol.h"
 #include "cmd_interface/cmd_interface.h"
 #include "spdm_transcript_manager.h"
+#include "riot/riot_key_manager.h"
 
 
 /**
@@ -19,6 +20,7 @@ struct cmd_interface_spdm_responder {
 	struct spdm_state *state;											/**< SPDM state. */
 	struct hash_engine *hash_engine;									/**< Hash engine for hashing operations. */
 	struct spdm_transcript_manager *transcript_manager;					/**< Transcript manager for SPDM. */
+	struct riot_key_manager *key_manager;								/**< Manager for device certificate chain. */
 	const struct spdm_version_num_entry *version_num;					/**< Supported version number(s). */
 	uint8_t version_num_count;											/**< Number of supported version number(s). */
 	const struct spdm_device_capability *local_capabilities;			/**< Local SPDM capabilities. */
@@ -30,12 +32,14 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	struct spdm_state *state, struct spdm_transcript_manager *transcript_manager,
 	struct hash_engine *hash_engine, const struct spdm_version_num_entry *version_num,
 	uint8_t version_num_count, const struct spdm_device_capability *local_capabilities,
-	const struct spdm_local_device_algorithms *local_algorithms);
+	const struct spdm_local_device_algorithms *local_algorithms,
+	struct riot_key_manager *key_manager);
 
 int cmd_interface_spdm_responder_init_state (
 	const struct cmd_interface_spdm_responder *spdm_responder);
 
-void cmd_interface_spdm_responder_deinit (const struct cmd_interface_spdm_responder *spdm_responder);
+void cmd_interface_spdm_responder_deinit (
+	const struct cmd_interface_spdm_responder *spdm_responder);
 
 
 #define	CMD_HANDLER_SPDM_RESPONDER_ERROR(code)		ROT_ERROR (ROT_MODULE_CMD_HANDLER_SPDM_RESPONDER, code)
@@ -56,6 +60,8 @@ enum {
 	CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x09),	/**< The device capability is not supported. */
 	CMD_HANDLER_SPDM_RESPONDER_INCOMPATIBLE_CAPABILITIES = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0a),	/**< The device capabilities are incompatible. */
 	CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0b),		/**< The request is unexpected. */
+	CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0c),			/**< An internal error occurred. */
+	CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0d),		/**< The response is too large. */
 };
 
 

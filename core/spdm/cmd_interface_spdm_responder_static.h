@@ -48,9 +48,11 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
  * @param version_num_count_arg Number of supported version numbers.
  * @param local_capabilities_ptr Local SPDM capabilities.
  * @param local_algorithms_ptr Local SPDM algorithms.
+ * @param key_manager_ptr Key Manager instance pointer.
  */
 #define	cmd_interface_spdm_responder_static_init(state_ptr, transcript_manager_ptr, hash_engine_ptr, \
-		version_num_ptr, version_num_count_arg, local_capabilities_ptr, local_algorithms_ptr) { \
+		version_num_ptr, version_num_count_arg, local_capabilities_ptr, local_algorithms_ptr, \
+		key_manager_ptr) { \
 		.base = CMD_INTERFACE_SPDM_RESPONDER_API_INIT, \
 		.state = state_ptr, \
 		.transcript_manager = transcript_manager_ptr, \
@@ -58,7 +60,8 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
 		.version_num = version_num_ptr, \
 		.version_num_count = version_num_count_arg, \
 		.local_capabilities = local_capabilities_ptr, \
-		.local_algorithms = local_algorithms_ptr \
+		.local_algorithms = local_algorithms_ptr, \
+		.key_manager = key_manager_ptr \
 	}
 
 

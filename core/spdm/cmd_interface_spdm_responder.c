@@ -49,6 +49,10 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 			status = spdm_negotiate_algorithms (spdm_responder, request);
 			break;
 
+		case SPDM_REQUEST_GET_DIGESTS:
+			status = spdm_get_digests (spdm_responder, request);
+			break;
+
 		default:
 			spdm_generate_error_response (request, 0, SPDM_ERROR_UNSUPPORTED_REQUEST, 0x00, NULL, 0,
 				req_code, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION);
@@ -112,6 +116,7 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
  * @param version_num_count Number of version numbers entries.
  * @param local_capabilities Local SPDM capabilities.
  * @param local_algorithms Local SPDM algorithms.
+ * @param key_manager RIoT device key manager.
  *
  * @return 0 if the SPDM responder instance was initialized successfully or an error code.
  */
@@ -119,7 +124,8 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	struct spdm_state *state, struct spdm_transcript_manager *transcript_manager,
 	struct hash_engine *hash_engine, const struct spdm_version_num_entry *version_num,
 	uint8_t version_num_count, const struct spdm_device_capability *local_capabilities,
-	const struct spdm_local_device_algorithms *local_algorithms)
+	const struct spdm_local_device_algorithms *local_algorithms,
+	struct riot_key_manager *key_manager)
 {
 	int status;
 
@@ -137,6 +143,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	spdm_responder->version_num_count = version_num_count;
 	spdm_responder->local_capabilities = local_capabilities;
 	spdm_responder->local_algorithms = local_algorithms;
+	spdm_responder->key_manager = key_manager;
 
 	spdm_responder->base.process_request = cmd_interface_spdm_process_request;
 	spdm_responder->base.process_response = cmd_interface_spdm_process_response;
@@ -229,7 +236,7 @@ int cmd_interface_spdm_responder_init_state (
 	if ((spdm_responder == NULL) || (spdm_responder->hash_engine == NULL) ||
 		(spdm_responder->transcript_manager == NULL) || (spdm_responder->version_num == NULL) ||
 		(spdm_responder->version_num_count == 0) || (spdm_responder->local_capabilities == NULL) ||
-		(spdm_responder->local_algorithms == NULL)) {
+		(spdm_responder->local_algorithms == NULL) || (spdm_responder->key_manager == NULL)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 		goto exit;
 	}

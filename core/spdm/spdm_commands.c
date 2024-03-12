@@ -7,6 +7,7 @@
 #include "cmd_interface/device_manager.h"
 #include "common/array_size.h"
 #include "common/common_math.h"
+#include "common/unused.h"
 #include "crypto/hash.h"
 #include "crypto/ecc.h"
 #include "mctp/mctp_base_protocol.h"
@@ -414,6 +415,66 @@ static void spdm_reset_transcript_via_request_code (struct spdm_state *state,
 		default:
 			break;
 	}
+}
+
+/**
+ * Get the list of the cerficates in slot 0.
+ *
+ * @param key_manager RIoT device key manager.
+ * @param cert_count_out Number of certificates in the chain.
+ * @param cert Certificate chain list in DER format.
+ * @param keys_out On success, ptr. to the RIoT keys. This must be released by the caller by calling
+ * riot_key_manager_release_riot_keys.
+ *
+ * @return 0 if certificate chain was retrieved successfully or an error code.
+ */
+static int spdm_get_certificate_chain (struct riot_key_manager *key_manager,
+	uint8_t *cert_count_out, struct der_cert *cert, const struct riot_keys **keys_out)
+{
+	int status = 0;
+	const struct der_cert *int_ca;
+	const struct der_cert *root_ca;
+	const struct riot_keys *keys = NULL;
+	uint8_t cert_count = 0;
+
+	root_ca = riot_key_manager_get_root_ca (key_manager);
+	if (root_ca != NULL) {
+		cert[cert_count] = *root_ca;
+		cert_count += 1;
+	}
+	int_ca = riot_key_manager_get_intermediate_ca (key_manager);
+	if (int_ca != NULL) {
+		cert[cert_count] = *int_ca;
+		cert_count += 1;
+	}
+
+	keys = riot_key_manager_get_riot_keys (key_manager);
+	if ((keys->devid_cert == NULL) || (keys->devid_cert_length == 0)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_DEVICE_CERT_NOT_AVAILABLE;
+		goto exit;
+	}
+	cert[cert_count].cert = keys->devid_cert;
+	cert[cert_count].length = keys->devid_cert_length;
+	cert_count += 1;
+
+	if ((keys->alias_cert == NULL) || (keys->alias_cert_length == 0)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_ALIAS_CERT_NOT_AVAILABLE;
+		goto exit;
+	}
+	cert[cert_count].cert = keys->alias_cert;
+	cert[cert_count].length = keys->alias_cert_length;
+	cert_count += 1;
+
+	*cert_count_out = cert_count;
+	*keys_out = keys;
+	keys = NULL;
+
+exit:
+	if (keys != NULL) {
+		riot_key_manager_release_riot_keys (key_manager, keys);
+	}
+
+	return status;
 }
 
 /**
@@ -1316,6 +1377,218 @@ int spdm_process_negotiate_algorithms_response (struct cmd_interface_msg *respon
 		offset += (algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm));
 	}
 
+	return 0;
+}
+
+/**
+ * Process the SPDM GET_DIGESTS request.
+ *
+ * @param spdm_responder SPDM responder instance.
+ * @param request GET_DIGESTS request to process.
+ *
+ * @return 0 if the request was processed successfully or an error code.
+ */
+int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request)
+{
+	int status = 0;
+	int spdm_error;
+	struct spdm_get_digests_request *spdm_request;
+	struct spdm_get_digests_response *spdm_response;
+	uint8_t spdm_version;
+	void *session_info;
+	uint32_t response_size;
+	int hash_size;
+	uint8_t i_cert;
+	struct der_cert cert[SPDM_MAX_CERT_COUNT_IN_CHAIN];
+	uint8_t cert_count;
+	struct spdm_cert_chain cert_chain;
+	uint32_t cert_chain_length;
+	struct spdm_transcript_manager *transcript_manager;
+	struct spdm_state *state;
+	const struct spdm_device_capability *local_capabilities;
+	struct riot_key_manager *key_manager;
+	struct hash_engine *hash_engine;
+	enum hash_type hash_type;
+	bool cancel_hash = false;
+	const struct riot_keys *keys = NULL;
+
+	if ((spdm_responder == NULL) || (request == NULL)) {
+		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+	}
+
+	transcript_manager = spdm_responder->transcript_manager;
+	state = spdm_responder->state;
+	local_capabilities = spdm_responder->local_capabilities;
+	key_manager = spdm_responder->key_manager;
+	hash_engine = spdm_responder->hash_engine;
+	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
+
+	/* Validate the request. */
+	if (request->payload_length < sizeof (struct spdm_get_digests_request)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+	spdm_request = (struct spdm_get_digests_request*) request->payload;
+	spdm_version = SPDM_MAKE_VERSION (spdm_request->header.spdm_major_version,
+		spdm_request->header.spdm_minor_version);
+	if (spdm_version != spdm_get_connection_version (state)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
+		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
+		goto exit;
+	}
+
+	/* Verify SPDM state. */
+	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
+		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_DIGESTS);
+		goto exit;
+	}
+	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
+		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check if the certificate capability is supported. */
+	if (local_capabilities->flags.cert_cap == 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
+		spdm_error = SPDM_ERROR_UNSUPPORTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check if a session is ongoing. */
+	session_info = NULL;
+	if (state->last_spdm_request_session_id_valid == true) {
+		/* [TODO] Handle session. */
+		UNUSED (session_info);
+	}
+
+	/* Reset transcript manager state as per request code. */
+	spdm_reset_transcript_via_request_code (state, transcript_manager, SPDM_REQUEST_GET_DIGESTS);
+
+	/* Retrieve the certificate chain. */
+	/* [TODO] Refactor this function into an API. */
+	status = spdm_get_certificate_chain (key_manager, &cert_count, cert, &keys);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	hash_size = hash_get_hash_length (hash_type);
+	if (hash_size == HASH_ENGINE_UNKNOWN_HASH) {
+		status = HASH_ENGINE_UNKNOWN_HASH;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Add request to M1M2 hash context. */
+	if (session_info == NULL) {
+		status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
+			request->payload, sizeof (struct spdm_get_digests_request), false,
+			SPDM_MAX_SESSION_COUNT);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+	}
+
+	/* Construct the response. */
+	response_size = sizeof (struct spdm_get_digests_response) + hash_size;
+	if (response_size > cmd_interface_msg_get_max_response (request)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	spdm_response = (struct spdm_get_digests_response*) request->payload;
+	memset (spdm_response, 0, response_size);
+
+	spdm_populate_header (&spdm_response->header, SPDM_RESPONSE_GET_DIGESTS,
+		SPDM_GET_MINOR_VERSION (spdm_version));
+	spdm_response->slot_mask = 1;
+
+	/* Hash the root cert. */
+	status = hash_calculate (hash_engine, hash_type, cert[0].cert, cert[0].length,
+		cert_chain.root_hash, hash_size);
+	if (ROT_IS_ERROR (status)) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+	status = 0;
+
+	/* Calculate the cert chain length. */
+	cert_chain_length = 0;
+	for (i_cert = 0; i_cert < cert_count; ++i_cert) {
+		cert_chain_length += cert[i_cert].length;
+	}
+
+	cert_chain.length = spdm_get_digests_cert_chain_length (hash_size, cert_chain_length);
+	cert_chain.reserved = 0;
+
+	/* Start the cert chain hash. */
+	status = hash_start_new_hash (hash_engine, hash_type);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+	cancel_hash = true;
+
+	/* Hash the header of the cert chain and the root cert digest. */
+	status = hash_engine->update (hash_engine, (uint8_t*) &cert_chain,
+			offsetof (struct spdm_cert_chain, root_hash) + hash_size);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Hash the individual certs in the cert chain. */
+	for (i_cert = 0; i_cert < cert_count; i_cert++) {
+		status = hash_engine->update (hash_engine, cert[i_cert].cert, cert[i_cert].length);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+	}
+
+	status = hash_engine->finish (hash_engine, (uint8_t *)(spdm_response + 1), hash_size);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+	cancel_hash = false;
+
+	/* Add response to M1M2 hash context. */
+	if (session_info == NULL) {
+		status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
+			(uint8_t*) spdm_response, response_size, false, SPDM_MAX_SESSION_COUNT);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+	}
+
+	/* Set the payload length. */
+	cmd_interface_msg_set_message_payload_length (request, response_size);
+
+	/* Update connection state */
+	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_AFTER_DIGESTS) {
+		spdm_set_connection_state (state, SPDM_CONNECTION_STATE_AFTER_DIGESTS);
+	}
+
+exit:
+	if (keys != NULL) {
+		riot_key_manager_release_riot_keys (key_manager, keys);
+	}
+
+	if (status != 0) {
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_GET_DIGESTS, status);
+
+		if (cancel_hash == true) {
+			hash_engine->cancel (hash_engine);
+		}
+	}
 	return 0;
 }
 

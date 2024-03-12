@@ -467,6 +467,27 @@ struct spdm_negotiate_algorithms_response_no_ext_alg {
 	sizeof (struct spdm_algorithm_request)));
 
 /**
+ * SPDM get certificate request/response slot id mask
+ */
+#define SPDM_GET_CERTIFICATE_SLOT_ID_MASK	0xF
+
+/**
+ * SPDM certificate slot maximum count.
+ * [TODO] This will be removed when the Certificate Manager component is available.
+ */
+#ifndef SPDM_MAX_SLOT_COUNT
+#define SPDM_MAX_SLOT_COUNT		1
+#endif
+
+/**
+ * SPDM max. certificates in a chain.
+ * [TODO] This will be removed when the Certificate Manager component is available.
+ */
+#ifndef SPDM_MAX_CERT_COUNT_IN_CHAIN
+#define SPDM_MAX_CERT_COUNT_IN_CHAIN		4
+#endif
+
+/**
  * SPDM get digests request format
  */
 struct spdm_get_digests_request {
@@ -483,6 +504,24 @@ struct spdm_get_digests_response {
 	uint8_t reserved;						/**< Reserved */
 	uint8_t slot_mask;						/**< Slot mask */
 };
+
+/**
+ * SPDM cert chain format
+ */
+struct spdm_cert_chain {
+	uint16_t length;							/**< Length of the cert chain including this struct. */
+	uint16_t reserved;							/**< Reserved */
+	uint8_t root_hash[HASH_MAX_HASH_LEN];		/**< Max. hash size of the root cert. */
+};
+
+/**
+ * Get the total length of a SPDM certificate chain.
+ *
+ * @param hash_size Size of the cert chain hash.
+ * @param cert_chain_length Length of the cert chain.
+ */
+#define	spdm_get_digests_cert_chain_length(hash_size, cert_chain_length)	\
+	(offsetof (struct spdm_cert_chain, root_hash) + hash_size + cert_chain_length)
 
 /**
  * Get the total length of a SPDM get digests response message
@@ -1089,6 +1128,8 @@ int spdm_generate_negotiate_algorithms_request (uint8_t *buf, size_t buf_len,
 	uint32_t base_asym_algo, uint32_t base_hash_algo, uint8_t spdm_minor_version);
 int spdm_process_negotiate_algorithms_response (struct cmd_interface_msg *response);
 
+int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
 int spdm_generate_get_digests_request (uint8_t *buf, size_t buf_len, uint8_t spdm_minor_version);
 int spdm_process_get_digests_response (struct cmd_interface_msg *response);
 
