@@ -146,7 +146,9 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	spdm_responder->key_manager = key_manager;
 
 	spdm_responder->base.process_request = cmd_interface_spdm_process_request;
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 	spdm_responder->base.process_response = cmd_interface_spdm_process_response;
+#endif	
 	spdm_responder->base.generate_error_packet = cmd_interface_spdm_generate_error_packet;
 
 	status = cmd_interface_spdm_responder_init_state (spdm_responder);
