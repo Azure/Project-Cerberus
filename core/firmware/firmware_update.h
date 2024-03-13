@@ -4,10 +4,9 @@
 #ifndef FIRMWARE_UPDATE_H_
 #define FIRMWARE_UPDATE_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stddef.h>
+#include <stdint.h>
 #include "app_context.h"
 #include "firmware_image.h"
 #include "firmware_update_observer.h"
@@ -15,6 +14,7 @@
 #include "crypto/hash.h"
 #include "flash/flash.h"
 #include "flash/flash_updater.h"
+#include "status/rot_status.h"
 #include "system/security_manager.h"
 
 
@@ -120,12 +120,12 @@ struct firmware_update_hooks {
  * Variable context for a firmware updater.
  */
 struct firmware_update_state {
-	struct flash_updater update_mgr;		/**< Update manager for writing data to flash. */
-	struct observable observable;			/**< Observer manager for the updater. */
-	bool recovery_bad;						/**< Indication if the recovery image on flash is bad. */
-	int recovery_rev;						/**< Revision ID of the current recovery image. */
-	int min_rev;							/**< Minimum revision ID allowed for update. */
-	int img_offset;							/**< Offset to apply to FW image regions. */
+	struct flash_updater update_mgr;	/**< Update manager for writing data to flash. */
+	struct observable observable;		/**< Observer manager for the updater. */
+	bool recovery_bad;					/**< Indication if the recovery image on flash is bad. */
+	int recovery_rev;					/**< Revision ID of the current recovery image. */
+	int min_rev;						/**< Minimum revision ID allowed for update. */
+	int img_offset;						/**< Offset to apply to FW image regions. */
 };
 
 /**
@@ -228,4 +228,4 @@ enum {
 };
 
 
-#endif /* FIRMWARE_UPDATE_H_ */
+#endif	/* FIRMWARE_UPDATE_H_ */

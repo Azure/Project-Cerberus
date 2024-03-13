@@ -3,11 +3,11 @@
 
 #include <stdint.h>
 #include <string.h>
-#include "common/buffer_util.h"
-#include "common/common_math.h"
-#include "pcr_store.h"
 #include "pcr.h"
 #include "pcr_data.h"
+#include "pcr_store.h"
+#include "common/buffer_util.h"
+#include "common/common_math.h"
 
 
 /**
@@ -57,6 +57,7 @@ int pcr_store_init (struct pcr_store *store, const struct pcr_config *pcr_config
 			}
 
 			platform_free (store->pcrs);
+
 			return status;
 		}
 	}
@@ -840,8 +841,8 @@ int pcr_store_get_attestation_log_size (struct pcr_store *store)
  *
  * @return The number of bytes read from the log or an error code.
  */
-int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash,
-	size_t offset, uint8_t *contents, size_t length)
+int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash, size_t offset,
+	uint8_t *contents, size_t length)
 {
 	union {
 		struct pcr_store_attestation_log_entry_base base;
@@ -884,6 +885,7 @@ int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *
 		status = pcr_compute (&store->pcrs[pcr], hash, false, NULL, 0);
 		if (ROT_IS_ERROR (status)) {
 			pcr_unlock (&store->pcrs[pcr]);
+
 			return status;
 		}
 
@@ -891,8 +893,8 @@ int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *
 
 		switch (digest_length) {
 			default:
-				/* This isn't possible under normal conditions since invalid digest lengths would be
-				 * rejected during init.  Fall through to SHA-256 in unexpected scenarios. */
+			/* This isn't possible under normal conditions since invalid digest lengths would be
+			 * rejected during init.  Fall through to SHA-256 in unexpected scenarios. */
 			case SHA256_HASH_LENGTH:
 				digest = log_entry.sha256.entry.digest;
 				measurement_size = &log_entry.sha256.entry.measurement_size;

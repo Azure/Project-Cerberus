@@ -4,24 +4,24 @@
 #ifndef AUTH_TOKEN_H_
 #define AUTH_TOKEN_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stddef.h>
+#include <stdint.h>
 #include "platform_api.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
 #include "crypto/rng.h"
 #include "crypto/signature_verification.h"
 #include "riot/riot_key_manager.h"
+#include "status/rot_status.h"
 
 
 /**
  * Variable context for authorization token management.
  */
 struct auth_token_state {
-	size_t token_length;				/**< Length of the active authorization token. */
-	platform_clock expiration;			/**< Expiration time of the active token. */
+	size_t token_length;		/**< Length of the active authorization token. */
+	platform_clock expiration;	/**< Expiration time of the active token. */
 };
 
 /**
@@ -77,22 +77,22 @@ struct auth_token {
 	 */
 	int (*invalidate) (const struct auth_token *auth);
 
-	struct auth_token_state *state;						/**< Variable context for the token. */
-	struct rng_engine *rng;								/**< RNG for nonce generation. */
-	struct hash_engine *hash;							/**< Hash engine for token digests. */
-	struct ecc_engine *ecc;								/**< ECC engine for token signing. */
-	struct riot_key_manager *device_key;				/**< Manager for device key used to sign tokens. */
-	const struct signature_verification *authority;		/**< Verification handler for the token signing authority. */
-	const uint8_t *authority_key;						/**< Public key for the token signing authority. */
-	size_t auth_key_length;								/**< Length of the authority public key. */
-	uint8_t *buffer;									/**< Internal buffer for managing the active token. */
-	size_t buffer_length;								/**< Size of the internal token buffer. */
-	bool alloc_buffer;									/**< Flag indicating if the buffer was internally allocated. */
-	size_t data_length;									/**< Length of the additional data prepended to the token. */
-	size_t nonce_length;								/**< Length of the token nonce. */
-	size_t sig_length;									/**< Maximum length of the token signature. */
-	enum hash_type token_hash;							/**< Hash algorithm to use for token signing. */
-	uint32_t validity_time;								/**< Length of time any token is valid. */
+	struct auth_token_state *state;					/**< Variable context for the token. */
+	struct rng_engine *rng;							/**< RNG for nonce generation. */
+	struct hash_engine *hash;						/**< Hash engine for token digests. */
+	struct ecc_engine *ecc;							/**< ECC engine for token signing. */
+	struct riot_key_manager *device_key;			/**< Manager for device key used to sign tokens. */
+	const struct signature_verification *authority;	/**< Verification handler for the token signing authority. */
+	const uint8_t *authority_key;					/**< Public key for the token signing authority. */
+	size_t auth_key_length;							/**< Length of the authority public key. */
+	uint8_t *buffer;								/**< Internal buffer for managing the active token. */
+	size_t buffer_length;							/**< Size of the internal token buffer. */
+	bool alloc_buffer;								/**< Flag indicating if the buffer was internally allocated. */
+	size_t data_length;								/**< Length of the additional data prepended to the token. */
+	size_t nonce_length;							/**< Length of the token nonce. */
+	size_t sig_length;								/**< Maximum length of the token signature. */
+	enum hash_type token_hash;						/**< Hash algorithm to use for token signing. */
+	uint32_t validity_time;							/**< Length of time any token is valid. */
 };
 
 
@@ -130,4 +130,5 @@ enum {
 	AUTH_TOKEN_DATA_TOO_LONG = AUTH_TOKEN_ERROR (0x08),		/**< Too much context data was provided for the token. */
 };
 
-#endif /* AUTH_TOKEN_H_ */
+
+#endif	/* AUTH_TOKEN_H_ */

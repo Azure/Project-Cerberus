@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
-#include "firmware_update.h"
 #include "firmware_logging.h"
+#include "firmware_update.h"
 #include "common/unused.h"
-#include "flash/flash_util.h"
 #include "flash/flash_common.h"
+#include "flash/flash_util.h"
 
 
 /**
@@ -121,6 +121,7 @@ int firmware_update_init_state (const struct firmware_update *updater, int allow
 	status = observable_init (&updater->state->observable);
 	if (status != 0) {
 		flash_updater_release (&updater->state->update_mgr);
+
 		return status;
 	}
 
@@ -245,6 +246,7 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 	if (check_bytes) {
 		if (flash_updater_get_remaining_bytes (&updater->state->update_mgr) > 0) {
 			firmware_update_status_change (callback, UPDATE_STATUS_INCOMPLETE_IMAGE);
+
 			return FIRMWARE_UPDATE_INCOMPLETE_IMAGE;
 		}
 	}
@@ -252,6 +254,7 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 	status = updater->fw->load (updater->fw, flash, address + updater->state->img_offset);
 	if (status != 0) {
 		firmware_update_status_change (callback, UPDATE_STATUS_VERIFY_FAILURE);
+
 		return status;
 	}
 
@@ -264,6 +267,7 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 		else {
 			firmware_update_status_change (callback, UPDATE_STATUS_VERIFY_FAILURE);
 		}
+
 		return status;
 	}
 
@@ -276,8 +280,10 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 
 	if (img_size) {
 		int img_length = updater->fw->get_image_size (updater->fw);
+
 		if (ROT_IS_ERROR (img_length)) {
 			firmware_update_status_change (callback, UPDATE_STATUS_VERIFY_FAILURE);
+
 			return img_length;
 		}
 
@@ -294,6 +300,7 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 			status = firmware_header_get_recovery_revision (header, &img_revision);
 			if (status != 0) {
 				firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
+
 				return status;
 			}
 
@@ -303,6 +310,7 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 				if (security_policy_enforce_anti_rollback (policy)) {
 					if (img_revision < updater->state->min_rev) {
 						firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
+
 						return FIRMWARE_UPDATE_REJECTED_ROLLBACK;
 					}
 				}
@@ -312,6 +320,7 @@ static int firmware_update_load_and_verify_image (const struct firmware_update *
 		}
 		else if (!updater->no_fw_header) {
 			firmware_update_status_change (callback, UPDATE_STATUS_INVALID_IMAGE);
+
 			return FIRMWARE_UPDATE_NO_FIRMWARE_HEADER;
 		}
 	}
@@ -346,10 +355,9 @@ void firmware_update_validate_recovery_image (const struct firmware_update *upda
 			&updater->state->recovery_rev);
 
 		updater->state->recovery_bad = (status != 0);
-		debug_log_create_entry (
-			(updater->state->recovery_bad) ? DEBUG_LOG_SEVERITY_WARNING : DEBUG_LOG_SEVERITY_INFO,
-			DEBUG_LOG_COMPONENT_CERBERUS_FW, FIRMWARE_LOGGING_RECOVERY_IMAGE,
-			updater->state->recovery_bad, status);
+		debug_log_create_entry ((updater->state->recovery_bad) ? DEBUG_LOG_SEVERITY_WARNING :
+				DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
+			FIRMWARE_LOGGING_RECOVERY_IMAGE, updater->state->recovery_bad, status);
 	}
 }
 
@@ -469,12 +477,14 @@ static int firmware_update_write_image (const struct firmware_update *updater,
 		status = updater->fw->load (updater->fw, dest, dest_addr + updater->state->img_offset);
 		if (status != 0) {
 			firmware_update_status_change (callback, backup_fail);
+
 			return status;
 		}
 
 		backup_len = updater->fw->get_image_size (updater->fw);
 		if (ROT_IS_ERROR (backup_len)) {
 			firmware_update_status_change (callback, backup_fail);
+
 			return backup_len;
 		}
 
@@ -482,6 +492,7 @@ static int firmware_update_write_image (const struct firmware_update *updater,
 			dest_addr + updater->state->img_offset, backup_len);
 		if (status != 0) {
 			firmware_update_status_change (callback, backup_fail);
+
 			return status;
 		}
 	}
@@ -492,6 +503,7 @@ static int firmware_update_write_image (const struct firmware_update *updater,
 	status = dest->get_page_size (dest, &page);
 	if (status != 0) {
 		firmware_update_status_change (callback, update_fail);
+
 		return status;
 	}
 
@@ -503,6 +515,7 @@ static int firmware_update_write_image (const struct firmware_update *updater,
 		update_len + updater->state->img_offset);
 	if (status != 0) {
 		firmware_update_status_change (callback, update_fail);
+
 		return status;
 	}
 
@@ -529,12 +542,14 @@ static int firmware_update_write_image (const struct firmware_update *updater,
 		}
 
 		firmware_update_status_change (callback, update_fail);
+
 		return status;
 	}
 
 	if (img_good) {
 		*img_good = true;
 	}
+
 	return 0;
 }
 
@@ -789,6 +804,7 @@ static int firmware_update_apply_update (const struct firmware_update *updater,
 		offsetof (struct firmware_update_observer, on_update_start), &allow_update);
 	if (allow_update != 0) {
 		firmware_update_status_change (callback, UPDATE_STATUS_SYSTEM_PREREQ_FAIL);
+
 		return allow_update;
 	}
 
@@ -797,6 +813,7 @@ static int firmware_update_apply_update (const struct firmware_update *updater,
 	status = updater->context->save (updater->context);
 	if (status != 0) {
 		firmware_update_status_change (callback, UPDATE_STATUS_STATE_SAVE_FAIL);
+
 		return status;
 	}
 
@@ -859,12 +876,14 @@ static int firmware_update_process_manifest_revocation (const struct firmware_up
 	manifest = updater->fw->get_key_manifest (updater->fw);
 	if (manifest == NULL) {
 		firmware_update_status_change (callback, UPDATE_STATUS_REVOKE_CHK_FAIL);
+
 		return FIRMWARE_UPDATE_NO_KEY_MANIFEST;
 	}
 
 	manifest_revoked = manifest->revokes_old_manifest (manifest);
 	if (ROT_IS_ERROR (manifest_revoked)) {
 		firmware_update_status_change (callback, UPDATE_STATUS_REVOKE_CHK_FAIL);
+
 		return manifest_revoked;
 	}
 
@@ -916,6 +935,7 @@ static int firmware_update_process_manifest_revocation (const struct firmware_up
 			status = manifest->update_revocation (manifest);
 			if (status != 0) {
 				firmware_update_status_change (callback, UPDATE_STATUS_REVOKE_FAILED);
+
 				return status;
 			}
 		}
@@ -951,6 +971,7 @@ int firmware_update_run_update (const struct firmware_update *updater,
 
 	if (updater == NULL) {
 		firmware_update_status_change (callback, UPDATE_STATUS_START_FAILURE);
+
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
@@ -979,6 +1000,7 @@ int firmware_update_run_update (const struct firmware_update *updater,
 		updater->flash->active_addr + updater->state->img_offset);
 	if (status != 0) {
 		firmware_update_status_change (callback, UPDATE_STATUS_REVOKE_CHK_FAIL);
+
 		return status;
 	}
 
@@ -1022,6 +1044,7 @@ int firmware_update_run_update_no_revocation (const struct firmware_update *upda
 
 	if (updater == NULL) {
 		firmware_update_status_change (callback, UPDATE_STATUS_START_FAILURE);
+
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
@@ -1037,6 +1060,7 @@ int firmware_update_run_update_no_revocation (const struct firmware_update *upda
 			/* If the recovery image could not be restored but the active image is good, fail the
 			 * update process. */
 			firmware_update_status_change (callback, UPDATE_STATUS_UPDATE_REC_FAIL);
+
 			return status;
 		}
 	}
@@ -1081,6 +1105,7 @@ int firmware_update_run_revocation (const struct firmware_update *updater,
 
 	if (updater == NULL) {
 		firmware_update_status_change (callback, UPDATE_STATUS_START_FAILURE);
+
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
@@ -1090,9 +1115,8 @@ int firmware_update_run_revocation (const struct firmware_update *updater,
 	new_revision = updater->state->recovery_rev;
 
 	/* Verify image in active flash. */
-	status = firmware_update_load_and_verify_image (updater, callback,
-		updater->flash->active_flash, updater->flash->active_addr, false, false, false, &new_len,
-		&new_revision);
+	status = firmware_update_load_and_verify_image (updater, callback, updater->flash->active_flash,
+		updater->flash->active_addr, false, false, false, &new_len,	&new_revision);
 	if (status != 0) {
 		return status;
 	}
@@ -1122,6 +1146,7 @@ int firmware_update_prepare_staging (const struct firmware_update *updater,
 
 	if (updater == NULL) {
 		firmware_update_status_change (callback, UPDATE_STATUS_STAGING_PREP_FAIL);
+
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 
@@ -1154,6 +1179,7 @@ int firmware_update_write_to_staging (const struct firmware_update *updater,
 
 	if ((updater == NULL) || (buf == NULL)) {
 		firmware_update_status_change (callback, UPDATE_STATUS_STAGING_WRITE_FAIL);
+
 		return FIRMWARE_UPDATE_INVALID_ARGUMENT;
 	}
 

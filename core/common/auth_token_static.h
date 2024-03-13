@@ -120,4 +120,4 @@ int auth_token_invalidate (const struct auth_token *auth);
 	}
 
 
-#endif /* AUTH_TOKEN_STATIC_H_ */
+#endif	/* AUTH_TOKEN_STATIC_H_ */

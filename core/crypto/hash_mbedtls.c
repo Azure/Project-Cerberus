@@ -76,6 +76,7 @@ static int hash_mbedtls_start_sha1 (struct hash_engine *engine)
 	}
 
 	mbedtls->active = HASH_ACTIVE_SHA1;
+
 	return 0;
 }
 #endif
@@ -120,6 +121,7 @@ static int hash_mbedtls_start_sha256 (struct hash_engine *engine)
 	}
 
 	mbedtls->active = HASH_ACTIVE_SHA256;
+
 	return 0;
 }
 
@@ -164,6 +166,7 @@ static int hash_mbedtls_start_sha384 (struct hash_engine *engine)
 	}
 
 	mbedtls->active = HASH_ACTIVE_SHA384;
+
 	return 0;
 }
 #endif
@@ -209,6 +212,7 @@ static int hash_mbedtls_start_sha512 (struct hash_engine *engine)
 	}
 
 	mbedtls->active = HASH_ACTIVE_SHA512;
+
 	return 0;
 }
 #endif
@@ -360,6 +364,7 @@ static int hash_mbedtls_finish (struct hash_engine *engine, uint8_t *hash, size_
 	if (status == 0) {
 		hash_mbedtls_free_context (mbedtls);
 	}
+
 	return status;
 }
 

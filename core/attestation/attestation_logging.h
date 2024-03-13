@@ -54,4 +54,4 @@ enum {
 };
 
 
-#endif /* ATTESTATION_LOGGING_H_ */
+#endif	/* ATTESTATION_LOGGING_H_ */

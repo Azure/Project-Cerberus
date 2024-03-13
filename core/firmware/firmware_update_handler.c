@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "firmware_logging.h"
 #include "firmware_update_handler.h"
@@ -168,8 +168,8 @@ void firmware_update_handler_prepare_for_updates (const struct firmware_update_h
 					firmware_update_set_recovery_good (fw->updater, false);
 				}
 
-				debug_log_create_entry (
-					(status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
+				debug_log_create_entry ((status ==
+					0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_WARNING,
 					DEBUG_LOG_COMPONENT_CERBERUS_FW, FIRMWARE_LOGGING_RECOVERY_IMAGE, (status != 0),
 					status);
 			}
@@ -209,7 +209,7 @@ void firmware_update_handler_execute (const struct event_task_handler *handler,
 			status = fw->run_update (fw->updater, &fw->base_notify);
 			if (status == 0) {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CERBERUS_FW,
-				FIRMWARE_LOGGING_UPDATE_COMPLETE, 0, 0);
+					FIRMWARE_LOGGING_UPDATE_COMPLETE, 0, 0);
 
 #ifndef FIRMWARE_UPDATE_DISABLE_SELF_RESET
 				*reset = true;

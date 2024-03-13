@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "mock.h"
 #include "platform_api.h"
 #include "platform_io.h"
-#include "mock.h"
 #include "testing.h"
 
 
@@ -38,8 +38,7 @@ static void mock_alloc_and_copy (const struct mock_arg *expected, struct mock_ar
  *
  * @return 0 if the data was successfully copied or an error code.
  */
-static int mock_alloc_and_copy_arg_data (const void *arg_data, size_t arg_length,
-	void **arg_save)
+static int mock_alloc_and_copy_arg_data (const void *arg_data, size_t arg_length, void **arg_save)
 {
 	*arg_save = platform_malloc (arg_length);
 	if (*arg_save == NULL) {
@@ -47,6 +46,7 @@ static int mock_alloc_and_copy_arg_data (const void *arg_data, size_t arg_length
 	}
 
 	memcpy (*arg_save, arg_data, arg_length);
+
 	return 0;
 }
 
@@ -132,6 +132,7 @@ int mock_expect (struct mock *mock, void *func_call, void *instance, int64_t ret
 		expectation->argv = platform_calloc (expectation->argc, sizeof (struct mock_arg));
 		if (expectation->argv == NULL) {
 			platform_free (expectation);
+
 			return MOCK_NO_MEMORY;
 		}
 	}
@@ -165,6 +166,7 @@ int mock_expect (struct mock *mock, void *func_call, void *instance, int64_t ret
 			}
 			if (status != 0) {
 				mock_free_call (expectation);
+
 				return status;
 			}
 		}
@@ -351,8 +353,8 @@ int mock_expect_output_ptr (struct mock *mock, int arg, const void *out_data, si
 int mock_expect_output_ptr_tmp (struct mock *mock, int arg, const void *out_data, size_t out_length,
 	int length_arg)
 {
-	return mock_expect_output_common (mock, arg, out_data, out_length, length_arg, true, true,
-		NULL, mock_alloc_and_copy_arg_data, platform_free);
+	return mock_expect_output_common (mock, arg, out_data, out_length, length_arg, true, true, NULL,
+		mock_alloc_and_copy_arg_data, platform_free);
 }
 
 /**
@@ -573,6 +575,7 @@ int mock_expect_external_action (struct mock *mock, mock_call_action action, voi
 static void mock_print_func (struct mock *mock, struct mock_call *call)
 {
 	int i;
+
 	platform_printf ("%s (%p", mock->func_name_map ((void*) call->func), call->instance);
 	for (i = 0; i < call->argc; i++) {
 		platform_printf (", 0x%lx", call->argv[i].value);
@@ -600,6 +603,7 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 		if ((expected->flags & MOCK_ARG_FLAG_PTR_PTR) && !(actual->flags & MOCK_ARG_FLAG_PTR_PTR)) {
 			platform_printf ("(%s, %d) Unexpected NULL argument: name=%s" NEWLINE, mock->name,
 				cur_exp, arg_name);
+
 			/* No point to check anything else.  The argument was null. */
 			return 1;
 		}
@@ -609,8 +613,8 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 				!(expected->flags & MOCK_ARG_FLAG_PTR_PTR_NOT_NULL)) {
 				if (expected->value != actual->value) {
 					platform_printf (
-						"(%s, %d) Unexpected pointer argument: name=%s, expected=0x%lx, actual=0x%lx" NEWLINE,
-						mock->name, cur_exp, arg_name, expected->value, actual->value);
+						"(%s, %d) Unexpected pointer argument: name=%s, expected=0x%lx, actual=0x%lx"
+						NEWLINE, mock->name, cur_exp, arg_name, expected->value, actual->value);
 					fail = 1;
 				}
 			}
@@ -645,7 +649,8 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 								(void*) ((uintptr_t) expected->value), actual->ptr_value);
 						}
 						else {
-							fail |= testing_validate_array_prefix (
+							fail |=
+								testing_validate_array_prefix (
 								(void*) ((uintptr_t) expected->value), actual->ptr_value,
 								expected->ptr_value_len, prefix);
 						}
@@ -655,13 +660,14 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 		}
 		else if (expected->flags & MOCK_ARG_FLAG_SAVED_VALUE) {
 			struct mock_save_arg *saved = mock_find_save_arg (mock, expected->save_arg);
+
 			if (saved) {
 				if (saved->saved) {
 					if (saved->value != actual->value) {
 						platform_printf (
-							"(%s, %d) Unexpected saved argument: id=%d, name=%s, expected=0x%lx, actual=0x%lx" NEWLINE,
-							mock->name, cur_exp, expected->save_arg, arg_name, saved->value,
-							actual->value);
+							"(%s, %d) Unexpected saved argument: id=%d, name=%s, expected=0x%lx, actual=0x%lx"
+							NEWLINE, mock->name, cur_exp, expected->save_arg, arg_name,
+							saved->value, actual->value);
 						fail = 1;
 					}
 				}
@@ -680,32 +686,32 @@ static int mock_validate_arg (struct mock *mock, int cur_exp, const char *arg_na
 		else if (expected->flags & MOCK_ARG_FLAG_GREATER_EQUAL) {
 			if (actual->value < expected->value) {
 				platform_printf (
-					"(%s, %d) Unexpected argument: name=%s, expected at least=0x%lx, actual=0x%lx" NEWLINE,
-					mock->name, cur_exp, arg_name, expected->value, actual->value);
+					"(%s, %d) Unexpected argument: name=%s, expected at least=0x%lx, actual=0x%lx"
+					NEWLINE, mock->name, cur_exp, arg_name, expected->value, actual->value);
 				fail = 1;
 			}
 		}
 		else if (expected->flags & MOCK_ARG_FLAG_GREATER) {
 			if (actual->value <= expected->value) {
 				platform_printf (
-					"(%s, %d) Unexpected argument: name=%s, expected more than=0x%lx, actual=0x%lx" NEWLINE,
-					mock->name, cur_exp, arg_name, expected->value, actual->value);
+					"(%s, %d) Unexpected argument: name=%s, expected more than=0x%lx, actual=0x%lx"
+					NEWLINE, mock->name, cur_exp, arg_name, expected->value, actual->value);
 				fail = 1;
 			}
 		}
 		else if (expected->flags & MOCK_ARG_FLAG_LESS_EQUAL) {
 			if (actual->value > expected->value) {
 				platform_printf (
-					"(%s, %d) Unexpected argument: name=%s, expected no more than=0x%lx, actual=0x%lx" NEWLINE,
-					mock->name, cur_exp, arg_name, expected->value, actual->value);
+					"(%s, %d) Unexpected argument: name=%s, expected no more than=0x%lx, actual=0x%lx"
+					NEWLINE, mock->name, cur_exp, arg_name, expected->value, actual->value);
 				fail = 1;
 			}
 		}
 		else if (expected->flags & MOCK_ARG_FLAG_LESS) {
 			if (actual->value >= expected->value) {
 				platform_printf (
-					"(%s, %d) Unexpected argument: name=%s, expected less than=0x%lx, actual=0x%lx" NEWLINE,
-					mock->name, cur_exp, arg_name, expected->value, actual->value);
+					"(%s, %d) Unexpected argument: name=%s, expected less than=0x%lx, actual=0x%lx"
+					NEWLINE, mock->name, cur_exp, arg_name, expected->value, actual->value);
 				fail = 1;
 			}
 		}
@@ -799,8 +805,8 @@ int mock_validate (struct mock *mock)
 
 					if (exp_pos->argc != call_pos->argc) {
 						platform_printf (
-							"(%s, %d) Unexpected number of arguments: expected=%d, actual=%d" NEWLINE,
-							mock->name, current, exp_pos->argc, call_pos->argc);
+							"(%s, %d) Unexpected number of arguments: expected=%d, actual=%d"
+							NEWLINE, mock->name, current, exp_pos->argc, call_pos->argc);
 						fail = 1;
 					}
 					else {
@@ -931,6 +937,7 @@ struct mock_call* mock_allocate_call (const void *func, const void *instance, si
 		call->argv = platform_calloc (args, sizeof (struct mock_arg));
 		if (call->argv == NULL) {
 			platform_free (call);
+
 			return NULL;
 		}
 	}
@@ -1043,6 +1050,7 @@ int64_t mock_return_from_call (struct mock *mock, struct mock_call *call)
 			/* Save argument values. */
 			if (expected->argv[i].save_arg >= 0) {
 				struct mock_save_arg *save = mock_find_save_arg (mock, expected->argv[i].save_arg);
+
 				if (save && !save->saved) {
 					save->value = call->argv[i].value;
 					save->saved = true;

@@ -2,9 +2,9 @@
 // Licensed under the MIT license.
 
 #include <stdbool.h>
-#include "platform_api.h"
-#include "flash_util.h"
 #include "flash_common.h"
+#include "flash_util.h"
+#include "platform_api.h"
 
 
 /**
@@ -349,10 +349,11 @@ int flash_hash_noncontiguous_contents_at_offset (const struct flash *flash, uint
 		goto fail;
 	}
 
-return 0;
+	return 0;
 
 fail:
 	hash->cancel (hash);
+
 	return status;
 }
 
@@ -438,7 +439,7 @@ int flash_hash_update_noncontiguous_contents_at_offset (const struct flash *flas
 
 		while (remaining > 0) {
 			next_read = (remaining < FLASH_VERIFICATION_BLOCK) ?
-				remaining : FLASH_VERIFICATION_BLOCK;
+					remaining : FLASH_VERIFICATION_BLOCK;
 
 			status = flash->read (flash, current_addr, data, next_read);
 			if (status != 0) {
@@ -598,6 +599,7 @@ int flash_blank_check (const struct flash *flash, uint32_t start_addr, size_t le
 {
 	uint8_t blank = 0xff;
 	int status = flash_check_region_for_data (flash, start_addr, &blank, length, true);
+
 	return (status == FLASH_UTIL_DATA_MISMATCH) ? FLASH_UTIL_NOT_BLANK : status;
 }
 
@@ -614,6 +616,7 @@ int flash_blank_check (const struct flash *flash, uint32_t start_addr, size_t le
 int flash_value_check (const struct flash *flash, uint32_t start_addr, size_t length, uint8_t value)
 {
 	int status = flash_check_region_for_data (flash, start_addr, &value, length, true);
+
 	return (status == FLASH_UTIL_DATA_MISMATCH) ? FLASH_UTIL_UNEXPECTED_VALUE : status;
 }
 
@@ -1112,8 +1115,8 @@ static int flash_sector_copy_data_region (const struct flash *dest_flash, uint32
  */
 int flash_copy (const struct flash *flash, uint32_t dest_addr, uint32_t src_addr, size_t length)
 {
-	return flash_copy_data_region (flash, dest_addr, flash, src_addr, length,
-		flash_erase_region, 0);
+	return flash_copy_data_region (flash, dest_addr, flash, src_addr, length, flash_erase_region,
+		0);
 }
 
 /**
@@ -1169,8 +1172,8 @@ int flash_verify_copy (const struct flash *flash, uint32_t addr1, uint32_t addr2
 int flash_copy_and_verify (const struct flash *flash, uint32_t dest_addr, uint32_t src_addr,
 	size_t length)
 {
-	return flash_copy_data_region (flash, dest_addr, flash, src_addr, length,
-		flash_erase_region, 1);
+	return flash_copy_data_region (flash, dest_addr, flash, src_addr, length, flash_erase_region,
+		1);
 }
 
 /**

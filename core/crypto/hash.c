@@ -229,6 +229,7 @@ int hash_generate_hmac (struct hash_engine *engine, const uint8_t *key, size_t k
 
 fail:
 	hash_hmac_cancel (&hmac_engine);
+
 	return status;
 }
 
@@ -275,6 +276,7 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 			engine->hash_length = SHA1_HASH_LENGTH;
 			break;
 #else
+
 			return HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
 
@@ -315,6 +317,7 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 			engine->hash_length = SHA384_HASH_LENGTH;
 			break;
 #else
+
 			return HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
 
@@ -337,6 +340,7 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 			engine->hash_length = SHA512_HASH_LENGTH;
 			break;
 #else
+
 			return HASH_ENGINE_UNSUPPORTED_HASH;
 #endif
 
@@ -365,6 +369,7 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 	status = hash->update (hash, engine->key, engine->block_size);
 	if (status != 0) {
 		hash->cancel (hash);
+
 		return status;
 	}
 
@@ -449,6 +454,7 @@ int hash_hmac_finish (struct hmac_engine *engine, uint8_t *hmac, size_t hmac_len
 
 fail:
 	engine->hash->cancel (engine->hash);
+
 	return status;
 }
 

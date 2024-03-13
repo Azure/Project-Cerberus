@@ -12,15 +12,16 @@
  * Measured PCR data type
  */
 enum pcr_data_type {
-	PCR_DATA_TYPE_1BYTE,						/**< 1 byte long PCR data */
-	PCR_DATA_TYPE_2BYTE,						/**< 2 bytes long PCR data */
-	PCR_DATA_TYPE_4BYTE,						/**< 4 bytes long PCR data */
-	PCR_DATA_TYPE_8BYTE,						/**< 8 bytes long PCR data */
-	PCR_DATA_TYPE_MEMORY,						/**< PCR data stored in memory buffer */
-	PCR_DATA_TYPE_FLASH,						/**< PCR data stored in a flash device */
-	PCR_DATA_TYPE_CALLBACK,						/**< PCR data retrieved by callback */
-	NUM_PCR_DATA_TYPE,							/**< Number of PCR data types supported */
+	PCR_DATA_TYPE_1BYTE,	/**< 1 byte long PCR data */
+	PCR_DATA_TYPE_2BYTE,	/**< 2 bytes long PCR data */
+	PCR_DATA_TYPE_4BYTE,	/**< 4 bytes long PCR data */
+	PCR_DATA_TYPE_8BYTE,	/**< 8 bytes long PCR data */
+	PCR_DATA_TYPE_MEMORY,	/**< PCR data stored in memory buffer */
+	PCR_DATA_TYPE_FLASH,	/**< PCR data stored in a flash device */
+	PCR_DATA_TYPE_CALLBACK,	/**< PCR data retrieved by callback */
+	NUM_PCR_DATA_TYPE,		/**< Number of PCR data types supported */
 };
+
 
 /**
  * Get the measured data.
@@ -81,4 +82,4 @@ struct pcr_measured_data {
 };
 
 
-#endif /* PCR_DATA_H_ */
+#endif	/* PCR_DATA_H_ */

@@ -4,11 +4,11 @@
 #ifndef MCTP_BASE_PROTOCOL_H_
 #define MCTP_BASE_PROTOCOL_H_
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
-#include "status/rot_status.h"
+#include <stddef.h>
+#include <stdint.h>
 #include "platform_config.h"
+#include "status/rot_status.h"
 
 
 /* Configurable MCTP protocol parameters.  Defaults can be overridden in platform_config.h. */
@@ -69,20 +69,20 @@
 /**
  * The number of overhead bytes in an MCTP packet, including both SMBus and MCTP overhead.
  */
-#define MCTP_BASE_PROTOCOL_PACKET_OVERHEAD					\
+#define MCTP_BASE_PROTOCOL_PACKET_OVERHEAD                  \
 	(sizeof (struct mctp_base_protocol_transport_header) + MCTP_BASE_PROTOCOL_PEC_SIZE)
 
 /**
  * The smallest encapsulated MCTP packet length, assuming the smallest payload size required by MCTP
  * spec.
  */
-#define	MCTP_BASE_PROTOCOL_MIN_PACKET_LEN					\
+#define	MCTP_BASE_PROTOCOL_MIN_PACKET_LEN                   \
 	(MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT + MCTP_BASE_PROTOCOL_PACKET_OVERHEAD)
 
 /**
  * The maximum MCTP packet length assuming SMBus binding.
  */
-#define MCTP_BASE_PROTOCOL_MAX_PACKET_LEN					\
+#define MCTP_BASE_PROTOCOL_MAX_PACKET_LEN                   \
 	(MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT + MCTP_BASE_PROTOCOL_PACKET_OVERHEAD)
 
 /**
@@ -94,7 +94,7 @@
  * The maximum buffer length needed to hold a packetized message using SMBus binding of maximum
  * length.
  */
-#define	MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN					\
+#define	MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN                  \
 	(MCTP_BASE_PROTOCOL_PACKETS_IN_MESSAGE (MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, \
 		MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT) * MCTP_BASE_PROTOCOL_MIN_PACKET_LEN)
 
@@ -102,7 +102,7 @@
  * The number of packets needed to packetize a maximum sized message using the maximum transmission
  * unit size.
  */
-#define	MCTP_BASE_PROTOCOL_MAX_PACKET_PER_MAX_SIZED_MESSAGE	\
+#define	MCTP_BASE_PROTOCOL_MAX_PACKET_PER_MAX_SIZED_MESSAGE \
 	(MCTP_BASE_PROTOCOL_PACKETS_IN_MESSAGE (MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY, \
 		MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT))
 
@@ -132,11 +132,11 @@
 
 #define MCTP_BASE_PROTOCOL_VID_FORMAT_PCI				0
 
-#define	MCTP_BASE_PROTOCOL_IS_CONTROL_MSG(x)			\
+#define	MCTP_BASE_PROTOCOL_IS_CONTROL_MSG(x)            \
 	(((x) & MCTP_BASE_PROTOCOL_MSG_TYPE_SET_MASK) == MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG)
-#define	MCTP_BASE_PROTOCOL_IS_SPDM_MSG(x)				\
+#define	MCTP_BASE_PROTOCOL_IS_SPDM_MSG(x)               \
 	(((x) & MCTP_BASE_PROTOCOL_MSG_TYPE_SET_MASK) == MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM)
-#define	MCTP_BASE_PROTOCOL_IS_VENDOR_MSG(x)				\
+#define	MCTP_BASE_PROTOCOL_IS_VENDOR_MSG(x)             \
 	(((x) & MCTP_BASE_PROTOCOL_MSG_TYPE_SET_MASK) == MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF)
 
 /**
@@ -147,21 +147,20 @@
 /**
  * Number of SMBus overhead bytes without PEC byte.
  */
-#define MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD_NO_PEC			\
+#define MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD_NO_PEC            \
 	(MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD - MCTP_BASE_PROTOCOL_PEC_SIZE)
 
 
 /**
  * MCTP default EIDs per the Cerberus Protocol
  */
-enum
-{
-	MCTP_BASE_PROTOCOL_NULL_EID = 0x00,				/**< Null EID */
-	MCTP_BASE_PROTOCOL_IB_EXT_MGMT = 0x08,			/**< In-band external management EID */
-	MCTP_BASE_PROTOCOL_OOB_EXT_MGMT = 0x09,			/**< Out-of-band external management EID */
-	MCTP_BASE_PROTOCOL_BMC_EID = 0x0A,				/**< BMC EID */
-	MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID = 0x0B,		/**< Cerberus PA RoT control EID */
-	MCTP_BASE_PROTOCOL_BROADCAST_EID = 0xFF,		/**< Broadcast EID */
+enum {
+	MCTP_BASE_PROTOCOL_NULL_EID = 0x00,			/**< Null EID */
+	MCTP_BASE_PROTOCOL_IB_EXT_MGMT = 0x08,		/**< In-band external management EID */
+	MCTP_BASE_PROTOCOL_OOB_EXT_MGMT = 0x09,		/**< Out-of-band external management EID */
+	MCTP_BASE_PROTOCOL_BMC_EID = 0x0A,			/**< BMC EID */
+	MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID = 0x0B,	/**< Cerberus PA RoT control EID */
+	MCTP_BASE_PROTOCOL_BROADCAST_EID = 0xFF,	/**< Broadcast EID */
 };
 
 
@@ -169,21 +168,21 @@ enum
 /**
  * MCTP portion of packet header
  */
-struct mctp_base_protocol_transport_header
-{
-	uint8_t cmd_code;					/**< SMBUS command code */
-	uint8_t byte_count;					/**< SMBUS packet byte count */
-	uint8_t source_addr;				/**< SMBUS source address */
-	uint8_t header_version:4;			/**< MCTP header version */
-	uint8_t rsvd:4;						/**< Reserved, zero */
-	uint8_t destination_eid;			/**< MCTP destination EID */
-	uint8_t source_eid;					/**< MCTP source EID */
-	uint8_t msg_tag:3;					/**< MCTP message tag */
-	uint8_t tag_owner:1;				/**< MCTP tag owner */
-	uint8_t packet_seq:2;				/**< MCTP packet sequence */
-	uint8_t eom:1;						/**< MCTP end of message */
-	uint8_t som:1;						/**< MCTP start of message */
+struct mctp_base_protocol_transport_header {
+	uint8_t cmd_code;			/**< SMBUS command code */
+	uint8_t byte_count;			/**< SMBUS packet byte count */
+	uint8_t source_addr;		/**< SMBUS source address */
+	uint8_t header_version:4;	/**< MCTP header version */
+	uint8_t rsvd:4;				/**< Reserved, zero */
+	uint8_t destination_eid;	/**< MCTP destination EID */
+	uint8_t source_eid;			/**< MCTP source EID */
+	uint8_t msg_tag:3;			/**< MCTP message tag */
+	uint8_t tag_owner:1;		/**< MCTP tag owner */
+	uint8_t packet_seq:2;		/**< MCTP packet sequence */
+	uint8_t eom:1;				/**< MCTP end of message */
+	uint8_t som:1;				/**< MCTP start of message */
 };
+
 #pragma pack(pop)
 
 /**
@@ -198,7 +197,7 @@ struct mctp_base_protocol_transport_header
  *
  * @param packet_len The MCTP packet length
  */
-#define	mctp_protocol_payload_len(packet_len) 	(packet_len - MCTP_BASE_PROTOCOL_PACKET_OVERHEAD)
+#define	mctp_protocol_payload_len(packet_len)	(packet_len - MCTP_BASE_PROTOCOL_PACKET_OVERHEAD)
 
 
 int mctp_base_protocol_interpret (const uint8_t *buf, size_t buf_len, uint8_t smbus_addr,
@@ -237,4 +236,4 @@ enum {
 };
 
 
-#endif /* MCTP_BASE_PROTOCOL_H_ */
+#endif	/* MCTP_BASE_PROTOCOL_H_ */

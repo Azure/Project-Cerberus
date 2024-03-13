@@ -4,28 +4,28 @@
 #ifndef MANIFEST_MANAGER_FLASH_H_
 #define MANIFEST_MANAGER_FLASH_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "platform_api.h"
+#include <stdint.h>
 #include "manifest.h"
 #include "manifest_flash.h"
 #include "manifest_manager.h"
-#include "state_manager/state_manager.h"
+#include "platform_api.h"
 #include "crypto/hash.h"
 #include "crypto/signature_verification.h"
 #include "flash/flash.h"
 #include "flash/flash_updater.h"
+#include "state_manager/state_manager.h"
 
 
 /**
  * Container of information for each managed manifest region on flash.
  */
 struct manifest_manager_flash_region {
-	struct manifest *manifest;						/**< The manifest instance for the flash region. */
-	struct manifest_flash *flash;					/**< The flash parser for the manifest. */
-	int ref_count;									/**< The number of active references to the manifest region. */
-	bool is_valid;									/**< Flag indicating if the region has a valid manifest. */
-	struct flash_updater updater;					/**< Update manager for the flash region. */
+	struct manifest *manifest;		/**< The manifest instance for the flash region. */
+	struct manifest_flash *flash;	/**< The flash parser for the manifest. */
+	int ref_count;					/**< The number of active references to the manifest region. */
+	bool is_valid;					/**< Flag indicating if the region has a valid manifest. */
+	struct flash_updater updater;	/**< Update manager for the flash region. */
 };
 
 /**
@@ -70,6 +70,8 @@ struct manifest_manager_flash_region* manifest_manager_flash_get_region (
 	struct manifest_manager_flash *manager, bool active);
 struct manifest_manager_flash_region* manifest_manager_flash_get_manifest_region (
 	struct manifest_manager_flash *manager, bool active);
+
+
 void manifest_manager_flash_free_manifest (struct manifest_manager_flash *manager,
 	struct manifest *manifest);
 
@@ -83,4 +85,4 @@ int manifest_manager_flash_clear_all_manifests (struct manifest_manager_flash *m
 	bool no_lock);
 
 
-#endif /* MANIFEST_MANAGER_FLASH_H_ */
+#endif	/* MANIFEST_MANAGER_FLASH_H_ */

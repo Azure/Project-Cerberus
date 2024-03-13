@@ -32,10 +32,10 @@ extern const struct real_time_clock *const debug_timestamp;
  * Severity levels for log entries.
  */
 enum debug_log_severity {
-	DEBUG_LOG_SEVERITY_ERROR = 0,				/**< Log entry documenting an error. */
-	DEBUG_LOG_SEVERITY_WARNING,					/**< Log entry documenting a warning. */
-	DEBUG_LOG_SEVERITY_INFO,					/**< Log entry providing information. */
-	DEBUG_LOG_NUM_SEVERITY						/**< Number of valid severity levels. */
+	DEBUG_LOG_SEVERITY_ERROR = 0,	/**< Log entry documenting an error. */
+	DEBUG_LOG_SEVERITY_WARNING,		/**< Log entry documenting a warning. */
+	DEBUG_LOG_SEVERITY_INFO,		/**< Log entry providing information. */
+	DEBUG_LOG_NUM_SEVERITY,			/**< Number of valid severity levels. */
 };
 
 /**
@@ -78,21 +78,21 @@ enum debug_log_component {
  * Format for an entry in the debug log.
  */
 struct debug_log_entry_info {
-	uint16_t format;			/**< Format of the log entry. */
-	uint8_t severity;			/**< Severity level of the entry. */
-	uint8_t component;			/**< System competent that generated the entry. */
-	uint8_t msg_index;			/**< Identifier for the entry message. */
-	uint32_t arg1;				/**< Message specific argument. */
-	uint32_t arg2;				/**< Message specific argument. */
-	uint64_t time;				/**< Elapsed time in milliseconds since boot. */
+	uint16_t format;	/**< Format of the log entry. */
+	uint8_t severity;	/**< Severity level of the entry. */
+	uint8_t component;	/**< System competent that generated the entry. */
+	uint8_t msg_index;	/**< Identifier for the entry message. */
+	uint32_t arg1;		/**< Message specific argument. */
+	uint32_t arg2;		/**< Message specific argument. */
+	uint64_t time;		/**< Elapsed time in milliseconds since boot. */
 };
 
 /**
  * Format of the debug log entry as stored in the log.
  */
 struct debug_log_entry {
-	struct logging_entry_header header;		/**< Standard logging header. */
-	struct debug_log_entry_info entry;		/**< Information for the log entry. */
+	struct logging_entry_header header;	/**< Standard logging header. */
+	struct debug_log_entry_info entry;	/**< Information for the log entry. */
 };
 
 #pragma pack(pop)
@@ -108,4 +108,4 @@ int debug_log_get_size (void);
 int debug_log_read_contents (uint32_t offset, uint8_t *contents, size_t length);
 
 
-#endif /* DEBUG_LOG_H_ */
+#endif	/* DEBUG_LOG_H_ */

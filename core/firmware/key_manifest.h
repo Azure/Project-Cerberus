@@ -4,13 +4,13 @@
 #ifndef KEY_MANIFEST_H_
 #define KEY_MANIFEST_H_
 
-#include <stdint.h>
 #include <stddef.h>
-#include "status/rot_status.h"
+#include <stdint.h>
 #include "asn1/ecc_der_util.h"
-#include "crypto/rsa.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
+#include "crypto/rsa.h"
+#include "status/rot_status.h"
 
 
 /**
@@ -168,4 +168,4 @@ enum {
 };
 
 
-#endif /* KEY_MANIFEST_H_ */
+#endif	/* KEY_MANIFEST_H_ */
