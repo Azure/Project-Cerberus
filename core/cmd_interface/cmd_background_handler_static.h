@@ -22,6 +22,7 @@ int cmd_background_handler_debug_log_clear (const struct cmd_background *cmd);
 int cmd_background_handler_debug_log_fill (const struct cmd_background *cmd);
 int cmd_background_handler_authenticate_riot_certs (const struct cmd_background *cmd);
 int cmd_background_handler_get_riot_cert_chain_state (const struct cmd_background *cmd);
+int cmd_background_handler_reboot_device (const struct cmd_background *cmd);
 
 void cmd_background_handler_execute (const struct event_task_handler *handler,
 	struct event_task_context *context, bool *reset);
@@ -107,7 +108,8 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 		CMD_BACKGROUND_HANDLER_CONFIG_STATUS_API \
 		CMD_BACKGROUND_HANDLER_DEBUG_LOG_API \
 		.authenticate_riot_certs = cmd_background_handler_authenticate_riot_certs, \
-		.get_riot_cert_chain_state = cmd_background_handler_get_riot_cert_chain_state \
+		.get_riot_cert_chain_state = cmd_background_handler_get_riot_cert_chain_state, \
+		.reboot_device = cmd_background_handler_reboot_device, \
 	}
 
 /**

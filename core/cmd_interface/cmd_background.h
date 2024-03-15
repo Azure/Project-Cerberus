@@ -131,7 +131,7 @@ struct cmd_background {
 	 *
 	 * @param cmd The background command context used to start operation.
 	 *
-	 * @return Completion status, 0 if success or an error code.
+	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
 	int (*debug_log_clear) (const struct cmd_background *cmd);
 
@@ -141,7 +141,7 @@ struct cmd_background {
 	 *
 	 * @param cmd The background command context used to start operation.
 	 *
-	 * @return Completion status, 0 if success or an error code.
+	 * @return 0 if the operation was successfully scheduled or an error code.
 	 */
 	int (*debug_log_fill) (const struct cmd_background *cmd);
 #endif
@@ -166,6 +166,16 @@ struct cmd_background {
 	 * authentication request.
 	 */
 	int (*get_riot_cert_chain_state) (const struct cmd_background *cmd);
+
+	/**
+	 * Execute a warm reset of the device.  The reset will be delayed in order for any necessary
+	 * command response data to be sent.
+	 *
+	 * @param cmd The background context that will execute the device reset.
+	 *
+	 * @return 0 if the operation was successfully scheduled or an error code.
+	 */
+	int (*reboot_device) (const struct cmd_background *cmd);
 };
 
 
@@ -185,11 +195,12 @@ enum {
 	CMD_BACKGROUND_INPUT_TOO_BIG = CMD_BACKGROUND_ERROR (0x07),			/**< Provided input too large. */
 	CMD_BACKGROUND_UNSUPPORTED_REQUEST = CMD_BACKGROUND_ERROR (0x08),	/**< The command is not supported. */
 	CMD_BACKGROUND_NO_TASK = CMD_BACKGROUND_ERROR (0x09),				/**< No manager command task is running. */
-	CMD_BACKGROUND_TASK_BUSY = CMD_BACKGROUND_ERROR (0x0A),				/**< The command task is busy performing an operation. */
-	CMD_BACKGROUND_UNSUPPORTED_OP = CMD_BACKGROUND_ERROR (0x0B),		/**< The scheduled operation is not understood by the task. */
-	CMD_BACKGROUND_PLATFORM_CFG_FAILED = CMD_BACKGROUND_ERROR (0x0C),	/**< Failed to clear platform configuration. */
-	CMD_BACKGROUND_INTRUSION_FAILED = CMD_BACKGROUND_ERROR (0x0D),		/**< Failed to reset the intrusion state. */
-	CMD_BACKGROUND_CFM_FAILED = CMD_BACKGROUND_ERROR (0x0E),			/**< Failed to clear component manifests. */
+	CMD_BACKGROUND_TASK_BUSY = CMD_BACKGROUND_ERROR (0x0a),				/**< The command task is busy performing an operation. */
+	CMD_BACKGROUND_UNSUPPORTED_OP = CMD_BACKGROUND_ERROR (0x0b),		/**< The scheduled operation is not understood by the task. */
+	CMD_BACKGROUND_PLATFORM_CFG_FAILED = CMD_BACKGROUND_ERROR (0x0c),	/**< Failed to clear platform configuration. */
+	CMD_BACKGROUND_INTRUSION_FAILED = CMD_BACKGROUND_ERROR (0x0d),		/**< Failed to reset the intrusion state. */
+	CMD_BACKGROUND_CFM_FAILED = CMD_BACKGROUND_ERROR (0x0e),			/**< Failed to clear component manifests. */
+	CMD_BACKGROUND_REBOOT_FAILED = CMD_BACKGROUND_ERROR (0x0f),			/**< Failed to warm reset the device. */
 };
 
 

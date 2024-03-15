@@ -280,6 +280,18 @@ int cmd_background_handler_get_riot_cert_chain_state (const struct cmd_backgroun
 	return status;
 }
 
+int cmd_background_handler_reboot_device (const struct cmd_background *cmd)
+{
+	const struct cmd_background_handler *handler = (const struct cmd_background_handler*) cmd;
+
+	if (handler == NULL) {
+		return CMD_BACKGROUND_INVALID_ARGUMENT;
+	}
+
+	return cmd_background_handler_submit_event (handler,
+		CMD_BACKGROUND_HANDLER_ACTION_REBOOT_DEVICE, NULL, 0, 0, 0, 0, NULL);
+}
+
 void cmd_background_handler_execute (const struct event_task_handler *handler,
 	struct event_task_context *context, bool *reset)
 {
@@ -287,8 +299,6 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 		const struct cmd_background_handler, base_event);
 	int *op_status = NULL;
 	int status = CMD_BACKGROUND_UNSUPPORTED_OP;
-
-	UNUSED (reset);
 
 	switch (context->action) {
 #ifdef CMD_ENABLE_UNSEAL
@@ -480,6 +490,12 @@ void cmd_background_handler_execute (const struct event_task_handler *handler,
 			break;
 #endif
 
+		case CMD_BACKGROUND_HANDLER_ACTION_REBOOT_DEVICE:
+			/* Just inform the event task executing this handler that a reset is required.  The task
+			 * will execute the warm reset. */
+			*reset = true;
+			break;
+
 		default:
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 				CMD_LOGGING_NOTIFICATION_ERROR, context->action, 0);
@@ -578,6 +594,9 @@ int cmd_background_handler_init (struct cmd_background_handler *handler,
 	/* RIoT operations. */
 	handler->base_cmd.authenticate_riot_certs = cmd_background_handler_authenticate_riot_certs;
 	handler->base_cmd.get_riot_cert_chain_state = cmd_background_handler_get_riot_cert_chain_state;
+
+	/* Device operations */
+	handler->base_cmd.reboot_device = cmd_background_handler_reboot_device;
 
 	handler->base_event.prepare = NULL;
 	handler->base_event.execute = cmd_background_handler_execute;

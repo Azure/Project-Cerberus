@@ -354,6 +354,7 @@ static void cmd_background_handler_test_init (CuTest *test)
 #endif
 	CuAssertPtrNotNull (test, handler.test.base_cmd.authenticate_riot_certs);
 	CuAssertPtrNotNull (test, handler.test.base_cmd.get_riot_cert_chain_state);
+	CuAssertPtrNotNull (test, handler.test.base_cmd.reboot_device);
 
 	CuAssertPtrEquals (test, NULL, handler.test.base_event.prepare);
 	CuAssertPtrNotNull (test, handler.test.base_event.execute);
@@ -425,6 +426,7 @@ static void cmd_background_handler_test_static_init (CuTest *test)
 #endif
 	CuAssertPtrNotNull (test, test_static.base_cmd.authenticate_riot_certs);
 	CuAssertPtrNotNull (test, test_static.base_cmd.get_riot_cert_chain_state);
+	CuAssertPtrNotNull (test, test_static.base_cmd.reboot_device);
 
 	CuAssertPtrEquals (test, NULL, test_static.base_event.prepare);
 	CuAssertPtrNotNull (test, test_static.base_event.execute);
@@ -2977,6 +2979,171 @@ static void cmd_background_handler_test_authenticate_riot_certs_notify_error (Cu
 	cmd_background_handler_testing_validate_and_release (test, &handler);
 }
 
+static void cmd_background_handler_test_reboot_device (CuTest *test)
+{
+	struct cmd_background_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	cmd_background_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
+		sizeof (handler.context_ptr), -1);
+
+	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
+		MOCK_ARG_PTR (&handler.test.base_event));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.reboot_device (&handler.test.base_cmd);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_REBOOT_DEVICE, handler.context.action);
+
+	cmd_background_handler_testing_validate_and_release (test, &handler);
+}
+
+static void cmd_background_handler_test_reboot_device_static_init (CuTest *test)
+{
+	struct cmd_background_handler_testing handler;
+	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
+		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
+		&handler.task.base);
+	int status;
+
+	TEST_START;
+
+	cmd_background_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
+		sizeof (handler.context_ptr), -1);
+
+	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task, 0,
+		MOCK_ARG_PTR (&test_static.base_event));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = test_static.base_cmd.reboot_device (&test_static.base_cmd);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CMD_BACKGROUND_HANDLER_ACTION_REBOOT_DEVICE, handler.context.action);
+
+	cmd_background_handler_testing_release_dependencies (test, &handler);
+	cmd_background_handler_release (&test_static);
+}
+
+static void cmd_background_handler_test_reboot_device_null (CuTest *test)
+{
+	struct cmd_background_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	cmd_background_handler_testing_init (test, &handler);
+
+	status = handler.test.base_cmd.reboot_device (NULL);
+	CuAssertIntEquals (test, CMD_BACKGROUND_INVALID_ARGUMENT, status);
+
+	cmd_background_handler_testing_validate_and_release (test, &handler);
+}
+
+static void cmd_background_handler_test_reboot_device_no_task (CuTest *test)
+{
+	struct cmd_background_handler_testing handler;
+	int status;
+	void *null_ptr = NULL;
+
+	TEST_START;
+
+	cmd_background_handler_testing_init (test, &handler);
+	handler.context_ptr = NULL;
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
+		EVENT_TASK_NO_TASK, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.reboot_device (&handler.test.base_cmd);
+	CuAssertIntEquals (test, CMD_BACKGROUND_NO_TASK, status);
+
+	cmd_background_handler_testing_validate_and_release (test, &handler);
+}
+
+static void cmd_background_handler_test_reboot_device_task_busy (CuTest *test)
+{
+	struct cmd_background_handler_testing handler;
+	int status;
+	void *null_ptr = NULL;
+
+	TEST_START;
+
+	cmd_background_handler_testing_init (test, &handler);
+	handler.context_ptr = NULL;
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
+		EVENT_TASK_BUSY, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.reboot_device (&handler.test.base_cmd);
+	CuAssertIntEquals (test, CMD_BACKGROUND_TASK_BUSY, status);
+
+	cmd_background_handler_testing_validate_and_release (test, &handler);
+}
+
+static void cmd_background_handler_test_reboot_device_get_context_error (CuTest *test)
+{
+	struct cmd_background_handler_testing handler;
+	int status;
+	void *null_ptr = NULL;
+
+	TEST_START;
+
+	cmd_background_handler_testing_init (test, &handler);
+	handler.context_ptr = NULL;
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
+		EVENT_TASK_GET_CONTEXT_FAILED, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &null_ptr, sizeof (null_ptr), -1);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.reboot_device (&handler.test.base_cmd);
+	CuAssertIntEquals (test, EVENT_TASK_GET_CONTEXT_FAILED, status);
+
+	cmd_background_handler_testing_validate_and_release (test, &handler);
+}
+
+static void cmd_background_handler_test_reboot_device_notify_error (CuTest *test)
+{
+	struct cmd_background_handler_testing handler;
+	int status;
+
+	TEST_START;
+
+	cmd_background_handler_testing_init (test, &handler);
+
+	status = mock_expect (&handler.task.mock, handler.task.base.get_event_context, &handler.task,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&handler.task.mock, 0, &handler.context_ptr,
+		sizeof (handler.context_ptr), -1);
+
+	status |= mock_expect (&handler.task.mock, handler.task.base.notify, &handler.task,
+		EVENT_TASK_NOTIFY_FAILED, MOCK_ARG_PTR (&handler.test.base_event));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = handler.test.base_cmd.reboot_device (&handler.test.base_cmd);
+	CuAssertIntEquals (test, EVENT_TASK_NOTIFY_FAILED, status);
+
+	cmd_background_handler_testing_validate_and_release (test, &handler);
+}
+
 static void cmd_background_handler_test_generate_aux_key (CuTest *test)
 {
 	struct cmd_background_handler_testing handler;
@@ -5066,6 +5233,46 @@ static void cmd_background_handler_test_execute_authenticate_riot_certs_static_i
 	cmd_background_handler_release (&test_static);
 }
 
+static void cmd_background_handler_test_execute_reboot_device (CuTest *test)
+{
+	struct cmd_background_handler_testing handler;
+	bool reset = false;
+
+	TEST_START;
+
+	cmd_background_handler_testing_init (test, &handler);
+
+	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_REBOOT_DEVICE;
+	handler.context.buffer_length = 0;
+
+	handler.test.base_event.execute (&handler.test.base_event, handler.context_ptr, &reset);
+	CuAssertIntEquals (test, true, reset);
+
+	cmd_background_handler_testing_validate_and_release (test, &handler);
+}
+
+static void cmd_background_handler_test_execute_reboot_device_static_init (CuTest *test)
+{
+	struct cmd_background_handler_testing handler;
+	struct cmd_background_handler test_static = cmd_background_handler_static_init (&handler.state,
+		&handler.attestation.base, &handler.hash.base, &handler.reset, &handler.keys.riot,
+		&handler.task.base);
+	bool reset = false;
+
+	TEST_START;
+
+	cmd_background_handler_testing_init (test, &handler);
+
+	handler.context.action = CMD_BACKGROUND_HANDLER_ACTION_REBOOT_DEVICE;
+	handler.context.buffer_length = 0;
+
+	test_static.base_event.execute (&test_static.base_event, handler.context_ptr, &reset);
+	CuAssertIntEquals (test, true, reset);
+
+	cmd_background_handler_testing_release_dependencies (test, &handler);
+	cmd_background_handler_release (&test_static);
+}
+
 #ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
 static void cmd_background_handler_test_execute_generate_aux_key (CuTest *test)
 {
@@ -5715,6 +5922,13 @@ TEST (cmd_background_handler_test_authenticate_riot_certs_no_task);
 TEST (cmd_background_handler_test_authenticate_riot_certs_task_busy);
 TEST (cmd_background_handler_test_authenticate_riot_certs_get_context_error);
 TEST (cmd_background_handler_test_authenticate_riot_certs_notify_error);
+TEST (cmd_background_handler_test_reboot_device);
+TEST (cmd_background_handler_test_reboot_device_static_init);
+TEST (cmd_background_handler_test_reboot_device_null);
+TEST (cmd_background_handler_test_reboot_device_no_task);
+TEST (cmd_background_handler_test_reboot_device_task_busy);
+TEST (cmd_background_handler_test_reboot_device_get_context_error);
+TEST (cmd_background_handler_test_reboot_device_notify_error);
 TEST (cmd_background_handler_test_generate_aux_key);
 TEST (cmd_background_handler_test_generate_aux_key_static_init);
 #ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
@@ -5762,6 +5976,8 @@ TEST (cmd_background_handler_test_execute_debug_log_fill_static_init);
 TEST (cmd_background_handler_test_execute_authenticate_riot_certs);
 TEST (cmd_background_handler_test_execute_authenticate_riot_certs_failure);
 TEST (cmd_background_handler_test_execute_authenticate_riot_certs_static_init);
+TEST (cmd_background_handler_test_execute_reboot_device);
+TEST (cmd_background_handler_test_execute_reboot_device_static_init);
 #ifdef ATTESTATION_SUPPORT_RSA_UNSEAL
 TEST (cmd_background_handler_test_execute_generate_aux_key);
 TEST (cmd_background_handler_test_execute_generate_aux_key_failure);

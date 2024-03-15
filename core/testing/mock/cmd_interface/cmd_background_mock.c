@@ -143,6 +143,17 @@ static int cmd_background_mock_get_riot_cert_chain_state (const struct cmd_backg
 	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_get_riot_cert_chain_state, cmd);
 }
 
+static int cmd_background_mock_reboot_device (const struct cmd_background *cmd)
+{
+	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, cmd_background_mock_reboot_device, cmd);
+}
+
 static int cmd_background_mock_func_arg_count (void *func)
 {
 	if (func == cmd_background_mock_unseal_result) {
@@ -193,6 +204,9 @@ static const char* cmd_background_mock_func_name_map (void *func)
 	}
 	else if (func == cmd_background_mock_get_riot_cert_chain_state) {
 		return "get_riot_cert_chain_state";
+	}
+	else if (func == cmd_background_mock_reboot_device) {
+		return "reboot_device";
 	}
 	else {
 		return "unknown";
@@ -262,6 +276,7 @@ int cmd_background_mock_init (struct cmd_background_mock *mock)
 	mock->base.debug_log_fill = cmd_background_mock_debug_log_fill;
 	mock->base.authenticate_riot_certs = cmd_background_mock_authenticate_riot_certs;
 	mock->base.get_riot_cert_chain_state = cmd_background_mock_get_riot_cert_chain_state;
+	mock->base.reboot_device = cmd_background_mock_reboot_device;
 
 	mock->mock.func_arg_count = cmd_background_mock_func_arg_count;
 	mock->mock.func_name_map = cmd_background_mock_func_name_map;

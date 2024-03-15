@@ -26,7 +26,8 @@ enum {
 	CMD_BACKGROUND_HANDLER_ACTION_AUX_KEY_GEN,			/**< Generate the aux attestation key. */
 	CMD_BACKGROUND_HANDLER_ACTION_PLATFORM_CFG,			/**< Clear the platform configuration. */
 	CMD_BACKGROUND_HANDLER_ACTION_RESET_INTRUSION,		/**< Reset the intrusion state. */
-	CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM				/**< Clear define CFMs. */
+	CMD_BACKGROUND_HANDLER_ACTION_CLEAR_CFM,			/**< Clear define CFMs. */
+	CMD_BACKGROUND_HANDLER_ACTION_REBOOT_DEVICE,		/**< Warm reset the device. */
 };
 
 
