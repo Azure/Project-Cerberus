@@ -30,7 +30,7 @@ enum {
  * IDE_KM QUERY format.
  */
 struct ide_km_query {
-	struct ide_km_header header;	/**< IDE command header. */
+	struct ide_km_header header;		/**< IDE command header. */
 	uint8_t reserved;					/**< Reserved. */
 	uint8_t port_index;					/**< Index of the port for the query. */
 };
@@ -39,7 +39,7 @@ struct ide_km_query {
  * IDE_KM QUERY_RESP format.
  */
 struct ide_km_query_resp {
-	struct ide_km_header header;	/**< IDE command header. */
+	struct ide_km_header header;		/**< IDE command header. */
 	uint8_t reserved;					/**< Reserved. */
 	uint8_t port_index;					/**< Index of the port for the query. */
 	uint8_t dev_func_num;				/**< Device function number. */

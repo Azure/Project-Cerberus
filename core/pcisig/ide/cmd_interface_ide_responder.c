@@ -36,6 +36,10 @@ int cmd_interface_ide_responder_process_request (const struct cmd_interface *int
 			status = ide_km_key_prog (ide_responder->ide_driver, request);
 			break;
 
+		case IDE_KM_OBJECT_ID_K_SET_GO:
+			status = ide_km_key_set_go (ide_responder->ide_driver, request);
+			break;
+
 		default:
 			status = CMD_INTERFACE_IDE_RESPONDER_UNKNOWN_COMMAND;
 			break;

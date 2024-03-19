@@ -197,4 +197,51 @@ construct_response:
 	return 0;
 }
 
+/**
+ * Process an IDE_KM K_SET_GO message.
+ *
+ * @param ide_driver The IDE driver to activate the key set.
+ * @param request The IDE_KM request message.
+ * 
+ *  @return 0 if the message was successfully processed or an error code.
+ */
+int ide_km_key_set_go (const struct ide_driver *ide_driver, struct cmd_interface_msg *request)
+{
+	int status = 0;
+	const struct ide_km_k_set_go *ide_km_request;
+	struct ide_km_k_gostop_ack *ide_km_response;
+
+	if ((ide_driver == NULL) || (request == NULL)) {
+		status = CMD_INTERFACE_IDE_RESPONDER_INVALID_ARGUMENT;
+		goto exit;
+	}
+
+	/* As per IDE spec, a strict size check is required. */
+	if (request->payload_length != sizeof (struct ide_km_k_set_go)) {
+		status = CMD_INTERFACE_IDE_RESPONDER_INVALID_MSG_SIZE;
+		goto exit;
+	}
+	ide_km_request = (const struct ide_km_k_set_go*) request->payload;
+
+	/* Activate the key set. */
+	status = ide_driver->key_set_go (ide_driver, ide_km_request->port_index,
+		ide_km_request->stream_id, ide_km_request->sub_stream_info.key_set,
+		ide_km_request->sub_stream_info.rx_tx, ide_km_request->sub_stream_info.key_sub_stream);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Construct the response. */
+	ide_km_response = (struct ide_km_k_gostop_ack*) request->payload;
+
+	ide_km_response->header.object_id = IDE_KM_OBJECT_ID_K_SET_GOSTOP_ACK;
+	/* stream_id, key_set, rx_tx, key_sub_stream and port_index fields are reused from the request
+	 * since these fields are common between the request and response. */
+
+	cmd_interface_msg_set_message_payload_length (request, sizeof (struct ide_km_k_gostop_ack));
+
+exit:
+	return status;
+}
+
 
