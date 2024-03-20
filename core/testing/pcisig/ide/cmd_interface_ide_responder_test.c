@@ -469,6 +469,81 @@ static void cmd_interface_ide_responder_test_process_request_key_set_go_fail (
 	cmd_interface_ide_responder_testing_release (test, &testing);
 }
 
+static void cmd_interface_ide_responder_test_process_request_key_set_stop (CuTest *test)
+{
+	struct cmd_interface_ide_responder_testing testing;
+	struct cmd_interface_msg msg;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct ide_km_k_set_stop *rq = (struct ide_km_k_set_stop*) buf;
+	struct ide_km_k_gostop_ack *rsp = (struct ide_km_k_gostop_ack*) buf;
+	int status;
+
+	TEST_START;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.payload_length = sizeof (struct ide_km_k_set_stop);
+	msg.max_response = ARRAY_SIZE (buf);
+	rq->header.object_id = IDE_KM_OBJECT_ID_K_SET_STOP;
+	rq->port_index = 3;
+	rq->stream_id = 1;
+	rq->sub_stream_info.key_set = 1;
+	rq->sub_stream_info.rx_tx = 0;
+	rq->sub_stream_info.key_sub_stream = 4;
+
+	cmd_interface_ide_responder_testing_init (test, &testing);
+
+	status = mock_expect (&testing.ide_driver_mock.mock,
+		testing.ide_driver_mock.base.key_set_stop, &testing.ide_driver_mock, 0,
+		MOCK_ARG (rq->port_index), MOCK_ARG (rq->stream_id), MOCK_ARG (rq->sub_stream_info.key_set),
+		MOCK_ARG (rq->sub_stream_info.rx_tx), MOCK_ARG (rq->sub_stream_info.key_sub_stream));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_ide_responder_process_request (
+		(const struct cmd_interface*) (&testing.ide_responder), &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct ide_km_k_gostop_ack), msg.payload_length);
+	CuAssertIntEquals (test, IDE_KM_OBJECT_ID_K_SET_GOSTOP_ACK, rsp->header.object_id);
+	CuAssertIntEquals (test, rq->stream_id, rsp->stream_id);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_set, rsp->sub_stream_info.key_set);
+	CuAssertIntEquals (test, rq->sub_stream_info.rx_tx, rsp->sub_stream_info.rx_tx);
+	CuAssertIntEquals (test, rq->sub_stream_info.key_sub_stream,
+		rsp->sub_stream_info.key_sub_stream);
+	CuAssertIntEquals (test, rq->port_index, rsp->port_index);
+
+	cmd_interface_ide_responder_testing_release (test, &testing);
+}
+
+static void cmd_interface_ide_responder_test_process_request_key_set_stop_fail (CuTest *test)
+{
+	int status;
+	struct cmd_interface_ide_responder_testing testing;
+	struct cmd_interface_msg msg;
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct ide_km_k_set_stop *rq = (struct ide_km_k_set_stop*) buf;
+
+	TEST_START;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.payload_length = sizeof (struct ide_km_k_set_stop) - 1;
+	msg.max_response = ARRAY_SIZE (buf);
+	rq->header.object_id = IDE_KM_OBJECT_ID_K_SET_STOP;
+
+	cmd_interface_ide_responder_testing_init (test, &testing);
+
+	status = cmd_interface_ide_responder_process_request (
+		(const struct cmd_interface*) (&testing.ide_responder), &msg);
+	
+	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_INVALID_MSG_SIZE, status);
+
+	cmd_interface_ide_responder_testing_release (test, &testing);
+}
+
 static void cmd_interface_ide_responder_test_process_request_invalid_params (CuTest *test)
 {
 	int status;
@@ -578,6 +653,8 @@ TEST (cmd_interface_ide_responder_test_process_request_query_fail);
 TEST (cmd_interface_ide_responder_test_process_request_key_prog);
 TEST (cmd_interface_ide_responder_test_process_request_key_set_go);
 TEST (cmd_interface_ide_responder_test_process_request_key_set_go_fail);
+TEST (cmd_interface_ide_responder_test_process_request_key_set_stop);
+TEST (cmd_interface_ide_responder_test_process_request_key_set_stop_fail);
 TEST (cmd_interface_ide_responder_test_process_request_invalid_params);
 TEST (cmd_interface_ide_responder_test_process_request_invalid_msg_size);
 TEST (cmd_interface_ide_responder_test_process_request_unkown_command);

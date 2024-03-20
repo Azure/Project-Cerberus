@@ -23,6 +23,7 @@ enum {
 	IDE_KM_OBJECT_ID_KEY_PROG = 0x02,			/**< IDE_KM KEY_PROG command. */
 	IDE_KM_OBJECT_ID_KP_ACK = 0x03,				/**< IDE_KM KP_ACK command. */
 	IDE_KM_OBJECT_ID_K_SET_GO = 0x04,			/**< IDE_KM K_SET_GO command. */
+	IDE_KM_OBJECT_ID_K_SET_STOP = 0x05,			/**< IDE_KM K_SET_STOP command. */
 	IDE_KM_OBJECT_ID_K_SET_GOSTOP_ACK = 0x06	/**< IDE_KM K_GOSTOP_ACK command. */
 };
 

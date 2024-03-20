@@ -13,5 +13,7 @@ int ide_km_key_prog (const struct ide_driver *ide_driver, struct cmd_interface_m
 
 int ide_km_key_set_go (const struct ide_driver *ide_driver, struct cmd_interface_msg *request);
 
+int ide_km_key_set_stop (const struct ide_driver *ide_driver, struct cmd_interface_msg *request);
+
 
 #endif /* IDE_COMMANDS_H */
