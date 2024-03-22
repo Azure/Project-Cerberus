@@ -335,6 +335,9 @@ struct cerberus_protocol_reset_counter_response {
 #pragma pack(pop)
 
 
+void cerberus_protocol_build_error_response (struct cmd_interface_msg *message, uint8_t error_code,
+	uint32_t error_data, uint8_t cmd_set);
+
 int cerberus_protocol_get_fw_version (const struct cmd_interface_fw_version *fw_version,
 	struct cmd_interface_msg *request);
 

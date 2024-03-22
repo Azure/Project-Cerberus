@@ -18,6 +18,129 @@ TEST_SUITE_LABEL ("mctp_base_protocol");
  * Test cases
  *******************/
 
+static void mctp_base_protocol_test_smbus_transport_header_format (CuTest *test)
+{
+	uint8_t raw_buffer[] = {
+		0x0f,0x11,0x22,
+		0x34,0x56,0x78,0x9a,
+	};
+	struct mctp_base_protocol_transport_header *header =
+		(struct mctp_base_protocol_transport_header*) raw_buffer;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer),
+		sizeof (struct mctp_base_protocol_transport_header));
+
+	CuAssertIntEquals (test, SMBUS_CMD_CODE_MCTP, header->cmd_code);
+	CuAssertIntEquals (test, 0x11, header->byte_count);
+	CuAssertIntEquals (test, 0x22, header->source_addr);
+	CuAssertIntEquals (test, 0x3, header->rsvd);
+	CuAssertIntEquals (test, 0x4, header->header_version);
+	CuAssertIntEquals (test, 0x56, header->destination_eid);
+	CuAssertIntEquals (test, 0x78, header->source_eid);
+	CuAssertIntEquals (test, 1, header->som);
+	CuAssertIntEquals (test, 0, header->eom);
+	CuAssertIntEquals (test, 0x1, header->packet_seq);
+	CuAssertIntEquals (test, 1, header->tag_owner);
+	CuAssertIntEquals (test, 0x2, header->msg_tag);
+
+	raw_buffer[3] = 0xb4;
+	CuAssertIntEquals (test, 0xb, header->rsvd);
+	CuAssertIntEquals (test, 0x4, header->header_version);
+
+	raw_buffer[3] = 0xbc;
+	CuAssertIntEquals (test, 0xb, header->rsvd);
+	CuAssertIntEquals (test, 0xc, header->header_version);
+
+	raw_buffer[6] = 0x1a;
+	CuAssertIntEquals (test, 0, header->som);
+	CuAssertIntEquals (test, 0, header->eom);
+	CuAssertIntEquals (test, 0x1, header->packet_seq);
+	CuAssertIntEquals (test, 1, header->tag_owner);
+	CuAssertIntEquals (test, 0x2, header->msg_tag);
+
+	raw_buffer[6] = 0x5a;
+	CuAssertIntEquals (test, 0, header->som);
+	CuAssertIntEquals (test, 1, header->eom);
+	CuAssertIntEquals (test, 0x1, header->packet_seq);
+	CuAssertIntEquals (test, 1, header->tag_owner);
+	CuAssertIntEquals (test, 0x2, header->msg_tag);
+
+	raw_buffer[6] = 0x7a;
+	CuAssertIntEquals (test, 0, header->som);
+	CuAssertIntEquals (test, 1, header->eom);
+	CuAssertIntEquals (test, 0x3, header->packet_seq);
+	CuAssertIntEquals (test, 1, header->tag_owner);
+	CuAssertIntEquals (test, 0x2, header->msg_tag);
+
+	raw_buffer[6] = 0x72;
+	CuAssertIntEquals (test, 0, header->som);
+	CuAssertIntEquals (test, 1, header->eom);
+	CuAssertIntEquals (test, 0x3, header->packet_seq);
+	CuAssertIntEquals (test, 0, header->tag_owner);
+	CuAssertIntEquals (test, 0x2, header->msg_tag);
+
+	raw_buffer[6] = 0x74;
+	CuAssertIntEquals (test, 0, header->som);
+	CuAssertIntEquals (test, 1, header->eom);
+	CuAssertIntEquals (test, 0x3, header->packet_seq);
+	CuAssertIntEquals (test, 0, header->tag_owner);
+	CuAssertIntEquals (test, 0x4, header->msg_tag);
+}
+
+static void mctp_base_protocol_test_message_header_format (CuTest *test)
+{
+	uint8_t raw_buffer[] = {
+		0x7e
+	};
+	struct mctp_base_protocol_message_header *header =
+		(struct mctp_base_protocol_message_header*) raw_buffer;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer),
+		sizeof (struct mctp_base_protocol_message_header));
+
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, header->msg_type);
+	CuAssertIntEquals (test, 0, header->integrity_check);
+
+	raw_buffer[0] = 0xfe;
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, header->msg_type);
+	CuAssertIntEquals (test, 1, header->integrity_check);
+
+	raw_buffer[0] = 0x85;
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM, header->msg_type);
+	CuAssertIntEquals (test, 1, header->integrity_check);
+}
+
+static void mctp_base_protocol_test_vdm_pci_header_format (CuTest *test)
+{
+	uint8_t raw_buffer[] = {
+		0x7e,
+		0x11,0x22
+	};
+	struct mctp_base_protocol_vdm_pci_header *header =
+		(struct mctp_base_protocol_vdm_pci_header*) raw_buffer;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer),
+		sizeof (struct mctp_base_protocol_vdm_pci_header));
+
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, header->msg_header.msg_type);
+	CuAssertIntEquals (test, 0, header->msg_header.integrity_check);
+	CuAssertIntEquals (test, 0x2211, header->pci_vendor_id);
+
+	raw_buffer[0] = 0xfe;
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, header->msg_header.msg_type);
+	CuAssertIntEquals (test, 1, header->msg_header.integrity_check);
+
+	raw_buffer[0] = 0x85;
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM, header->msg_header.msg_type);
+	CuAssertIntEquals (test, 1, header->msg_header.integrity_check);
+}
+
 static void mctp_base_protocol_test_interpret_control_message (CuTest *test)
 {
 	int status;
@@ -1257,7 +1380,7 @@ static void mctp_base_protocol_test_interpret_invalid_header_byte_count (CuTest 
 	status = mctp_base_protocol_interpret (buf, sizeof (buf), 0x5D, &source_addr, &som, &eom,
 		&src_eid, &dest_eid, &payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type,
 		&tag_owner);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TOO_SHORT, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PKT_TOO_SHORT, status);
 }
 
 static void mctp_base_protocol_test_interpret_invalid_header_byte_count_control_message (
@@ -1298,7 +1421,7 @@ static void mctp_base_protocol_test_interpret_invalid_header_byte_count_control_
 	status = mctp_base_protocol_interpret (buf, sizeof (buf), 0x5D, &source_addr, &som, &eom,
 		&src_eid, &dest_eid, &payload, &payload_len, &msg_tag, &packet_seq, &crc, &msg_type,
 		&tag_owner);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TOO_SHORT, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PKT_TOO_SHORT, status);
 }
 
 static void mctp_base_protocol_test_interpret_invalid_buffer_length (CuTest *test)
@@ -1340,7 +1463,7 @@ static void mctp_base_protocol_test_interpret_invalid_buffer_length (CuTest *tes
 	status = mctp_base_protocol_interpret (buf, sizeof (struct mctp_base_protocol_transport_header),
     	0x5D, &source_addr, &som, &eom, &src_eid, &dest_eid, &payload, &payload_len, &msg_tag,
 		&packet_seq, &crc, &msg_type, &tag_owner);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TOO_SHORT, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PKT_TOO_SHORT, status);
 }
 
 static void mctp_base_protocol_test_interpret_dest_eid_matches_src_eid (CuTest *test)
@@ -1946,6 +2069,9 @@ static void mctp_base_protocol_test_construct_invalid_buf_len (CuTest *test)
 
 TEST_SUITE_START (mctp_base_protocol);
 
+TEST (mctp_base_protocol_test_smbus_transport_header_format);
+TEST (mctp_base_protocol_test_message_header_format);
+TEST (mctp_base_protocol_test_vdm_pci_header_format);
 TEST (mctp_base_protocol_test_interpret_control_message);
 TEST (mctp_base_protocol_test_interpret_control_message_response);
 TEST (mctp_base_protocol_test_interpret_control_message_not_som);

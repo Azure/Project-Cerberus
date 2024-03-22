@@ -1834,7 +1834,7 @@ static void cmd_channel_test_receive_and_process_mctp_fatal_error (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_channel_receive_and_process (&channel.test.base, &channel.mctp, -1);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TOO_SHORT, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PKT_TOO_SHORT, status);
 
 	status = mock_validate (&channel.test.mock);
 	CuAssertIntEquals (test, 0, status);

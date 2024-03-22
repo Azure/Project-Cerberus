@@ -228,6 +228,15 @@ enum {
 	SESSION_MANAGER_OPERATION_UNSUPPORTED = SESSION_MANAGER_ERROR (0x09),				/**< Requested operation not supported. */
 	SESSION_MANAGER_OPERATION_NOT_PERMITTED = SESSION_MANAGER_ERROR (0x0A),				/**< Requested operation not permitted. */
 	SESSION_MANAGER_PAIRING_NOT_SUPPORTED_WITH_DEVICE = SESSION_MANAGER_ERROR (0x0B),	/**< Pairing not supported with device. */
+	SESSION_MANAGER_ADD_SESSION_FAILED = SESSION_MANAGER_ERROR (0x0C),					/**< Failed to add a new session. */
+	SESSION_MANAGER_ESTABLISH_SESSION_FAILED = SESSION_MANAGER_ERROR (0x0D),			/**< Failed to establish the encrypted connection. */
+	SESSION_MANAGER_SESSION_CHECK_FAILED = SESSION_MANAGER_ERROR (0x0E),				/**< Failed to check the session state. */
+	SESSION_MANAGER_PAIRING_STATE_FAILED = SESSION_MANAGER_ERROR (0x0F),				/**< Failed to check the pairing state. */
+	SESSION_MANAGER_DECRYPT_MSG_FAILED = SESSION_MANAGER_ERROR (0x10),					/**< Failed to decrypt a message. */
+	SESSION_MANAGER_ENCRYPT_MSG_FAILED = SESSION_MANAGER_ERROR (0x11),					/**< Failed to encrypt a message. */
+	SESSION_MANAGER_RESET_SESSION_FAILED = SESSION_MANAGER_ERROR (0x12),				/**< Failed to terminate a session. */
+	SESSION_MANAGER_PAIR_SESSION_FAILED = SESSION_MANAGER_ERROR (0x13),					/**< Failed to pair with a device. */
+	SESSION_MANAGER_SESSION_SYNC_FAILED = SESSION_MANAGER_ERROR (0x14),					/**< Failed to sync the current session. */
 };
 
 #endif /* SESSION_MANAGER_H_ */

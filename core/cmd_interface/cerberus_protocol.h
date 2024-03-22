@@ -116,6 +116,17 @@ enum {
 
 #pragma pack(push, 1)
 /**
+ * Additional header added to Microsoft vendor defined messages to identify Cerberus messages.
+ */
+struct cerberus_protocol_msft_header {
+	uint8_t reserved1:5;		/**< Reserved */
+	uint8_t crypt:1;			/**< Indication that the message payload is encrypted. */
+	uint8_t reserved2:1;		/**< Reserved */
+	uint8_t rq:1;				/**< Indication of a Cerberus protocol request. */
+	uint8_t command;			/**< Identifier for the command type contained in the message. */
+};
+
+/**
  * Cerberus portion of packet header
  */
 struct cerberus_protocol_header {

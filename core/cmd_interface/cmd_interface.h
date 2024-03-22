@@ -114,8 +114,7 @@ struct cmd_interface_device_id {
 
 
 /**
- * Command interface for processing received requests.  This is just a common base type and should
- * not be instantiated directly.
+ * Command interface for processing received requests.
  */
 struct cmd_interface {
 	/**
@@ -133,6 +132,10 @@ struct cmd_interface {
 	/**
 	 * Process a received response.
 	 *
+	 * TODO:  Likely remove this function from this interface.  The request issuing flow using
+	 * msg_transport does not rely on this type of response handling.  Removing this would make this
+	 * interface cleaner (i.e. remove the need for the #ifdef).
+	 *
 	 * @param intf The command interface that will process the response.
 	 * @param response The response data to process.
 	 *
@@ -143,6 +146,14 @@ struct cmd_interface {
 
 	/**
 	 * Generate a message to indicate an error condition.
+	 *
+	 * TODO:  Revisit the need for this function and how it gets used.  Generally, individual
+	 * protocols will generate their own error responses (e.g. SPDM).  This is really only used for
+	 * transport layer errors (e.g. MCTP) when there is no other associated protocol known (or no
+	 * protocol handling of the error), so perhaps it doesn't belong here.  Maybe it belongs in
+	 * cmd_interface_protocol?  Maybe this function should be removed entirely and it should be up
+	 * to the transport to internally figure out what to do?  Does it really make sense to always
+	 * return Cerberus error messages for MCTP layer errors?
 	 *
 	 * @param intf The command interface to utilize.
  	 * @param request The request container to utilize.
@@ -156,7 +167,72 @@ struct cmd_interface {
 		struct cmd_interface_msg *request, uint8_t error_code, uint32_t error_data,
 		uint8_t cmd_set);
 
+	/* TODO:  Now that the cmd_interface is used for more than Cerberus messages, this should get
+	 * refactored out of the base interface and into some Cerberus specific handling, like the
+	 * protocol handlers. */
 	struct session_manager *session;				/**< Session manager for channel encryption */
+};
+
+/**
+ * Interface to a protocol specific handler that can be used to extract message details necessary
+ * for routing the message to an appropriate handler and to apply any necessary protocol handling as
+ * part of message processing.
+ */
+struct cmd_interface_protocol {
+	/**
+	 * Parse a message based on protocol rules and prepare it for further message handling.  Parsing
+	 * a message can involve operations such as:
+	 * - Checking that a message meets the minimum protocol requirements.
+	 * - Removing protocol specific headers from the payload.
+	 * - Adjusting the maximum allowed response message.
+	 * - Decrypting messages.
+	 *
+	 * Since this call will alter the state of the message container, and possibly the payload data
+	 * itself, it must only be called once per message for each protocol handler.
+	 *
+	 * @param protocol The protocol handler to use for parsing the message.
+	 * @param message The received message to parse.  Upon successful return, the message will have
+	 * been updated based on the protocol requirements.
+	 * @param message_type Output for the message type identifier to use for message routing.
+	 *
+	 * @return 0 if the message was parsed successfully or an error code.  If an error response
+	 * message was generated during processing, CMD_HANDLER_PROTO_ERROR_RESPONSE will be returned.
+	 */
+	int (*parse_message) (const struct cmd_interface_protocol *protocol,
+		struct cmd_interface_msg *message, uint32_t *message_type);
+
+	/**
+	 * Execute any additional processing on a request message after it has been processed by the
+	 * appropriate command handler(s).
+	 *
+	 * The specific actions that are necessary here will be determined by the protocol handler, but
+	 * at minimum, this call will need to manage the protocol header for the response payload.
+	 * - If the request processing was successful, meaning the message descriptor contains a
+	 *   response message, the necessary protocol header will need to be added to the response
+	 *   payload.
+	 * - If the request processing failed, there are two ways the protocol header could be dealt
+	 *   with.
+	 * 		1. A protocol error response is generated with necessary protocol headers.
+	 * 		2. The message descriptor payload is updated to add the protocol header space without
+	 * 		   adding any data.  This makes the space available for the next layer in the stack to
+	 * 		   use when handling the error.
+	 *
+	 * This can be set to null if a specific protocol does not need to do any additional processing.
+	 *
+	 * @param protocol The protocol handler to use for message processing.
+	 * @param result Result from request message processing.  This will be 0 if processing was
+	 * successful or a response message has already been  generated.  Otherwise, this will be an
+	 * error code.  If no handler could be found to process the request, this result will be
+	 * CMD_HANDLER_UNKNOWN_MESSAGE_TYPE.
+	 * @param message_type The message type identifier of the request message.
+	 * @param message The message descriptor for message processing.  Depending on the processing
+	 * result, this will either contain a response message or the failed request.
+	 *
+	 * @return 0 if the message descriptor contains a response message or an error code to return to
+	 * the to the previous layer of the protocol stack.
+	 */
+	int (*handle_request_result) (const struct cmd_interface_protocol *protocol, int result,
+		uint32_t message_type, struct cmd_interface_msg *message);
 };
 
 
@@ -220,6 +296,10 @@ enum {
 	CMD_HANDLER_ERROR_MSG_FAILED = CMD_HANDLER_ERROR (0x16),		/**< Failed to generate an error message. */
 	CMD_HANDLER_UNKNOWN_RESPONSE = CMD_HANDLER_ERROR (0x17),		/**< A command does not represent a known response. */
 	CMD_HANDLER_INVALID_ERROR_MSG = CMD_HANDLER_ERROR (0x18),		/**< The handler received an invalid error message. */
+	CMD_HANDLER_UNKNOWN_MESSAGE_TYPE = CMD_HANDLER_ERROR (0x19),	/**< The received message type is unknown to the handler. */
+	CMD_HANDLER_PROTO_PARSE_FAILED = CMD_HANDLER_ERROR (0x1a),		/**< Failed to parse a message. */
+	CMD_HANDLER_PROTO_HANDLE_FAILED = CMD_HANDLER_ERROR (0x1b),		/**< Failed to handle the result of request processing. */
+	CMD_HANDLER_PROTO_ERROR_RESPONSE = CMD_HANDLER_ERROR (0x1c),	/**< The protocol generated an error response. */
 };
 
 

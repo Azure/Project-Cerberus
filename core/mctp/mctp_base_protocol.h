@@ -166,7 +166,7 @@ enum {
 
 #pragma pack(push, 1)
 /**
- * MCTP portion of packet header
+ * MCTP transport header added to every packet when using the SMBus binding.
  */
 struct mctp_base_protocol_transport_header {
 	uint8_t cmd_code;			/**< SMBUS command code */
@@ -183,6 +183,28 @@ struct mctp_base_protocol_transport_header {
 	uint8_t som:1;				/**< MCTP start of message */
 };
 
+/**
+ * MCTP message header required an every message, as defined section 8.1 of the MCTP Base
+ * Specification DSP0236.
+ *
+ * This will only be present in the first MCTP packet of a multi-packet message.
+ */
+struct mctp_base_protocol_message_header {
+	uint8_t msg_type:7;				/**< Identifier for the type of message. */
+	uint8_t integrity_check:1;		/**< Flag indicating if an integrity check has been added. */
+};
+
+/**
+ * MCTP message header for Vendor Defined - PCI messages, as defined section 13.1 of the MCTP Base
+ * Specification DSP0236.
+ *
+ * This header includes the standard MCTP message header to retain that context during VDM
+ * processing.
+ */
+struct mctp_base_protocol_vdm_pci_header {
+	struct mctp_base_protocol_message_header msg_header;	/**< Common MCTP message header. */
+	uint16_t pci_vendor_id;									/**< Vendor identifier using the PCI vendor ID. */
+};
 #pragma pack(pop)
 
 /**
@@ -223,7 +245,7 @@ enum {
 	MCTP_BASE_PROTOCOL_MSG_TOO_LARGE = MCTP_BASE_PROTOCOL_ERROR (0x05),			/**< The message is bigger than the maximum supported size. */
 	MCTP_BASE_PROTOCOL_INVALID_MSG = MCTP_BASE_PROTOCOL_ERROR (0x06),			/**< An invalid message was received. */
 	MCTP_BASE_PROTOCOL_BAD_CHECKSUM = MCTP_BASE_PROTOCOL_ERROR (0x07),			/**< The message checksum is bad. */
-	MCTP_BASE_PROTOCOL_MSG_TOO_SHORT = MCTP_BASE_PROTOCOL_ERROR (0x08),			/**< The received packet was shorter than the minimum length. */
+	MCTP_BASE_PROTOCOL_PKT_TOO_SHORT = MCTP_BASE_PROTOCOL_ERROR (0x08),			/**< The received packet was shorter than the minimum length. */
 	MCTP_BASE_PROTOCOL_BAD_BUFFER_LENGTH = MCTP_BASE_PROTOCOL_ERROR (0x09),		/**< The packet buffer is an invalid size. */
 	MCTP_BASE_PROTOCOL_BUF_TOO_SMALL = MCTP_BASE_PROTOCOL_ERROR (0x0a),			/**< Provided buffer too small for output. */
 	MCTP_BASE_PROTOCOL_UNSUPPORTED_MSG = MCTP_BASE_PROTOCOL_ERROR (0x0b),		/**< Received packet format not supported. */
@@ -233,6 +255,7 @@ enum {
 	MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION = MCTP_BASE_PROTOCOL_ERROR (0x0f),	/**< Requested operation not supported by device. */
 	MCTP_BASE_PROTOCOL_ERROR_RESPONSE = MCTP_BASE_PROTOCOL_ERROR (0x10),		/**< Error response received. */
 	MCTP_BASE_PROTOCOL_FAIL_RESPONSE = MCTP_BASE_PROTOCOL_ERROR (0x11),			/**< Response processing failed. */
+	MCTP_BASE_PROTOCOL_MSG_TOO_SHORT = MCTP_BASE_PROTOCOL_ERROR (0x12),			/**< A received message is shorter tha the minimum length. */
 };
 
 

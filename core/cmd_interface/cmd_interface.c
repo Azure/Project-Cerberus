@@ -217,6 +217,9 @@ static int cmd_interface_is_request_encrypted (const struct cmd_interface *intf,
 /**
  * Pre-process received Cerberus protocol message.
  *
+ * TODO:  Deprecate use of this function and remove it.  Use the cmd_interface_protocol handlers
+ * for processing Cerberus messages instead.
+ *
  * @param intf The command interface that will process the message.
  * @param message The message being processed.
  * @param command_id Pointer to hold command ID of incoming message.
@@ -290,6 +293,9 @@ int cmd_interface_process_cerberus_protocol_message (const struct cmd_interface 
 /**
  * Process generated response.
  *
+ * TODO:  Deprecate use of this function and remove it.  Use the cmd_interface_protocol handlers
+ * for processing Cerberus messages instead.
+ *
  * @param intf The command interface that will process the response.
  * @param response The response being processed.
  *
@@ -330,6 +336,9 @@ int cmd_interface_prepare_response (const struct cmd_interface *intf,
 
 /**
  * Generate a packet containing error message.
+ *
+ * TODO:  Deprecate use of this function and remove it.  Use cerberus_protocol_build_error_response
+ * instead.
  *
  * @param intf The command interface to utilize.
  * @param request The request container to utilize.

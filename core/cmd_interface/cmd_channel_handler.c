@@ -29,6 +29,8 @@ void cmd_channel_handler_execute (const struct periodic_task_handler *handler)
 {
 	const struct cmd_channel_handler *cmd = (const struct cmd_channel_handler*) handler;
 
+	/* Errors are handled and logged within this call, so there is no need to check the return
+	 * value. */
 	cmd_channel_receive_and_process (cmd->channel, cmd->mctp, -1);
 }
 

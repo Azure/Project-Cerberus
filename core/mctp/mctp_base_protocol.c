@@ -49,14 +49,18 @@ int mctp_base_protocol_interpret (const uint8_t *buf, size_t buf_len, uint8_t de
 	}
 
 	if (buf_len <= sizeof (struct mctp_base_protocol_transport_header)) {
-		return MCTP_BASE_PROTOCOL_MSG_TOO_SHORT;
+		return MCTP_BASE_PROTOCOL_PKT_TOO_SHORT;
 	}
 
-	/* TODO:  Remove checking for message type when parsing the message.  Also have better and more
-	 * flexible handling of the SMBus PEC byte.  The MCTP SMBus binding mandates that all MCTP
-	 * packets must have the PEC appended.  However, so implementation don't follow this.  This
-	 * implementation can be leinent and check the PEC if the packet size is sufficient to contain
-	 * one and skip it if not. */
+	/* TODO:  Have more flexible checking of the message types during packet parsing.  MCTP requires
+	 * that unsupported message types be silently discarded and not impact message reassembly.  It
+	 * might make sense to move this check out of packet parsing and into the main handler,
+	 * leveraging some external module to identify the supported message types.
+	 *
+	 * TODO:  Also have better and more flexible handling of the SMBus PEC byte.  The MCTP SMBus
+	 * binding mandates that all MCTP packets must have the PEC appended.  However, some
+	 * implementations don't follow this.  This implementation can be leinent and check the PEC if
+	 * the packet size is sufficient to contain one and skip it if not. */
 
 	/* At this point, we do not know if the current packet is a control or vendor defined message.
 	 * Control message might not contain a PEC byte. So, here we check if the message length is at
@@ -64,7 +68,7 @@ int mctp_base_protocol_interpret (const uint8_t *buf, size_t buf_len, uint8_t de
 	if ((header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD_NO_PEC) <=
 			(uint8_t) sizeof (struct mctp_base_protocol_transport_header)) {
 		/* Prevent payload_len underflow caused by manipulated header->byte_count. */
-		return MCTP_BASE_PROTOCOL_MSG_TOO_SHORT;
+		return MCTP_BASE_PROTOCOL_PKT_TOO_SHORT;
 	}
 
 	*source_addr = (header->source_addr >> 1);
@@ -78,6 +82,10 @@ int mctp_base_protocol_interpret (const uint8_t *buf, size_t buf_len, uint8_t de
 	*payload = &buf[sizeof (struct mctp_base_protocol_transport_header)];
 
 	if (header->som) {
+		/* TODO:  The packet length is not validated to contain a valid byte here, which is then
+		 * used to make decisions about message type.  Not really impactful, but something that
+		 * should probably get cleaned up.  Probably along with other changes to message type
+		 * handling. */
 		*msg_type = (*payload)[0];
 	}
 
@@ -94,7 +102,7 @@ int mctp_base_protocol_interpret (const uint8_t *buf, size_t buf_len, uint8_t de
 		MCTP_BASE_PROTOCOL_IS_SPDM_MSG (*msg_type)) {
 		if ((header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD) <=
 				(uint8_t) MCTP_BASE_PROTOCOL_PACKET_OVERHEAD) {
-			return MCTP_BASE_PROTOCOL_MSG_TOO_SHORT;
+			return MCTP_BASE_PROTOCOL_PKT_TOO_SHORT;
 		}
 
 		packet_len = header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD;

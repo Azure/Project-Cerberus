@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "common/buffer_util.h"
 #include "common/certificate.h"
 #include "common/common_math.h"
 #include "attestation/attestation_responder.h"
@@ -16,6 +17,44 @@
 #include "session_manager.h"
 #include "cerberus_protocol_required_commands.h"
 
+
+/**
+ * Populate the message payload with a Cerberus protocol error status response with the specified
+ * error information.
+ *
+ * @param message The response message to populate with error details.  If this is null, nothing
+ * will be done.
+ * @param error_code The Cerberus error code to report in the response.
+ * @param error_data The detailed error code to provide with the response.
+ * @param cmd_set The value to assign to the rq bit in the response header, corresponding to the
+ * type of message that generated the error.
+ */
+void cerberus_protocol_build_error_response (struct cmd_interface_msg *message, uint8_t error_code,
+	uint32_t error_data, uint8_t cmd_set)
+{
+	struct cerberus_protocol_error *error_msg;
+
+	if (message == NULL) {
+		return;
+	}
+
+	error_msg = (struct cerberus_protocol_error*) message->payload;
+	memset (error_msg, 0, sizeof (struct cerberus_protocol_error));
+
+	/* TODO:  Don't populate the MCTP header. */
+	error_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	buffer_unaligned_write16 (&error_msg->header.pci_vendor_id, CERBERUS_PROTOCOL_MSFT_PCI_VID);
+	error_msg->header.rq = cmd_set;
+	error_msg->header.command = CERBERUS_PROTOCOL_ERROR;
+
+	error_msg->error_code = error_code;
+	error_msg->error_data = error_data;
+
+	cmd_interface_msg_set_message_payload_length (message, sizeof (*error_msg));
+
+	/* TODO:  Generate a log message.  There needs to be logging consistency with the current
+	 * handling in the MCTP interface. */
+}
 
 /**
  * Process FW version request

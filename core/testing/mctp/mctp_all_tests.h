@@ -27,6 +27,24 @@ static void add_all_mctp_tests (CuSuite *suite)
 	!defined TESTING_SKIP_CMD_INTERFACE_MCTP_CONTROL_SUITE
 	TESTING_RUN_SUITE (cmd_interface_mctp_control);
 #endif
+#if (defined TESTING_RUN_CMD_INTERFACE_PROTOCOL_MCTP_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_INTERFACE_PROTOCOL_MCTP_SUITE
+	TESTING_RUN_SUITE (cmd_interface_protocol_mctp);
+#endif
+#if (defined TESTING_RUN_CMD_INTERFACE_PROTOCOL_MCTP_MSFT_VDM_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_INTERFACE_PROTOCOL_MCTP_MSFT_VDM_SUITE
+	TESTING_RUN_SUITE (cmd_interface_protocol_mctp_msft_vdm);
+#endif
+#if (defined TESTING_RUN_CMD_INTERFACE_PROTOCOL_MCTP_VDM_PCI_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_CMD_INTERFACE_PROTOCOL_MCTP_VDM_PCI_SUITE
+	TESTING_RUN_SUITE (cmd_interface_protocol_mctp_vdm_pci);
+#endif
 #if (defined TESTING_RUN_MCTP_BASE_PROTOCOL_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

@@ -14,8 +14,8 @@
  * Command Interface API mock
  */
 struct cmd_interface_mock {
-	struct cmd_interface base;		/**< Command interface instance*/
-	struct mock mock;				/**< Mock instance*/
+	struct cmd_interface base;		/**< Command interface instance */
+	struct mock mock;				/**< Mock instance */
 };
 
 int cmd_interface_mock_init (struct cmd_interface_mock *mock);

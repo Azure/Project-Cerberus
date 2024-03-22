@@ -3664,6 +3664,49 @@ void cerberus_protocol_required_commands_testing_generate_error_packet_invalid_a
  * Test cases
  *******************/
 
+static void cerberus_protocol_required_commands_test_msft_header_format (CuTest *test)
+{
+	uint8_t raw_buffer[] = {
+		0xf5, 0xaa
+	};
+	struct cerberus_protocol_msft_header *header;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer), sizeof (struct cerberus_protocol_msft_header));
+
+	header = (struct cerberus_protocol_msft_header*) raw_buffer;
+	CuAssertIntEquals (test, 1, header->rq);
+	CuAssertIntEquals (test, 1, header->reserved2);
+	CuAssertIntEquals (test, 1, header->crypt);
+	CuAssertIntEquals (test, 0x15, header->reserved1);
+	CuAssertIntEquals (test, 0xaa, header->command);
+
+	raw_buffer[0] = 0x75;
+	CuAssertIntEquals (test, 0, header->rq);
+	CuAssertIntEquals (test, 1, header->reserved2);
+	CuAssertIntEquals (test, 1, header->crypt);
+	CuAssertIntEquals (test, 0x15, header->reserved1);
+
+	raw_buffer[0] = 0x35;
+	CuAssertIntEquals (test, 0, header->rq);
+	CuAssertIntEquals (test, 0, header->reserved2);
+	CuAssertIntEquals (test, 1, header->crypt);
+	CuAssertIntEquals (test, 0x15, header->reserved1);
+
+	raw_buffer[0] = 0x15;
+	CuAssertIntEquals (test, 0, header->rq);
+	CuAssertIntEquals (test, 0, header->reserved2);
+	CuAssertIntEquals (test, 0, header->crypt);
+	CuAssertIntEquals (test, 0x15, header->reserved1);
+
+	raw_buffer[0] = 0x03;
+	CuAssertIntEquals (test, 0, header->rq);
+	CuAssertIntEquals (test, 0, header->reserved2);
+	CuAssertIntEquals (test, 0, header->crypt);
+	CuAssertIntEquals (test, 0x03, header->reserved1);
+}
+
 static void cerberus_protocol_required_commands_test_header_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
@@ -4471,9 +4514,203 @@ static void cerberus_protocol_required_commands_test_reset_counter_format (CuTes
 	CuAssertIntEquals (test, 0x0302, resp->counter);
 }
 
+static void cerberus_protocol_required_commands_test_build_error_response (CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) data;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (response));
+	response.data = data;
+
+	error->header.msg_type = 0x11;
+	error->header.integrity_check = 1;
+	error->header.pci_vendor_id = 0x3344;
+	error->header.reserved1 = 4;
+	error->header.crypt = 1;
+	error->header.reserved2 = 1;
+	error->header.rq = 1;
+	error->header.command = 0x22;
+
+	error->error_code = 0x55;
+	error->error_data = 0x6677;
+
+	response.length = sizeof (data);
+	response.max_response = sizeof (data);
+	response.payload = data;
+	response.payload_length = sizeof (data);
+	response.source_eid = 0x33;
+	response.source_addr = 0x55;
+	response.target_eid = 0x44;
+	response.is_encrypted = false;
+	response.crypto_timeout = true;
+	response.channel_id = 4;
+
+	cerberus_protocol_build_error_response (&response, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,
+		0x12345678, 0);
+
+	CuAssertPtrEquals (test, data, response.data);
+	CuAssertIntEquals (test, sizeof (*error), response.length);
+	CuAssertPtrEquals (test, data, response.payload);
+	CuAssertIntEquals (test, sizeof (*error), response.payload_length);
+	CuAssertIntEquals (test, sizeof (data), response.max_response);
+	CuAssertIntEquals (test, 0x33, response.source_eid);
+	CuAssertIntEquals (test, 0x55, response.source_addr);
+	CuAssertIntEquals (test, 0x44, response.target_eid);
+	CuAssertIntEquals (test, false, response.is_encrypted);
+	CuAssertIntEquals (test, true, response.crypto_timeout);
+	CuAssertIntEquals (test, 4, response.channel_id);
+
+	CuAssertIntEquals (test, 0x7e, error->header.msg_type);
+	CuAssertIntEquals (test, 0, error->header.integrity_check);
+	CuAssertIntEquals (test, 0x1414, error->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, error->header.reserved1);
+	CuAssertIntEquals (test, 0, error->header.crypt);
+	CuAssertIntEquals (test, 0, error->header.reserved2);
+	CuAssertIntEquals (test, 0, error->header.rq);
+	CuAssertIntEquals (test, 0x7f, error->header.command);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, error->error_code);
+	CuAssertIntEquals (test, 0x12345678, error->error_data);
+}
+
+static void cerberus_protocol_required_commands_test_build_error_response_cmd_set_1 (CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) data;
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (response));
+	response.data = data;
+
+	error->header.msg_type = 0x11;
+	error->header.integrity_check = 1;
+	error->header.pci_vendor_id = 0x3344;
+	error->header.reserved1 = 4;
+	error->header.crypt = 1;
+	error->header.reserved2 = 1;
+	error->header.rq = 0;
+	error->header.command = 0x22;
+
+	error->error_code = 0x55;
+	error->error_data = 0x6677;
+
+	response.length = sizeof (data);
+	response.max_response = sizeof (data);
+	response.payload = data;
+	response.payload_length = sizeof (data);
+	response.source_eid = 0x33;
+	response.source_addr = 0x55;
+	response.target_eid = 0x44;
+	response.is_encrypted = false;
+	response.crypto_timeout = false;
+	response.channel_id = 4;
+
+	cerberus_protocol_build_error_response (&response, CERBERUS_PROTOCOL_ERROR_INVALID_CHECKSUM,
+		0x8172645, 1);
+
+	CuAssertPtrEquals (test, data, response.data);
+	CuAssertIntEquals (test, sizeof (*error), response.length);
+	CuAssertPtrEquals (test, data, response.payload);
+	CuAssertIntEquals (test, sizeof (*error), response.payload_length);
+	CuAssertIntEquals (test, sizeof (data), response.max_response);
+	CuAssertIntEquals (test, 0x33, response.source_eid);
+	CuAssertIntEquals (test, 0x55, response.source_addr);
+	CuAssertIntEquals (test, 0x44, response.target_eid);
+	CuAssertIntEquals (test, false, response.is_encrypted);
+	CuAssertIntEquals (test, false, response.crypto_timeout);
+	CuAssertIntEquals (test, 4, response.channel_id);
+
+	CuAssertIntEquals (test, 0x7e, error->header.msg_type);
+	CuAssertIntEquals (test, 0, error->header.integrity_check);
+	CuAssertIntEquals (test, 0x1414, error->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, error->header.reserved1);
+	CuAssertIntEquals (test, 0, error->header.crypt);
+	CuAssertIntEquals (test, 0, error->header.reserved2);
+	CuAssertIntEquals (test, 1, error->header.rq);
+	CuAssertIntEquals (test, 0x7f, error->header.command);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR_INVALID_CHECKSUM, error->error_code);
+	CuAssertIntEquals (test, 0x8172645, error->error_data);
+}
+
+static void cerberus_protocol_required_commands_test_build_error_response_payload_offset (
+	CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg response;
+	size_t offset = 32;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) &data[offset];
+
+	TEST_START;
+
+	memset (&response, 0, sizeof (response));
+	response.data = data;
+
+	error->header.msg_type = 0x11;
+	error->header.integrity_check = 1;
+	error->header.pci_vendor_id = 0x3344;
+	error->header.reserved1 = 4;
+	error->header.crypt = 1;
+	error->header.reserved2 = 1;
+	error->header.rq = 1;
+	error->header.command = 0x22;
+
+	error->error_code = 0x55;
+	error->error_data = 0x6677;
+
+	response.length = sizeof (data);
+	response.max_response = sizeof (data);
+	response.payload = &data[offset];
+	response.payload_length = sizeof (data) - offset;
+	response.source_eid = 0x33;
+	response.source_addr = 0x55;
+	response.target_eid = 0x44;
+	response.is_encrypted = false;
+	response.crypto_timeout = true;
+	response.channel_id = 4;
+
+	cerberus_protocol_build_error_response (&response, CERBERUS_PROTOCOL_ERROR_INVALID_REQ,
+		0x142367, 0);
+
+	CuAssertPtrEquals (test, data, response.data);
+	CuAssertIntEquals (test, sizeof (*error), response.length);
+	CuAssertPtrEquals (test, &data[offset], response.payload);
+	CuAssertIntEquals (test, sizeof (*error), response.payload_length);
+	CuAssertIntEquals (test, sizeof (data), response.max_response);
+	CuAssertIntEquals (test, 0x33, response.source_eid);
+	CuAssertIntEquals (test, 0x55, response.source_addr);
+	CuAssertIntEquals (test, 0x44, response.target_eid);
+	CuAssertIntEquals (test, false, response.is_encrypted);
+	CuAssertIntEquals (test, true, response.crypto_timeout);
+	CuAssertIntEquals (test, 4, response.channel_id);
+
+	CuAssertIntEquals (test, 0x7e, error->header.msg_type);
+	CuAssertIntEquals (test, 0, error->header.integrity_check);
+	CuAssertIntEquals (test, 0x1414, error->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, error->header.reserved1);
+	CuAssertIntEquals (test, 0, error->header.crypt);
+	CuAssertIntEquals (test, 0, error->header.reserved2);
+	CuAssertIntEquals (test, 0, error->header.rq);
+	CuAssertIntEquals (test, 0x7f, error->header.command);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR_INVALID_REQ, error->error_code);
+	CuAssertIntEquals (test, 0x142367, error->error_data);
+}
+
+static void cerberus_protocol_required_commands_test_build_error_response_null (CuTest *test)
+{
+	TEST_START;
+
+	cerberus_protocol_build_error_response (NULL, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,
+		0x12345678, 0);
+}
+
 
 TEST_SUITE_START (cerberus_protocol_required_commands);
 
+TEST (cerberus_protocol_required_commands_test_msft_header_format);
 TEST (cerberus_protocol_required_commands_test_header_format);
 TEST (cerberus_protocol_required_commands_test_error_format);
 TEST (cerberus_protocol_required_commands_test_device_capabilities_format);
@@ -4487,5 +4724,9 @@ TEST (cerberus_protocol_required_commands_test_get_device_info_format);
 TEST (cerberus_protocol_required_commands_test_get_fw_version_format);
 TEST (cerberus_protocol_required_commands_test_get_device_id_format);
 TEST (cerberus_protocol_required_commands_test_reset_counter_format);
+TEST (cerberus_protocol_required_commands_test_build_error_response);
+TEST (cerberus_protocol_required_commands_test_build_error_response_cmd_set_1);
+TEST (cerberus_protocol_required_commands_test_build_error_response_payload_offset);
+TEST (cerberus_protocol_required_commands_test_build_error_response_null);
 
 TEST_SUITE_END;

@@ -3867,7 +3867,7 @@ static void mctp_interface_test_process_packet_packet_too_small (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_process_packet (&mctp.test, &rx, &tx);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TOO_SHORT, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PKT_TOO_SHORT, status);
 	CuAssertPtrEquals (test, NULL, tx);
 
 	mctp_interface_testing_release (test, &mctp);
@@ -4140,7 +4140,7 @@ static void mctp_interface_test_process_packet_out_of_order (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_process_packet (&mctp.test, &rx[1], &tx);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TOO_SHORT, status);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PKT_TOO_SHORT, status);
 	CuAssertPtrEquals (test, NULL, tx);
 
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
