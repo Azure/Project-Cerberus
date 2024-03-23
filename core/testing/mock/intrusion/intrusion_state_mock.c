@@ -40,9 +40,41 @@ static int intrusion_state_mock_set (struct intrusion_state *state)
 	MOCK_RETURN_NO_ARGS (&mock->mock, intrusion_state_mock_set, state);
 }
 
+static int intrusion_state_mock_get_intrusion_count (struct intrusion_state *state,
+	uint32_t *count)
+{
+	struct intrusion_state_mock *mock = (struct intrusion_state_mock*) state;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, intrusion_state_mock_get_intrusion_count, state,
+		MOCK_ARG_PTR_CALL (count));
+}
+
+static int intrusion_state_mock_is_active (struct intrusion_state *state,
+	uint32_t *active_state)
+{
+	struct intrusion_state_mock *mock = (struct intrusion_state_mock*) state;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, intrusion_state_mock_is_active, state,
+		MOCK_ARG_PTR_CALL (active_state));
+}
+
 static int intrusion_state_mock_func_arg_count (void *func)
 {
-	return 0;
+	if ((func == intrusion_state_mock_get_intrusion_count) ||
+		(func == intrusion_state_mock_is_active)) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
 }
 
 static const char* intrusion_state_mock_func_name_map (void *func)
@@ -55,6 +87,12 @@ static const char* intrusion_state_mock_func_name_map (void *func)
 	}
 	else if (func == intrusion_state_mock_set) {
 		return "set";
+	}
+	else if (func == intrusion_state_mock_get_intrusion_count) {
+		return "get_intrusion_count";
+	}
+	else if (func == intrusion_state_mock_is_active) {
+		return "is_active";
 	}
 	else {
 		return "unknown";
@@ -93,6 +131,8 @@ int intrusion_state_mock_init (struct intrusion_state_mock *mock)
 	mock->base.clear = intrusion_state_mock_clear;
 	mock->base.check = intrusion_state_mock_check;
 	mock->base.set = intrusion_state_mock_set;
+	mock->base.get_intrusion_count = intrusion_state_mock_get_intrusion_count;
+	mock->base.is_active = intrusion_state_mock_is_active;
 
 	mock->mock.func_arg_count = intrusion_state_mock_func_arg_count;
 	mock->mock.func_name_map = intrusion_state_mock_func_name_map;

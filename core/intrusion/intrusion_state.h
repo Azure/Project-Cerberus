@@ -4,6 +4,7 @@
 #ifndef INTRUSION_STATE_H_
 #define INTRUSION_STATE_H_
 
+#include <stdint.h>
 #include "status/rot_status.h"
 
 
@@ -40,6 +41,26 @@ struct intrusion_state {
 	 * notifications.  If this approach is taken, INTRUSION_STATE_CHECK_DEFERRED will be returned.
 	 */
 	int (*check) (struct intrusion_state *intrusion);
+
+	/**
+	 * Get the number of individual intrusion events detected by the device.
+	 *
+	 * @param intrusion The intrusion state instance being tracked.
+	 * @param count Output for intrusion count.
+	 *
+	 * @return 0 if getting intrusion count operation successful or an error code.
+	 */
+	int (*get_intrusion_count) (struct intrusion_state *intrusion, uint32_t *count);
+
+	/**
+	 * Determine the current state of the intrusion detection logic for the device.
+	 * This indicates whether there is an active intrusion detected by the device or not.
+	 *
+	 * @param state Output for the intrusion state. 1 means "no intrusion"; 0 means "in intrusion".
+	 *
+	 * @return 0 if the operation is successful or an error code.
+	 */
+	int (*is_active) (struct intrusion_state *intrusion, uint32_t *state);
 };
 
 
@@ -56,6 +77,8 @@ enum {
 	INTRUSION_STATE_CHECK_FAILED = INTRUSION_STATE_ERROR (0x04),			/**< Failed to check intrusion state. */
 	INTRUSION_STATE_CHECK_DEFERRED = INTRUSION_STATE_ERROR (0x05),			/**< State checking will be done in the background. */
 	INTRUSION_STATE_REMOTE_REQUEST_FAILED = INTRUSION_STATE_ERROR (0x06),	/**< Request to remote component failed. */
+	INTRUSION_STATE_GET_COUNT_FAILED = INTRUSION_STATE_ERROR (0x07),		/**< Request to get intrusion count failed. */
+	INTRUSION_STATE_IS_ACTIVE_FAILED = INTRUSION_STATE_ERROR (0x08),		/**< Request to get intrusion active state failed. */
 };
 
 
