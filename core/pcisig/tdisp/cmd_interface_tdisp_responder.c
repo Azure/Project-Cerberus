@@ -40,6 +40,11 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 			status = tdisp_get_capabilities (tdisp_responder->tdisp_driver, request);
 			break;
 
+		case TDISP_REQUEST_LOCK_INTERFACE:
+			status = tdisp_lock_interface (tdisp_responder->state, tdisp_responder->tdisp_driver,
+				tdisp_responder->rng_engine, request);
+			break;
+
 		default:
 			tdisp_generate_error_response (request, TDISP_VERSION_1_0, 0,
 				TDISP_ERROR_CODE_UNSUPPORTED_REQUEST, 0);
@@ -81,12 +86,13 @@ int cmd_interface_tdisp_responder_generate_error_packet (const struct cmd_interf
  * @param tdisp_driver TDISP driver to use for programming the TDISP registers.
  * @param version_num Supported TDISP version number array.
  * @param version_num_count Number of version number(s) in the array.
+ * @param rng_engine Random number generator engine.
  *
  * @return 0 if the TDISP responder instance was initialized successfully or an error code.
  */
 int cmd_interface_tdisp_responder_init (struct cmd_interface_tdisp_responder *tdisp_responder,
 	struct tdisp_state *tdisp_state, struct tdisp_driver *tdisp_driver,
-	const uint8_t *version_num, uint8_t version_num_count)
+	const uint8_t *version_num, uint8_t version_num_count, struct rng_engine *rng_engine)
 {
 	int status = 0;
 
@@ -101,6 +107,7 @@ int cmd_interface_tdisp_responder_init (struct cmd_interface_tdisp_responder *td
 	tdisp_responder->version_num = version_num;
 	tdisp_responder->version_num_count = version_num_count;
 	tdisp_responder->state = tdisp_state;
+	tdisp_responder->rng_engine = rng_engine;
 
 	tdisp_responder->base.process_request = cmd_interface_tdisp_responder_process_request;
 #ifdef CMD_ENABLE_ISSUE_REQUEST
@@ -129,7 +136,8 @@ int cmd_interface_tdisp_responder_init_state (
 	int status;
 
 	if ((tdisp_responder == NULL) || (tdisp_responder->tdisp_driver == NULL) || 
-		(tdisp_responder->version_num == NULL) || (tdisp_responder->version_num_count == 0)) {
+		(tdisp_responder->version_num == NULL) || (tdisp_responder->version_num_count == 0) ||
+		(tdisp_responder->rng_engine == NULL)) {
 		status = CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
 		goto exit;
 	}

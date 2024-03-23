@@ -45,14 +45,16 @@ int cmd_interface_tdisp_responder_generate_error_packet (const struct cmd_interf
  * @param tdisp_driver_ptr TDISP driver interface pointer.
  * @param version_num_ptr Array of supported version numbers.
  * @param version_num_count_arg Number of supported version numbers.
+ * @param rng_engine_ptr Random number generator engine.
  */
 #define	cmd_interface_tdisp_responder_static_init(state_ptr, tdisp_driver_ptr, version_num_ptr, \
-	version_num_count_arg)	{ \
+	version_num_count_arg, rng_engine_ptr)	{ \
 		.base = CMD_INTERFACE_TDISP_RESPONDER_API_INIT, \
 		.state = state_ptr, \
 		.tdisp_driver = tdisp_driver_ptr, \
 		.version_num = version_num_ptr, \
-		.version_num_count = version_num_count_arg \
+		.version_num_count = version_num_count_arg, \
+		.rng_engine = rng_engine_ptr \
 	}
 
 #endif /* CMD_INTERFACE_TDISP_RESPONDER_STATIC_H_ */

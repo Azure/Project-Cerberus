@@ -24,6 +24,7 @@
  */
 struct tdisp_interface_context {
 	struct tdisp_interface_id interface_id;	/**< TDISP Interface Id. */
+	uint8_t start_interface_nonce[TDISP_START_INTERFACE_NONCE_SIZE];	/**< Start interface nonce. */
 };
 
 /**
@@ -44,6 +45,10 @@ int tdisp_get_version (struct tdisp_state *tdisp_state,
 	const uint8_t *version_num, uint8_t version_num_count, struct cmd_interface_msg *request);
 
 int tdisp_get_capabilities (const struct tdisp_driver *tdisp_driver,
+	struct cmd_interface_msg *request);
+
+int tdisp_lock_interface (struct tdisp_state *tdisp_state,
+	const struct tdisp_driver *tdisp_driver, struct rng_engine *rng_engine,
 	struct cmd_interface_msg *request);
 
 
