@@ -1523,8 +1523,8 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 		cert_chain_length += cert[i_cert].length;
 	}
 
-	cert_chain.length = spdm_get_digests_cert_chain_length (hash_size, cert_chain_length);
-	cert_chain.reserved = 0;
+	cert_chain.header.length = spdm_get_digests_cert_chain_length (hash_size, cert_chain_length);
+	cert_chain.header.reserved = 0;
 
 	/* Start the cert chain hash. */
 	status = hash_start_new_hash (hash_engine, hash_type);
@@ -1636,6 +1636,243 @@ int spdm_process_get_digests_response (struct cmd_interface_msg *response)
 
 	if (response->payload_length < sizeof (struct spdm_get_digests_response)) {
 		return CMD_HANDLER_SPDM_BAD_LENGTH;
+	}
+
+	return 0;
+}
+
+/**
+ * Process SPDM GET_CERTIFICATE request.
+ *
+ * @param spdm_responder SPDM responder instance.
+ * @param request GET_CERTIFICATE request to process.
+ *
+ * @return 0 if request processed successfully or an error code.
+ */
+int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request)
+{
+	int status = 0;
+	int spdm_error;
+	uint8_t spdm_version;
+	void *session_info;
+	uint8_t slot_id;
+	struct spdm_get_certificate_request *spdm_request;
+	struct spdm_get_certificate_response *spdm_response;
+	uint16_t requested_offset;
+	uint16_t requested_length;
+	size_t remainder_length = 0;
+	size_t response_size;
+	struct der_cert cert[SPDM_MAX_CERT_COUNT_IN_CHAIN];
+	uint8_t cert_count = ARRAY_SIZE (cert);
+	uint32_t hash_size;
+	uint8_t* cert_chain = NULL;
+	uint32_t cert_chain_length;
+	uint32_t cert_chain_offset;
+	uint8_t i_cert;
+	uint32_t max_cert_block_len;
+	struct spdm_cert_chain_header *cert_chain_header;
+	struct spdm_transcript_manager *transcript_manager;
+	struct spdm_state *state;
+	const struct spdm_device_capability *local_capabilities;
+	struct riot_key_manager *key_manager;
+	struct hash_engine *hash_engine;
+	enum hash_type hash_type;
+	const struct riot_keys *keys = NULL;
+
+	if ((spdm_responder == NULL) || (request == NULL)) {
+		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+	}
+
+	transcript_manager = spdm_responder->transcript_manager;
+	state = spdm_responder->state;
+	local_capabilities = spdm_responder->local_capabilities;
+	key_manager = spdm_responder->key_manager;
+	hash_engine = spdm_responder->hash_engine;
+	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
+
+	/* Validate the request. */
+	if (request->payload_length < sizeof (struct spdm_get_certificate_request)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+	spdm_request = (struct spdm_get_certificate_request*) request->payload;
+	spdm_version = SPDM_MAKE_VERSION (spdm_request->header.spdm_major_version,
+		spdm_request->header.spdm_minor_version);
+	if (spdm_version != spdm_get_connection_version (state)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
+		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
+		goto exit;
+	}
+
+	/* Verify SPDM state. */
+	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
+		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_CERTIFICATE);
+		goto exit;
+	}
+	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
+		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check if the certificate capability is supported. */
+	if (local_capabilities->flags.cert_cap == 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
+		spdm_error = SPDM_ERROR_UNSUPPORTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check if a session is ongoing. */
+	session_info = NULL;
+	if (state->last_spdm_request_session_id_valid == true) {
+		/* [TODO] Handle session. */
+		UNUSED (session_info);
+	}
+
+	slot_id = spdm_request->slot_num & SPDM_GET_CERTIFICATE_SLOT_ID_MASK;
+	if (slot_id != 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	/* Retrieve the certificate chain. */
+	/* [TODO] Refactor this function into an API. */
+	status = spdm_get_certificate_chain (key_manager, &cert_count, cert, &keys);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	hash_size = hash_get_hash_length (hash_type);
+	if (hash_size == HASH_ENGINE_UNKNOWN_HASH) {
+		status = HASH_ENGINE_UNKNOWN_HASH;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Calculate the cert chain data struct. length. */
+	cert_chain_length = sizeof (struct spdm_cert_chain_header) + hash_size;
+	for (i_cert = 0; i_cert < cert_count; ++i_cert) {
+		cert_chain_length += cert[i_cert].length;
+	}
+
+	/* Allocate a temp. buffer to hold the certificate chain. */
+	cert_chain = platform_malloc (cert_chain_length);
+	if (cert_chain == NULL) {
+		status = CMD_HANDLER_SPDM_RESPONDER_NO_MEMORY;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+	cert_chain_header = (struct spdm_cert_chain_header*) cert_chain;
+	cert_chain_header->length = (uint16_t) cert_chain_length;
+	cert_chain_header->reserved = 0;
+
+	/* Copy cert(s) to the temp. buffer. */
+	cert_chain_offset = sizeof (struct spdm_cert_chain_header) + hash_size;
+	for (i_cert = 0; i_cert < cert_count; i_cert++) {
+		memcpy (&cert_chain[cert_chain_offset], cert[i_cert].cert, cert[i_cert].length);
+		cert_chain_offset += cert[i_cert].length;
+	}
+
+	requested_offset = spdm_request->offset;
+	requested_length = spdm_request->length;
+
+	/* Check if the requested cert. chain offset is valid. */
+	if (requested_offset >= cert_chain_length) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	/* Compute the maximum cert block that can be sent. */
+	max_cert_block_len = cmd_interface_msg_get_max_response (request) - 
+		sizeof (struct spdm_get_certificate_response);
+
+	/* If chunking capability is not supported, adjust the requested cert chain length. */
+	if (!(state->connection_info.peer_capabilities.flags.chunk_cap &&
+		local_capabilities->flags.chunk_cap)) {
+		if (requested_length > max_cert_block_len) {
+			requested_length = max_cert_block_len;
+		}
+	}
+
+	/* Adjust the requested length. */
+	if ((size_t)(requested_offset + requested_length) > cert_chain_length) {
+		requested_length = (uint16_t)(cert_chain_length - requested_offset);
+	}
+	remainder_length = cert_chain_length - (requested_length + requested_offset);
+	response_size = sizeof (struct spdm_get_certificate_response) + requested_length;
+
+	/* Reset transcript manager state as per request code. */
+	spdm_reset_transcript_via_request_code (state, transcript_manager, SPDM_REQUEST_GET_CERTIFICATE);
+
+	/* Add request to M1M2 hash context. */
+	if (session_info == NULL) {
+		status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
+			(uint8_t*) spdm_request, sizeof (struct spdm_get_certificate_request), false,
+			SPDM_MAX_SESSION_COUNT);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+	}
+
+	/* Construct the response. */
+	spdm_response = (struct spdm_get_certificate_response*) request->payload;
+	memset (spdm_response, 0, response_size);
+
+	spdm_populate_header (&spdm_response->header, SPDM_RESPONSE_GET_CERTIFICATE,
+		SPDM_GET_MINOR_VERSION (spdm_version));
+	spdm_response->slot_num = slot_id;
+	spdm_response->portion_len = requested_length;
+	spdm_response->remainder_len = (uint16_t) remainder_length;
+
+	/* Hash the root certificate if not already provided to the requester. */
+	if (requested_offset < (sizeof (struct spdm_cert_chain_header) + hash_size)) {
+		status = hash_calculate (hash_engine, hash_type, cert[0].cert, cert[0].length,
+			cert_chain + sizeof (struct spdm_cert_chain_header), hash_size);
+		if (ROT_IS_ERROR (status)) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+		status = 0;
+	}
+
+	/* Copy cert_chain portion to response. */
+	memcpy (spdm_get_certificate_resp_cert_chain(spdm_response), cert_chain + requested_offset,
+		requested_length);
+
+	/* Add response to M1M2 hash context. */
+	if (session_info == NULL) {
+		status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
+			(uint8_t*) spdm_response, response_size, false, SPDM_MAX_SESSION_COUNT);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+	}
+
+	/* Set the payload length. */
+	cmd_interface_msg_set_message_payload_length (request, response_size);
+
+	/* Update connection state */
+	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_AFTER_CERTIFICATE) {
+		spdm_set_connection_state (state, SPDM_CONNECTION_STATE_AFTER_CERTIFICATE);
+	}
+
+exit:
+	if (keys != NULL) {
+		riot_key_manager_release_riot_keys (key_manager, keys);
+	}
+
+	free (cert_chain);
+
+	if (status != 0) {
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_GET_CERTIFICATE, status);
 	}
 
 	return 0;

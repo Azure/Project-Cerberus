@@ -246,7 +246,7 @@ struct spdm_get_capabilities {
 #define SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1		0x2
 
 /**
- *  SPDM Negotiate Algorithm request KEY_SCHEDULE algorithm.
+ * SPDM Negotiate Algorithm request KEY_SCHEDULE algorithm.
  */
 #define SPDM_ALG_KEY_SCHEDULE_HMAC_HASH		0x00000001
 
@@ -259,7 +259,7 @@ struct spdm_get_capabilities {
 #define SPDM_ALG_AEAD_CIPHER_SUITE_AEAD_SM4_GCM			0x00000008
 
 /**
- *  SPDM Negotiate Algorithm request DHE algorithms.
+ * SPDM Negotiate Algorithm request DHE algorithms.
  */
 #define SPDM_ALG_DHE_NAMED_GROUP_FFDHE_2048		0x00000001
 #define SPDM_ALG_DHE_NAMED_GROUP_FFDHE_3072		0x00000002
@@ -506,11 +506,18 @@ struct spdm_get_digests_response {
 };
 
 /**
+ * SPDM cert chain header
+ */
+struct spdm_cert_chain_header {
+	uint16_t length;			/**< Length of the cert chain including this struct. */
+	uint16_t reserved;			/**< Reserved */
+};
+
+/**
  * SPDM cert chain format
  */
 struct spdm_cert_chain {
-	uint16_t length;							/**< Length of the cert chain including this struct. */
-	uint16_t reserved;							/**< Reserved */
+	struct spdm_cert_chain_header header;		/**< Cert chain header */
 	uint8_t root_hash[HASH_MAX_HASH_LEN];		/**< Max. hash size of the root cert. */
 };
 
@@ -1133,6 +1140,8 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 int spdm_generate_get_digests_request (uint8_t *buf, size_t buf_len, uint8_t spdm_minor_version);
 int spdm_process_get_digests_response (struct cmd_interface_msg *response);
 
+int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
 int spdm_generate_get_certificate_request (uint8_t *buf, size_t buf_len, uint8_t slot_num,
 	uint16_t offset, uint16_t length, uint8_t spdm_minor_version);
 int spdm_process_get_certificate_response (struct cmd_interface_msg *response);

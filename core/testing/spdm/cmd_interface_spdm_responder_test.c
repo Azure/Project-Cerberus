@@ -7,6 +7,7 @@
 #include "spdm/spdm_commands.h"
 #include "common/array_size.h"
 #include "pcisig/doe/doe_base_protocol.h"
+#include "testing/crypto/hash_testing.h"
 #include "testing/engines/hash_testing_engine.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/spdm/spdm_transcript_manager_mock.h"
@@ -1368,6 +1369,174 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests_fail (
 	cmd_interface_spdm_responder_testing_release (test, &testing);
 }
 
+static void cmd_interface_spdm_responder_test_process_request_get_certificate (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct cmd_interface_msg request;
+	int status;
+	struct spdm_get_certificate_request rq = {0};
+	struct spdm_get_certificate_response *rsp = (struct spdm_get_certificate_response*) buf;
+	uint32_t cert_chain_length;
+	struct spdm_cert_chain_header *cert_chain_header;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct riot_key_manager *key_manager;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+	key_manager = spdm_responder->key_manager;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = buf;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_get_certificate_request);
+	request.length = request.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+
+	rq.header.req_rsp_code = SPDM_REQUEST_GET_CERTIFICATE;
+	rq.header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq.header.spdm_minor_version = 2;
+	rq.slot_num = 0;
+	rq.offset = 0;
+	rq.length = 0xFFFF;
+	memcpy (request.payload, &rq, sizeof (struct spdm_get_certificate_request));
+
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+
+	cert_chain_length = sizeof (struct spdm_cert_chain_header) + SHA384_HASH_LENGTH +
+		key_manager->root_ca.length + key_manager->intermediate_ca.length +
+		key_manager->keys.alias_cert_length + key_manager->keys.devid_cert_length;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_certificate_request)),
+		MOCK_ARG (sizeof (struct spdm_get_certificate_request)), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.calculate_sha384,
+		&testing.hash_engine_mock.base, 0,
+		MOCK_ARG_PTR (testing.key_manager.root_ca.cert),
+		MOCK_ARG (testing.key_manager.root_ca.length),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+	status |= mock_expect_output (&testing.hash_engine_mock.mock, 2, SHA384_TEST_HASH,
+		SHA384_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
+		MOCK_ARG_PTR_CONTAINS (rsp, 
+			(cert_chain_length + sizeof (struct spdm_get_certificate_response))),
+		MOCK_ARG (cert_chain_length + sizeof (struct spdm_get_certificate_response)),
+		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_get_certificate_response) + cert_chain_length,
+		request.length);
+	CuAssertIntEquals (test, request.length, request.payload_length);
+	CuAssertPtrEquals (test, buf, request.data);
+	CuAssertPtrEquals (test, rsp, request.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_GET_CERTIFICATE, rsp->header.req_rsp_code);
+	CuAssertIntEquals (test, 0, rsp->slot_num);
+	CuAssertIntEquals (test, cert_chain_length, rsp->portion_len);
+	CuAssertIntEquals (test, 0, rsp->remainder_len);
+	CuAssertIntEquals (test, SPDM_CONNECTION_STATE_AFTER_CERTIFICATE,
+		spdm_state->connection_info.connection_state);
+
+	cert_chain_header = (struct spdm_cert_chain_header*)(rsp + 1);
+	CuAssertIntEquals (test, cert_chain_length, cert_chain_header->length);
+	CuAssertIntEquals (test, 0, cert_chain_header->reserved);
+
+	status = testing_validate_array (SHA384_TEST_HASH, cert_chain_header + 1, SHA384_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = memcmp ((uint8_t*)cert_chain_header + sizeof (struct spdm_cert_chain_header) +
+		SHA384_HASH_LENGTH, key_manager->root_ca.cert, key_manager->root_ca.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = memcmp ((uint8_t*)cert_chain_header + sizeof (struct spdm_cert_chain_header) +
+		SHA384_HASH_LENGTH + key_manager->root_ca.length, key_manager->intermediate_ca.cert,
+		key_manager->intermediate_ca.length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = memcmp ((uint8_t*)cert_chain_header + sizeof (struct spdm_cert_chain_header) +
+		SHA384_HASH_LENGTH + key_manager->root_ca.length + key_manager->intermediate_ca.length,
+		key_manager->keys.devid_cert, key_manager->keys.devid_cert_length);
+	CuAssertIntEquals (test, 0, status);
+
+	status = memcmp ((uint8_t*)cert_chain_header + sizeof (struct spdm_cert_chain_header) +
+		SHA384_HASH_LENGTH + key_manager->root_ca.length + key_manager->intermediate_ca.length +
+		key_manager->keys.devid_cert_length, key_manager->keys.alias_cert,
+		key_manager->keys.alias_cert_length);
+	CuAssertIntEquals (test, 0, status);
+
+	cmd_interface_spdm_responder_testing_release (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_process_request_get_certificate_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
+	struct cmd_interface_msg request;
+	int status;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = (uint8_t*) rq;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_get_certificate_request) - 1;
+	request.length = request.payload_length;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->slot_num = 0;
+	rq->offset = 0;
+	rq->length = 0xFFFF;
+	rq->header.req_rsp_code = SPDM_REQUEST_GET_CERTIFICATE;
+
+	status = spdm_responder->base.process_request (&spdm_responder->base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), request.payload_length);
+
+	cmd_interface_spdm_responder_testing_release (test, &testing);
+}
+
 static void cmd_interface_spdm_responder_test_process_request_invalid_arg (CuTest *test)
 {
 	int status;
@@ -1546,6 +1715,8 @@ TEST (cmd_interface_spdm_responder_test_process_request_negotiate_algorithms);
 TEST (cmd_interface_spdm_responder_test_process_request_negotiate_algorithms_fail);
 TEST (cmd_interface_spdm_responder_test_process_request_get_digests);
 TEST (cmd_interface_spdm_responder_test_process_request_get_digests_fail);
+TEST (cmd_interface_spdm_responder_test_process_request_get_certificate);
+TEST (cmd_interface_spdm_responder_test_process_request_get_certificate_fail);
 TEST (cmd_interface_spdm_responder_test_process_request_invalid_arg);
 TEST (cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_short_payload);
 TEST (cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_unsupported_major_version);
