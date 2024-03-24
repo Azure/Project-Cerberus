@@ -287,19 +287,23 @@ int spdm_measurements_get_all_measurement_blocks_length (const struct spdm_measu
 	return total_length;
 }
 
-int spdm_measurements_get_measurement_summary_hash (const struct spdm_measurements *handler,
+/**
+ * Start the hash engine to calculate the measurement summary hash.
+ *
+ * @param handler The handler to use for starting the summary hash.
+ * @param summary_hash Hash engine that will be started for summary hash calculation.
+ * @param summary_hash_type The hash algorithm that should be used for the summary hash.
+ * @param measurement_hash Hash engine that will be used to generate individual measurement digests.
+ * @param buffer Output buffer for the summary hash.  This is only used for parameter validation and
+ * is not modified by this function.
+ * @param length Length of the summary hash buffer.
+ *
+ * @return 0 if the summary hash was started successfully or an error code.
+ */
+int spdm_measurements_start_summary_hash (const struct spdm_measurements *handler,
 	struct hash_engine *summary_hash, enum hash_type summary_hash_type,
-	struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
-	uint8_t *buffer, size_t length)
+	struct hash_engine *measurement_hash, uint8_t *buffer, size_t length)
 {
-	uint8_t block[spdm_measurements_block_size (HASH_MAX_HASH_LEN)];
-	int block_size;
-	int pcr_count;
-	int measurement_count;
-	int i;
-	int j;
-	uint8_t block_id;
-	uint16_t measurement_type;
 	int status;
 
 	if ((handler == NULL) || (summary_hash == NULL) || (measurement_hash == NULL) ||
@@ -320,9 +324,41 @@ int spdm_measurements_get_measurement_summary_hash (const struct spdm_measuremen
 	/* Do a quick check of the output buffer length before starting the expensive summary hash
 	 * operation.  Since the hash started successfully, the hash type is known to be good. */
 	if (length < (size_t) hash_get_hash_length (summary_hash_type)) {
-		status = SPDM_MEASUREMENTS_BUFFER_TOO_SMALL;
-		goto exit;
+		summary_hash->cancel (summary_hash);
+
+		return SPDM_MEASUREMENTS_BUFFER_TOO_SMALL;
 	}
+
+	return 0;
+}
+
+/**
+ * Update the summary hash engine with all measurement block data from the measurement storage.
+ *
+ * @param handler The handler containing the measurements.
+ * @param summary_hash Hash engine that will be updated for the summary hash.  This must already be
+ * started.  Upon return, the summary hash context always remains active and must be either
+ * completed or cancelled.
+ * @param measurement_hash Hash engine that will be used to generate individual measurement digests.
+ * @param measurement_hash_type The hash algorithm to use for measurement digests.
+ * @param only_tcb Flag to indicate that only measurements in the TCB should be included in the
+ * summary hash.
+ *
+ * @return 0 if the summary has was updated successfully or an error code.
+ */
+int spdm_measurements_update_summary_hash (const struct spdm_measurements *handler,
+	struct hash_engine *summary_hash, struct hash_engine *measurement_hash,
+	enum hash_type measurement_hash_type, bool only_tcb)
+{
+	uint8_t block[spdm_measurements_block_size (HASH_MAX_HASH_LEN)];
+	int block_size;
+	int pcr_count;
+	int measurement_count;
+	int i;
+	int j;
+	uint8_t block_id;
+	uint16_t measurement_type;
+	int status;
 
 	pcr_count = pcr_store_get_num_pcrs (handler->store);
 
@@ -339,24 +375,44 @@ int spdm_measurements_get_measurement_summary_hash (const struct spdm_measuremen
 					measurement_type, false, measurement_hash, measurement_hash_type, block,
 					sizeof (block));
 				if (ROT_IS_ERROR (block_size)) {
-					status = block_size;
-					goto exit;
+					return block_size;
 				}
 
 				status = summary_hash->update (summary_hash, block, block_size);
 				if (status != 0) {
-					goto exit;
+					return status;
 				}
 			}
 		}
 	}
 
-	status = summary_hash->finish (summary_hash, buffer, length);
+	return 0;
+}
 
-exit:
+int spdm_measurements_get_measurement_summary_hash (const struct spdm_measurements *handler,
+	struct hash_engine *summary_hash, enum hash_type summary_hash_type,
+	struct hash_engine *measurement_hash, enum hash_type measurement_hash_type, bool only_tcb,
+	uint8_t *buffer, size_t length)
+{
+	int status;
+
+	status = spdm_measurements_start_summary_hash (handler, summary_hash,
+		summary_hash_type, measurement_hash, buffer, length);
+	if (status != 0) {
+		return status;
+	}
+
+	status = spdm_measurements_update_summary_hash (handler, summary_hash, measurement_hash,
+		measurement_hash_type, only_tcb);
+
+	if (status == 0) {
+		status = summary_hash->finish (summary_hash, buffer, length);
+	}
+
 	if (status != 0) {
 		summary_hash->cancel (summary_hash);
 	}
+
 	return status;
 }
 

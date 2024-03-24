@@ -2353,6 +2353,67 @@ static void spdm_measurements_test_get_all_measurement_blocks_raw_bit_stream_has
 	spdm_measurements_testing_release (test, &handler);
 }
 
+static void spdm_measurements_test_get_all_measurement_blocks_buffer_less_than_min (CuTest *test)
+{
+	struct spdm_measurements_testing handler;
+	const struct pcr_config pcr_config[] = {
+		{
+			.num_measurements = 2,
+			.measurement_algo = HASH_TYPE_SHA256
+		},
+		{
+			.num_measurements = 3,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+	const uint8_t *data[5] = {
+		HASH_TESTING_FULL_BLOCK_512, HASH_TESTING_FULL_BLOCK_1024, HASH_TESTING_FULL_BLOCK_2048,
+		HASH_TESTING_FULL_BLOCK_4096, HASH_TESTING_PARTIAL_BLOCK_440
+	};
+	const size_t length[5] = {
+		HASH_TESTING_FULL_BLOCK_512_LEN, HASH_TESTING_FULL_BLOCK_1024_LEN,
+		HASH_TESTING_FULL_BLOCK_2048_LEN, HASH_TESTING_FULL_BLOCK_4096_LEN,
+		HASH_TESTING_PARTIAL_BLOCK_440_LEN
+	};
+	struct pcr_measured_data measurement_data[5];
+	int status;
+	const size_t buffer_length = (spdm_measurements_block_size (SHA256_HASH_LENGTH) * 4) +
+		spdm_measurements_block_size (0);
+	uint16_t measurement_type;
+	uint8_t buffer[buffer_length];
+	size_t i;
+	size_t j;
+	size_t k;
+
+	TEST_START;
+
+	spdm_measurements_testing_init (test, &handler, pcr_config, ARRAY_SIZE (pcr_config));
+
+	for (k = 0, j = 0; k < ARRAY_SIZE (pcr_config); k++) {
+		for (i = 0; i < pcr_config[k].num_measurements; i++, j++) {
+			measurement_type = PCR_MEASUREMENT (k, i);
+
+			measurement_data[j].type = PCR_DATA_TYPE_MEMORY;
+			measurement_data[j].data.memory.buffer = data[j];
+			measurement_data[j].data.memory.length = length[j];
+
+			status = pcr_store_set_dmtf_value_type (&handler.store, measurement_type,
+				(enum pcr_dmtf_value_type) j % 5, false);
+			status |= pcr_store_set_measurement_data (&handler.store, measurement_type,
+				&measurement_data[j]);
+			status |= pcr_store_update_buffer (&handler.store, &handler.hash.base, measurement_type,
+				data[j], length[j], false);
+			CuAssertIntEquals (test, 0, status);
+		}
+	}
+
+	status = handler.test.get_all_measurement_blocks (&handler.test, false, &handler.hash.base,
+		HASH_TYPE_SHA256, buffer, sizeof (buffer) - 1);
+	CuAssertIntEquals (test, SPDM_MEASUREMENTS_BUFFER_TOO_SMALL, status);
+
+	spdm_measurements_testing_release (test, &handler);
+}
+
 static void spdm_measurements_test_get_all_measurement_blocks_digest_small_buffer (CuTest *test)
 {
 	struct spdm_measurements_testing handler;
@@ -4085,6 +4146,12 @@ static void spdm_measurements_test_get_measurement_summary_hash_measurement_bloc
 		sizeof (buffer));
 	CuAssertIntEquals (test, HASH_ENGINE_START_SHA384_FAILED, status);
 
+	/* Test that the summary hash has not been left active. */
+	status = handler.hash.base.start_sha256 (&handler.hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	handler.hash.base.cancel (&handler.hash.base);
+
 	spdm_measurements_testing_release (test, &handler);
 }
 
@@ -4170,6 +4237,7 @@ TEST (spdm_measurements_test_get_all_measurement_blocks_raw_bit_stream_partial_n
 TEST (spdm_measurements_test_get_all_measurement_blocks_static_init);
 TEST (spdm_measurements_test_get_all_measurement_blocks_null);
 TEST (spdm_measurements_test_get_all_measurement_blocks_raw_bit_stream_hash_not_possible);
+TEST (spdm_measurements_test_get_all_measurement_blocks_buffer_less_than_min);
 TEST (spdm_measurements_test_get_all_measurement_blocks_digest_small_buffer);
 TEST (spdm_measurements_test_get_all_measurement_blocks_raw_bit_stream_small_buffer);
 TEST (spdm_measurements_test_get_all_measurement_blocks_raw_bit_stream_none_available_small_buffer);

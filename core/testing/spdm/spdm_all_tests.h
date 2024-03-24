@@ -39,11 +39,23 @@ static void add_all_spdm_tests (CuSuite *suite)
 	!defined TESTING_SKIP_SPDM_COMMANDS_SUITE
 	TESTING_RUN_SUITE (spdm_commands);
 #endif
+#if (defined TESTING_RUN_SPDM_DISCOVERY_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SPDM_DISCOVERY_SUITE
+	TESTING_RUN_SUITE (spdm_discovery);
+#endif
 #if (defined TESTING_RUN_SPDM_MEASUREMENTS_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_SPDM_MEASUREMENTS_SUITE
 	TESTING_RUN_SUITE (spdm_measurements);
+#endif
+#if (defined TESTING_RUN_SPDM_MEASUREMENTS_DISCOVERY_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SPDM_MEASUREMENTS_DISCOVERY_SUITE
+	TESTING_RUN_SUITE (spdm_measurements_discovery);
 #endif
 #if (defined TESTING_RUN_SPDM_TRANSCRIPT_MANAGER_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \

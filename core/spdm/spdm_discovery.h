@@ -10,7 +10,12 @@
 /**
  * Device ID block success completion code
  */
-#define SPDM_DISCOVERY_DEVICE_ID_BLOCK_CC_SUCCESS		(0x00)
+#define SPDM_DISCOVERY_DEVICE_ID_BLOCK_CC_SUCCESS		0x00
+
+/**
+ * Static block ID to use for reporting device ID information in SPDM v1.2.
+ */
+#define SPDM_DISCOVERY_DEVICE_ID_BLOCK_ID				0xef
 
 
 /**
@@ -51,13 +56,36 @@ struct spdm_discovery_device_id_block {
 	uint8_t descriptor_count;					/**< Number of descriptors in descriptors field */
 };
 
-/** Format of a device ID descriptor.
+/**
+ * Format of a device ID descriptor.
  */
 struct spdm_discovery_device_id_descriptor {
 	uint16_t descriptor_type;					/**< Type of descriptor */
 	uint16_t descriptor_len;					/**< Length of descriptor */
 };
+
+/**
+ * Format of a descriptor containing a PCI ID.
+ */
+struct spdm_discovery_pci_id_descriptor {
+	uint16_t descriptor_type;					/**< Type of descriptor */
+	uint16_t descriptor_len;					/**< Length of descriptor */
+	uint16_t descriptor_data;					/**< Data contained in the descriptor. */
+};
+
+/**
+ * Measurement bit stream representing the device identifier information to use for attestation
+ * discovery.
+ */
+struct spdm_discovery_device_id {
+	struct spdm_discovery_device_id_block header;			/**< Header on the the descriptor list. */
+	struct spdm_discovery_pci_id_descriptor descriptor[4];	/**< List of descriptor identifiers. */
+};
 #pragma pack(pop)
+
+
+void spdm_discovery_device_id_init (struct spdm_discovery_device_id *discovery, uint16_t vendor_id,
+	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id);
 
 
 #endif /* SPDM_DISCOVERY_H_ */
