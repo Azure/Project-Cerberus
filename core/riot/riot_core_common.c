@@ -39,7 +39,7 @@ static const char DICE_KDF_CONTEXT[] = "DICE";
 int riot_core_common_create_device_id_certificate (const struct riot_core_common *riot)
 {
 	uint8_t serial_num[HASH_MAX_HASH_LEN];
-	char common_name[BASE64_LENGTH (HASH_MAX_HASH_LEN)];
+	char common_name[BASE64_LENGTH (SHA512_HASH_LENGTH)];
 	int status;
 
 	riot->state->dev_id_valid = true;
@@ -189,7 +189,7 @@ int riot_core_common_generate_alias_key (const struct riot_core *riot, const uin
 	const struct riot_core_common *core = (const struct riot_core_common*) riot;
 	uint8_t fwid_hmac[HASH_MAX_HASH_LEN];
 	uint8_t alias_kdf[ECC_MAX_KEY_LENGTH];
-	char common_name[BASE64_LENGTH (HASH_MAX_HASH_LEN)];
+	char common_name[BASE64_LENGTH (SHA512_HASH_LENGTH)];
 	int status;
 
 	if ((riot == NULL) || (fwid == NULL) || (length == 0)) {
