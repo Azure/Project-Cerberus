@@ -20,8 +20,9 @@
 #include "mctp/mctp_interface_static.h"
 #include "mctp/mctp_logging.h"
 #include "spdm/cmd_interface_spdm.h"
-#include "testing/mock/cmd_interface/cmd_interface_mock.h"
 #include "testing/mock/cmd_interface/cmd_channel_mock.h"
+#include "testing/mock/cmd_interface/cmd_interface_mock.h"
+#include "testing/mock/cmd_interface/cmd_interface_multi_handler_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/logging/debug_log_testing.h"
 
@@ -44,14 +45,15 @@ TEST_SUITE_LABEL ("mctp_interface");
  * Dependencies for testing the MCTP interface.
  */
 struct mctp_interface_testing {
-	struct cmd_channel_mock channel;			/**< Command channel mock instance. */
-	struct cmd_interface_mock cmd_cerberus;		/**< Command interface for Cerberus protocol mock instance. */
-	struct cmd_interface_mock cmd_mctp;			/**< MCTP control protocol command interface mock instance. */
-	struct cmd_interface_mock cmd_spdm;			/**< Command interface for SPDM protocol mock instance. */
-	struct logging_mock log;					/**< Mock for the debug log. */
-	struct device_manager device_mgr;			/**< Device manager. */
-	struct mctp_interface_state state;			/**< Variable context for the MCTP handler. */
-	struct mctp_interface test;					/**< MCTP handler being tested. */
+	struct cmd_interface_multi_handler_mock req_handler;	/**< Mock for the request message handler. */
+	struct device_manager device_mgr;						/**< Device manager. */
+	struct cmd_channel_mock channel;						/**< Command channel mock instance. */
+	struct logging_mock log;								/**< Mock for the debug log. */
+	struct cmd_interface_mock cmd_cerberus;					/**< Command interface for Cerberus protocol mock instance. */
+	struct cmd_interface_mock cmd_mctp;						/**< MCTP control protocol command interface mock instance. */
+	struct cmd_interface_mock cmd_spdm;						/**< Command interface for SPDM protocol mock instance. */
+	struct mctp_interface_state state;						/**< Variable context for the MCTP handler. */
+	struct mctp_interface test;								/**< MCTP handler being tested. */
 };
 
 /**
@@ -77,6 +79,9 @@ static void mctp_interface_testing_init_dependencies (CuTest *test,
 {
 	struct device_manager_full_capabilities capabilities;
 	int status;
+
+	status = cmd_interface_multi_handler_mock_init (&mctp->req_handler);
+	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_mock_init (&mctp->cmd_cerberus);
 	CuAssertIntEquals (test, 0, status);
@@ -127,7 +132,8 @@ static void mctp_interface_testing_release_dependencies (CuTest *test,
 
 	debug_log = NULL;
 
-	status = cmd_interface_mock_validate_and_release (&mctp->cmd_cerberus);
+	status = cmd_interface_multi_handler_mock_validate_and_release (&mctp->req_handler);
+	status |= cmd_interface_mock_validate_and_release (&mctp->cmd_cerberus);
 	status |= cmd_interface_mock_validate_and_release (&mctp->cmd_mctp);
 	status |= cmd_interface_mock_validate_and_release (&mctp->cmd_spdm);
 	status |= cmd_channel_mock_validate_and_release (&mctp->channel);
@@ -150,8 +156,9 @@ static void mctp_interface_testing_init (CuTest *test, struct mctp_interface_tes
 
 	mctp_interface_testing_init_dependencies (test, mctp);
 
-	status = mctp_interface_init (&mctp->test, &mctp->state, &mctp->cmd_cerberus.base,
-		&mctp->cmd_mctp.base, &mctp->cmd_spdm.base, &mctp->device_mgr, &mctp->channel.base);
+	status = mctp_interface_init (&mctp->test, &mctp->state, &mctp->req_handler.base,
+		&mctp->device_mgr, &mctp->channel.base, &mctp->cmd_cerberus.base, &mctp->cmd_mctp.base,
+		&mctp->cmd_spdm.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -281,8 +288,8 @@ static void mctp_interface_test_init (CuTest *test)
 
 	mctp_interface_testing_init_dependencies (test, &mctp);
 
-	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.cmd_cerberus.base,
-		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base);
+	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+		&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
 	CuAssertIntEquals (test, 0, status);
 
 #ifdef CMD_ENABLE_ISSUE_REQUEST
@@ -296,6 +303,22 @@ static void mctp_interface_test_init (CuTest *test)
 	mctp_interface_testing_release (test, &mctp);
 }
 
+static void mctp_interface_test_init_mctp_resp_not_supported (CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	int status;
+
+	TEST_START;
+
+	mctp_interface_testing_init_dependencies (test, &mctp);
+
+	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+		&mctp.channel.base, &mctp.cmd_cerberus.base, NULL, &mctp.cmd_spdm.base);
+	CuAssertIntEquals (test, 0, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
 static void mctp_interface_test_init_spdm_not_supported (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
@@ -305,8 +328,8 @@ static void mctp_interface_test_init_spdm_not_supported (CuTest *test)
 
 	mctp_interface_testing_init_dependencies (test, &mctp);
 
-	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.cmd_cerberus.base,
-		&mctp.cmd_mctp.base, NULL, &mctp.device_mgr, &mctp.channel.base);
+	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+		&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	mctp_interface_testing_release (test, &mctp);
@@ -321,8 +344,8 @@ static void mctp_interface_test_init_no_cmd_channel (CuTest *test)
 
 	mctp_interface_testing_init_dependencies (test, &mctp);
 
-	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.cmd_cerberus.base,
-		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, NULL);
+	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+		NULL, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
 	CuAssertIntEquals (test, 0, status);
 
 	mctp_interface_testing_release (test, &mctp);
@@ -337,24 +360,24 @@ static void mctp_interface_test_init_null (CuTest *test)
 
 	mctp_interface_testing_init_dependencies (test, &mctp);
 
-	status = mctp_interface_init (NULL, &mctp.state, &mctp.cmd_cerberus.base,
-		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base);
+	status = mctp_interface_init (NULL, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+		&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
-	status = mctp_interface_init (&mctp.test, NULL, &mctp.cmd_cerberus.base,
-		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base);
+	status = mctp_interface_init (&mctp.test, NULL, &mctp.req_handler.base, &mctp.device_mgr,
+		&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
-	status = mctp_interface_init (&mctp.test, &mctp.state, NULL,
-		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base);
+	status = mctp_interface_init (&mctp.test, &mctp.state, NULL, &mctp.device_mgr,
+		&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
-	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.cmd_cerberus.base,
-		NULL, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base);
+	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, NULL,
+		&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
-	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.cmd_cerberus.base,
-		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, NULL, &mctp.channel.base);
+	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+		&mctp.channel.base, NULL, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
 	mctp_interface_testing_release_dependencies (test, &mctp);
@@ -363,8 +386,8 @@ static void mctp_interface_test_init_null (CuTest *test)
 static void mctp_interface_test_static_init (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	int status;
 
@@ -386,11 +409,29 @@ static void mctp_interface_test_static_init (CuTest *test)
 	mctp_interface_testing_release (test, &mctp);
 }
 
+static void mctp_interface_test_static_init_mctp_resp_not_supported (CuTest *test)
+{
+	struct mctp_interface_testing mctp = {
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, NULL, &mctp.cmd_spdm.base)
+	};
+	int status;
+
+	TEST_START;
+
+	mctp_interface_testing_init_dependencies (test, &mctp);
+
+	status = mctp_interface_init_state (&mctp.test);
+	CuAssertIntEquals (test, 0, status);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
 static void mctp_interface_test_static_init_spdm_not_supported (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, NULL, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, NULL)
 	};
 	int status;
 
@@ -407,8 +448,8 @@ static void mctp_interface_test_static_init_spdm_not_supported (CuTest *test)
 static void mctp_interface_test_static_init_no_cmd_channel (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, NULL)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			NULL, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	int status;
 
@@ -425,15 +466,18 @@ static void mctp_interface_test_static_init_no_cmd_channel (CuTest *test)
 static void mctp_interface_test_static_init_null (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
-	struct mctp_interface no_state = mctp_interface_static_init (NULL, &mctp.cmd_cerberus.base,
-		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base);
-	struct mctp_interface no_cerberus = mctp_interface_static_init (&mctp.state, NULL,
-		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base);
-	struct mctp_interface no_mctp = mctp_interface_static_init (&mctp.state,
-		&mctp.cmd_cerberus.base, NULL, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base);
+	struct mctp_interface no_state = mctp_interface_static_init (NULL, &mctp.req_handler.base,
+		&mctp.device_mgr, &mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base,
+		&mctp.cmd_spdm.base);
+	struct mctp_interface no_req_handler = mctp_interface_static_init (&mctp.state, NULL,
+		&mctp.device_mgr, &mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base,
+		&mctp.cmd_spdm.base);
 	struct mctp_interface no_dev_mgr = mctp_interface_static_init (&mctp.state,
-		&mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base, NULL,
-		&mctp.channel.base);
+		&mctp.req_handler.base, NULL, &mctp.channel.base, &mctp.cmd_cerberus.base,
+		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
+	struct mctp_interface no_cerberus = mctp_interface_static_init (&mctp.state,
+		&mctp.req_handler.base, &mctp.device_mgr, &mctp.channel.base, NULL, &mctp.cmd_mctp.base,
+		&mctp.cmd_spdm.base);
 	int status;
 
 	TEST_START;
@@ -446,13 +490,13 @@ static void mctp_interface_test_static_init_null (CuTest *test)
 	status = mctp_interface_init_state (&no_state);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
-	status = mctp_interface_init_state (&no_cerberus);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
-
-	status = mctp_interface_init_state (&no_mctp);
+	status = mctp_interface_init_state (&no_req_handler);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
 	status = mctp_interface_init_state (&no_dev_mgr);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
+
+	status = mctp_interface_init_state (&no_cerberus);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
 	mctp_interface_testing_release_dependencies (test, &mctp);
@@ -541,6 +585,8 @@ static void mctp_interface_test_process_packet_no_response (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -570,18 +616,20 @@ static void mctp_interface_test_process_packet_no_response (CuTest *test)
 
 	memset (&response, 0, sizeof (response));
 	response.data = data;
+	response.payload = response.data;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus,	0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
 		MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -675,6 +723,8 @@ static void mctp_interface_test_process_packet_no_response_non_zero_message_tag 
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -704,18 +754,20 @@ static void mctp_interface_test_process_packet_no_response_non_zero_message_tag 
 
 	memset (&response, 0, sizeof (response));
 	response.data = data;
+	response.payload = response.data;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus,	0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
 		MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -809,6 +861,8 @@ static void mctp_interface_test_process_packet_no_response_cmd_set_1 (CuTest *te
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error = (struct cerberus_protocol_error*) error_packet.data;
 
@@ -840,18 +894,20 @@ static void mctp_interface_test_process_packet_no_response_cmd_set_1 (CuTest *te
 
 	memset (&response, 0, sizeof (response));
 	response.data = data;
+	response.payload = response.data;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
 		MOCK_ARG (0), MOCK_ARG (1));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -959,15 +1015,18 @@ static void mctp_interface_test_process_packet_one_packet_request (CuTest *test)
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
 	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1065,15 +1124,18 @@ static void mctp_interface_test_process_packet_one_packet_response (CuTest *test
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
 	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0,
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
 			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1172,15 +1234,18 @@ static void mctp_interface_test_process_packet_one_packet_response_non_zero_mess
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
 	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1286,15 +1351,18 @@ static void mctp_interface_test_process_packet_two_packet_response (CuTest *test
 		response.data[i] = i;
 	}
 	response.length = response_size;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1324,7 +1392,8 @@ static void mctp_interface_test_process_packet_two_packet_response (CuTest *test
 	status = testing_validate_array (response.data, &tx->data[MCTP_HEADER_LENGTH], first_pkt);
 	CuAssertIntEquals (test, 0, status);
 
-	header = (struct mctp_base_protocol_transport_header*) &tx->data[MCTP_BASE_PROTOCOL_MAX_PACKET_LEN];
+	header =
+		(struct mctp_base_protocol_transport_header*) &tx->data[MCTP_BASE_PROTOCOL_MAX_PACKET_LEN];
 
 	CuAssertIntEquals (test, 0x0F, header->cmd_code);
 	CuAssertIntEquals (test, second_pkt_total - 3, header->byte_count);
@@ -1397,6 +1466,8 @@ static void mctp_interface_test_process_packet_channel_id_reset_next_som (CuTest
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 	error_packet.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	error_packet.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	error_packet.crypto_timeout = false;
@@ -1434,18 +1505,20 @@ static void mctp_interface_test_process_packet_channel_id_reset_next_som (CuTest
 
 	memset (&response, 0, sizeof (response));
 	response.data = data;
+	request.payload = response.data;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
 		MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1486,10 +1559,10 @@ static void mctp_interface_test_process_packet_channel_id_reset_next_som (CuTest
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_NO_ERROR, error->error_code);
 	CuAssertIntEquals (test, 0, error->error_data);
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_process_packet (&mctp.test, &rx, &tx);
@@ -1566,15 +1639,18 @@ static void mctp_interface_test_process_packet_normal_timeout (CuTest *test)
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
 	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1678,15 +1754,18 @@ static void mctp_interface_test_process_packet_crypto_timeout (CuTest *test)
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
 	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = true;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -1989,6 +2068,8 @@ static void mctp_interface_test_process_packet_max_message (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -2003,18 +2084,20 @@ static void mctp_interface_test_process_packet_max_message (CuTest *test)
 
 	memset (&response, 0, sizeof (response));
 	response.data = data;
+	response.payload = response.data;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
 		MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2132,17 +2215,20 @@ static void mctp_interface_test_process_packet_max_response (CuTest *test)
 		response.data[i] = i;
 	}
 	response.length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
 	CuAssertIntEquals (test, max_packets, MCTP_BASE_PROTOCOL_MAX_PACKET_PER_MAX_SIZED_MESSAGE);
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2174,8 +2260,10 @@ static void mctp_interface_test_process_packet_max_response (CuTest *test)
 			checksum_crc8 (0xAA, &tx->data[i * tx->pkt_size], tx->pkt_size - 1),
 			tx->data[((i + 1) * tx->pkt_size) - 1]);
 
-		status = testing_validate_array (&response.data[i * MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT],
-			&tx->data[(i * pkt_size) + MCTP_HEADER_LENGTH], MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT);
+		status = testing_validate_array (
+			&response.data[i * MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT],
+			&tx->data[(i * pkt_size) + MCTP_HEADER_LENGTH],
+			MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT);
 		CuAssertIntEquals (test, 0, status);
 	}
 
@@ -2289,6 +2377,8 @@ static void mctp_interface_test_process_packet_max_response_min_packets (CuTest 
 		response.data[i] = i;
 	}
 	response.length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
@@ -2301,11 +2391,12 @@ static void mctp_interface_test_process_packet_max_response_min_packets (CuTest 
 	CuAssertIntEquals (test, sizeof (mctp.test.state->msg_buffer),
 		MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY + (MCTP_BASE_PROTOCOL_PACKET_OVERHEAD * max_packets));
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2337,8 +2428,10 @@ static void mctp_interface_test_process_packet_max_response_min_packets (CuTest 
 			checksum_crc8 (0xAA, &tx->data[i * tx->pkt_size], tx->pkt_size - 1),
 			tx->data[((i + 1) * tx->pkt_size) - 1]);
 
-		status = testing_validate_array (&response.data[i * MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT],
-			&tx->data[(i * pkt_size) + MCTP_HEADER_LENGTH], MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT);
+		status = testing_validate_array (
+			&response.data[i * MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT],
+			&tx->data[(i * pkt_size) + MCTP_HEADER_LENGTH],
+			MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT);
 		CuAssertIntEquals (test, 0, status);
 	}
 
@@ -2443,6 +2536,8 @@ static void mctp_interface_test_process_packet_reset_message_processing (CuTest 
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -2466,8 +2561,8 @@ static void mctp_interface_test_process_packet_reset_message_processing (CuTest 
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -2570,6 +2665,8 @@ static void mctp_interface_test_process_packet_response_length_limited (CuTest *
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -2611,18 +2708,20 @@ static void mctp_interface_test_process_packet_response_length_limited (CuTest *
 
 	memset (&response, 0, sizeof (response));
 	response.data = data;
+	response.payload = response.data;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
 		MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2752,15 +2851,18 @@ static void mctp_interface_test_process_packet_two_packet_response_length_limite
 		response.data[i] = i;
 	}
 	response.length = response_size;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2877,14 +2979,18 @@ static void mctp_interface_test_process_packet_mctp_control_request (CuTest *tes
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	response.data[1] = 0x12;
 	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
-	status = mock_expect (&mctp.cmd_mctp.mock, mctp.cmd_mctp.base.process_request, &mctp.cmd_mctp,
-		0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
 			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_mctp.mock, 0, &response, sizeof (response), -1);
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2924,14 +3030,18 @@ static void mctp_interface_test_process_packet_spdm_request (CuTest *test)
 	struct cmd_message *tx;
 	uint8_t data[10];
 	struct cmd_interface_msg request;
+	uint8_t response_data[16];
+	struct cmd_interface_msg response;
 	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) rx.data;
 	int status;
+	size_t i;
 
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
 	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -2975,9 +3085,52 @@ static void mctp_interface_test_process_packet_spdm_request (CuTest *test)
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
-	/* TODO:  Will add support for SPDM requests. */
+	response.data = response_data;
+	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
+	memset (&response.data[1], 0xaa, sizeof (response_data) - 1);
+	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.crypto_timeout = false;
+
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
+
+	CuAssertIntEquals (test, 0, status);
+
 	status = mctp_interface_process_packet (&mctp.test, &rx, &tx);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, tx);
+
+	CuAssertIntEquals (test, sizeof (response_data) + 8, tx->msg_size);
+	CuAssertIntEquals (test, tx->msg_size, tx->pkt_size);
+	CuAssertIntEquals (test, 0x55, tx->dest_addr);
+
+	header = (struct mctp_base_protocol_transport_header*) tx->data;
+
+	CuAssertIntEquals (test, 0x0F, header->cmd_code);
+	CuAssertIntEquals (test, sizeof (response_data) + 5, header->byte_count);
+	CuAssertIntEquals (test, 0xBB, header->source_addr);
+	CuAssertIntEquals (test, 0x0A, header->destination_eid);
+	CuAssertIntEquals (test, 0x0B, header->source_eid);
+	CuAssertIntEquals (test, 1, header->som);
+	CuAssertIntEquals (test, 1, header->eom);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_RESPONSE, header->tag_owner);
+	CuAssertIntEquals (test, 0, header->msg_tag);
+	CuAssertIntEquals (test, 0, header->packet_seq);
+	CuAssertIntEquals (test, checksum_crc8 (0xAA, tx->data, tx->pkt_size - 1),
+		tx->data[tx->pkt_size - 1]);
+
+	CuAssertIntEquals (test, 0x05, tx->data[7]);
+	for (i = 0; i < sizeof (response_data) - 1; i++) {
+		CuAssertIntEquals (test, 0xaa, tx->data[8 + i]);
+	}
 
 	mctp_interface_testing_release (test, &mctp);
 }
@@ -3051,8 +3204,8 @@ static void mctp_interface_test_process_packet_drop_unexpected_response_message 
 static void mctp_interface_test_process_packet_static_init (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	struct cmd_packet rx;
 	struct cmd_message *tx;
@@ -3102,6 +3255,8 @@ static void mctp_interface_test_process_packet_static_init (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -3121,6 +3276,8 @@ static void mctp_interface_test_process_packet_static_init (CuTest *test)
 	memcpy (request.data, &rx.data[7], request.length);
 	request.payload = data;
 	request.payload_length = sizeof (data);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.source_addr = 0x55;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
@@ -3132,17 +3289,18 @@ static void mctp_interface_test_process_packet_static_init (CuTest *test)
 	memset (&response, 0, sizeof (response));
 	response.data = data;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus,	0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
 		MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3188,8 +3346,8 @@ static void mctp_interface_test_process_packet_static_init (CuTest *test)
 static void mctp_interface_test_process_packet_static_init_mctp_control_request (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	struct cmd_packet rx;
 	struct cmd_message *tx;
@@ -3253,14 +3411,18 @@ static void mctp_interface_test_process_packet_static_init_mctp_control_request 
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	response.data[1] = 0x12;
 	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
-	status = mock_expect (&mctp.cmd_mctp.mock, mctp.cmd_mctp.base.process_request, &mctp.cmd_mctp,
-		0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
 			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_mctp.mock, 0, &response, sizeof (response), -1);
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3296,21 +3458,25 @@ static void mctp_interface_test_process_packet_static_init_mctp_control_request 
 static void mctp_interface_test_process_packet_static_init_spdm_request (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	struct cmd_packet rx;
 	struct cmd_message *tx;
 	uint8_t data[10];
 	struct cmd_interface_msg request;
+	uint8_t response_data[16];
+	struct cmd_interface_msg response;
 	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) rx.data;
 	int status;
+	size_t i;
 
 	TEST_START;
 
 	memset (&rx, 0, sizeof (rx));
 	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -3354,9 +3520,52 @@ static void mctp_interface_test_process_packet_static_init_spdm_request (CuTest 
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
-	/* TODO:  Will add support for SPDM requests. */
+	response.data = response_data;
+	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
+	memset (&response.data[1], 0xaa, sizeof (response_data) - 1);
+	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.crypto_timeout = false;
+
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
+
+	CuAssertIntEquals (test, 0, status);
+
 	status = mctp_interface_process_packet (&mctp.test, &rx, &tx);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, tx);
+
+	CuAssertIntEquals (test, sizeof (response_data) + 8, tx->msg_size);
+	CuAssertIntEquals (test, tx->msg_size, tx->pkt_size);
+	CuAssertIntEquals (test, 0x55, tx->dest_addr);
+
+	header = (struct mctp_base_protocol_transport_header*) tx->data;
+
+	CuAssertIntEquals (test, 0x0F, header->cmd_code);
+	CuAssertIntEquals (test, sizeof (response_data) + 5, header->byte_count);
+	CuAssertIntEquals (test, 0xBB, header->source_addr);
+	CuAssertIntEquals (test, 0x0A, header->destination_eid);
+	CuAssertIntEquals (test, 0x0B, header->source_eid);
+	CuAssertIntEquals (test, 1, header->som);
+	CuAssertIntEquals (test, 1, header->eom);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_RESPONSE, header->tag_owner);
+	CuAssertIntEquals (test, 0, header->msg_tag);
+	CuAssertIntEquals (test, 0, header->packet_seq);
+	CuAssertIntEquals (test, checksum_crc8 (0xAA, tx->data, tx->pkt_size - 1),
+		tx->data[tx->pkt_size - 1]);
+
+	CuAssertIntEquals (test, 0x05, tx->data[7]);
+	for (i = 0; i < sizeof (response_data) - 1; i++) {
+		CuAssertIntEquals (test, 0xaa, tx->data[8 + i]);
+	}
 
 	mctp_interface_testing_release (test, &mctp);
 }
@@ -3455,6 +3664,8 @@ static void mctp_interface_test_process_packet_invalid_req (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -3472,8 +3683,8 @@ static void mctp_interface_test_process_packet_invalid_req (CuTest *test)
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_INVALID_REQ),
 		MOCK_ARG (0x7F001606), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -3602,6 +3813,8 @@ static void mctp_interface_test_process_packet_unsupported_message (CuTest *test
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -3619,8 +3832,8 @@ static void mctp_interface_test_process_packet_unsupported_message (CuTest *test
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_INVALID_REQ),
 		MOCK_ARG (0x7F00160B), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -3749,6 +3962,8 @@ static void mctp_interface_test_process_packet_invalid_crc (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -3767,8 +3982,8 @@ static void mctp_interface_test_process_packet_invalid_crc (CuTest *test)
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_INVALID_CHECKSUM),
 		MOCK_ARG (checksum_crc8 (0xBA, rx.data, 17)), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -4112,6 +4327,8 @@ static void mctp_interface_test_process_packet_out_of_order (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -4146,8 +4363,8 @@ static void mctp_interface_test_process_packet_out_of_order (CuTest *test)
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry3, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -4254,6 +4471,8 @@ static void mctp_interface_test_process_packet_no_som (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -4271,8 +4490,8 @@ static void mctp_interface_test_process_packet_no_som (CuTest *test)
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -4379,6 +4598,8 @@ static void mctp_interface_test_process_packet_invalid_msg_tag (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -4396,8 +4617,8 @@ static void mctp_interface_test_process_packet_invalid_msg_tag (CuTest *test)
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_INVALID_REQ),
 		MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -4571,6 +4792,8 @@ static void mctp_interface_test_process_packet_invalid_packet_seq (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -4596,8 +4819,8 @@ static void mctp_interface_test_process_packet_invalid_packet_seq (CuTest *test)
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_SEQ_WINDOW), MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -4704,6 +4927,8 @@ static void mctp_interface_test_process_packet_invalid_msg_size (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -4732,8 +4957,8 @@ static void mctp_interface_test_process_packet_invalid_msg_size (CuTest *test)
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL,
 		MOCK_ARG (CERBERUS_PROTOCOL_ERROR_INVALID_PACKET_LEN), MOCK_ARG (9), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -4840,6 +5065,8 @@ static void mctp_interface_test_process_packet_msg_overflow (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -4980,8 +5207,8 @@ static void mctp_interface_test_process_packet_msg_overflow (CuTest *test)
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_MSG_OVERFLOW),
 		MOCK_ARG (4097), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -5110,6 +5337,8 @@ static void mctp_interface_test_process_packet_unsupported_type (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -5127,8 +5356,8 @@ static void mctp_interface_test_process_packet_unsupported_type (CuTest *test)
 	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_INVALID_REQ),
 		MOCK_ARG (MCTP_BASE_PROTOCOL_UNSUPPORTED_MSG), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -5250,6 +5479,8 @@ static void mctp_interface_test_process_packet_cmd_interface_fail (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -5277,16 +5508,16 @@ static void mctp_interface_test_process_packet_cmd_interface_fail (CuTest *test)
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus,	CMD_HANDLER_PROCESS_FAILED,
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler,	CMD_HANDLER_PROCESS_FAILED,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
 			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_UNSPECIFIED),
 		MOCK_ARG (CMD_HANDLER_PROCESS_FAILED), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -5402,6 +5633,8 @@ static void mctp_interface_test_process_packet_cmd_interface_fail_cmd_set_1 (CuT
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error = (struct cerberus_protocol_error*) error_packet.data;
 
@@ -5431,16 +5664,16 @@ static void mctp_interface_test_process_packet_cmd_interface_fail_cmd_set_1 (CuT
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus,	CMD_HANDLER_PROCESS_FAILED,
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler,	CMD_HANDLER_PROCESS_FAILED,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
 			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_UNSPECIFIED),
 		MOCK_ARG (CMD_HANDLER_PROCESS_FAILED), MOCK_ARG (1));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -5506,7 +5739,7 @@ static void mctp_interface_test_process_packet_mctp_control_request_fail (CuTest
 		.severity = DEBUG_LOG_SEVERITY_ERROR,
 		.component = DEBUG_LOG_COMPONENT_MCTP,
 		.msg_index = MCTP_LOGGING_MCTP_CONTROL_REQ_FAIL,
-		.arg1 = CMD_HANDLER_NO_MEMORY,
+		.arg1 = CMD_HANDLER_PROCESS_FAILED,
 		.arg2 = 0
 	};
 
@@ -5557,8 +5790,8 @@ static void mctp_interface_test_process_packet_mctp_control_request_fail (CuTest
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 
-	status = mock_expect (&mctp.cmd_mctp.mock, mctp.cmd_mctp.base.process_request, &mctp.cmd_mctp,
-		CMD_HANDLER_NO_MEMORY,
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, CMD_HANDLER_PROCESS_FAILED,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
 			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 
@@ -5569,7 +5802,7 @@ static void mctp_interface_test_process_packet_mctp_control_request_fail (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_process_packet (&mctp.test, &rx, &tx);
-	CuAssertIntEquals (test, CMD_HANDLER_NO_MEMORY, status);
+	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, status);
 
 	mctp_interface_testing_release (test, &mctp);
 }
@@ -5581,7 +5814,7 @@ static void mctp_interface_test_process_packet_response_too_large (CuTest *test)
 	struct cmd_message *tx;
 	uint8_t data[10];
 	struct cmd_interface_msg request;
-	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY + 1];
+	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY + 1] = {0};
 	struct cmd_interface_msg response;
 	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
 	struct cmd_interface_msg error_packet;
@@ -5642,6 +5875,8 @@ static void mctp_interface_test_process_packet_response_too_large (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -5673,21 +5908,29 @@ static void mctp_interface_test_process_packet_response_too_large (CuTest *test)
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
 	response.length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	/* Cannot do a deep copy here since the message buffer from the MCTP layer is actually too
+	 * small for this message.  Using mock_expect_output will swap pointers in the message
+	 * structure.  This is the only way to generate this situation for test, but actually represents
+	 * an invalid scenario for a couple of reasons:
+	 * 1. It means the message processing overflowed the provided buffer.
+	 * 2. The message processing changed the data pointer in the message structure. */
+	status |= mock_expect_output (&mctp.req_handler.mock, 0, &response, sizeof (response), -1);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_UNSPECIFIED),
 		MOCK_ARG (0x7F001605), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -5745,7 +5988,7 @@ static void mctp_interface_test_process_packet_response_too_large_length_limited
 	struct cmd_message *tx;
 	uint8_t data[10];
 	struct cmd_interface_msg request;
-	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t response_data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg response;
 	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
 	struct cmd_interface_msg error_packet;
@@ -5807,6 +6050,8 @@ static void mctp_interface_test_process_packet_response_too_large_length_limited
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -5850,21 +6095,24 @@ static void mctp_interface_test_process_packet_response_too_large_length_limited
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 	response.data[1] = 0x12;
 	response.length = remote.request.max_message_size + 1;
+	response.payload = response.data;
+	response.payload_length = response.length;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_UNSPECIFIED),
 		MOCK_ARG (0x7F001605), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -5977,12 +6225,14 @@ static void mctp_interface_test_process_packet_error_message_fail (CuTest *test)
 
 	memset (&response, 0, sizeof (response));
 	response.data = data;
+	response.payload = response.data;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, CMD_HANDLER_ERROR_MSG_FAILED, MOCK_ARG_NOT_NULL,
@@ -6048,6 +6298,8 @@ static void mctp_interface_test_process_packet_error_too_large (CuTest *test)
 
 	error_packet.data = error_data;
 	error_packet.length = sizeof (error_data);
+	error_packet.payload = error_packet.data;
+	error_packet.payload_length = error_packet.length;
 
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
@@ -6077,18 +6329,20 @@ static void mctp_interface_test_process_packet_error_too_large (CuTest *test)
 
 	memset (&response, 0, sizeof (response));
 	response.data = data;
+	response.payload = response.data;
 
-	status = mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.process_request,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request,
-			&request, sizeof (request), cmd_interface_mock_save_request,
-			cmd_interface_mock_free_request));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &response, sizeof (response), -1);
+	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
+		&mctp.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
 		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
 		MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&mctp.cmd_cerberus.mock, 0, &error_packet, sizeof (error_packet),
-		-1);
+	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
+		sizeof (error_packet), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -6170,8 +6424,8 @@ static void mctp_interface_test_get_max_message_overhead_unknown_device (CuTest 
 static void mctp_interface_test_get_max_message_overhead_static_init (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	struct device_manager_full_capabilities capabilities;
 	uint8_t eid = 0x24;
@@ -6271,8 +6525,8 @@ static void mctp_interface_test_get_max_message_payload_length_unknown_device (C
 static void mctp_interface_test_get_max_message_payload_length_static_init (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	struct device_manager_full_capabilities capabilities;
 	uint8_t eid = 0x24;
@@ -6375,8 +6629,8 @@ static void mctp_interface_test_get_max_encapsulated_message_length_unknown_devi
 static void mctp_interface_test_get_max_encapsulated_message_length_static_init (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	struct device_manager_full_capabilities capabilities;
 	uint8_t eid = 0x24;
@@ -9793,8 +10047,8 @@ static void mctp_interface_test_send_request_message_no_response_wait_then_anoth
 static void mctp_interface_test_send_request_message_static_init (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	struct mctp_base_protocol_transport_header *header;
 	uint8_t tx_message[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN] = {0};
@@ -10166,8 +10420,8 @@ static void mctp_interface_test_send_request_message_channel_null (CuTest *test)
 
 	mctp_interface_testing_init_dependencies (test, &mctp);
 
-	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.cmd_cerberus.base,
-		&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, NULL);
+	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+		NULL, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Build the request message to send. */
@@ -12328,8 +12582,8 @@ static void mctp_interface_test_send_discovery_notify_followed_discovery_notify_
 static void mctp_interface_test_send_discovery_notify_static_init (CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	uint8_t buf[3] = {0};
 	struct cmd_packet tx_packet;
@@ -13991,8 +14245,8 @@ static void mctp_interface_test_issue_request_static_init_then_process_packet_re
 	CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	struct mctp_interface_test_callback_context context;
 	struct cmd_packet rx;
@@ -14074,8 +14328,8 @@ static void mctp_interface_test_issue_request_static_init_mctp_control_then_proc
 	CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	struct mctp_interface_test_callback_context context;
 	struct cmd_packet rx;
@@ -14157,8 +14411,8 @@ static void mctp_interface_test_issue_request_static_init_spdm_then_process_pack
 	CuTest *test)
 {
 	struct mctp_interface_testing mctp = {
-		.test = mctp_interface_static_init (&mctp.state, &mctp.cmd_cerberus.base,
-			&mctp.cmd_mctp.base, &mctp.cmd_spdm.base, &mctp.device_mgr, &mctp.channel.base)
+		.test = mctp_interface_static_init (&mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+			&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, &mctp.cmd_spdm.base)
 	};
 	struct mctp_interface_test_callback_context context;
 	struct cmd_packet rx;
@@ -14502,7 +14756,85 @@ static void mctp_interface_test_issue_request_then_process_packet_response_with_
 	mctp_interface_testing_release (test, &mctp);
 }
 
-static void mctp_interface_test_issue_spdm_request_then_process_packet_response_spdm_unsupported (
+static void mctp_interface_test_issue_request_mctp_control_then_process_packet_response_mctp_control_unsupported (
+	CuTest *test)
+{
+	struct mctp_interface_testing mctp;
+	struct mctp_interface_test_callback_context context;
+	struct cmd_packet rx;
+	struct mctp_base_protocol_transport_header *header =
+		(struct mctp_base_protocol_transport_header*) rx.data;
+	uint8_t data[10];
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	memset (&rx, 0, sizeof (rx));
+	memset (&response, 0, sizeof (response));
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 15;
+	header->source_addr = 0xAB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
+	header->msg_tag = 0;
+	header->packet_seq = 0;
+
+	rx.data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	rx.data[8] = 0x00;
+	rx.data[9] = 0x00;
+	rx.data[10] = 0x00;
+	rx.data[11] = 0x01;
+	rx.data[12] = 0x02;
+	rx.data[13] = 0x03;
+	rx.data[14] = 0x04;
+	rx.data[15] = 0x05;
+	rx.data[16] = 0x06;
+	rx.data[17] = checksum_crc8 (0xBA, rx.data, 17);
+	rx.pkt_size = 18;
+	rx.dest_addr = 0x5D;
+	rx.timeout_valid = true;
+	platform_init_timeout (10, &rx.pkt_timeout);
+
+	response.data = data;
+	response.length = sizeof (data);
+	memcpy (response.data, &rx.data[7], response.length);
+	response.payload = data;
+	response.payload_length = sizeof (data);
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.is_encrypted = false;
+	response.crypto_timeout = false;
+	response.channel_id = 0;
+	response.max_response = 0;
+
+	mctp_interface_testing_init_dependencies (test, &mctp);
+	debug_log = NULL;
+
+	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+		&mctp.channel.base, &mctp.cmd_cerberus.base, NULL, &mctp.cmd_spdm.base);
+	CuAssertIntEquals (test, 0, status);
+
+	context.expected_status = MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION;
+	context.rsp_packet = &rx;
+	context.packet_count = 1;
+	context.test = test;
+	context.mctp = &mctp;
+
+	mctp_interface_testing_generate_and_issue_request (test, &mctp, &context,
+		MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, 0);
+
+	mctp_interface_testing_release (test, &mctp);
+}
+
+static void mctp_interface_test_issue_request_spdm_then_process_packet_response_spdm_unsupported (
 	CuTest *test)
 {
 	struct mctp_interface_testing mctp;
@@ -14564,8 +14896,8 @@ static void mctp_interface_test_issue_spdm_request_then_process_packet_response_
 	mctp_interface_testing_init_dependencies (test, &mctp);
 	debug_log = NULL;
 
-	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.cmd_cerberus.base,
-		&mctp.cmd_mctp.base, NULL, &mctp.device_mgr, &mctp.channel.base);
+	status = mctp_interface_init (&mctp.test, &mctp.state, &mctp.req_handler.base, &mctp.device_mgr,
+		&mctp.channel.base, &mctp.cmd_cerberus.base, &mctp.cmd_mctp.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	context.expected_status = MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION;
@@ -14585,10 +14917,12 @@ static void mctp_interface_test_issue_spdm_request_then_process_packet_response_
 TEST_SUITE_START (mctp_interface);
 
 TEST (mctp_interface_test_init);
+TEST (mctp_interface_test_init_mctp_resp_not_supported);
 TEST (mctp_interface_test_init_spdm_not_supported);
 TEST (mctp_interface_test_init_no_cmd_channel);
 TEST (mctp_interface_test_init_null);
 TEST (mctp_interface_test_static_init);
+TEST (mctp_interface_test_static_init_mctp_resp_not_supported);
 TEST (mctp_interface_test_static_init_spdm_not_supported);
 TEST (mctp_interface_test_static_init_no_cmd_channel);
 TEST (mctp_interface_test_static_init_null);
@@ -14738,7 +15072,8 @@ TEST (mctp_interface_test_issue_request_request_payload_too_large);
 TEST (mctp_interface_test_issue_request_cmd_channel_fail);
 TEST (mctp_interface_test_issue_request_then_process_packet_response_from_unexpected_eid);
 TEST (mctp_interface_test_issue_request_then_process_packet_response_with_unexpected_msg_tag);
-TEST (mctp_interface_test_issue_spdm_request_then_process_packet_response_spdm_unsupported);
+TEST (mctp_interface_test_issue_request_mctp_control_then_process_packet_response_mctp_control_unsupported);
+TEST (mctp_interface_test_issue_request_spdm_then_process_packet_response_spdm_unsupported);
 #endif
 
 TEST_SUITE_END;

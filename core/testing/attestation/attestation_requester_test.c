@@ -11,11 +11,13 @@
 #include "attestation/attestation_requester.h"
 #include "attestation/attestation_requester_static.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
+#include "cmd_interface/cmd_interface_multi_handler.h"
 #include "cmd_interface/cmd_interface_system.h"
 #include "cmd_interface/device_manager.h"
 #include "common/array_size.h"
 #include "common/unused.h"
 #include "crypto/checksum.h"
+#include "mctp/cmd_interface_protocol_mctp.h"
 #include "mctp/cmd_interface_mctp_control.h"
 #include "mctp/mctp_control_protocol_commands.h"
 #include "mctp/mctp_interface.h"
@@ -26,9 +28,9 @@
 #include "spdm/spdm_protocol.h"
 #include "testing/mock/asn1/x509_mock.h"
 #include "testing/mock/attestation/attestation_responder_mock.h"
-#include "testing/mock/cmd_interface/cmd_channel_mock.h"
-#include "testing/mock/cmd_interface/cmd_background_mock.h"
 #include "testing/mock/cmd_interface/cmd_authorization_mock.h"
+#include "testing/mock/cmd_interface/cmd_background_mock.h"
+#include "testing/mock/cmd_interface/cmd_channel_mock.h"
 #include "testing/mock/cmd_interface/cmd_device_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
 #include "testing/mock/crypto/rsa_mock.h"
@@ -95,6 +97,9 @@ struct attestation_requester_testing {
 	struct mctp_interface mctp;									/**< MCTP interface instance */
 	struct mctp_interface_state mctp_state;						/**< MCTP interface variable context. */
 	struct cmd_interface_fw_version fw_version;					/**< The firmware version data. */
+	struct cmd_interface_multi_handler req_handler;				/**< MCTP request handling. */
+	struct cmd_interface_protocol_mctp mctp_proto;				/**< MCTP message type parsing. */
+	struct cmd_interface_multi_handler_msg_type mctp_ctrl;		/**< Handler for MCTP control messages. */
 	struct cmd_interface_system cmd_cerberus;					/**< Cerberus command interface */
 	struct cmd_interface_mctp_control cmd_mctp;					/**< MCTP command interface */
 	struct cmd_interface_spdm cmd_spdm;							/**< SPDM command interface */
@@ -361,6 +366,17 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	status = device_manager_add_unidentified_device (&testing->device_mgr, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = cmd_interface_multi_handler_msg_type_init (&testing->mctp_ctrl,
+		MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, &testing->cmd_mctp.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_protocol_mctp_init (&testing->mctp_proto);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_multi_handler_init (&testing->req_handler, &testing->mctp_proto.base,
+		&testing->mctp_ctrl, 1);
+	CuAssertIntEquals (test, 0, status);
+
 	fw_ver_list[0] = "1.1.1.1";
 	testing->fw_version.count = 1;
 	testing->fw_version.id = fw_ver_list;
@@ -379,9 +395,9 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	status = cmd_interface_spdm_init (&testing->cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&testing->mctp, &testing->mctp_state, &testing->cmd_cerberus.base,
-		&testing->cmd_mctp.base, &testing->cmd_spdm.base, &testing->device_mgr,
-		&testing->channel.base);
+	status = mctp_interface_init (&testing->mctp, &testing->mctp_state, &testing->req_handler,
+		&testing->device_mgr, &testing->channel.base, &testing->cmd_cerberus.base,
+		&testing->cmd_mctp.base, &testing->cmd_spdm.base);
 	CuAssertIntEquals (test, 0, status);
 
 	if (init_attestation) {
@@ -602,6 +618,8 @@ static void complete_attestation_requester_mock_test (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_store_release (&testing->store);
+	cmd_interface_multi_handler_release (&testing->req_handler);
+	cmd_interface_protocol_mctp_release (&testing->mctp_proto);
 	cmd_interface_spdm_deinit (&testing->cmd_spdm);
 	cmd_interface_mctp_control_deinit (&testing->cmd_mctp);
 	cmd_interface_system_deinit (&testing->cmd_cerberus);
@@ -4776,6 +4794,17 @@ static void attestation_requester_test_init_state (CuTest *test)
 	status = device_manager_add_unidentified_device (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = cmd_interface_multi_handler_msg_type_init (&testing.mctp_ctrl,
+		MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, &testing.cmd_mctp.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_protocol_mctp_init (&testing.mctp_proto);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_multi_handler_init (&testing.req_handler, &testing.mctp_proto.base,
+		&testing.mctp_ctrl, 1);
+	CuAssertIntEquals (test, 0, status);
+
 	fw_ver_list[0] = "1.1.1.1";
 	testing.fw_version.count = 1;
 	testing.fw_version.id = fw_ver_list;
@@ -4794,8 +4823,9 @@ static void attestation_requester_test_init_state (CuTest *test)
 	status = cmd_interface_spdm_init (&testing.cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr, &testing.channel.base);
+	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.req_handler,
+		&testing.device_mgr, &testing.channel.base, &testing.cmd_cerberus.base,
+		&testing.cmd_mctp.base, &testing.cmd_spdm.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_init_state (&attestation);
@@ -22422,6 +22452,17 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = device_manager_add_unidentified_device (&testing.device_mgr, 0x0A);
 	CuAssertIntEquals (test, 0, status);
 
+	status = cmd_interface_multi_handler_msg_type_init (&testing.mctp_ctrl,
+		MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, &testing.cmd_mctp.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_protocol_mctp_init (&testing.mctp_proto);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_multi_handler_init (&testing.req_handler, &testing.mctp_proto.base,
+		&testing.mctp_ctrl, 1);
+	CuAssertIntEquals (test, 0, status);
+
 	fw_ver_list[0] = "1.1.1.1";
 	testing.fw_version.count = 1;
 	testing.fw_version.id = fw_ver_list;
@@ -22440,8 +22481,9 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = cmd_interface_spdm_init (&testing.cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr, &testing.channel.base);
+	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.req_handler,
+		&testing.device_mgr, &testing.channel.base, &testing.cmd_cerberus.base,
+		&testing.cmd_mctp.base, &testing.cmd_spdm.base);
 	CuAssertIntEquals (test, 0, status);
 
 	testing.max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
@@ -28894,6 +28936,17 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 		0xCC, 0xDD,	1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
+	status = cmd_interface_multi_handler_msg_type_init (&testing.mctp_ctrl,
+		MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, &testing.cmd_mctp.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_protocol_mctp_init (&testing.mctp_proto);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_multi_handler_init (&testing.req_handler, &testing.mctp_proto.base,
+		&testing.mctp_ctrl, 1);
+	CuAssertIntEquals (test, 0, status);
+
 	fw_ver_list[0] = "1.1.1.1";
 	testing.fw_version.count = 1;
 	testing.fw_version.id = fw_ver_list;
@@ -28912,8 +28965,9 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	status = cmd_interface_spdm_init (&testing.cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr, &testing.channel.base);
+	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.req_handler,
+		&testing.device_mgr, &testing.channel.base, &testing.cmd_cerberus.base,
+		&testing.cmd_mctp.base, &testing.cmd_spdm.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
@@ -30647,6 +30701,17 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = device_manager_add_unidentified_device (&testing.device_mgr, 0x0C);
 	CuAssertIntEquals (test, 0, status);
 
+	status = cmd_interface_multi_handler_msg_type_init (&testing.mctp_ctrl,
+		MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, &testing.cmd_mctp.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_protocol_mctp_init (&testing.mctp_proto);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_multi_handler_init (&testing.req_handler, &testing.mctp_proto.base,
+		&testing.mctp_ctrl, 1);
+	CuAssertIntEquals (test, 0, status);
+
 	fw_ver_list[0] = "1.1.1.1";
 	testing.fw_version.count = 1;
 	testing.fw_version.id = fw_ver_list;
@@ -30665,8 +30730,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = cmd_interface_spdm_init (&testing.cmd_spdm);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base, &testing.device_mgr, &testing.channel.base);
+	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.req_handler,
+		&testing.device_mgr, &testing.channel.base, &testing.cmd_cerberus.base,
+		&testing.cmd_mctp.base, &testing.cmd_spdm.base);
 	CuAssertIntEquals (test, 0, status);
 
 	testing.max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;

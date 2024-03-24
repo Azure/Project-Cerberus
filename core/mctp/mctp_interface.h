@@ -9,7 +9,7 @@
 #include "mctp_base_protocol.h"
 #include "platform_api.h"
 #include "cmd_interface/cmd_channel.h"
-#include "cmd_interface/cmd_interface.h"
+#include "cmd_interface/cmd_interface_multi_handler.h"
 #include "cmd_interface/device_manager.h"
 #include "cmd_interface/msg_transport.h"
 
@@ -54,24 +54,29 @@ struct mctp_interface_state {
 
 /**
  * Handler for MCTP messages using the SMBus binding to transport packets.
+ *
+ * TODO:  Since the focus of this module really should be MCTP transport layer handling, the type
+ * name should be changed to be more descriptive.  At minimum, it should be mctp_transport, but even
+ * better would be msg_transport_mctp_smbus.
  */
 struct mctp_interface {
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-	struct msg_transport base;					/**< Base transport API for sending requests. */
-	const struct cmd_channel *channel;			/**< Command channel to use for sending requests. */
+	struct msg_transport base;								/**< Base transport API for sending requests. */
+	const struct cmd_channel *channel;						/**< Command channel to use for sending requests. */
+	const struct cmd_interface *cmd_mctp;					/**< Deprecated handler for MCTP responses. */
+	const struct cmd_interface *cmd_spdm;					/**< Deprecated handler for SPDM responses. */
 #endif
-	struct mctp_interface_state *state;			/**< Variable context for the handler. */
-	const struct cmd_interface *cmd_cerberus;	/**< Command interface instance to handle Cerberus protocol messages */
-	const struct cmd_interface *cmd_mctp;		/**< Command interface instance to handle MCTP control protocol messages */
-	const struct cmd_interface *cmd_spdm;		/**< Command interface instance to handle SPDM protocol messages */
-	struct device_manager *device_manager;		/**< Device manager linked to command interface */
+	struct mctp_interface_state *state;						/**< Variable context for the handler. */
+	const struct cmd_interface_multi_handler *req_handler;	/**< Handler for processing MCTP requests. */
+	struct device_manager *device_manager;					/**< Device manager linked to command interface */
+	const struct cmd_interface *cmd_cerberus;				/**< Deprecated handler for Cerberus responses and error messages. */
 };
 
 
 int mctp_interface_init (struct mctp_interface *mctp, struct mctp_interface_state *state,
-	const struct cmd_interface *cmd_cerberus, const struct cmd_interface *cmd_mctp,
-	const struct cmd_interface *cmd_spdm, struct device_manager *device_mgr,
-	const struct cmd_channel *channel);
+	const struct cmd_interface_multi_handler *req_handler, struct device_manager *device_mgr,
+	const struct cmd_channel *channel, const struct cmd_interface *cmd_cerberus,
+	const struct cmd_interface *cmd_mctp, const struct cmd_interface *cmd_spdm);
 int mctp_interface_init_state (const struct mctp_interface *mctp);
 void mctp_interface_release (const struct mctp_interface *mctp);
 

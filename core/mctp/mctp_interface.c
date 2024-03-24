@@ -186,11 +186,17 @@ static int mctp_interface_deprecated_handle_response_message (const struct mctp_
 	/* We know the message is one of the three supported types by this point.  If it wasn't,
 	 * it would have failed earlier in packet processing. */
 	if (MCTP_BASE_PROTOCOL_IS_CONTROL_MSG (mctp->state->msg_type)) {
-		status = mctp->cmd_mctp->process_response (mctp->cmd_mctp,
-			&mctp->state->req_buffer);
-		if (status == CMD_HANDLER_ERROR_MESSAGE) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
-				MCTP_LOGGING_MCTP_CONTROL_RSP_FAIL, status, mctp->state->channel_id);
+		if (mctp->cmd_mctp) {
+			status = mctp->cmd_mctp->process_response (mctp->cmd_mctp,
+				&mctp->state->req_buffer);
+			if (status == CMD_HANDLER_ERROR_MESSAGE) {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
+					MCTP_LOGGING_MCTP_CONTROL_RSP_FAIL, status, mctp->state->channel_id);
+			}
+		}
+		else {
+			status = MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION;
+			goto exit;
 		}
 	}
 	else if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (mctp->state->msg_type)) {
@@ -437,22 +443,24 @@ unlock_tx:
  *
  * @param mctp The MCTP interface to initialize.
  * @param state Variable context for the MCTP message handler.  This must be uninitialized.
- * @param cmd_cerberus The command interface to use for processing and generating Cerberus protocol
- * messages.
- * @param cmd_mctp The command interface to use for processing and generating MCTP control protocol
- * message.
- * @param cmd_spdm The command interface to use for processing and generating SPDM protocol
- * messages. This is optional and can be set to NULL if SPDM is not supported.
+ * @param req_handler The handler to call processing a received MCTP request message.  This handler
+ * will be called irrespective of the message type.
  * @param device_mgr The device manager linked to command interface.
  * @param channel The channel to use for sending request messages.  This can be null if sending
  * requests is not necessary.
+ * @param cmd_cerberus The command interface for legacy processing of Cerberus response messages.
+ * This will also be used for creating error messages.
+ * @param cmd_mctp The command interface for legacy processing of MCTP response messages.  This can
+ * be null if sending requests is not necessary.
+ * @param cmd_spdm The command interface for legacy processing of SPDM response messages. This is
+ * optional and can be set to NULL if SPDM responses are not supported.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int mctp_interface_init (struct mctp_interface *mctp, struct mctp_interface_state *state,
-	const struct cmd_interface *cmd_cerberus, const struct cmd_interface *cmd_mctp,
-	const struct cmd_interface *cmd_spdm, struct device_manager *device_mgr,
-	const struct cmd_channel *channel)
+	const struct cmd_interface_multi_handler *req_handler, struct device_manager *device_mgr,
+	const struct cmd_channel *channel, const struct cmd_interface *cmd_cerberus,
+	const struct cmd_interface *cmd_mctp, const struct cmd_interface *cmd_spdm)
 {
 	if (mctp == NULL) {
 		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
@@ -469,15 +477,18 @@ int mctp_interface_init (struct mctp_interface *mctp, struct mctp_interface_stat
 	mctp->base.send_request_message = mctp_interface_send_request_message;
 
 	mctp->channel = channel;
+	mctp->cmd_mctp = cmd_mctp;
+	mctp->cmd_spdm = cmd_spdm;
 #else
 	UNUSED (channel);
+	UNUSED (cmd_mctp);
+	UNUSED (cmd_spdm);
 #endif
 
 	mctp->state = state;
-	mctp->cmd_cerberus = cmd_cerberus;
-	mctp->cmd_mctp = cmd_mctp;
-	mctp->cmd_spdm = cmd_spdm;
+	mctp->req_handler = req_handler;
 	mctp->device_manager = device_mgr;
+	mctp->cmd_cerberus = cmd_cerberus;
 
 	return mctp_interface_init_state (mctp);
 }
@@ -498,8 +509,8 @@ int mctp_interface_init_state (const struct mctp_interface *mctp)
 	int status;
 #endif
 
-	if ((mctp == NULL) || (mctp->state == NULL) || (mctp->cmd_cerberus == NULL) ||
-		(mctp->cmd_mctp == NULL) || (mctp->device_manager == NULL)) {
+	if ((mctp == NULL) || (mctp->state == NULL) || (mctp->req_handler == NULL) ||
+		(mctp->device_manager == NULL) || (mctp->cmd_cerberus == NULL)) {
 		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
 	}
 
@@ -661,7 +672,6 @@ static int mctp_interface_generate_error_packet (const struct mctp_interface *mc
 int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd_packet *rx_packet,
 	struct cmd_message **tx_message)
 {
-	struct cerberus_protocol_header *header;
 	uint32_t msg1 = 0;
 	uint32_t msg2 = 0;
 	uint8_t i_byte;
@@ -802,57 +812,71 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 #endif
 			return 0;
 		}
-		/* TODO:  Move detailed processing of different message types out of this layer into a
-		 * command interface that will determine message type and handle them appropriately. */
-		else if (MCTP_BASE_PROTOCOL_IS_CONTROL_MSG (mctp->state->msg_type)) {
-			mctp->state->req_buffer.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
+		else {
+			/* The message contains request data. */
+			mctp->state->req_buffer.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
-			status = mctp->cmd_mctp->process_request (mctp->cmd_mctp, &mctp->state->req_buffer);
-			if (status != 0) {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
-					MCTP_LOGGING_MCTP_CONTROL_REQ_FAIL, status, mctp->state->channel_id);
+			/* TODO:  This is only necessary for generating error messages.  Once that is no longer
+			 * present in this layer, this should also be removed. */
+			if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (mctp->state->msg_type)) {
+				struct cerberus_protocol_header *header =
+					(struct cerberus_protocol_header*) mctp->state->req_buffer.data;
 
-				return status;
+				cmd_set = header->rq;
 			}
-		}
-		else if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (mctp->state->msg_type)) {
-			header = (struct cerberus_protocol_header*) mctp->state->req_buffer.data;
-			cmd_set = header->rq;
 
-			mctp->state->req_buffer.max_response = device_manager_get_max_message_len_by_eid (
-				mctp->device_manager, src_eid);
-			status = mctp->cmd_cerberus->process_request (mctp->cmd_cerberus,
+			/* TODO:  Update the downstream protocol handlers to set right max response for
+			 * different message types. */
+			if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (mctp->state->msg_type)) {
+				mctp->state->req_buffer.max_response =
+					device_manager_get_max_message_len_by_eid (mctp->device_manager, src_eid);
+			}
+			else if (MCTP_BASE_PROTOCOL_IS_CONTROL_MSG (mctp->state->msg_type)) {
+				mctp->state->req_buffer.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
+			}
+
+			status = mctp->req_handler->base.process_request (&mctp->req_handler->base,
 				&mctp->state->req_buffer);
 
 			/* Regardless of the processing status, check to see if the timeout needs adjusting. */
 			if (rx_packet->timeout_valid && mctp->state->req_buffer.crypto_timeout) {
 				platform_increase_timeout (
 					MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS -
-						MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS, &rx_packet->pkt_timeout);
+						MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS,
+					&rx_packet->pkt_timeout);
 			}
 
-			if (status != 0) {
-				return mctp_interface_generate_error_packet (mctp, cerberus_eid,
-					CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, status, src_eid, dest_eid, msg_tag,
-					response_addr, rx_packet->dest_addr, cmd_set, tag_owner, tx_message);
-			}
-			else if (mctp->state->req_buffer.length == 0) {
-				return mctp_interface_generate_error_packet (mctp, cerberus_eid,
-					CERBERUS_PROTOCOL_NO_ERROR, status, src_eid, dest_eid, msg_tag, response_addr,
-					rx_packet->dest_addr, cmd_set, tag_owner, tx_message);
-			}
+			/* TODO:  Error messages should not be generated at this layer.  Debug logging should
+			 * also not happen here.  Generic log entries are already created in the cmd_channel,
+			 * and protocol specific logs should be created by the appropriate protocol handler. */
+			if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (mctp->state->msg_type)) {
+				if (status != 0) {
+					return mctp_interface_generate_error_packet (mctp, cerberus_eid,
+						CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, status, src_eid, dest_eid, msg_tag,
+						response_addr, rx_packet->dest_addr, cmd_set, tag_owner, tx_message);
+				}
+				else if (mctp->state->req_buffer.length == 0) {
+					return mctp_interface_generate_error_packet (mctp, cerberus_eid,
+						CERBERUS_PROTOCOL_NO_ERROR, status, src_eid, dest_eid, msg_tag,
+						response_addr, rx_packet->dest_addr, cmd_set, tag_owner, tx_message);
+				}
 
-			if (mctp->state->req_buffer.length >
-				device_manager_get_max_message_len_by_eid (mctp->device_manager, src_eid)) {
-				return mctp_interface_generate_error_packet (mctp, cerberus_eid,
-					CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, MCTP_BASE_PROTOCOL_MSG_TOO_LARGE, src_eid,
-					dest_eid, msg_tag, response_addr, rx_packet->dest_addr, cmd_set, tag_owner,
-					tx_message);
+				if (mctp->state->req_buffer.length >
+					device_manager_get_max_message_len_by_eid (mctp->device_manager, src_eid)) {
+					return mctp_interface_generate_error_packet (mctp, cerberus_eid,
+						CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, MCTP_BASE_PROTOCOL_MSG_TOO_LARGE,
+						src_eid, dest_eid, msg_tag, response_addr, rx_packet->dest_addr, cmd_set,
+						tag_owner, tx_message);
+				}
 			}
-		}
-		else {
-			/* Handle other messages types */
-			return MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION;
+			else if (status != 0) {
+				if (MCTP_BASE_PROTOCOL_IS_CONTROL_MSG (mctp->state->msg_type)) {
+					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
+						MCTP_LOGGING_MCTP_CONTROL_REQ_FAIL, status, mctp->state->channel_id);
+				}
+
+				return status;
+			}
 		}
 
 		/* Packetetize the response to the received request, if a response was generated during
@@ -898,6 +922,7 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 void mctp_interface_reset_message_processing (const struct mctp_interface *mctp)
 {
 	if (mctp != NULL) {
+		/* TODO:  Should reset the request data pointer here to make sure it's always correct. */
 		cmd_interface_msg_new_message (&mctp->state->req_buffer, 0, 0, 0, 0);
 		mctp->state->start_packet_len = 0;
 	}

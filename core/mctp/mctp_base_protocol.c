@@ -59,7 +59,7 @@ int mctp_base_protocol_interpret (const uint8_t *buf, size_t buf_len, uint8_t de
 	 *
 	 * TODO:  Also have better and more flexible handling of the SMBus PEC byte.  The MCTP SMBus
 	 * binding mandates that all MCTP packets must have the PEC appended.  However, some
-	 * implementations don't follow this.  This implementation can be leinent and check the PEC if
+	 * implementations don't follow this.  This implementation can be lenient and check the PEC if
 	 * the packet size is sufficient to contain one and skip it if not. */
 
 	/* At this point, we do not know if the current packet is a control or vendor defined message.

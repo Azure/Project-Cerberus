@@ -21,6 +21,8 @@ struct cmd_interface_msg {
 	 * This contains the full message to process, including all protocol headers. If the message is
 	 * a request, this buffer can be updated with the response data, while providing sufficient
 	 * space before the data for any protocol headers that will need to be added.
+	 *
+	 * This pointer must not be changed during message processing.
 	 */
 	uint8_t *data;
 
