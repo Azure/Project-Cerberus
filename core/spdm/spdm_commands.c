@@ -183,8 +183,7 @@ bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_flags_f
 
 	/* Key exchange capabilities checks. */
 	if ((flags.key_ex_cap == 1) || (flags.psk_cap == SPDM_PSK_SUPPORTED_NO_CONTEXT)) {
-		/**
-		 * While clearing MAC_CAP and setting ENCRYPT_CAP is legal according to DSP0274, the SPDM
+		/* While clearing MAC_CAP and setting ENCRYPT_CAP is legal according to DSP0274, the SPDM
 		 * responder also implements DSP0277 secure messages, which requires at least MAC_CAP
 		 * to be set. */
 		if (flags.mac_cap == 0) {
@@ -198,8 +197,7 @@ bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_flags_f
 		 * heartbeat messages are sent in a secure session, the setup of which also require
 		 * either key exchange or pre-shared key capability.
 		 *
-		 * handshake_in_the_clear_cap requires key_ex_cap.
-		 */
+		 * handshake_in_the_clear_cap requires key_ex_cap. */
 		if ((flags.mac_cap == 1) || (flags.encrypt_cap == 1) ||
 			(flags.handshake_in_the_clear_cap == 1) || (flags.hbeat_cap == 1) ||
 			(flags.key_upd_cap == 1)) {
@@ -218,10 +216,14 @@ bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_flags_f
 		if ((flags.cert_cap == 1) && (flags.pub_key_id_cap == 1)) {
 			return false;
 		}
-		/**
-		 * cert_cap and/or pub_key_id_cap are not needed if both chal_cap and key_ex_cap are 0.
+
+		/* cert_cap and/or pub_key_id_cap are not needed if both chal_cap and key_ex_cap are 0.
 		 * Theoretically, this might be ok, but libSPDM has this check, so keeping it.
-		 */
+		 *
+		 * TODO:  This needs to be re-evaluated.  There is no requirement per the SPDM spec for this
+		 * check as there is no specified coupling between certificate and challenge/key exchange
+		 * support.  It's reasonable to envision an implementation that doesn't support challenge
+		 * but supports measurement signing. */
 		if ((flags.chal_cap == 0) && (flags.key_ex_cap == 0)) {
 			return false;
 		}

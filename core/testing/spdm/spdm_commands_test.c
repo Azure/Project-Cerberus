@@ -132,8 +132,8 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 	testing->local_capabilities.flags.pub_key_id_cap = 0;
 	testing->local_capabilities.flags.chunk_cap = 0;
 	testing->local_capabilities.flags.alias_cert_cap = 1;
-	testing->local_capabilities.data_transfer_size = DOE_MESSAGE_MAX_SIZE_IN_BYTES;
-	testing->local_capabilities.max_spdm_msg_size = DOE_MESSAGE_MAX_SIZE_IN_BYTES;
+	testing->local_capabilities.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	testing->local_capabilities.max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	testing->local_capabilities.flags.reserved = 0;
 	testing->local_capabilities.flags.reserved2 = 0;
 
@@ -1011,8 +1011,8 @@ static void spdm_test_generate_error_response_with_optional_data_too_large (CuTe
 
 static void spdm_test_get_version (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
-	uint8_t expected_buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t expected_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_version_request rq = {0};
 	struct spdm_get_version_response *resp = (struct spdm_get_version_response*) buf;
 	struct spdm_get_version_response *expected_rsp =
@@ -1104,8 +1104,8 @@ static void spdm_test_get_version (CuTest *test)
 
 static void spdm_test_get_version_response_state_need_resync (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
-	uint8_t expected_buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t expected_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_version_request rq = {0};
 	struct spdm_get_version_response *resp = (struct spdm_get_version_response*) buf;
 	struct spdm_get_version_response *expected_rsp =
@@ -1198,8 +1198,8 @@ static void spdm_test_get_version_response_state_need_resync (CuTest *test)
 
 static void spdm_test_get_version_response_state_processing_encap (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
-	uint8_t expected_buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t expected_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_version_request rq = {0};
 	struct spdm_get_version_response *resp = (struct spdm_get_version_response*) buf;
 	struct spdm_get_version_response *expected_rsp =
@@ -1304,7 +1304,7 @@ static void spdm_test_get_version_null (CuTest *test)
 
 static void spdm_test_get_version_bad_length (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg msg;
 	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
 	int status;
@@ -1341,7 +1341,7 @@ static void spdm_test_get_version_bad_length (CuTest *test)
 
 static void spdm_test_get_version_incorrect_version (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg msg;
 	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
 	int status;
@@ -1400,7 +1400,7 @@ static void spdm_test_get_version_incorrect_version (CuTest *test)
 
 static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg msg;
 	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
 	int status;
@@ -1487,7 +1487,7 @@ static void spdm_test_get_version_response_state_not_normal (CuTest *test)
 
 static void spdm_test_get_version_transcript_manager_add_request_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg msg;
 	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
 	int status;
@@ -1537,8 +1537,8 @@ static void spdm_test_get_version_transcript_manager_add_request_fail (CuTest *t
 
 static void spdm_test_get_version_transcript_manager_add_response_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct cmd_interface_msg msg;
 	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
 	int status;
@@ -1733,7 +1733,7 @@ static void spdm_test_process_get_version_response_bad_length (CuTest *test)
 
 static void spdm_test_get_capabilities_1_2 (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities rq = {0};
 	struct spdm_get_capabilities *resp = (struct spdm_get_capabilities*) buf;
@@ -1818,7 +1818,7 @@ static void spdm_test_get_capabilities_1_2 (CuTest *test)
 
 static void spdm_test_get_capabilities_1_1 (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities_1_1 rq = {0};
 	struct spdm_get_capabilities_1_1 *resp = (struct spdm_get_capabilities_1_1*) buf;
@@ -1913,7 +1913,7 @@ static void spdm_test_get_capabilities_null (CuTest *test)
 
 static void spdm_test_get_capabilities_response_state_busy (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
@@ -1948,7 +1948,7 @@ static void spdm_test_get_capabilities_response_state_busy (CuTest *test)
 
 static void spdm_test_get_capabilities_response_state_need_resync (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
@@ -1983,7 +1983,7 @@ static void spdm_test_get_capabilities_response_state_need_resync (CuTest *test)
 
 static void spdm_test_get_capabilities_response_state_processing_encap (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
@@ -2017,7 +2017,7 @@ static void spdm_test_get_capabilities_response_state_processing_encap (CuTest *
 
 static void spdm_test_get_capabilities_incorrect_connection_state (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
@@ -2053,7 +2053,7 @@ static void spdm_test_get_capabilities_incorrect_connection_state (CuTest *test)
 
 static void spdm_test_get_capabilities_version_lt_min (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
@@ -2101,7 +2101,7 @@ static void spdm_test_get_capabilities_version_lt_min (CuTest *test)
 
 static void spdm_test_get_capabilities_version_gt_max (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
@@ -2149,7 +2149,7 @@ static void spdm_test_get_capabilities_version_gt_max (CuTest *test)
 
 static void spdm_test_get_capabilities_incorrect_request_size_v_1_2 (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
@@ -2197,7 +2197,7 @@ static void spdm_test_get_capabilities_incorrect_request_size_v_1_2 (CuTest *tes
 
 static void spdm_test_get_capabilities_incorrect_request_size_v_1_1 (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
@@ -2242,7 +2242,7 @@ static void spdm_test_get_capabilities_incorrect_request_size_v_1_1 (CuTest *tes
 
 static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities *resp = (struct spdm_get_capabilities*) buf;
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
@@ -2641,7 +2641,7 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_2_fail (CuTe
 
 static void spdm_test_get_capabilities_request_flag_compatibility_1_1_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities_1_1 *rq = (struct spdm_get_capabilities_1_1*) buf;
 	int status;
@@ -3035,7 +3035,7 @@ static void spdm_test_get_capabilities_request_flag_compatibility_1_1_fail (CuTe
 
 static void spdm_test_get_capabilities_request_data_transfer_size_lt_min_size (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
@@ -3084,7 +3084,7 @@ static void spdm_test_get_capabilities_request_data_transfer_size_lt_min_size (C
 
 static void spdm_test_get_capabilities_request_data_transfer_size_gt_max_size (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
@@ -3133,7 +3133,7 @@ static void spdm_test_get_capabilities_request_data_transfer_size_gt_max_size (C
 
 static void spdm_test_get_capabilities_request_data_transfer_size_ne_max_size (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
@@ -3183,7 +3183,7 @@ static void spdm_test_get_capabilities_request_data_transfer_size_ne_max_size (C
 
 static void spdm_test_get_capabilities_request_large_ct_exponent (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities *rq = (struct spdm_get_capabilities*) buf;
 	int status;
@@ -3232,7 +3232,7 @@ static void spdm_test_get_capabilities_request_large_ct_exponent (CuTest *test)
 
 static void spdm_test_get_capabilities_append_request_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities rq = {0};
 	int status;
@@ -3296,7 +3296,7 @@ static void spdm_test_get_capabilities_append_request_fail (CuTest *test)
 
 static void spdm_test_get_capabilities_append_response_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	struct spdm_get_capabilities rq = {0};
 	int status;
@@ -3675,8 +3675,8 @@ static void spdm_test_process_get_capabilities_response_1_1_bad_length (CuTest *
 
 static void spdm_test_negotiate_algorithms (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_negotiate_algorithms_response *rsp =
@@ -3861,8 +3861,8 @@ static void spdm_test_negotiate_algorithms (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_highest_pri_hash_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_negotiate_algorithms_response *rsp =
@@ -4048,8 +4048,8 @@ static void spdm_test_negotiate_algorithms_highest_pri_hash_algo (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_lowest_pri_hash_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_negotiate_algorithms_response *rsp =
@@ -4235,8 +4235,8 @@ static void spdm_test_negotiate_algorithms_lowest_pri_hash_algo (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_no_priority_table (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_negotiate_algorithms_response *rsp =
@@ -4425,8 +4425,8 @@ static void spdm_test_negotiate_algorithms_no_priority_table (CuTest *test)
 static void spdm_test_negotiate_algorithms_no_priority_table_first_common_leftmost_hash_algo (
 	CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_negotiate_algorithms_response *rsp =
@@ -4616,8 +4616,8 @@ static void spdm_test_negotiate_algorithms_no_priority_table_first_common_leftmo
 static void spdm_test_negotiate_algorithms_no_priority_table_first_common_rightmost_hash_algo (
 	CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_negotiate_algorithms_response *rsp =
@@ -4819,7 +4819,7 @@ static void spdm_test_negotiate_algorithms_null (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_incorrect_negotiated_version (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_negotiate_algorithms_request *rq =
@@ -4887,7 +4887,7 @@ static void spdm_test_negotiate_algorithms_incorrect_negotiated_version (CuTest 
 
 static void spdm_test_negotiate_algorithms_incorrect_response_state (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_negotiate_algorithms_request *rq =
@@ -4975,7 +4975,7 @@ static void spdm_test_negotiate_algorithms_incorrect_response_state (CuTest *tes
 
 static void spdm_test_negotiate_algorithms_incorrect_connection_state (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_negotiate_algorithms_request *rq =
@@ -5022,7 +5022,7 @@ static void spdm_test_negotiate_algorithms_incorrect_connection_state (CuTest *t
 
 static void spdm_test_negotiate_algorithms_request_length_lt_min (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct cmd_interface_msg msg;
@@ -5077,7 +5077,7 @@ static void spdm_test_negotiate_algorithms_request_length_lt_min (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_invalid_request_length (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct cmd_interface_msg msg;
@@ -5132,7 +5132,7 @@ static void spdm_test_negotiate_algorithms_invalid_request_length (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_request_length_gt_max (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct cmd_interface_msg msg;
@@ -5187,7 +5187,7 @@ static void spdm_test_negotiate_algorithms_request_length_gt_max (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_invalid_req_alg_type (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -5250,7 +5250,7 @@ static void spdm_test_negotiate_algorithms_invalid_req_alg_type (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_req_alg_not_monotonic (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -5318,7 +5318,7 @@ static void spdm_test_negotiate_algorithms_req_alg_not_monotonic (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_unsupported_fixed_algo_count (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -5381,7 +5381,7 @@ static void spdm_test_negotiate_algorithms_unsupported_fixed_algo_count (CuTest 
 
 static void spdm_test_negotiate_algorithms_ext_algo_count_gt_max_supported (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -5481,7 +5481,7 @@ static void spdm_test_negotiate_algorithms_ext_algo_count_gt_max_supported (CuTe
 
 static void spdm_test_negotiate_algorithms_invalid_ext_algo_count (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -5564,7 +5564,7 @@ static void spdm_test_negotiate_algorithms_invalid_ext_algo_count (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_invalid_opaque_data_format (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -5646,7 +5646,7 @@ static void spdm_test_negotiate_algorithms_invalid_opaque_data_format (CuTest *t
 
 static void spdm_test_negotiate_algorithms_payload_length_ne_request_length (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -5726,7 +5726,7 @@ static void spdm_test_negotiate_algorithms_payload_length_ne_request_length (CuT
 
 static void spdm_test_negotiate_algorithms_illegal_dhe_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -5806,8 +5806,8 @@ static void spdm_test_negotiate_algorithms_illegal_dhe_algo (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_no_common_dhe_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -5932,8 +5932,8 @@ static void spdm_test_negotiate_algorithms_no_common_dhe_algo (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_no_local_dhe_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -6058,7 +6058,7 @@ static void spdm_test_negotiate_algorithms_no_local_dhe_algo (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_illegal_aead_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -6138,8 +6138,8 @@ static void spdm_test_negotiate_algorithms_illegal_aead_algo (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_no_common_aead_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -6264,7 +6264,7 @@ static void spdm_test_negotiate_algorithms_no_common_aead_algo (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_illegal_req_asym_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -6344,8 +6344,8 @@ static void spdm_test_negotiate_algorithms_illegal_req_asym_algo (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_no_common_req_asym_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -6470,7 +6470,7 @@ static void spdm_test_negotiate_algorithms_no_common_req_asym_algo (CuTest *test
 
 static void spdm_test_negotiate_algorithms_illegal_key_schedule_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -6550,8 +6550,8 @@ static void spdm_test_negotiate_algorithms_illegal_key_schedule_algo (CuTest *te
 
 static void spdm_test_negotiate_algorithms_no_common_key_schedule_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -6675,8 +6675,8 @@ static void spdm_test_negotiate_algorithms_no_common_key_schedule_algo (CuTest *
 
 static void spdm_test_negotiate_algorithms_unsupported_measurement_spec (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -6795,8 +6795,8 @@ static void spdm_test_negotiate_algorithms_unsupported_measurement_spec (CuTest 
 
 static void spdm_test_negotiate_algorithms_unsupported_measurement_spec_hash_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -6916,8 +6916,8 @@ static void spdm_test_negotiate_algorithms_unsupported_measurement_spec_hash_alg
 
 static void spdm_test_negotiate_algorithms_no_local_measurement_capability (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -7038,8 +7038,8 @@ static void spdm_test_negotiate_algorithms_no_local_measurement_capability (CuTe
 
 static void spdm_test_negotiate_algorithms_unsupported_base_hash_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -7153,8 +7153,8 @@ static void spdm_test_negotiate_algorithms_unsupported_base_hash_algo (CuTest *t
 
 static void spdm_test_negotiate_algorithms_unsupported_base_asym_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -7273,7 +7273,7 @@ static void spdm_test_negotiate_algorithms_unsupported_base_asym_algo (CuTest *t
 
 static void spdm_test_negotiate_algorithms_append_request_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -7370,7 +7370,7 @@ static void spdm_test_negotiate_algorithms_append_request_fail (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_append_response_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -7473,7 +7473,7 @@ static void spdm_test_negotiate_algorithms_append_response_fail (CuTest *test)
 
 static void spdm_test_negotiate_algorithms_set_hash_algo_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_algorithm_request *algstruct_table;
@@ -7782,7 +7782,7 @@ static void spdm_test_process_negotiate_algorithms_response_bad_length (CuTest *
 
 static void spdm_test_get_digests_sha256 (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request rq = {0};
@@ -7899,7 +7899,7 @@ static void spdm_test_get_digests_sha256 (CuTest *test)
 
 static void spdm_test_get_digests_sha384 (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request rq = {0};
@@ -8016,7 +8016,7 @@ static void spdm_test_get_digests_sha384 (CuTest *test)
 
 static void spdm_test_get_digests_sha512 (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request rq = {0};
@@ -8133,7 +8133,7 @@ static void spdm_test_get_digests_sha512 (CuTest *test)
 
 static void spdm_test_get_digests_no_root_and_intermediate_certs (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request rq = {0};
@@ -8261,7 +8261,7 @@ static void spdm_test_get_digests_no_root_and_intermediate_certs (CuTest *test)
 
 static void spdm_test_get_digests_no_intermediate_cert (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request rq = {0};
@@ -8399,7 +8399,7 @@ static void spdm_test_get_digests_null (CuTest *test)
 
 static void spdm_test_get_digests_request_size_invalid (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct cmd_interface_msg msg;
 	int status;
@@ -8434,7 +8434,7 @@ static void spdm_test_get_digests_request_size_invalid (CuTest *test)
 
 static void spdm_test_get_digests_incorrect_negotiated_version (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct cmd_interface_msg msg;
 	int status;
@@ -8492,7 +8492,7 @@ static void spdm_test_get_digests_incorrect_negotiated_version (CuTest *test)
 
 static void spdm_test_get_digests_incorrect_response_state (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -8583,7 +8583,7 @@ static void spdm_test_get_digests_incorrect_response_state (CuTest *test)
 
 static void spdm_test_get_digests_incorrect_connection_state (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -8627,7 +8627,7 @@ static void spdm_test_get_digests_incorrect_connection_state (CuTest *test)
 
 static void spdm_test_get_digests_no_cert_capability (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -8674,7 +8674,7 @@ static void spdm_test_get_digests_no_cert_capability (CuTest *test)
 
 static void spdm_test_get_digests_device_cert_null (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -8731,7 +8731,7 @@ static void spdm_test_get_digests_device_cert_null (CuTest *test)
 
 static void spdm_test_get_digests_device_cert_zero_length (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -8788,7 +8788,7 @@ static void spdm_test_get_digests_device_cert_zero_length (CuTest *test)
 
 static void spdm_test_get_digests_alias_cert_null (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -8845,7 +8845,7 @@ static void spdm_test_get_digests_alias_cert_null (CuTest *test)
 
 static void spdm_test_get_digests_alias_cert_zero_length (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -8902,7 +8902,7 @@ static void spdm_test_get_digests_alias_cert_zero_length (CuTest *test)
 
 static void spdm_test_get_digests_unsuported_hash_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -8959,7 +8959,7 @@ static void spdm_test_get_digests_unsuported_hash_algo (CuTest *test)
 
 static void spdm_test_get_digests_add_request_to_transcript_hash_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -9022,7 +9022,7 @@ static void spdm_test_get_digests_add_request_to_transcript_hash_fail (CuTest *t
 
 static void spdm_test_get_digests_response_gt_max_response_size (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -9086,7 +9086,7 @@ static void spdm_test_get_digests_response_gt_max_response_size (CuTest *test)
 
 static void spdm_test_get_digests_generate_root_cert_hash_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -9155,7 +9155,7 @@ static void spdm_test_get_digests_generate_root_cert_hash_fail (CuTest *test)
 
 static void spdm_test_get_digests_cert_chain_start_hash_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -9227,7 +9227,7 @@ static void spdm_test_get_digests_cert_chain_start_hash_fail (CuTest *test)
 
 static void spdm_test_get_digests_cert_chain_update_header_hash_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -9307,7 +9307,7 @@ static void spdm_test_get_digests_cert_chain_update_header_hash_fail (CuTest *te
 
 static void spdm_test_get_digests_cert_chain_update_cert_hash_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -9392,7 +9392,7 @@ static void spdm_test_get_digests_cert_chain_update_cert_hash_fail (CuTest *test
 
 static void spdm_test_get_digests_cert_chain_finish_hash_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -9484,7 +9484,7 @@ static void spdm_test_get_digests_cert_chain_finish_hash_fail (CuTest *test)
 
 static void spdm_test_get_digests_add_response_to_transcript_hash_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
@@ -9690,7 +9690,7 @@ static void spdm_test_process_get_digests_response_bad_length (CuTest *test)
 
 static void spdm_test_get_certificate_sha256 (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -9814,7 +9814,7 @@ static void spdm_test_get_certificate_sha256 (CuTest *test)
 
 static void spdm_test_get_certificate_sha384 (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -9938,7 +9938,7 @@ static void spdm_test_get_certificate_sha384 (CuTest *test)
 
 static void spdm_test_get_certificate_sha512 (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -10062,8 +10062,8 @@ static void spdm_test_get_certificate_sha512 (CuTest *test)
 
 static void spdm_test_get_certificate_max_response_lt_cert_chain_length (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t buf2[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -10259,8 +10259,8 @@ static void spdm_test_get_certificate_max_response_lt_cert_chain_length (CuTest 
 
 static void spdm_test_get_certificate_request_split_at_root_cert_hash (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t buf2[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -10466,8 +10466,8 @@ static void spdm_test_get_certificate_request_split_at_root_cert_hash (CuTest *t
 
 static void spdm_test_get_certificate_request_split_at_root_cert (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t buf2[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -10666,8 +10666,8 @@ static void spdm_test_get_certificate_request_split_at_root_cert (CuTest *test)
 
 static void spdm_test_get_certificate_request_split_at_intermediate_cert (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t buf2[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -10866,8 +10866,8 @@ static void spdm_test_get_certificate_request_split_at_intermediate_cert (CuTest
 
 static void spdm_test_get_certificate_request_split_at_device_cert (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t buf2[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -11068,8 +11068,8 @@ static void spdm_test_get_certificate_request_split_at_device_cert (CuTest *test
 
 static void spdm_test_get_certificate_request_split_at_alias_cert (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t buf2[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t buf2[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -11271,7 +11271,7 @@ static void spdm_test_get_certificate_request_split_at_alias_cert (CuTest *test)
 
 static void spdm_test_get_certificate_no_root_and_intermediate_certs (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -11392,7 +11392,7 @@ static void spdm_test_get_certificate_no_root_and_intermediate_certs (CuTest *te
 
 static void spdm_test_get_certificate_no_intermediate_cert (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -11534,7 +11534,7 @@ static void spdm_test_get_certificate_null (CuTest *test)
 
 static void spdm_test_get_certificate_request_size_invalid (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct cmd_interface_msg msg;
 	int status;
@@ -11569,7 +11569,7 @@ static void spdm_test_get_certificate_request_size_invalid (CuTest *test)
 
 static void spdm_test_get_certificate_incorrect_negotiated_version (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct cmd_interface_msg msg;
 	int status;
@@ -11631,7 +11631,7 @@ static void spdm_test_get_certificate_incorrect_negotiated_version (CuTest *test
 
 static void spdm_test_get_certificate_incorrect_response_state (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -11717,7 +11717,7 @@ static void spdm_test_get_certificate_incorrect_response_state (CuTest *test)
 
 static void spdm_test_get_certificate_incorrect_connection_state (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -11761,7 +11761,7 @@ static void spdm_test_get_certificate_incorrect_connection_state (CuTest *test)
 
 static void spdm_test_get_certificate_no_cert_capability (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -11805,7 +11805,7 @@ static void spdm_test_get_certificate_no_cert_capability (CuTest *test)
 
 static void spdm_test_get_certificate_unsupported_slot_num (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -11850,7 +11850,7 @@ static void spdm_test_get_certificate_unsupported_slot_num (CuTest *test)
 
 static void spdm_test_get_certificate_device_cert_null (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -11896,7 +11896,7 @@ static void spdm_test_get_certificate_device_cert_null (CuTest *test)
 
 static void spdm_test_get_certificate_device_cert_zero_length (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -11942,7 +11942,7 @@ static void spdm_test_get_certificate_device_cert_zero_length (CuTest *test)
 
 static void spdm_test_get_certificate_alias_cert_null (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -11988,7 +11988,7 @@ static void spdm_test_get_certificate_alias_cert_null (CuTest *test)
 
 static void spdm_test_get_certificate_alias_cert_zero_length (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -12034,7 +12034,7 @@ static void spdm_test_get_certificate_alias_cert_zero_length (CuTest *test)
 
 static void spdm_test_get_certificate_unsuported_hash_algo (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -12080,7 +12080,7 @@ static void spdm_test_get_certificate_unsuported_hash_algo (CuTest *test)
 
 static void spdm_test_get_certificate_invalid_offset (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -12131,7 +12131,7 @@ static void spdm_test_get_certificate_invalid_offset (CuTest *test)
 
 static void spdm_test_get_certificate_add_request_to_transcript_hash_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -12193,7 +12193,7 @@ static void spdm_test_get_certificate_add_request_to_transcript_hash_fail (CuTes
 
 static void spdm_test_get_certificate_root_cert_hash_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
@@ -12260,7 +12260,7 @@ static void spdm_test_get_certificate_root_cert_hash_fail (CuTest *test)
 
 static void spdm_test_get_certificate_add_response_to_transcript_hash_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;

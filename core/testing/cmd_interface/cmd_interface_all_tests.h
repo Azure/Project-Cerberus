@@ -159,12 +159,6 @@ static void add_all_cmd_interface_tests (CuSuite *suite)
 	!defined TESTING_SKIP_SESSION_MANAGER_ECC_SUITE
 	TESTING_RUN_SUITE (session_manager_ecc);
 #endif
-#if (defined TESTING_RUN_SPDM_COMMANDS_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_SPDM_COMMANDS_SUITE
-	TESTING_RUN_SUITE (spdm_commands);
-#endif
 }
 
 

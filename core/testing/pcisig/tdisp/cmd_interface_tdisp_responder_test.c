@@ -58,9 +58,8 @@ static void cmd_interface_tdisp_responder_testing_release_dependencies (CuTest *
 	int status;
 
 	status = tdisp_driver_interface_mock_validate_and_release (&testing->tdisp_driver_mock);
-	CuAssertIntEquals (test, 0, status);
+	status |= rng_mock_validate_and_release (&testing->rng_mock);
 
-	status = rng_mock_validate_and_release (&testing->rng_mock);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -110,7 +109,7 @@ static void cmd_interface_tdisp_responder_test_static_init (CuTest *test)
 	struct cmd_interface_tdisp_responder_testing testing;
 	int status;
 	const struct cmd_interface_tdisp_responder tdisp_responder =
-		cmd_interface_tdisp_responder_static_init (&testing.tdisp_state, 
+		cmd_interface_tdisp_responder_static_init (&testing.tdisp_state,
 		&testing.tdisp_driver_mock.base, testing.version_num, TDISP_SUPPORTED_VERSION_MAX_COUNT,
 		&testing.rng_mock.base);
 
@@ -367,7 +366,7 @@ static void cmd_interface_tdisp_responder_test_process_request_get_capabilities 
 
 static void cmd_interface_tdisp_responder_test_process_request_lock_interface (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct tdisp_lock_interface_request *rq = (struct tdisp_lock_interface_request*) buf;
 	struct tdisp_lock_interface_request rq_copy;
 	struct tdisp_lock_interface_response *resp = (struct tdisp_lock_interface_response*) buf;
@@ -416,7 +415,7 @@ static void cmd_interface_tdisp_responder_test_process_request_lock_interface (C
 	memcpy (&rq_copy, rq, sizeof (rq_copy));
 	status |= mock_expect (&testing.tdisp_driver_mock.mock,
 		testing.tdisp_driver_mock.base.lock_interface_request, &testing.tdisp_driver_mock, 0,
-		MOCK_ARG(function_id), MOCK_ARG_PTR_CONTAINS (&rq_copy.lock_interface_param,
+		MOCK_ARG (function_id), MOCK_ARG_PTR_CONTAINS (&rq_copy.lock_interface_param,
 		sizeof (struct tdisp_lock_interface_param)));
 
 	CuAssertIntEquals (test, 0, status);

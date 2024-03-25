@@ -117,8 +117,8 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 	testing->local_capabilities.flags.pub_key_id_cap = 0;
 	testing->local_capabilities.flags.chunk_cap = 0;
 	testing->local_capabilities.flags.alias_cert_cap = 0;
-	testing->local_capabilities.data_transfer_size = DOE_MESSAGE_MAX_SIZE_IN_BYTES;
-	testing->local_capabilities.max_spdm_msg_size = DOE_MESSAGE_MAX_SIZE_IN_BYTES;
+	testing->local_capabilities.data_transfer_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	testing->local_capabilities.max_spdm_msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	testing->local_capabilities.flags.reserved = 0;
 	testing->local_capabilities.flags.reserved2 = 0;
 
@@ -126,11 +126,15 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 	memset (&testing->local_algorithms, 0, sizeof (testing->local_algorithms));
 	testing->local_algorithms.device_algorithms.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
 	testing->local_algorithms.device_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
-	testing->local_algorithms.device_algorithms.measurement_hash_algo = SPDM_MEAS_RSP_TPM_ALG_SHA_384;
+	testing->local_algorithms.device_algorithms.measurement_hash_algo =
+		SPDM_MEAS_RSP_TPM_ALG_SHA_384;
 	testing->local_algorithms.device_algorithms.measurement_spec = SPDM_MEASUREMENT_SPEC_DMTF;
-	testing->local_algorithms.device_algorithms.aead_cipher_suite = SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM;
-	testing->local_algorithms.device_algorithms.dhe_named_group = SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
-	testing->local_algorithms.device_algorithms.req_base_asym_alg = SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
+	testing->local_algorithms.device_algorithms.aead_cipher_suite =
+		SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM;
+	testing->local_algorithms.device_algorithms.dhe_named_group =
+		SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1;
+	testing->local_algorithms.device_algorithms.req_base_asym_alg =
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384;
 	testing->local_algorithms.device_algorithms.key_schedule = SPDM_ALG_KEY_SCHEDULE_HMAC_HASH;
 	testing->local_algorithms.device_algorithms.other_params_support.opaque_data_format =
 		SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1;
@@ -445,7 +449,8 @@ static void cmd_interface_spdm_responder_test_static_init_ct_exponent_gt_max (Cu
 	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
 
-static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_lt_min_size (CuTest *test)
+static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_lt_min_size (
+	CuTest *test)
 {
 	int status;
 	struct cmd_interface_spdm_responder_testing testing;
@@ -470,7 +475,8 @@ static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_lt_
 	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
 
-static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_gt_max_size (CuTest *test)
+static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_gt_max_size (
+	CuTest *test)
 {
 	int status;
 	struct cmd_interface_spdm_responder_testing testing;
@@ -496,7 +502,8 @@ static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_gt_
 	cmd_interface_spdm_responder_testing_release_dependencies(test, &testing);
 }
 
-static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_ne_max_size (CuTest *test)
+static void cmd_interface_spdm_responder_test_static_init_data_transfer_size_ne_max_size (
+	CuTest *test)
 {
 	int status;
 	struct cmd_interface_spdm_responder_testing testing;
@@ -728,8 +735,8 @@ static void cmd_interface_spdm_responder_test_init_data_transfer_size_ne_max_siz
 
 static void cmd_interface_spdm_responder_test_process_request_get_version (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
-	uint8_t expected_buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	uint8_t expected_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_version_request rq = {0};
 	struct spdm_get_version_response *resp = (struct spdm_get_version_response*) buf;
 	struct spdm_get_version_response *expected_rsp =
@@ -815,7 +822,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_version (CuTes
 
 static void cmd_interface_spdm_responder_test_process_request_get_version_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
 	struct cmd_interface_msg request;
 	int status;
@@ -854,7 +861,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_version_fail (
 
 static void cmd_interface_spdm_responder_test_process_request_get_capabilities (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct spdm_get_capabilities rq = {0};
 	struct spdm_get_capabilities *resp = (struct spdm_get_capabilities*) buf;
@@ -939,7 +946,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_capabilities (
 
 static void cmd_interface_spdm_responder_test_process_request_get_capabilities_fail (CuTest *test)
 {
-uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	struct spdm_get_capabilities rq = {0};
 	int status;
@@ -988,13 +995,13 @@ uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 
 static void cmd_interface_spdm_responder_test_process_request_negotiate_algorithms (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
-	uint8_t rq_copy[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_negotiate_algorithms_request *rq =
 		(struct spdm_negotiate_algorithms_request*) buf;
 	struct spdm_negotiate_algorithms_response *rsp =
 		(struct spdm_negotiate_algorithms_response*) buf;
-	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg = 
+	struct spdm_negotiate_algorithms_response_no_ext_alg *resp_no_ext_alg =
 		(struct spdm_negotiate_algorithms_response_no_ext_alg*) rsp;
 	struct spdm_algorithm_request *algstruct_table;
 	struct cmd_interface_msg request;
@@ -1028,7 +1035,7 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 	rq->reserved = 0;
 	rq->length = req_length;
 	rq->measurement_specification = local_algorithms->device_algorithms.measurement_spec;
-	rq->other_params_support.opaque_data_format = 
+	rq->other_params_support.opaque_data_format =
 		local_algorithms->device_algorithms.other_params_support.opaque_data_format;
 	rq->base_asym_algo = local_algorithms->device_algorithms.base_asym_algo;
 	rq->base_hash_algo = local_algorithms->device_algorithms.base_hash_algo;
@@ -1104,18 +1111,23 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 	CuAssertIntEquals (test, 0, rsp->reserved);
 	CuAssertIntEquals (test, sizeof (struct spdm_negotiate_algorithms_response_no_ext_alg),
 		rsp->length);
-	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec, rsp->measurement_specification);
-	CuAssertIntEquals (test, local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
+		rsp->measurement_specification);
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
 		rsp->other_params_selection.opaque_data_format);
-	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_hash_algo, rsp->measurement_hash_algo);
-	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_asym_algo, rsp->base_asym_sel);
-	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_hash_algo, rsp->base_hash_sel);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_hash_algo,
+		rsp->measurement_hash_algo);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_asym_algo,
+		rsp->base_asym_sel);
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.base_hash_algo,
+		rsp->base_hash_sel);
 
 	CuAssertIntEquals (test, 0, rsp->ext_asym_sel_count);
 	CuAssertIntEquals (test, 0, rsp->ext_hash_sel_count);
 	CuAssertIntEquals (test, 0, rsp->reserved4);
 
-	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE, 
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_DHE,
 		resp_no_ext_alg->algstruct_table[0].alg_type);
 	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[0].fixed_alg_count);
 	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[0].ext_alg_count);
@@ -1138,9 +1150,9 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 
 	CuAssertIntEquals (test, 2, resp_no_ext_alg->algstruct_table[3].fixed_alg_count);
 	CuAssertIntEquals (test, 0, resp_no_ext_alg->algstruct_table[3].ext_alg_count);
-	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE, 
+	CuAssertIntEquals (test, SPDM_ALG_REQ_STRUCT_ALG_TYPE_KEY_SCHEDULE,
 		resp_no_ext_alg->algstruct_table[3].alg_type);
-	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule, 
+	CuAssertIntEquals (test, local_algorithms->device_algorithms.key_schedule,
 		resp_no_ext_alg->algstruct_table[3].alg_supported) ;
 
 	CuAssertIntEquals (test, local_algorithms->device_algorithms.aead_cipher_suite,
@@ -1157,7 +1169,8 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 		spdm_state->connection_info.peer_algorithms.measurement_hash_algo);
 	CuAssertIntEquals (test, local_algorithms->device_algorithms.measurement_spec,
 		spdm_state->connection_info.peer_algorithms.measurement_spec);
-	CuAssertIntEquals (test, local_algorithms->device_algorithms.other_params_support.opaque_data_format,
+	CuAssertIntEquals (test,
+		local_algorithms->device_algorithms.other_params_support.opaque_data_format,
 		spdm_state->connection_info.peer_algorithms.other_params_support.opaque_data_format);
 	CuAssertIntEquals (test, local_algorithms->device_algorithms.req_base_asym_alg,
 		spdm_state->connection_info.peer_algorithms.req_base_asym_alg);
@@ -1165,9 +1178,10 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 	cmd_interface_spdm_responder_testing_release (test, &testing);
 }
 
-static void cmd_interface_spdm_responder_test_process_request_negotiate_algorithms_fail (CuTest *test)
+static void cmd_interface_spdm_responder_test_process_request_negotiate_algorithms_fail (
+	CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	int status;
 	struct spdm_negotiate_algorithms_request *rq =
@@ -1213,7 +1227,7 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 
 static void cmd_interface_spdm_responder_test_process_request_get_digests (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	int status;
 	struct spdm_get_digests_request rq = {0};
@@ -1334,7 +1348,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests (CuTes
 
 static void cmd_interface_spdm_responder_test_process_request_get_digests_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_digests_request *rq = (struct spdm_get_digests_request*) buf;
 	struct cmd_interface_msg request;
 	int status;
@@ -1371,7 +1385,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests_fail (
 
 static void cmd_interface_spdm_responder_test_process_request_get_certificate (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg request;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
@@ -1441,7 +1455,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 		testing.transcript_manager_mock.base.update,
 		&testing.transcript_manager_mock.base, 0,
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
-		MOCK_ARG_PTR_CONTAINS (rsp, 
+		MOCK_ARG_PTR_CONTAINS (rsp,
 			(cert_chain_length + sizeof (struct spdm_get_certificate_response))),
 		MOCK_ARG (cert_chain_length + sizeof (struct spdm_get_certificate_response)),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
@@ -1497,7 +1511,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 
 static void cmd_interface_spdm_responder_test_process_request_get_certificate_fail (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
 	struct cmd_interface_msg request;
 	int status;
@@ -1561,7 +1575,7 @@ static void cmd_interface_spdm_responder_test_process_request_invalid_arg (CuTes
 static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_short_payload (
 	CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
 	struct cmd_interface_msg request;
 	int status;
@@ -1587,7 +1601,7 @@ static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_i
 static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_unsupported_major_version (
 	CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
 	struct cmd_interface_msg request;
 	int status;
@@ -1619,7 +1633,7 @@ static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_i
 static void cmd_interface_spdm_responder_test_process_request_unsupported_request_code (
 	CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
 	struct spdm_get_version_request *rq = (struct spdm_get_version_request*) buf;
 	struct cmd_interface_msg request;
 	int status;

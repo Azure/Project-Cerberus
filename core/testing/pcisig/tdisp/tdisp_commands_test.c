@@ -736,7 +736,7 @@ static void tdisp_commands_test_get_version (CuTest *test)
 		ARRAY_SIZE (testing.version_num), &msg);
 
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct tdisp_version_response) + 
+	CuAssertIntEquals (test, sizeof (struct tdisp_version_response) +
 		ARRAY_SIZE (testing.version_num), msg.length);
 	CuAssertIntEquals (test, msg.length, msg.payload_length);
 	CuAssertPtrEquals (test, buf, msg.data);
@@ -780,7 +780,7 @@ static void tdisp_commands_test_get_version_multiple_query (CuTest *test)
 		ARRAY_SIZE (testing.version_num), &msg);
 
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct tdisp_version_response) + 
+	CuAssertIntEquals (test, sizeof (struct tdisp_version_response) +
 		ARRAY_SIZE (testing.version_num), msg.length);
 	CuAssertIntEquals (test, msg.length, msg.payload_length);
 	CuAssertPtrEquals (test, buf, msg.data);
@@ -852,7 +852,7 @@ static void tdisp_commands_test_get_version_max_interface_count (CuTest *test)
 			ARRAY_SIZE (testing.version_num), &msg);
 
 		CuAssertIntEquals (test, 0, status);
-		CuAssertIntEquals (test, sizeof (struct tdisp_version_response) + 
+		CuAssertIntEquals (test, sizeof (struct tdisp_version_response) +
 			ARRAY_SIZE (testing.version_num), msg.length);
 		CuAssertIntEquals (test, msg.length, msg.payload_length);
 		CuAssertPtrEquals (test, buf, msg.data);
@@ -865,7 +865,7 @@ static void tdisp_commands_test_get_version_max_interface_count (CuTest *test)
 		CuAssertIntEquals (test, 0, memcmp (resp + 1, testing.version_num,
 			sizeof (testing.version_num)));
 	}
-	
+
 	tdisp_commands_testing_release_dependencies (test, &testing);
 }
 
@@ -996,7 +996,7 @@ static void tdisp_commands_test_get_version_insufficient_output_buffer (CuTest *
 	msg.max_response = sizeof (buf);
 	msg.payload_length = sizeof (struct tdisp_get_version_request);
 	msg.length = msg.payload_length;
-	msg.max_response = ARRAY_SIZE (testing.version_num) * sizeof (uint8_t) + 
+	msg.max_response = ARRAY_SIZE (testing.version_num) * sizeof (uint8_t) +
 		sizeof (struct tdisp_version_response) - 1;
 
 	rq->header.version = TDISP_CURRENT_VERSION;
@@ -1383,7 +1383,7 @@ static void tdisp_commands_test_get_capabilities_fail (CuTest *test)
 
 static void tdisp_commands_test_lock_interface (CuTest *test)
 {
-	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES] = {0};
 	struct tdisp_lock_interface_request *rq = (struct tdisp_lock_interface_request*) buf;
 	struct tdisp_lock_interface_request rq_copy;
 	struct tdisp_lock_interface_response *resp = (struct tdisp_lock_interface_response*) buf;
