@@ -377,7 +377,7 @@ static enum hash_type spdm_get_hash_type (uint32_t hash_algo)
  * @param req_rsp_code The SPDM request/response code.
  */
 static void spdm_reset_transcript_via_request_code (struct spdm_state *state,
-	struct spdm_transcript_manager *transcript_manager,	uint8_t req_rsp_code)
+	const struct spdm_transcript_manager *transcript_manager, uint8_t req_rsp_code)
 {
 	/* Any requests other than SPDM_GET_MEASUREMENTS resets L1/L2 */
 	if (req_rsp_code != SPDM_REQUEST_GET_MEASUREMENTS) {
@@ -385,8 +385,7 @@ static void spdm_reset_transcript_via_request_code (struct spdm_state *state,
 			false, SPDM_MAX_SESSION_COUNT);
 	}
 
-	/**
-	 * If the Requester issued GET_MEASUREMENTS or KEY_EXCHANGE or FINISH or PSK_EXCHANGE
+	/* If the Requester issued GET_MEASUREMENTS or KEY_EXCHANGE or FINISH or PSK_EXCHANGE
 	 * or PSK_FINISH or KEY_UPDATE or HEARTBEAT or GET_ENCAPSULATED_REQUEST or
 	 * DELIVER_ENCAPSULATED_RESPONSE or END_SESSION request(s) and skipped CHALLENGE completion,
 	 * M1 and M2 are reset to null. */
@@ -491,7 +490,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	int status;
 	struct spdm_get_version_request *rq;
 	struct spdm_get_version_response *rsp;
-	struct spdm_transcript_manager *transcript_manager;
+	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
@@ -653,7 +652,7 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	int status;
 	uint8_t spdm_version;
 	size_t req_resp_size;
-	struct spdm_transcript_manager *transcript_manager;
+	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
 
@@ -1128,7 +1127,7 @@ int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_r
 	uint8_t alg_type_pre;
 	uint16_t ext_alg_total_count = 0;
 	size_t request_size;
-	struct spdm_transcript_manager *transcript_manager;
+	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
 	const struct spdm_local_device_algorithms *local_algorithms;
@@ -1404,7 +1403,7 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	uint8_t cert_count;
 	struct spdm_cert_chain cert_chain;
 	uint32_t cert_chain_length;
-	struct spdm_transcript_manager *transcript_manager;
+	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
 	struct riot_key_manager *key_manager;
@@ -1672,7 +1671,7 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	uint8_t i_cert;
 	uint32_t max_cert_block_len;
 	struct spdm_cert_chain_header *cert_chain_header;
-	struct spdm_transcript_manager *transcript_manager;
+	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
 	struct riot_key_manager *key_manager;
@@ -1788,7 +1787,7 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	}
 
 	/* Compute the maximum cert block that can be sent. */
-	max_cert_block_len = cmd_interface_msg_get_max_response (request) - 
+	max_cert_block_len = cmd_interface_msg_get_max_response (request) -
 		sizeof (struct spdm_get_certificate_response);
 
 	/* If chunking capability is not supported, adjust the requested cert chain length. */

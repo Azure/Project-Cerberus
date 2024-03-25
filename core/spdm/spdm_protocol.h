@@ -16,8 +16,8 @@
 /**
  * Maximum amount of payload data that can be carried in an SPDM message over MCTP.
  */
-#define SPDM_PROTOCOL_MAX_MCTP_PAYLOAD_PER_MSG		(MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - \
-	(sized (spdm_protocol_mctp_header) + SPDM_PROTOCOL_MIN_MSG_LEN))
+#define SPDM_PROTOCOL_MAX_MCTP_PAYLOAD_PER_MSG		\
+	(MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - (sizeof (struct mctp_base_protocol_message_header)))
 
 #define SPDM_NONCE_LEN								32
 
@@ -64,6 +64,10 @@
 #pragma pack(push, 1)
 /**
  * Header that is added to SPDM messages when using the MCTP binding.
+ *
+ * TODO:  This shouldn't be needed anymore, replaced with mctp_base_protocol_message_header and new
+ * message handling (for both request and response messages).  See if it can be removed to avoid
+ * duplication.
  */
 struct spdm_protocol_mctp_header {
 	uint8_t msg_type:7;				/**< Identifier for the type of message. */

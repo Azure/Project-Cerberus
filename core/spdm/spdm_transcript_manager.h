@@ -21,6 +21,8 @@
 /**
  * Maximum number of SPDM sessions supported.
  * [TODO] Move this to spdm_commands.h in the connection object change.
+ * [TODO] Ideally this would go away entirely, along with statically-sized arrays, and rely entirely
+ * on input parameters provided during initialization.
  */
 #ifndef SPDM_MAX_SESSION_COUNT
 #define SPDM_MAX_SESSION_COUNT	1

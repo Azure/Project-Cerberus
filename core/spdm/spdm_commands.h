@@ -333,7 +333,7 @@ struct spdm_algorithm_request {
 
 /**
  * Get the next algorithm struct table entry.
- * 
+ *
  * @param curr_alg_struct_table_entry Current algorithm struct table entry.
 */
 #define spdm_negotiate_algorithms_get_next_alg_struct_table_entry(curr_alg_struct_table_entry) ( \
@@ -369,7 +369,7 @@ struct spdm_algorithm_request {
 
 /**
  * Get the expected extended algorithm structure total size.
- * 
+ *
  * @param algstruct_table Algorithm structure table.
  */
 #define spdm_negotiate_algorithms_expected_extended_algo_size(algstruct_table) ( \
@@ -377,7 +377,7 @@ struct spdm_algorithm_request {
 
 /**
  * Get the actual extended algorithm structure total size.
- * 
+ *
  * @param rq Buffer containing extended algorithm structure
  * @param algstruct_table Algorithm structure table.
  */
@@ -458,7 +458,7 @@ struct spdm_negotiate_algorithms_response_no_ext_alg {
 
 /**
  * Get the negotiate algorithm response size. This is based on the negotiate algorithms request.
- * 
+ *
  * @param req Buffer containing the negotiate algorithms request.
  */
 #define spdm_negotiate_algorithms_rsp_size(req) ( \
@@ -1046,22 +1046,22 @@ struct spdm_device_algorithms {
  * SPDM local device algorithms priority tables.
  */
 struct spdm_local_device_algorithms_priority_table {
-	uint32_t *hash_priority_table;						/**< Hash algorithms priority table. */
-	uint32_t *asym_priority_table;						/**< Asymmetric key signature algorithms priority table. */
-	uint32_t *req_asym_priority_table;					/**< Requested asymmetric key signature algorithms priority table. */
-	uint32_t *dhe_priority_table;						/**< DHE named groups priority table. */
-	uint32_t *aead_priority_table;						/**< AEAD cipher suites priority table. */
-	uint32_t *key_schedule_priority_table;				/**< Key schedule priority table. */
-	uint32_t *measurement_spec_priority_table;			/**< Measurement specification priority table. */
-	uint32_t *other_params_support_priority_table;		/**< Other params support priority table. */
-	uint8_t hash_priority_table_count;					/**< Number of hash algorithms in priority table. */
-	uint8_t asym_priority_table_count;					/**< Number of asymmetric key signature algorithms in priority table. */
-	uint8_t req_asym_priority_table_count;				/**< Number of requested asymmetric key signature algorithms in priority table. */
-	uint8_t dhe_priority_table_count;					/**< Number of DHE named groups in priority table. */
-	uint8_t aead_priority_table_count;					/**< Number of AEAD cipher suites in priority table. */
-	uint8_t key_schedule_priority_table_count;			/**< Number of key schedules in priority table. */
-	uint8_t measurement_spec_priority_table_count;		/**< Number of measurement specifications in priority table. */
-	uint8_t other_params_support_priority_table_count;	/**< Number of other params support in priority table. */
+	const uint32_t *hash_priority_table;					/**< Hash algorithms priority table. */
+	const uint32_t *asym_priority_table;					/**< Asymmetric key signature algorithms priority table. */
+	const uint32_t *req_asym_priority_table;				/**< Requested asymmetric key signature algorithms priority table. */
+	const uint32_t *dhe_priority_table;						/**< DHE named groups priority table. */
+	const uint32_t *aead_priority_table;					/**< AEAD cipher suites priority table. */
+	const uint32_t *key_schedule_priority_table;			/**< Key schedule priority table. */
+	const uint32_t *measurement_spec_priority_table;		/**< Measurement specification priority table. */
+	const uint32_t *other_params_support_priority_table;	/**< Other params support priority table. */
+	uint8_t hash_priority_table_count;						/**< Number of hash algorithms in priority table. */
+	uint8_t asym_priority_table_count;						/**< Number of asymmetric key signature algorithms in priority table. */
+	uint8_t req_asym_priority_table_count;					/**< Number of requested asymmetric key signature algorithms in priority table. */
+	uint8_t dhe_priority_table_count;						/**< Number of DHE named groups in priority table. */
+	uint8_t aead_priority_table_count;						/**< Number of AEAD cipher suites in priority table. */
+	uint8_t key_schedule_priority_table_count;				/**< Number of key schedules in priority table. */
+	uint8_t measurement_spec_priority_table_count;			/**< Number of measurement specifications in priority table. */
+	uint8_t other_params_support_priority_table_count;		/**< Number of other params support in priority table. */
 };
 
 /**
@@ -1103,6 +1103,11 @@ struct spdm_state {
 	struct spdm_connection_info connection_info;		/**< Connection info. */
 	enum spdm_response_state response_state; 			/**< Responder response state */
 };
+
+/* TODO:  This is a temporary work-around in the absence of a SPDM connection handler that is
+ * currently represented by the responder cmd_interface.  Delete this as part of connection
+ * refactoring. */
+struct cmd_interface_spdm_responder;
 
 
 int spdm_init_state (struct spdm_state *state);

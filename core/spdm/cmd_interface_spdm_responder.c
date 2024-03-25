@@ -125,7 +125,7 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
  * @return 0 if the SPDM responder instance was initialized successfully or an error code.
  */
 int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm_responder,
-	struct spdm_state *state, struct spdm_transcript_manager *transcript_manager,
+	struct spdm_state *state, const struct spdm_transcript_manager *transcript_manager,
 	struct hash_engine *hash_engine, const struct spdm_version_num_entry *version_num,
 	uint8_t version_num_count, const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
@@ -152,7 +152,7 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	spdm_responder->base.process_request = cmd_interface_spdm_process_request;
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	spdm_responder->base.process_response = cmd_interface_spdm_process_response;
-#endif	
+#endif
 	spdm_responder->base.generate_error_packet = cmd_interface_spdm_generate_error_packet;
 
 	status = cmd_interface_spdm_responder_init_state (spdm_responder);
@@ -173,14 +173,14 @@ exit:
  * @return Maximum supported version.
  */
 static uint8_t cmd_interface_spdm_responder_get_max_supported_version (
-	const struct spdm_version_num_entry *version_num, const uint8_t version_num_count) 
+	const struct spdm_version_num_entry *version_num, const uint8_t version_num_count)
 {
 	uint8_t max_version = 0;
 	uint8_t temp_version;
 	uint8_t i;
 
 	for (i = 0; i < version_num_count; i++) {
-		temp_version = 
+		temp_version =
 			SPDM_MAKE_VERSION (version_num[i].major_version, version_num[i].minor_version);
 		if (temp_version > max_version) {
 			max_version = temp_version;
@@ -203,7 +203,7 @@ static int cmd_interface_spdm_responder_validate_local_capabilities (
 {
 	int status = 0;
 
-	if (spdm_check_request_flag_compatibility (local_capabilities->flags, 
+	if (spdm_check_request_flag_compatibility (local_capabilities->flags,
 			supported_max_version) == false) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INCOMPATIBLE_CAPABILITIES;
 		goto exit;
