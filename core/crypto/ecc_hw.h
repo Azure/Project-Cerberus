@@ -125,6 +125,8 @@ enum {
 	ECC_HW_PUBLIC_WRONG_LENGTH = ECC_HW_ERROR (0x12),		/**< An ECC public key does not match the private key length. */
 	ECC_HW_SELF_TEST_FAILED = ECC_HW_ERROR (0x13),			/**< A self-test of the ECC HW failed. */
 	ECC_HW_FREE_CHECK_FAILED = ECC_HW_ERROR (0x14),			/**< An error occurred while checking if ECC HW is free. */
+	ECC_HW_MEM_WIPE_FAILED = ECC_HW_ERROR (0x15),			/**< An error occurred while attempting to wipe internal memory for the ECC hardware. */
+	ECC_HW_UNSUPPORTED_OP = ECC_HW_ERROR (0x16),		    /**< The ECC HW does not support this command. */
 
 	/* Error codes >0x80 are reserved for reporting HW status bits. */
 };
