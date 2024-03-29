@@ -143,6 +143,7 @@ enum {
 	ROT_MODULE_MSG_TRANSPORT = 0x0083,					/**< Handler for issuing remote requests. */
 	ROT_MODULE_CMD_INTERFACE_TDISP_RESPONDER = 0x0084,	/**< Handler for TDISP protocol request commands. */
 	ROT_MODULE_TDISP_DRIVER = 0x0085,					/**< Driver interface for programming TDISP registers. */
+	ROT_MODULE_MCTP_NOTIFIER = 0x0086,					/**< MCTP Notifier module. */
 };
 
 
