@@ -125,5 +125,10 @@ struct doe_base_protocol_discovery_response {
 #define DOE_DATA_OBJECT_TYPE(msg) \
 	(((struct doe_base_protocol_transport_header*) msg)->data_object_type)
 
+/**
+ * Maximum amount of payload data that can be carried over DOE.
+ */
+#define DOE_MESSAGE_MAX_PAYLOAD_SIZE_IN_BYTES \
+	(DOE_MESSAGE_MAX_SIZE_IN_BYTES - (sizeof (struct doe_base_protocol_transport_header)))
 
 #endif /* DOE_BASE_PROTOCOL_H_ */
