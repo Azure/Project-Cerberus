@@ -73,7 +73,7 @@ enum {
 	MCTP_NOTIFIER_FORCE_REGISTER_FAILED = MCTP_NOTIFIER_ERROR (0x03),			/**< Force registration failed. */
 	MCTP_NOTIFIER_DEREGISTER_FAILED = MCTP_NOTIFIER_ERROR (0x04),				/**< Deregistration failed. */
 	MCTP_NOTIFIER_SEND_NOTIFICATION_FAILED = MCTP_NOTIFIER_ERROR (0x05),		/**< Sending notification failed. */
-	MCTP_NOTIFIER_NOTIFICATION_RESP_HDR_INVALID = MCTP_NOTIFIER_ERROR (0x06),	/**< Response payload length invalid. */
+	MCTP_NOTIFIER_NOTIFICATION_RESP_MISMATCH = MCTP_NOTIFIER_ERROR (0x06),		/**< Notification response mismatch. */
 	MCTP_NOTIFIER_MAX_REGISTERED = MCTP_NOTIFIER_ERROR (0x07),					/**< Max number of EID already registered. */
 	MCTP_NOTIFIER_NOT_REGISTERED = MCTP_NOTIFIER_ERROR (0x08),					/**< EID is not registered. */
 	MCTP_NOTIFIER_PAYLOAD_TOO_LARGE = MCTP_NOTIFIER_ERROR (0x09),				/**< Notification payload length too long. */
