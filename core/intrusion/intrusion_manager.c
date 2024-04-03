@@ -15,11 +15,13 @@
  * @param value The value to use for the measurement event data.
  * @param force_data True to force the event data to be changed even if the measurement fails to
  * update.
- *
+ * @param msg_index Identifier code for the log entry message. If msg_index is set to -1,
+ * the debug log will not be created by the function.
+ * 
  * @return 0 if the measurement was successfully updated or an error code.
  */
 int intrusion_manager_update_measurement (struct intrusion_manager *manager, uint8_t value,
-	bool force_data)
+	bool force_data, int msg_index)
 {
 	int status;
 
@@ -29,10 +31,15 @@ int intrusion_manager_update_measurement (struct intrusion_manager *manager, uin
 		manager->event_data.data.value_1byte = value;
 	}
 
+	if (msg_index != -1) {
+		debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
+			DEBUG_LOG_COMPONENT_INTRUSION, msg_index, status, 0);		
+	}
+
 	return status;
 }
 
-static int intrusion_manager_handle_intrusion (struct intrusion_manager *manager)
+int intrusion_manager_handle_intrusion (struct intrusion_manager *manager)
 {
 	int pcr_status;
 	int state_status;
@@ -45,7 +52,8 @@ static int intrusion_manager_handle_intrusion (struct intrusion_manager *manager
 
 	/* On error, the data won't match the measurement, but we want to be sure we aren't falsely
 	 * reporting a healthy state. */
-	pcr_status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_INTRUSION, true);
+	pcr_status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_INTRUSION,
+		true, INTRUSION_LOGGING_INTRUSION_NOTIFICATION);
 
 	state_status = manager->state->set (manager->state);
 
@@ -66,7 +74,7 @@ static int intrusion_manager_reset_intrusion (struct intrusion_manager *manager)
 	status = manager->state->clear (manager->state);
 	if (status == 0) {
 		status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_NO_INTRUSION,
-			false);
+			false, INTRUSION_LOGGING_NO_INTRUSION_NOTIFICATION);
 	}
 
 	platform_mutex_unlock (&manager->lock);
@@ -90,6 +98,7 @@ int intrusion_manager_update_intrusion_state (struct intrusion_manager *manager,
 	int check_status;
 	int pcr_status = 0;
 	bool force_data = true;
+	uint8_t msg_index;
 
 	if (manager == NULL) {
 		return INTRUSION_MANAGER_INVALID_ARGUMENT;
@@ -104,10 +113,12 @@ int intrusion_manager_update_intrusion_state (struct intrusion_manager *manager,
 			/* Only in the case of no intrusion do we want to make event data updating contingent on
 			 * measurement success.  Otherwise, we could be falsely reporting a healthy system. */
 			force_data = false;
+			msg_index = INTRUSION_LOGGING_NO_INTRUSION_NOTIFICATION;
 			break;
 
 		case 1:
 			value = INTRUSION_MANAGER_INTRUSION;
+			msg_index = INTRUSION_LOGGING_INTRUSION_NOTIFICATION;
 			check_status = 0;
 			break;
 
@@ -118,14 +129,16 @@ int intrusion_manager_update_intrusion_state (struct intrusion_manager *manager,
 			}
 
 			value = INTRUSION_MANAGER_UNKNOWN;
+			msg_index = INTRUSION_LOGGING_INTRUSION_UNKNOWN;
 			break;
 
 		default:
 			value = INTRUSION_MANAGER_UNKNOWN;
+			msg_index = INTRUSION_LOGGING_INTRUSION_UNKNOWN;
 			break;
 	}
 
-	pcr_status = intrusion_manager_update_measurement (manager, value, force_data);
+	pcr_status = intrusion_manager_update_measurement (manager, value, force_data, msg_index);
 
 exit:
 	platform_mutex_unlock (&manager->lock);
@@ -179,7 +192,7 @@ int intrusion_manager_init (struct intrusion_manager *manager, struct intrusion_
 		goto error;
 	}
 
-	status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_UNKNOWN, true);
+	status = intrusion_manager_update_measurement (manager, INTRUSION_MANAGER_UNKNOWN, true, -1);
 	if (status != 0) {
 		goto unregister;
 	}

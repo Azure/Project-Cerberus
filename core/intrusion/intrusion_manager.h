@@ -75,9 +75,10 @@ void intrusion_manager_release (struct intrusion_manager *manager);
 
 /* Internal functions for use by derived types. */
 int intrusion_manager_update_measurement (struct intrusion_manager *manager, uint8_t value,
-	bool force_data);
+	bool force_data, int msg_index);
 int intrusion_manager_update_intrusion_state (struct intrusion_manager *manager,
 	bool allow_deferred);
+int intrusion_manager_handle_intrusion (struct intrusion_manager *manager);
 
 
 #define	INTRUSION_MANAGER_ERROR(code)		ROT_ERROR (ROT_MODULE_INTRUSION_MANAGER, code)

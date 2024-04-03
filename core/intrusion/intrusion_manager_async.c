@@ -21,23 +21,19 @@ static int intrusion_manager_async_check_state (struct intrusion_manager *manage
  * @param value The value to use for the measurement event data.
  * @param force_data True to force the event data to be changed even if the measurement fails to
  * update.
- * @param log_entry Id code of the event in the log.
+ * @param msg_index Identifier code for the log entry message.
  */
 static void intrusion_manager_async_update_measurement (struct intrusion_state_observer *observer,
-	uint8_t value, bool force_data, uint8_t log_entry)
+	uint8_t value, bool force_data, uint8_t msg_index)
 {
 	struct intrusion_manager_async *manager =
 		TO_DERIVED_TYPE (observer, struct intrusion_manager_async, base_observer);
-	int status;
 
 	platform_mutex_lock (&manager->base.lock);
 
-	status = intrusion_manager_update_measurement (&manager->base, value, force_data);
+	intrusion_manager_update_measurement (&manager->base, value, force_data, msg_index);
 
 	platform_mutex_unlock (&manager->base.lock);
-
-	debug_log_create_entry ((status == 0) ? DEBUG_LOG_SEVERITY_INFO : DEBUG_LOG_SEVERITY_ERROR,
-		DEBUG_LOG_COMPONENT_INTRUSION, log_entry, status, 0);
 }
 
 static void intrusion_manager_async_on_intrusion (struct intrusion_state_observer *observer)

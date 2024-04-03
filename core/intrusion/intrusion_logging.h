@@ -21,6 +21,8 @@ enum {
 	INTRUSION_LOGGING_CHALLENGE_DATA_FAIL,				/**< Received a challenge data failure response. */
 	INTRUSION_LOGGING_CHALLENGE_DATA_INVALID_HASH_LEN,	/**< Received a challenge data response with an incorrect hash len. */
 	INTRUSION_LOGGING_HW_ERROR,							/**< Intrusion HW error, including register access failure. */
+	INTRUSION_LOGGING_INTRUSION_NOTIFICATION_FAILED,	/**< Intrusion notification failed. */
+	INTRUSION_LOGGING_INTRUSION_UNKNOWN,				/**< The reported intrusion state is unknown. */
 };
 
 
