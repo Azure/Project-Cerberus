@@ -372,6 +372,39 @@ static enum hash_type spdm_get_hash_type (uint32_t hash_algo)
 }
 
 /**
+ * Get the signature size for the signature algorithm.
+ *
+ * @param asym_algo Signature algorithm.
+ *
+ * @return Signature size.
+ * @return Signature size if the algorithm is supported, 0 otherwise.
+ */
+static uint32_t spdm_get_asym_signature_size (uint32_t asym_algo)
+{
+	/* [TODO] Add support for other algorithms. */
+	switch (asym_algo) {
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P384:
+			return (ECC_KEY_LENGTH_384 << 1);
+
+		default:
+			return 0;
+	}
+}
+
+/**
+ * Write a 24-bit value to memory that may be unaligned.
+ *
+ * @param buffer The pointer to a 24-bit value that may be unaligned.
+ * @param value 24-bit value to write to buffer.
+ */
+static void spdm_write_uint24 (uint8_t *buffer, uint32_t value)
+{
+	buffer[0] = (uint8_t)(value & 0xFF);
+	buffer[1] = (uint8_t)((value >> 8) & 0xFF);
+	buffer[2] = (uint8_t)((value >> 16) & 0xFF);
+}
+
+/**
  * Reset transcript(s) in the Transcript Manager according to the request/response code.
  *
  * @param state SPDM state.
@@ -475,6 +508,240 @@ exit:
 		riot_key_manager_release_riot_keys (key_manager, keys);
 	}
 
+	return status;
+}
+
+/**
+ * SPDM signature context as described in Section 15 of the SPDM specification.
+ */
+static const struct spdm_signing_context_str spdm_signing_context_str_table[] = {
+	{
+		.is_requester = false, 
+		.op_code = SPDM_RESPONSE_CHALLENGE,
+		.context = SPDM_CHALLENGE_AUTH_SIGN_CONTEXT,
+		.context_size = SPDM_CHALLENGE_AUTH_SIGN_CONTEXT_SIZE,
+		.zero_pad_size = 36 - SPDM_CHALLENGE_AUTH_SIGN_CONTEXT_SIZE
+	},
+	{
+		.is_requester = true,
+		.op_code = SPDM_RESPONSE_CHALLENGE,
+		.context = SPDM_MUT_CHALLENGE_AUTH_SIGN_CONTEXT,
+		.context_size = SPDM_MUT_CHALLENGE_AUTH_SIGN_CONTEXT_SIZE,
+		.zero_pad_size = 36 - SPDM_MUT_CHALLENGE_AUTH_SIGN_CONTEXT_SIZE
+	},
+	{
+		.is_requester = false,
+		.op_code = SPDM_RESPONSE_GET_MEASUREMENTS,
+		.context = SPDM_MEASUREMENTS_SIGN_CONTEXT,
+		.context_size = SPDM_MEASUREMENTS_SIGN_CONTEXT_SIZE,
+		.zero_pad_size = 36 - SPDM_MEASUREMENTS_SIGN_CONTEXT_SIZE
+	},
+	{
+		.is_requester = false,
+		.op_code = SPDM_RESPONSE_KEY_EXCHANGE,
+		.context = SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT,
+		.context_size = SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT_SIZE,
+		.zero_pad_size = 36 - SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT_SIZE
+	},
+	{
+		.is_requester = true,
+		.op_code = SPDM_REQUEST_FINISH,
+		.context = SPDM_FINISH_SIGN_CONTEXT,
+		.context_size = SPDM_FINISH_SIGN_CONTEXT_SIZE,
+		.zero_pad_size = 36 - SPDM_FINISH_SIGN_CONTEXT_SIZE
+	},
+};
+
+/**
+ * Create a SPDM signing context, which is required since SPDM 1.2.
+ *
+ * @param state SPDM state.
+ * @param op_code SPDM request/response opcode.
+ * @param is_requester True if the message is from the requester, false if from the responder.
+ * @param spdm_signing_context SPDM signing context.
+ */
+static void spdm_create_signing_context (struct spdm_state *state, uint8_t op_code,
+	bool is_requester, char *spdm_signing_context)
+{
+	uint8_t index;
+	struct spdm_version_number version = state->connection_info.version;
+
+	for (index = 0; index < 4; index++) {
+		memcpy (spdm_signing_context, SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT,
+			SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_SIZE);
+
+		/* Patch the version. */
+		spdm_signing_context[11] = (char)('0' + (version.major_version));
+		spdm_signing_context[13] = (char)('0' + (version.minor_version));
+		spdm_signing_context[15] = (char)('*');
+		spdm_signing_context += SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_SIZE;
+	}
+
+	for (index = 0; index < ARRAY_SIZE (spdm_signing_context_str_table); index++) {
+		if (spdm_signing_context_str_table[index].is_requester == is_requester &&
+			spdm_signing_context_str_table[index].op_code == op_code) {
+			memset (spdm_signing_context, 0, spdm_signing_context_str_table[index].zero_pad_size);
+			memcpy (spdm_signing_context + spdm_signing_context_str_table[index].zero_pad_size,
+				spdm_signing_context_str_table[index].context,
+				spdm_signing_context_str_table[index].context_size);
+			return;
+		}
+	}
+}
+
+/**
+ * Generate a SPDM response signature.
+ *
+ * @param state SPDM state.
+ * @param key_manager RIoT device key manager.
+ * @param ecc_engine ECC engine.
+ * @param hash_engine Hash engine.
+ * @param op_code SPDM request opcode.
+ * @param message_hash The message hash to be signed.
+ * @param hash_size The size in bytes of the message hash.
+ * @param signature Buffer to store the signature.
+ * @param sig_size The size of the signature buffer.
+ *
+ * @return 0 if signature is generated successfully, error code otherwise.
+ */
+static int spdm_responder_data_sign (struct spdm_state *state, struct riot_key_manager *key_manager,
+	struct ecc_engine *ecc_engine,  struct hash_engine *hash_engine, uint8_t op_code,
+	const uint8_t *message_hash, size_t hash_size, uint8_t *signature, size_t sig_size)
+{
+	int status;
+	uint8_t *message;
+	size_t message_size;
+	uint8_t full_message_hash[HASH_MAX_HASH_LEN];
+	uint8_t spdm12_signing_context_with_hash[SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE +
+		HASH_MAX_HASH_LEN];
+	struct ecc_private_key alias_priv_key;
+	bool release_alias_key = false;
+	uint8_t spdm_version;
+	int sig_size_der;
+	uint8_t sig_der[ECC_DER_ECDSA_MAX_LENGTH];
+	uint32_t sig_r_component_size = sig_size >> 1;
+	enum hash_type hash_type;
+	const struct riot_keys *keys = NULL;
+
+	spdm_version = SPDM_MAKE_VERSION (state->connection_info.version.major_version,
+		state->connection_info.version.minor_version);
+	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
+	keys = riot_key_manager_get_riot_keys (key_manager);
+
+	/* Get the private key reference for the alias certificate. */
+	status = ecc_engine->init_key_pair (ecc_engine, keys->alias_key, keys->alias_key_length,
+		&alias_priv_key, NULL);
+	if (status != 0) {
+		goto exit;
+	}
+	release_alias_key = true;
+
+	sig_size_der = ecc_engine->get_signature_max_length (ecc_engine, &alias_priv_key);
+	if (ROT_IS_ERROR (sig_size_der)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
+		goto exit;
+	}
+
+	/* v1.2 (and greater) requires a signing context prepended to the hash. */
+	if (spdm_version > SPDM_VERSION_1_1) {
+		/* Create the signing context. */
+		spdm_create_signing_context (state, op_code, false,
+			(char*) spdm12_signing_context_with_hash);
+
+		/* Copy the hash to the signing context buffer. */
+		memcpy (&spdm12_signing_context_with_hash[SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE],
+			message_hash, hash_size);
+
+		/* Assign message and message_size for signing. */
+		message = spdm12_signing_context_with_hash;
+		message_size = SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + hash_size;
+
+		/* Calculate the message hash as required by ECDSA. It may not be needed for other algos. */
+		status = hash_calculate (hash_engine, hash_type, message, message_size, full_message_hash,
+			hash_size);
+		if (ROT_IS_ERROR (status)) {
+			goto exit;
+		}
+		status = 0;
+
+		/* Sign the full message hash. */
+		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, full_message_hash, hash_size,
+				sig_der, sig_size_der);
+	}
+	else {
+		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, message_hash, hash_size,
+			sig_der, sig_size_der);
+	}
+	if (ROT_IS_ERROR (sig_size_der)) {
+		status = sig_size_der;
+		goto exit;
+	}
+
+	/* Convert signature from DER encoding to <r,s> format. */
+	status = ecc_der_decode_ecdsa_signature (sig_der, sig_size_der, signature,
+		&signature[sig_r_component_size], sig_r_component_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+exit:
+	if (release_alias_key == true) {
+		ecc_engine->release_key_pair (ecc_engine, &alias_priv_key, NULL);
+	}
+
+	if (keys != NULL) {
+		riot_key_manager_release_riot_keys (key_manager, keys);
+	}
+	return status;
+}
+
+/**
+ * Generate the SPDM measurement signature.
+ *
+ * @param transcript_manager SPDM transcript manager.
+ * @param state SPDM state.
+ * @param key_manager RIoT device key manager.
+ * @param ecc_engine ECC engine.
+ * @param hash_engine Hash engine.
+ * @param session_info Session information.
+ * @param signature Buffer to store the signature.
+ * @param sig_size The size of the signature.
+ *
+ * @return 0 if signature is generated successfully, error code otherwise.
+ */
+static int spdm_generate_measurement_signature (
+	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
+	struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
+	struct hash_engine *hash_engine, void* session_info, uint8_t *signature, size_t sig_size)
+{
+	int status;
+	uint8_t l1l2_hash[HASH_MAX_HASH_LEN];
+	int l1l2_hash_size;
+	uint8_t session_idx = SPDM_MAX_SESSION_COUNT;
+
+	l1l2_hash_size = hash_get_hash_length (
+		spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo));
+
+	/* Get the L1L2 hash. */
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+		(session_info != NULL), session_idx, l1l2_hash, l1l2_hash_size);
+
+	/* Reset the L1L2 hash context. */
+	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+		(session_info != NULL), session_idx);
+
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Sign the L1L2 hash. */
+	status = spdm_responder_data_sign (state, key_manager, ecc_engine, hash_engine,
+		SPDM_RESPONSE_GET_MEASUREMENTS, l1l2_hash, l1l2_hash_size, signature, sig_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+exit:
 	return status;
 }
 
@@ -1869,7 +2136,7 @@ exit:
 		riot_key_manager_release_riot_keys (key_manager, keys);
 	}
 
-	free (cert_chain);
+	platform_free (cert_chain);
 
 	if (status != 0) {
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
@@ -1996,6 +2263,262 @@ int spdm_process_challenge_response (struct cmd_interface_msg *response)
 		return CMD_HANDLER_SPDM_BAD_LENGTH;
 	}
 
+	return 0;
+}
+
+/**
+ * Process the SPDM GET_MEASUREMENTS request.
+ *
+ * @param spdm_responder SPDM responder instance.
+ * @param request GET_MEASUREMENTS request to process.
+ *
+ * @return 0 if the request was processed successfully or an error code.
+ */
+int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request)
+{
+	int status = 0;
+	int spdm_error;
+	const struct spdm_get_measurements_request *spdm_request;
+	struct spdm_get_measurements_response *spdm_response;
+	uint8_t spdm_version;
+	const struct spdm_transcript_manager *transcript_manager;
+	struct spdm_state *state;
+	const struct spdm_device_capability *local_capabilities;
+	struct hash_engine *hash_engine;
+	enum hash_type hash_type;
+	size_t signature_size;
+	size_t request_size;
+	size_t response_size;
+	struct spdm_measurements *measurements;
+	struct rng_engine *rng_engine;
+	uint8_t measurement_operation;
+	int measurement_count;
+	int measurement_length;
+	bool raw_bit_stream_requested;
+	void *session_info = NULL;
+	uint8_t session_idx = SPDM_MAX_SESSION_COUNT;
+	bool signature_requested;
+
+	if ((spdm_responder == NULL) || (request == NULL)) {
+		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+	}
+
+	transcript_manager = spdm_responder->transcript_manager;
+	state = spdm_responder->state;
+	local_capabilities = spdm_responder->local_capabilities;
+	hash_engine = spdm_responder->hash_engine;
+	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
+	measurements = spdm_responder->measurements;
+	rng_engine = spdm_responder->rng_engine;
+
+	/* Check if a session is ongoing. */
+	if (state->last_spdm_request_session_id_valid == true) {
+		/* [TODO] Handle session. */
+		UNUSED (session_info);
+	}
+
+	/* Validate the request. */
+	if (request->payload_length < sizeof (struct spdm_get_measurements_request)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+	request_size = sizeof (struct spdm_get_measurements_request);
+	spdm_request = (struct spdm_get_measurements_request*) request->payload;
+	spdm_version = SPDM_MAKE_VERSION (spdm_request->header.spdm_major_version,
+		spdm_request->header.spdm_minor_version);
+	if (spdm_version != spdm_get_connection_version (state)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
+		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
+		goto exit;
+	}
+
+	/* Verify SPDM state. */
+	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
+		/* [TODO] Handle RESPOND_IF_READY condition when supported. */
+
+		/* [TODO] Remove error response building from this function. */
+		spdm_handle_response_state (state, request, SPDM_REQUEST_GET_MEASUREMENTS);
+
+		/* Reset L1L2 hash context. */
+		transcript_manager->reset_transcript (transcript_manager,
+			TRANSCRIPT_CONTEXT_TYPE_L1L2, (session_info != NULL), session_idx);
+		goto exit;
+	}
+	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
+		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check if the measurement capability is supported. */
+	if (local_capabilities->flags.meas_cap == 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
+		spdm_error = SPDM_ERROR_UNSUPPORTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check if the negotiated parameters for measurement are valid. */
+	if ((state->connection_info.peer_algorithms.measurement_spec == 0) ||
+		(state->connection_info.peer_algorithms.measurement_hash_algo == 0)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
+		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
+		goto exit;
+	}
+
+	/* If signature generation is requested, check if responder has the support for it. */
+	signature_requested = spdm_request->sig_required;
+	if (signature_requested == true) {
+		if (local_capabilities->flags.meas_cap != SPDM_MEAS_CAP_WITH_SIG) {
+			status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
+			spdm_error = SPDM_ERROR_UNSUPPORTED_REQUEST;
+			goto exit;
+		}
+		request_size += (SPDM_NONCE_LEN + sizeof (uint8_t));
+		if (request->payload_length < request_size) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
+		}
+
+		/* Check if slot id is valid. */
+		if (*(spdm_get_measurements_rq_slot_id_ptr (spdm_request)) != 0) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
+		}
+
+		signature_size = spdm_get_asym_signature_size (
+			state->connection_info.peer_algorithms.base_asym_algo);
+	}
+	else {
+		signature_size = 0;
+	}
+
+	/* Check if sufficient buffer is available for the response including the optional signature. */
+	response_size = SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size;
+	if (cmd_interface_msg_get_max_response (request) < response_size) {
+			status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	raw_bit_stream_requested = spdm_request->raw_bit_stream_requested;
+	measurement_operation = spdm_request->measurement_operation;
+
+	/* Reset transcript manager state as per request code. */
+	spdm_reset_transcript_via_request_code (state, transcript_manager,
+		SPDM_REQUEST_GET_MEASUREMENTS);
+
+	/* Add request to L1L2 hash context. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+		request->payload, request_size, (session_info != NULL),
+		session_idx);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Construct the response. */
+	spdm_response = (struct spdm_get_measurements_response*) request->payload;
+	memset (spdm_response, 0, sizeof (struct spdm_get_measurements_response));
+
+	spdm_populate_header (&spdm_response->header, SPDM_RESPONSE_GET_MEASUREMENTS,
+		SPDM_GET_MINOR_VERSION (spdm_version));
+
+	/* Get the total number of measurement(s) available on the device. */
+	measurement_count = measurements->get_measurement_count (measurements);
+	if (ROT_IS_ERROR (measurement_count)) {
+		status = measurement_count;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	switch (measurement_operation) {
+		case SPDM_GET_MEASUREMENTS_REQUEST_MEASUREMENT_OPERATION_TOTAL_NUMBER_OF_MEASUREMENTS:
+			spdm_response->num_measurement_indices = measurement_count;
+			break;
+
+		case SPDM_GET_MEASUREMENTS_REQUEST_MEASUREMENT_OPERATION_ALL_MEASUREMENTS:
+			/* Get the measurement record. */
+			measurement_length = measurements->get_all_measurement_blocks (measurements,
+				raw_bit_stream_requested, hash_engine, hash_type,
+				spdm_get_measurements_resp_measurement_record (spdm_response),
+				(cmd_interface_msg_get_max_response (request) - response_size));
+
+			if (ROT_IS_ERROR (measurement_length)) {
+				status = measurement_length;
+				spdm_error = SPDM_ERROR_UNSPECIFIED;
+				goto exit;
+			}
+			response_size += measurement_length;
+
+			spdm_response->number_of_blocks = (uint8_t) measurement_count;
+			spdm_write_uint24 (spdm_response->measurement_record_len,
+				(uint32_t) measurement_length);
+			break;
+
+		default:
+			/* Get a single measurement. */
+			measurement_length = measurements->get_measurement_block (measurements,
+				measurement_operation, raw_bit_stream_requested, hash_engine, hash_type,
+				spdm_get_measurements_resp_measurement_record (spdm_response),
+				(cmd_interface_msg_get_max_response (request) - response_size));
+
+			if (ROT_IS_ERROR (measurement_length)) {
+				status = measurement_length;
+				spdm_error = SPDM_ERROR_UNSPECIFIED;
+				goto exit;
+			}
+			response_size += measurement_length;
+
+			spdm_response->number_of_blocks = 1;
+			spdm_write_uint24(spdm_response->measurement_record_len,
+				(uint32_t) measurement_length);
+			break;
+	}
+
+	/* Add the random nonce. */
+	status = rng_engine->generate_random_buffer (rng_engine, SPDM_NONCE_LEN,
+		spdm_get_measurements_resp_nonce (spdm_response));
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Add response to L1L2 hash context. Signature is not included in the hash. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
+		(const uint8_t*) spdm_response, response_size - signature_size, (session_info != NULL),
+		session_idx);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Generate the signature, if requested. */
+	if (signature_requested == true) {
+		status = spdm_generate_measurement_signature (transcript_manager, state,
+			spdm_responder->key_manager, spdm_responder->ecc_engine, hash_engine,
+			session_info, spdm_get_measurements_resp_signature (spdm_response), signature_size);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+	}
+
+	/* Set the payload length. */
+	cmd_interface_msg_set_message_payload_length (request, response_size);
+
+exit:
+	if (status != 0) {
+		/* Reset L1L2 hash context on error. */
+		transcript_manager->reset_transcript (transcript_manager,
+			TRANSCRIPT_CONTEXT_TYPE_L1L2, (session_info != NULL), session_idx);
+
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_GET_MEASUREMENTS, status);
+	}
 	return 0;
 }
 

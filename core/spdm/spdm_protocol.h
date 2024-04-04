@@ -61,6 +61,53 @@
  */
 #define SPDM_GET_MINOR_VERSION(version) ((((uint8_t) version) & 0xF))
 
+/**
+ * SPDM 1.2 signature prefix context.
+ */
+#define SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT		"dmtf-spdm-v1.2.*"
+#define SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_SIZE \
+	(sizeof (SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT) - 1)
+
+/**
+ * SPDM 1.2 signature context max. buffer size.
+ */
+#define SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE		100
+
+/**
+ * SPDM CHALLENGE_AUTH signature context.
+ */
+#define SPDM_CHALLENGE_AUTH_SIGN_CONTEXT			"responder-challenge_auth signing"
+#define SPDM_CHALLENGE_AUTH_SIGN_CONTEXT_SIZE		(sizeof(SPDM_CHALLENGE_AUTH_SIGN_CONTEXT) - 1)
+#define SPDM_MUT_CHALLENGE_AUTH_SIGN_CONTEXT		"requester-challenge_auth signing"
+#define SPDM_MUT_CHALLENGE_AUTH_SIGN_CONTEXT_SIZE	(sizeof(SPDM_MUT_CHALLENGE_AUTH_SIGN_CONTEXT) - 1)
+
+/**
+ * SPDM MEASUREMENTS signature context.
+ */
+#define SPDM_MEASUREMENTS_SIGN_CONTEXT				"responder-measurements signing"
+#define SPDM_MEASUREMENTS_SIGN_CONTEXT_SIZE			(sizeof(SPDM_MEASUREMENTS_SIGN_CONTEXT) - 1)
+
+/**
+ * SPDM KEY_EXCHANGE signature context.
+ */
+#define SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT		"responder-key_exchange_rsp signing"
+#define SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT_SIZE \
+	(sizeof(SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT) - 1)
+
+#define SPDM_VERSION_1_2_KEY_EXCHANGE_REQUESTER_CONTEXT		"Requester-KEP-dmtf-spdm-v1.2"
+#define SPDM_VERSION_1_2_KEY_EXCHANGE_REQUESTER_CONTEXT_SIZE \
+	(sizeof(SPDM_VERSION_1_2_KEY_EXCHANGE_REQUESTER_CONTEXT) - 1)
+
+#define SPDM_VERSION_1_2_KEY_EXCHANGE_RESPONDER_CONTEXT		"Responder-KEP-dmtf-spdm-v1.2"
+#define SPDM_VERSION_1_2_KEY_EXCHANGE_RESPONDER_CONTEXT_SIZE \
+	(sizeof(SPDM_VERSION_1_2_KEY_EXCHANGE_RESPONDER_CONTEXT) - 1)
+
+/**
+ * SPDM FINISH signature context.
+ */
+#define SPDM_FINISH_SIGN_CONTEXT		"requester-finish signing"
+#define SPDM_FINISH_SIGN_CONTEXT_SIZE	(sizeof(SPDM_FINISH_SIGN_CONTEXT) - 1)
+
 #pragma pack(push, 1)
 /**
  * Header that is added to SPDM messages when using the MCTP binding.

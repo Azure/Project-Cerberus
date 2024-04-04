@@ -49,10 +49,13 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
  * @param local_capabilities_ptr Local SPDM capabilities.
  * @param local_algorithms_ptr Local SPDM algorithms.
  * @param key_manager_ptr Key Manager instance pointer.
+ * @param measurements_ptr Measurements instance pointer.
+ * @param ecc_engine_ptr ECC Engine instance pointer.
+ * @param rng_engine_ptr RNG Engine instance pointer.
  */
 #define	cmd_interface_spdm_responder_static_init(state_ptr, transcript_manager_ptr, hash_engine_ptr, \
 		version_num_ptr, version_num_count_arg, local_capabilities_ptr, local_algorithms_ptr, \
-		key_manager_ptr) { \
+		key_manager_ptr, measurements_ptr, ecc_engine_ptr, rng_engine_ptr) { \
 		.base = CMD_INTERFACE_SPDM_RESPONDER_API_INIT, \
 		.state = state_ptr, \
 		.transcript_manager = transcript_manager_ptr, \
@@ -61,7 +64,10 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
 		.version_num_count = version_num_count_arg, \
 		.local_capabilities = local_capabilities_ptr, \
 		.local_algorithms = local_algorithms_ptr, \
-		.key_manager = key_manager_ptr \
+		.key_manager = key_manager_ptr, \
+		.measurements = measurements_ptr, \
+		.ecc_engine = ecc_engine_ptr, \
+		.rng_engine = rng_engine_ptr \
 	}
 
 

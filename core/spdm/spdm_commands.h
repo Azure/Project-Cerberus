@@ -58,6 +58,17 @@
  */
 #define SPDM_COMBINED_PREFIX_LEN					100
 
+/**
+ * SPDM signature context string data structure.
+ */
+struct spdm_signing_context_str {
+	bool is_requester;		/**< Flag indicating if the context is for the requester. */
+	uint8_t op_code;		/**< SPDM operation code. */
+	const void *context;	/**< Context data. */
+	size_t context_size;	/**< Size of the context data. */
+	size_t zero_pad_size;	/**< Size of the zero padding. */
+};
+
 #pragma pack(push, 1)
 
 /**
@@ -142,6 +153,14 @@ struct spdm_get_capabilities_flags_format {
 	uint8_t alias_cert_cap:1;				/**< Uses the AliasCert model */
 	uint8_t reserved:5;						/**< Reserved */
 	uint8_t reserved2;						/**< Reserved */
+};
+
+/**
+ * SPDM measurement capability flag values.
+ */
+enum spm_measurement_capability_options {
+	SPDM_MEAS_CAP_NO_SIG = 1,		/**< Measurement response without signature */
+	SPDM_MEAS_CAP_WITH_SIG = 2,		/**< Measurement response with signature */
 };
 
 /**
@@ -772,6 +791,19 @@ struct spdm_challenge_response {
 #define SPDM_MEASUREMENT_OPERATION_GET_DEVICE_ID				0xEF
 
 /**
+ *  SPDM GET_MEASUREMENTS request Attributes.
+ */
+#define SPDM_GET_MEASUREMENTS_REQUEST_ATTRIBUTES_GENERATE_SIGNATURE			0x00000001
+#define SPDM_GET_MEASUREMENTS_REQUEST_ATTRIBUTES_RAW_BIT_STREAM_REQUESTED	0x00000002
+#define SPDM_GET_MEASUREMENTS_REQUEST_ATTRIBUTES_NEW_MEASUREMENT_REQUESTED	0x00000004
+
+/**
+ *  SPDM GET_MEASUREMENTS measurement operation request options.
+ */
+#define SPDM_GET_MEASUREMENTS_REQUEST_MEASUREMENT_OPERATION_TOTAL_NUMBER_OF_MEASUREMENTS	0
+#define SPDM_GET_MEASUREMENTS_REQUEST_MEASUREMENT_OPERATION_ALL_MEASUREMENTS				0xFF
+
+/**
  * SPDM get measurements request format
  */
 struct spdm_get_measurements_request {
@@ -1155,6 +1187,8 @@ int spdm_generate_challenge_request (uint8_t *buf, size_t buf_len, uint8_t slot_
 	uint8_t req_measurement_summary_hash_type, uint8_t* nonce, uint8_t spdm_minor_version);
 int spdm_process_challenge_response (struct cmd_interface_msg *response);
 
+int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
 int spdm_generate_get_measurements_request (uint8_t *buf, size_t buf_len, uint8_t slot_num,
 	uint8_t measurement_operation, bool sig_required, bool raw_bitstream_requested, uint8_t* nonce,
 	uint8_t spdm_minor_version);

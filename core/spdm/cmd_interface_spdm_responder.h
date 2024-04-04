@@ -11,6 +11,9 @@
 #include "cmd_interface/cmd_interface.h"
 #include "crypto/hash.h"
 #include "riot/riot_key_manager.h"
+#include "spdm_measurements.h"
+#include "crypto/ecc.h"
+#include "crypto/rng.h"
 
 
 /**
@@ -22,6 +25,9 @@ struct cmd_interface_spdm_responder {
 	struct hash_engine *hash_engine;									/**< Hash engine for hashing operations. */
 	const struct spdm_transcript_manager *transcript_manager;			/**< Transcript manager for SPDM. */
 	struct riot_key_manager *key_manager;								/**< Manager for device certificate chain. */
+	struct spdm_measurements *measurements;								/**< Measurements for the device. */
+	struct ecc_engine *ecc_engine;										/**< Engine for ECC operations. */
+	struct rng_engine *rng_engine;										/**< Engine for random number generation. */
 	const struct spdm_version_num_entry *version_num;					/**< Supported version number(s). */
 	uint8_t version_num_count;											/**< Number of supported version number(s). */
 	const struct spdm_device_capability *local_capabilities;			/**< Local SPDM capabilities. */
@@ -34,7 +40,8 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	struct hash_engine *hash_engine, const struct spdm_version_num_entry *version_num,
 	uint8_t version_num_count, const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
-	struct riot_key_manager *key_manager);
+	struct riot_key_manager *key_manager, struct spdm_measurements *measurements,
+	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine);
 
 int cmd_interface_spdm_responder_init_state (
 	const struct cmd_interface_spdm_responder *spdm_responder);
@@ -63,6 +70,7 @@ enum {
 	CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0b),		/**< The request is unexpected. */
 	CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0c),			/**< An internal error occurred. */
 	CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0d),		/**< The response is too large. */
+	CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SIG_SIZE = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0e),		/**< The signature size is not supported. */
 };
 
 
