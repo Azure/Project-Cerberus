@@ -1735,7 +1735,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_measurements (
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq.raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (request.max_response - SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,

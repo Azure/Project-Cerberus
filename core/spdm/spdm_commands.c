@@ -516,7 +516,7 @@ exit:
  */
 static const struct spdm_signing_context_str spdm_signing_context_str_table[] = {
 	{
-		.is_requester = false, 
+		.is_requester = false,
 		.op_code = SPDM_RESPONSE_CHALLENGE,
 		.context = SPDM_CHALLENGE_AUTH_SIGN_CONTEXT,
 		.context_size = SPDM_CHALLENGE_AUTH_SIGN_CONTEXT_SIZE,
@@ -2290,7 +2290,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	size_t signature_size;
 	size_t request_size;
 	size_t response_size;
-	struct spdm_measurements *measurements;
+	const struct spdm_measurements *measurements;
 	struct rng_engine *rng_engine;
 	uint8_t measurement_operation;
 	int measurement_count;

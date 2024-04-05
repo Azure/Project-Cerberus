@@ -12574,7 +12574,7 @@ static void spdm_test_get_measurements_all_measurements_no_sig (CuTest *test)
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq.raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
@@ -12705,7 +12705,7 @@ static void spdm_test_get_measurements_all_measurements_with_sig (CuTest *test)
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq->raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
@@ -12771,7 +12771,7 @@ static void spdm_test_get_measurements_all_measurements_with_sig (CuTest *test)
 	status = spdm_get_measurements (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length + 
+	CuAssertIntEquals (test, SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + measurement_length +
 		(ECC_KEY_LENGTH_384 * 2), msg.length);
 	CuAssertIntEquals (test, msg.length, msg.payload_length);
 	CuAssertPtrEquals (test, buf, msg.data);
@@ -12871,7 +12871,7 @@ static void spdm_test_get_measurements_single_measurement_no_sig (CuTest *test)
 			testing.measurements_mock.base.get_measurement_block,
 			&testing.measurements_mock.base, measurement_length,
 			MOCK_ARG (rq.measurement_operation), MOCK_ARG (rq.raw_bit_stream_requested),
-			MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+			MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 			MOCK_ARG_NOT_NULL,
 			MOCK_ARG (msg.max_response - SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH));
 		status |= mock_expect_output (&testing.measurements_mock.mock, 4, expected_measurement_block,
@@ -13014,7 +13014,7 @@ static void spdm_test_get_measurements_count (CuTest *test)
 		sizeof (rsp->measurement_record_len)));
 	CuAssertIntEquals (test, 0, memcmp (&expected_nonce, spdm_get_measurements_resp_nonce (rsp),
 		SPDM_NONCE_LEN));
-	
+
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
@@ -13235,7 +13235,7 @@ static void spdm_test_get_measurements_incorrect_response_state_need_resync (CuT
 	spdm_command_testing_init_dependencies (test, &testing);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
-	
+
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
@@ -13282,7 +13282,7 @@ static void spdm_test_get_measurements_incorrect_response_state_processing_encap
 	spdm_command_testing_init_dependencies (test, &testing);
 	spdm_responder = &testing.spdm_responder;
 	spdm_state = spdm_responder->state;
-	
+
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) rq;
@@ -13946,7 +13946,7 @@ static void spdm_test_get_measurements_get_all_measurement_blocks_fail (CuTest *
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, SPDM_MEASUREMENTS_GET_ALL_BLOCKS_FAILED,
 		MOCK_ARG (rq.raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH));
 
@@ -14030,7 +14030,7 @@ static void spdm_test_get_measurements_get_measurement_block_fail (CuTest *test)
 		testing.measurements_mock.base.get_measurement_block,
 		&testing.measurements_mock.base, SPDM_MEASUREMENTS_GET_BLOCK_FAILED,
 		MOCK_ARG (rq.measurement_operation), MOCK_ARG (rq.raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH));
 
@@ -14115,7 +14115,7 @@ static void spdm_test_get_measurements_generate_random_buffer_fail (CuTest *test
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq.raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH));
 
@@ -14204,7 +14204,7 @@ static void spdm_test_get_measurements_add_response_to_transcript_hash_fail (CuT
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq.raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH));
 
@@ -14324,7 +14324,7 @@ static void spdm_test_get_measurements_sig_req_get_hash_fail (CuTest *test)
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq->raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
@@ -14358,7 +14358,7 @@ static void spdm_test_get_measurements_sig_req_get_hash_fail (CuTest *test)
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-	
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_measurements (spdm_responder, &msg);
@@ -14458,7 +14458,7 @@ static void spdm_test_get_measurements_sig_req_init_key_pair_fail (CuTest *test)
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq->raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
@@ -14498,7 +14498,7 @@ static void spdm_test_get_measurements_sig_req_init_key_pair_fail (CuTest *test)
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-	
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_measurements (spdm_responder, &msg);
@@ -14598,7 +14598,7 @@ static void spdm_test_get_measurements_sig_req_get_signature_max_length_fail (Cu
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq->raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
@@ -14655,7 +14655,7 @@ static void spdm_test_get_measurements_sig_req_get_signature_max_length_fail (Cu
 	CuAssertIntEquals (test, 0, error_response->error_data);
 	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
 	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
-	
+
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
@@ -14745,7 +14745,7 @@ static void spdm_test_get_measurements_sig_req_hash_calculate_fail (CuTest *test
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq->raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
@@ -14791,7 +14791,7 @@ static void spdm_test_get_measurements_sig_req_hash_calculate_fail (CuTest *test
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA384_HASH_LENGTH),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
-	
+
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
 
@@ -14809,7 +14809,7 @@ static void spdm_test_get_measurements_sig_req_hash_calculate_fail (CuTest *test
 	CuAssertIntEquals (test, 0, error_response->error_data);
 	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
 	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
-	
+
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
@@ -14899,7 +14899,7 @@ static void spdm_test_get_measurements_v_1_2_sig_req_sign_fail (CuTest *test)
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq->raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
@@ -14955,7 +14955,7 @@ static void spdm_test_get_measurements_v_1_2_sig_req_sign_fail (CuTest *test)
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
-		
+
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
@@ -14964,13 +14964,13 @@ static void spdm_test_get_measurements_v_1_2_sig_req_sign_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_measurements (spdm_responder, &msg);
-	
+
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
 	CuAssertIntEquals (test, 0, error_response->error_data);
 	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
 	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
-	
+
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
@@ -15059,7 +15059,7 @@ static void spdm_test_get_measurements_v_1_1_sig_req_sign_fail (CuTest *test)
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq->raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
@@ -15106,7 +15106,7 @@ static void spdm_test_get_measurements_v_1_1_sig_req_sign_fail (CuTest *test)
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
-		
+
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
@@ -15115,7 +15115,7 @@ static void spdm_test_get_measurements_v_1_1_sig_req_sign_fail (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_measurements (spdm_responder, &msg);
-	
+
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
 	CuAssertIntEquals (test, 0, error_response->error_data);
@@ -15211,7 +15211,7 @@ static void spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail (CuTe
 		testing.measurements_mock.base.get_all_measurement_blocks,
 		&testing.measurements_mock.base, measurement_length,
 		MOCK_ARG (rq->raw_bit_stream_requested),
-		MOCK_ARG (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (&testing.hash_engine_mock.base), MOCK_ARG (HASH_TYPE_SHA384),
 		MOCK_ARG_NOT_NULL,
 		MOCK_ARG (msg.max_response - (SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH + signature_size)));
 	status |= mock_expect_output (&testing.measurements_mock.mock, 3, expected_measurement_record,
@@ -15268,7 +15268,7 @@ static void spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail (CuTe
 
 	status |= mock_expect (&testing.ecc_mock.mock, testing.ecc_mock.base.release_key_pair,
 		&testing.ecc_mock.base, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (NULL));
-		
+
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
@@ -15277,13 +15277,13 @@ static void spdm_test_get_measurements_ecc_der_decode_ecdsa_signature_fail (CuTe
 	CuAssertIntEquals (test, 0, status);
 
 	status = spdm_get_measurements (spdm_responder, &msg);
-	
+
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
 	CuAssertIntEquals (test, 0, error_response->error_data);
 	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
 	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
-	
+
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
