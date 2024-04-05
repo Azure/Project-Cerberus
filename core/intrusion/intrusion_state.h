@@ -56,7 +56,7 @@ struct intrusion_state {
 	 * Determine the current state of the intrusion detection logic for the device.
 	 * This indicates whether there is an active intrusion detected by the device or not.
 	 *
-	 * @param state Output for the intrusion state. 1 means "no intrusion"; 0 means "in intrusion".
+	 * @param state Output for the intrusion state. 0 means "no intrusion"; 1 means "in intrusion".
 	 *
 	 * @return 0 if the operation is successful or an error code.
 	 */
