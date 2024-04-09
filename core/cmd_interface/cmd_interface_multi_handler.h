@@ -33,7 +33,9 @@ struct cmd_interface_multi_handler {
 	 * @param intf The command handler to query for message type support.
 	 * @param message_type Identifier for the type of message to check for.
 	 *
-	 * @return 0 if the requested message type is supported by the handler or an error code.
+	 * @return 0 if the requested message type is supported by the handler or an error code.  This
+	 * will be CMD_HANDLER_UNKNOWN_MESSAGE_TYPE if the message type does not map to any registered
+	 * handlers.
 	 */
 	int (*is_message_type_supported) (const struct cmd_interface_multi_handler *intf,
 		uint32_t message_type);

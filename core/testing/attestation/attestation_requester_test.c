@@ -2919,7 +2919,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_version (CuT
 			testing->slot_num[1] = 0;
 
 			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_cerberus_get_certificate_rsp_callback, testing);
+				attestation_requester_testing_spdm_get_certificate_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
 		}
 		else if (version_unsupported) {
@@ -3106,7 +3106,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 			testing->slot_num[1] = 0;
 
 			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_cerberus_get_certificate_rsp_callback, testing);
+				attestation_requester_testing_spdm_get_certificate_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
 		}
 		else {
@@ -3307,7 +3307,7 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 			testing->slot_num[1] = 0;
 
 			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_cerberus_get_certificate_rsp_callback, testing);
+				attestation_requester_testing_spdm_get_certificate_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
 		}
 		else {
@@ -3469,7 +3469,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_digests (CuT
 			testing->slot_num[1] = 0;
 
 			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_cerberus_get_certificate_rsp_callback, testing);
+				attestation_requester_testing_spdm_get_certificate_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
 		}
 		else {
@@ -3658,7 +3658,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
 			testing->slot_num[1] = 0;
 
 			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_cerberus_get_certificate_rsp_callback, testing);
+				attestation_requester_testing_spdm_get_digests_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
 		}
 		else {
@@ -3990,7 +3990,7 @@ static void attestation_requester_testing_send_and_receive_spdm_challenge (CuTes
 			testing->slot_num[1] = 0;
 
 			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_cerberus_get_certificate_rsp_callback, testing);
+				attestation_requester_testing_spdm_get_certificate_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
 		}
 		else {
@@ -4231,7 +4231,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 			testing->slot_num[1] = 0;
 
 			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_cerberus_get_certificate_rsp_callback, testing);
+				attestation_requester_testing_spdm_get_certificate_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
 		}
 		else {
@@ -4475,13 +4475,8 @@ static void attestation_requester_testing_send_and_receive_mctp_get_msg_type (Cu
 
 	if (get_rsp) {
 		if (unexpected_rsp) {
-			testing->cert_num = 0;
-			testing->cert[0] = X509_CERTSS_RSA_CA_NOPL_DER;
-			testing->cert_len[0] = X509_CERTSS_RSA_CA_NOPL_DER_LEN;
-			testing->slot_num[1] = ATTESTATION_RIOT_SLOT_NUM;
-
 			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_cerberus_get_certificate_rsp_callback, testing);
+				attestation_requester_testing_mctp_get_routing_table_entries_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
 		}
 		else {
@@ -4556,13 +4551,8 @@ static void attestation_requester_testing_send_and_receive_mctp_get_routing_tabl
 
 	if (get_rsp) {
 		if (unexpected_rsp) {
-			testing->cert_num = 0;
-			testing->cert[0] = X509_CERTSS_RSA_CA_NOPL_DER;
-			testing->cert_len[0] = X509_CERTSS_RSA_CA_NOPL_DER_LEN;
-			testing->slot_num[1] = ATTESTATION_RIOT_SLOT_NUM;
-
 			status = mock_expect_external_action (&testing->channel.mock,
-				attestation_requester_testing_cerberus_get_certificate_rsp_callback, testing);
+				attestation_requester_testing_mctp_get_message_type_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
 		}
 		else {

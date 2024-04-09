@@ -243,12 +243,12 @@ enum {
 	MCTP_BASE_PROTOCOL_UNEXPECTED_PKT = MCTP_BASE_PROTOCOL_ERROR (0x03),		/**< A packet was received that doesn't match the context for the current message. */
 	MCTP_BASE_PROTOCOL_BAD_LENGTH = MCTP_BASE_PROTOCOL_ERROR (0x04),			/**< The received packet was not the expected length. */
 	MCTP_BASE_PROTOCOL_MSG_TOO_LARGE = MCTP_BASE_PROTOCOL_ERROR (0x05),			/**< The message is bigger than the maximum supported size. */
-	MCTP_BASE_PROTOCOL_INVALID_MSG = MCTP_BASE_PROTOCOL_ERROR (0x06),			/**< An invalid message was received. */
-	MCTP_BASE_PROTOCOL_BAD_CHECKSUM = MCTP_BASE_PROTOCOL_ERROR (0x07),			/**< The message checksum is bad. */
+	MCTP_BASE_PROTOCOL_INVALID_PKT = MCTP_BASE_PROTOCOL_ERROR (0x06),			/**< An invalid packet was received. */
+	MCTP_BASE_PROTOCOL_BAD_CHECKSUM = MCTP_BASE_PROTOCOL_ERROR (0x07),			/**< The packet checksum is bad. */
 	MCTP_BASE_PROTOCOL_PKT_TOO_SHORT = MCTP_BASE_PROTOCOL_ERROR (0x08),			/**< The received packet was shorter than the minimum length. */
 	MCTP_BASE_PROTOCOL_BAD_BUFFER_LENGTH = MCTP_BASE_PROTOCOL_ERROR (0x09),		/**< The packet buffer is an invalid size. */
 	MCTP_BASE_PROTOCOL_BUF_TOO_SMALL = MCTP_BASE_PROTOCOL_ERROR (0x0a),			/**< Provided buffer too small for output. */
-	MCTP_BASE_PROTOCOL_UNSUPPORTED_MSG = MCTP_BASE_PROTOCOL_ERROR (0x0b),		/**< Received packet format not supported. */
+	MCTP_BASE_PROTOCOL_UNSUPPORTED_MSG = MCTP_BASE_PROTOCOL_ERROR (0x0b),		/**< Received message type not supported. */
 	MCTP_BASE_PROTOCOL_INVALID_EID = MCTP_BASE_PROTOCOL_ERROR (0x0c),			/**< Received packet from device using incorrect EID. */
 	MCTP_BASE_PROTOCOL_BUILD_UNSUPPORTED = MCTP_BASE_PROTOCOL_ERROR (0x0d),		/**< Failed to construct a packet for an unsupported message type. */
 	MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT = MCTP_BASE_PROTOCOL_ERROR (0x0e),		/**< Timeout elapsed before receiving a response. */
@@ -256,6 +256,10 @@ enum {
 	MCTP_BASE_PROTOCOL_ERROR_RESPONSE = MCTP_BASE_PROTOCOL_ERROR (0x10),		/**< Error response received. */
 	MCTP_BASE_PROTOCOL_FAIL_RESPONSE = MCTP_BASE_PROTOCOL_ERROR (0x11),			/**< Response processing failed. */
 	MCTP_BASE_PROTOCOL_MSG_TOO_SHORT = MCTP_BASE_PROTOCOL_ERROR (0x12),			/**< A received message is shorter tha the minimum length. */
+	MCTP_BASE_PROTOCOL_PKT_LENGTH_MISMATCH = MCTP_BASE_PROTOCOL_ERROR (0x13),	/**< A packet length was inconsistent with the data length. */
+	MCTP_BASE_PROTOCOL_INVALID_MSG = MCTP_BASE_PROTOCOL_ERROR (0x14),			/**< An invalid message was received. */
+	MCTP_BASE_PROTOCOL_OUT_OF_SEQUENCE = MCTP_BASE_PROTOCOL_ERROR (0x15),		/**< A packet was received out of sequence for a message. */
+	MCTP_BASE_PROTOCOL_MIDDLE_PKT_LENGTH = MCTP_BASE_PROTOCOL_ERROR (0x16),		/**< A middle packet was received with different length than SOM. */
 };
 
 

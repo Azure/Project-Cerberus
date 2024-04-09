@@ -184,7 +184,6 @@ int cmd_channel_receive_and_process (const struct cmd_channel *channel,
 			CMD_LOGGING_PACKET_OVERFLOW, channel->id, 0);
 
 		channel->state->overflow = true;
-		mctp_interface_reset_message_processing (mctp);
 		return CMD_CHANNEL_PKT_OVERFLOW;
 	}
 	else if (channel->state->overflow) {

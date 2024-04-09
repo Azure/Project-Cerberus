@@ -35,14 +35,16 @@ struct mctp_interface_state {
 	uint8_t msg_buffer[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN];	/**< Buffer for MCTP messages */
 	struct cmd_message resp_buffer;							/**< Buffer for transmitting responses */
 	struct cmd_interface_msg req_buffer;					/**< Buffer for request processing */
-	int start_packet_len;									/**< Length of MCTP start packet */
+	size_t start_packet_len;								/**< Length of MCTP start packet */
 	uint8_t packet_seq;										/**< Current MCTP exchange packet sequence */
 	uint8_t msg_tag;										/**< Current MCTP exchange message tag */
+	uint8_t tag_owner;										/**< Tag owner for the current message. */
 	uint8_t msg_type;										/**< Current MCTP exchange message type */
 	int channel_id;											/**< Channel ID associated with the interface. */
 #ifdef CMD_ENABLE_ISSUE_REQUEST
-	uint8_t response_eid;									/**< MCTP EID for device we expect a response from */
-	uint8_t response_msg_tag;								/**< MCTP message tag for transaction we expect response for */
+	uint8_t response_eid;									/**< MCTP EID for device we expect a response from. */
+	uint8_t response_msg_tag;								/**< MCTP message tag for transaction we expect response for. */
+	uint8_t response_msg_type;								/**< Expected message type of the response message. */
 	struct cmd_interface_msg *response_msg;					/**< Descriptor for handling response messages. */
 	uint8_t next_msg_tag;									/**< MCTP message tag for the next request. */
 	enum mctp_interface_response_state rsp_state;			/**< State of transactions started by device */
@@ -84,7 +86,6 @@ int mctp_interface_set_channel_id (const struct mctp_interface *mctp, int channe
 
 int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd_packet *rx_packet,
 	struct cmd_message **tx_message);
-void mctp_interface_reset_message_processing (const struct mctp_interface *mctp);
 
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 int mctp_interface_issue_request (const struct mctp_interface *mctp,

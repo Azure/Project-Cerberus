@@ -12,6 +12,10 @@
 /**
  * Parse an MCTP packet header and determine if the packet is valid.
  *
+ * As long as the buffer contains at least the MCTP transport header, details will be parsed into
+ * the output parameters even in the case of an error.  Payload and CRC details will only be
+ * available if the packet was parsed successfully.
+ *
  * @param buf Packet to parse.
  * @param buf_len Total length of the packet.
  * @param dest_addr Destination SMBUS address.
@@ -25,8 +29,8 @@
  * @param msg_tag Output for the message tag.
  * @param packet_seq Output for the packet sequence.
  * @param crc Output for the packet CRC.
- * @param msg_type The message type. If the packet indicates SOM, this will be populated with the
- * parsed message type, otherwise the specified type will be used for parsing.
+ * @param msg_type Output for the packet message type.  This will only be populated if the packet is
+ * the start of a new message.
  * @param tag_owner Output for the packet tag owner field.
  *
  * @return Completion status, 0 if success or an error code.
@@ -36,10 +40,9 @@ int mctp_base_protocol_interpret (const uint8_t *buf, size_t buf_len, uint8_t de
 	const uint8_t **payload, size_t *payload_len, uint8_t *msg_tag, uint8_t *packet_seq,
 	uint8_t *crc, uint8_t *msg_type, uint8_t *tag_owner)
 {
-	struct mctp_base_protocol_transport_header *header =
-		(struct mctp_base_protocol_transport_header*) buf;
+	const struct mctp_base_protocol_transport_header *header =
+		(const struct mctp_base_protocol_transport_header*) buf;
 	size_t packet_len;
-	bool add_crc = true;
 
 	if ((buf == NULL) || (source_addr == NULL) || (som == NULL) || (eom == NULL) ||
 		(src_eid == NULL) || (dest_eid == NULL) || (payload == NULL) || (payload_len == NULL) ||
@@ -48,29 +51,11 @@ int mctp_base_protocol_interpret (const uint8_t *buf, size_t buf_len, uint8_t de
 		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
 	}
 
-	if (buf_len <= sizeof (struct mctp_base_protocol_transport_header)) {
+	if (buf_len < sizeof (struct mctp_base_protocol_transport_header)) {
 		return MCTP_BASE_PROTOCOL_PKT_TOO_SHORT;
 	}
 
-	/* TODO:  Have more flexible checking of the message types during packet parsing.  MCTP requires
-	 * that unsupported message types be silently discarded and not impact message reassembly.  It
-	 * might make sense to move this check out of packet parsing and into the main handler,
-	 * leveraging some external module to identify the supported message types.
-	 *
-	 * TODO:  Also have better and more flexible handling of the SMBus PEC byte.  The MCTP SMBus
-	 * binding mandates that all MCTP packets must have the PEC appended.  However, some
-	 * implementations don't follow this.  This implementation can be lenient and check the PEC if
-	 * the packet size is sufficient to contain one and skip it if not. */
-
-	/* At this point, we do not know if the current packet is a control or vendor defined message.
-	 * Control message might not contain a PEC byte. So, here we check if the message length is at
-	 * least the transport header size. */
-	if ((header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD_NO_PEC) <=
-			(uint8_t) sizeof (struct mctp_base_protocol_transport_header)) {
-		/* Prevent payload_len underflow caused by manipulated header->byte_count. */
-		return MCTP_BASE_PROTOCOL_PKT_TOO_SHORT;
-	}
-
+	/* There at least exists a transport header, so parse out those details. */
 	*source_addr = (header->source_addr >> 1);
 	*dest_eid = header->destination_eid;
 	*src_eid = header->source_eid;
@@ -79,51 +64,45 @@ int mctp_base_protocol_interpret (const uint8_t *buf, size_t buf_len, uint8_t de
 	*packet_seq = header->packet_seq;
 	*msg_tag = header->msg_tag;
 	*tag_owner = header->tag_owner;
+
+	/* Check that the packet is well formed. */
+	if ((header->cmd_code != SMBUS_CMD_CODE_MCTP) || (header->rsvd != 0) ||
+		(header->header_version != MCTP_BASE_PROTOCOL_SUPPORTED_HDR_VERSION) ||
+		(header->destination_eid == header->source_eid)) {
+		return MCTP_BASE_PROTOCOL_INVALID_PKT;
+	}
+
+	/* While MCTP requires that all packets contain the optional PEC byte, not all implementations
+	 * follow this requirement, so treat the PEC as optional.  The PEC byte will be checked if it's
+	 * present, but parsing will not fail if it's not present. */
+	packet_len = header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD_NO_PEC;
+
+	/* A packet must contain a payload, so one that only contains a header is invalid.  This check
+	 * ensures there is at least one byte of payload. */
+	if (packet_len <= sizeof (struct mctp_base_protocol_transport_header)) {
+		return MCTP_BASE_PROTOCOL_PKT_TOO_SHORT;
+	}
+
+	/* Confirm that the packet length does not overflow the buffer containing the packet. */
+	if (buf_len < packet_len) {
+		return MCTP_BASE_PROTOCOL_PKT_LENGTH_MISMATCH;
+	}
+
 	*payload = &buf[sizeof (struct mctp_base_protocol_transport_header)];
+	*payload_len = packet_len - sizeof (struct mctp_base_protocol_transport_header);
 
 	if (header->som) {
-		/* TODO:  The packet length is not validated to contain a valid byte here, which is then
-		 * used to make decisions about message type.  Not really impactful, but something that
-		 * should probably get cleaned up.  Probably along with other changes to message type
-		 * handling. */
-		*msg_type = (*payload)[0];
+		const struct mctp_base_protocol_message_header *msg_header =
+			(const struct mctp_base_protocol_message_header*) *payload;
+
+		*msg_type = msg_header->msg_type;
 	}
 
-	if (MCTP_BASE_PROTOCOL_IS_CONTROL_MSG (*msg_type)) {
-		/* Control messages might not not contain a CRC on the packet, so dont always check for
-			CRC. */
-		/* TODO: Change default behaviour to always check for CRC with an ifdef to disable checking
-			in control messages. */
-		packet_len = header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD_NO_PEC;
-		*payload_len = packet_len - sizeof (struct mctp_base_protocol_transport_header);
-		add_crc = false;
-	}
-	else if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (*msg_type) ||
-		MCTP_BASE_PROTOCOL_IS_SPDM_MSG (*msg_type)) {
-		if ((header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD) <=
-				(uint8_t) MCTP_BASE_PROTOCOL_PACKET_OVERHEAD) {
-			return MCTP_BASE_PROTOCOL_PKT_TOO_SHORT;
-		}
-
-		packet_len = header->byte_count + MCTP_BASE_PROTOCOL_SMBUS_OVERHEAD;
-		*payload_len = mctp_protocol_payload_len (packet_len);
-	}
-	else {
-		return MCTP_BASE_PROTOCOL_UNSUPPORTED_MSG;
-	}
-
-	if ((header->cmd_code != SMBUS_CMD_CODE_MCTP) || (buf_len < packet_len) ||
-		(header->rsvd != 0) || (*dest_eid == *src_eid)) {
-		return MCTP_BASE_PROTOCOL_INVALID_MSG;
-	}
-
-	if (header->header_version != MCTP_BASE_PROTOCOL_SUPPORTED_HDR_VERSION) {
-		return MCTP_BASE_PROTOCOL_UNSUPPORTED_MSG;
-	}
-
-	if (add_crc) {
-		*crc = checksum_crc8 ((dest_addr << 1), buf, packet_len - MCTP_BASE_PROTOCOL_PEC_SIZE);
-		if (*crc != buf[packet_len - MCTP_BASE_PROTOCOL_PEC_SIZE]) {
+	if (buf_len > packet_len) {
+		/* There are extra bytes in the buffer beyond the packet length.  The packet contains a PEC
+		 * byte that must be checked.*/
+		*crc = checksum_crc8 ((dest_addr << 1), buf, packet_len);
+		if (*crc != buf[packet_len]) {
 			return MCTP_BASE_PROTOCOL_BAD_CHECKSUM;
 		}
 	}
@@ -183,8 +162,8 @@ int mctp_base_protocol_construct (const uint8_t *buf, size_t buf_len, uint8_t *o
 	header->header_version = MCTP_BASE_PROTOCOL_SUPPORTED_HDR_VERSION;
 	header->destination_eid = dest_eid;
 	header->source_eid = source_eid;
-	header->som = (som ? 1 : 0);
-	header->eom = (eom ? 1 : 0);
+	header->som = (som) ? 1 : 0;
+	header->eom = (eom) ? 1 : 0;
 	header->packet_seq = packet_seq;
 	header->msg_tag = msg_tag;
 	header->tag_owner = tag_owner;

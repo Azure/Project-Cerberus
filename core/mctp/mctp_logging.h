@@ -23,6 +23,7 @@ enum {
 	MCTP_LOGGING_GET_EID_FAIL,					/**< Failed when processing a Get EID request. */
 	MCTP_LOGGING_RSP_TIMEOUT,					/**< Timed out while waiting for MCTP response. */
 	MCTP_LOGGING_RSP_DROPPED,					/**< Dropped a received response message. */
+	MCTP_LOGGING_RESTART_MESSAGE,				/**< A new message was started before finishing the previous one. */
 };
 
 /**
@@ -32,6 +33,7 @@ enum {
 	MCTP_LOGGING_RSP_DROPPED_UNEXPECTED,	/**< No response message was expected. */
 	MCTP_LOGGING_RSP_DROPPED_WRONG_TAG,		/**< The response message has the wrong message tag. */
 	MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,	/**< The response message came from the wrong EID. */
+	MCTP_LOGGING_RSP_DROPPED_WRONG_TYPE,	/**< The response message is the wrong message type. */
 };
 
 

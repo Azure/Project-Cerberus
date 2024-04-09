@@ -439,6 +439,10 @@ static void cmd_channel_handler_test_execute (CuTest *test)
 		&handler.channel, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&handler.channel.mock, 0, &rx_packet, sizeof (rx_packet), -1);
 
+	status |= mock_expect (&handler.req_handler.mock,
+		handler.req_handler.base.is_message_type_supported, &handler.req_handler, 0,
+		MOCK_ARG (0x7e));
+
 	status |= mock_expect (&handler.req_handler.mock, handler.req_handler.base.base.process_request,
 		&handler.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
@@ -564,6 +568,10 @@ static void cmd_channel_handler_test_execute_static_init (CuTest *test)
 	status = mock_expect (&handler.channel.mock, handler.channel.base.receive_packet,
 		&handler.channel, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&handler.channel.mock, 0, &rx_packet, sizeof (rx_packet), -1);
+
+	status |= mock_expect (&handler.req_handler.mock,
+		handler.req_handler.base.is_message_type_supported, &handler.req_handler, 0,
+		MOCK_ARG (0x7e));
 
 	status |= mock_expect (&handler.req_handler.mock, handler.req_handler.base.base.process_request,
 		&handler.req_handler, 0,

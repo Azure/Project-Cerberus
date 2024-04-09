@@ -360,6 +360,10 @@ static void cmd_channel_test_receive_and_process_single_packet_response (CuTest 
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet, sizeof (rx_packet), -1);
 
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
+
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
@@ -514,6 +518,10 @@ static void cmd_channel_test_receive_and_process_multi_packet_response (CuTest *
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet, sizeof (rx_packet), -1);
 
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
+
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
@@ -648,6 +656,10 @@ static void cmd_channel_test_receive_and_process_max_response (CuTest *test)
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet, sizeof (rx_packet), -1);
+
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
 
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
@@ -836,6 +848,10 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[1],
 		sizeof (struct cmd_packet), -1);
 
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
+
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
@@ -940,6 +956,10 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout (CuT
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet, sizeof (rx_packet), -1);
+
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
 
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
@@ -1068,6 +1088,10 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout_not_
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet, sizeof (rx_packet), -1);
+
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
 
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
@@ -1198,6 +1222,10 @@ static void cmd_channel_test_receive_and_process_set_receive_timeout (CuTest *te
 		MOCK_ARG_NOT_NULL, MOCK_ARG (50));
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet, sizeof (rx_packet), -1);
 
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
+
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
@@ -1323,6 +1351,10 @@ static void cmd_channel_test_receive_and_process_channel_rx_error (CuTest *test)
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet, sizeof (rx_packet), -1);
+
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
 
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
@@ -1520,6 +1552,10 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[1],
 		sizeof (struct cmd_packet), -1);
 
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
+
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
@@ -1680,6 +1716,10 @@ static void cmd_channel_test_receive_and_process_send_failure (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet, sizeof (rx_packet), -1);
 
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
+
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
@@ -1702,52 +1742,19 @@ static void cmd_channel_test_receive_and_process_send_failure (CuTest *test)
 static void cmd_channel_test_receive_and_process_mctp_fatal_error (CuTest *test)
 {
 	struct cmd_channel_testing channel;
-	int status;
-	struct cmd_packet rx_packet[3];
-	struct cmd_packet tx_packet;
-	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
-	struct cmd_interface_msg error_packet;
+	struct cmd_packet rx_packet;
+	uint8_t data[10];
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
 	struct mctp_base_protocol_transport_header *header =
-		(struct mctp_base_protocol_transport_header*) rx_packet[0].data;
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
-	const int msg_size = 300;
-	uint16_t pci_vid = 0x1414;
-	uint8_t payload[msg_size];
-	int i;
+		(struct mctp_base_protocol_transport_header*) rx_packet.data;
+	int status;
 
 	TEST_START;
 
-	for (i = 0; i < (int) sizeof (payload); i++) {
-		payload[i] = i;
-	}
-
 	memset (&rx_packet, 0, sizeof (rx_packet));
-	memset (&error_packet, 0, sizeof (error_packet));
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 252;
-	header->source_addr = 0xAB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->som = 1;
-	header->eom = 0;
-	header->tag_owner = 1;
-	header->msg_tag = 0x00;
-	header->packet_seq = 0;
-
-	rx_packet[0].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	rx_packet[0].data[8] = 0x00;
-	rx_packet[0].data[9] = 0x00;
-	rx_packet[0].data[10] = 0x00;
-	memcpy (&rx_packet[0].data[11], payload, 255 - 12);
-	rx_packet[0].data[254] = checksum_crc8 (0xBA, rx_packet[0].data, 254);
-	rx_packet[0].pkt_size = 255;
-	rx_packet[0].state = CMD_VALID_PACKET;
-	rx_packet[0].dest_addr = 0x5D;
-
-	header = (struct mctp_base_protocol_transport_header*) rx_packet[1].data;
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 15;
@@ -1755,134 +1762,63 @@ static void cmd_channel_test_receive_and_process_mctp_fatal_error (CuTest *test)
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	rx_packet[1].pkt_size = 5;
-	rx_packet[1].state = CMD_VALID_PACKET;
-	rx_packet[1].dest_addr = 0x5D;
-
-	i = msg_size - (255 - 12) + 7;
-
-	header = (struct mctp_base_protocol_transport_header*) rx_packet[2].data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = i - 2;
-	header->source_addr = 0xAB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->som = 0;
+	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = 1;
 	header->msg_tag = 0x00;
-	header->packet_seq = 1;
-
-	memcpy (&rx_packet[2].data[7], &payload[255 - 12], msg_size - (255 - 12));
-	rx_packet[2].data[i] = checksum_crc8 (0xBA, rx_packet[2].data, i);
-	rx_packet[2].pkt_size = i + 1;
-	rx_packet[2].state = CMD_VALID_PACKET;
-	rx_packet[2].dest_addr = 0x5D;
-
-	memset (&tx_packet, 0, sizeof (tx_packet));
-
-	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 15;
-	header->source_addr = 0xBB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = 0;
-	header->msg_tag = 0x00;
 	header->packet_seq = 0;
 
-	tx_packet.data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-
-	memcpy (&tx_packet.data[8], &pci_vid, sizeof (pci_vid));
-
-	tx_packet.data[10] = 0x00;
-	tx_packet.data[11] = 0x7F;
-	tx_packet.data[12] = 0xF1;
-	tx_packet.data[13] = 0x00;
-	tx_packet.data[14] = 0x00;
-	tx_packet.data[15] = 0x00;
-	tx_packet.data[16] = 0x00;
-	tx_packet.data[17] = checksum_crc8 (0xAA, tx_packet.data, 17);
-	tx_packet.pkt_size = 18;
-	tx_packet.state = CMD_VALID_PACKET;
-	tx_packet.dest_addr = 0x55;
-
-	error_packet.data = error_data;
-	error_packet.length = sizeof (error_data);
-
-	error->header.msg_type = 0x7E;
-	error->header.pci_vendor_id = 0x1414;
-	error->header.crypt = 0;
-	error->header.reserved2 = 0;
-	error->header.integrity_check = 0;
-	error->header.reserved1 = 0;
-	error->header.rq = 0;
-	error->header.command = 0x7F;
-	error->error_code = CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG;
-	error->error_data = 0;
+	rx_packet.data[7] = 0x34;
+	rx_packet.data[8] = 0x00;
+	rx_packet.data[9] = 0x00;
+	rx_packet.data[10] = 0x00;
+	rx_packet.data[11] = 0x0B;
+	rx_packet.data[12] = 0x0A;
+	rx_packet.data[13] = 0x01;
+	rx_packet.data[14] = 0x02;
+	rx_packet.data[15] = 0x03;
+	rx_packet.data[16] = 0x04;
+	rx_packet.data[17] = checksum_crc8 (0xBA, rx_packet.data, 17);
+	rx_packet.pkt_size = 18;
+	rx_packet.state = CMD_VALID_PACKET;
+	rx_packet.dest_addr = 0x5D;
 
 	setup_mock_cmd_channel_test (test, &channel);
 
+	request.data = data;
+	request.length = sizeof (data);
+	memcpy (request.data, &rx_packet.data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
+	request.crypto_timeout = false;
+	request.channel_id = 0;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+
+	response.data = data;
+	response.payload = response.data;
+
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
-	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[0],
-		sizeof (struct cmd_packet), -1);
+	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet, sizeof (rx_packet), -1);
+
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x34));
+
+	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
+		&channel.req_handler, CMD_HANDLER_PROCESS_FAILED,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_channel_receive_and_process (&channel.test.base, &channel.mctp, -1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&channel.test.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&channel.cmd_cerberus.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
-	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[1],
-		sizeof (struct cmd_packet), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_channel_receive_and_process (&channel.test.base, &channel.mctp, -1);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PKT_TOO_SHORT, status);
-
-	status = mock_validate (&channel.test.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&channel.cmd_cerberus.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
-	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[2],
-		sizeof (struct cmd_packet), -1);
-
-	status |= mock_expect (&channel.cmd_cerberus.mock,
-		channel.cmd_cerberus.base.generate_error_packet, &channel.cmd_cerberus, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0),
-		MOCK_ARG (0));
-	status |= mock_expect_output (&channel.cmd_cerberus.mock, 0, &error_packet,
-		sizeof (error_packet), -1);
-
-	status |= mock_expect (&channel.test.mock, channel.test.base.send_packet, &channel.test, 0,
-		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_channel_receive_and_process (&channel.test.base, &channel.mctp, -1);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, status);
 
 	complete_mock_cmd_channel_test (test, &channel);
 }
@@ -2066,6 +2002,10 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[1],
 		sizeof (struct cmd_packet), -1);
+
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
 
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
@@ -2271,6 +2211,10 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[1],
 		sizeof (struct cmd_packet), -1);
 
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x7e));
+
 	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
 		&channel.req_handler, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
@@ -2299,48 +2243,34 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 {
 	struct cmd_channel_testing channel;
 	int status;
-	struct cmd_packet rx_packet[4];
-	struct cmd_packet tx_packet;
-	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
-	struct cmd_interface_msg error_packet;
+	struct cmd_packet rx_packet[3];
+	uint8_t data[10];
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
 	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) rx_packet[0].data;
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
-	const int msg_size = 300;
-	uint16_t pci_vid = 0x1414;
-	uint8_t payload[msg_size];
-	int i;
 
 	TEST_START;
 
-	for (i = 0; i < (int) sizeof (payload); i++) {
-		payload[i] = i;
-	}
-
 	memset (&rx_packet, 0, sizeof (rx_packet));
-	memset (&error_packet, 0, sizeof (error_packet));
+	memset (&request, 0, sizeof (request));
+	memset (&response, 0, sizeof (response));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 252;
+	header->byte_count = 15;
 	header->source_addr = 0xAB;
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->som = 1;
+	header->som = 0;
 	header->eom = 0;
 	header->tag_owner = 1;
 	header->msg_tag = 0x00;
 	header->packet_seq = 0;
 
-	rx_packet[0].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	rx_packet[0].data[8] = 0x00;
-	rx_packet[0].data[9] = 0x00;
-	rx_packet[0].data[10] = 0x00;
-	memcpy (&rx_packet[0].data[11], payload, 255 - 12);
-	rx_packet[0].data[254] = checksum_crc8 (0xBA, rx_packet[0].data, 254);
-	rx_packet[0].pkt_size = 255;
-	rx_packet[0].state = CMD_VALID_PACKET;
+	rx_packet[0].pkt_size = 5;
+	rx_packet[0].state = CMD_OVERFLOW_PACKET;
 	rx_packet[0].dest_addr = 0x5D;
 
 	header = (struct mctp_base_protocol_transport_header*) rx_packet[1].data;
@@ -2352,14 +2282,25 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->som = 0;
-	header->eom = 0;
+	header->som = 1;
+	header->eom = 1;
 	header->tag_owner = 1;
 	header->msg_tag = 0x00;
 	header->packet_seq = 0;
 
-	rx_packet[1].pkt_size = 5;
-	rx_packet[1].state = CMD_OVERFLOW_PACKET;
+	rx_packet[1].data[7] = 0x23;
+	rx_packet[1].data[8] = 0x00;
+	rx_packet[1].data[9] = 0x00;
+	rx_packet[1].data[10] = 0x00;
+	rx_packet[1].data[11] = 0x0B;
+	rx_packet[1].data[12] = 0x0A;
+	rx_packet[1].data[13] = 0x01;
+	rx_packet[1].data[14] = 0x02;
+	rx_packet[1].data[15] = 0x03;
+	rx_packet[1].data[16] = 0x04;
+	rx_packet[1].data[17] = checksum_crc8 (0xBA, rx_packet[1].data, 17);
+	rx_packet[1].pkt_size = 18;
+	rx_packet[1].state = CMD_VALID_PACKET;
 	rx_packet[1].dest_addr = 0x5D;
 
 	header = (struct mctp_base_protocol_transport_header*) rx_packet[2].data;
@@ -2370,103 +2311,51 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	rx_packet[2].pkt_size = 5;
-	rx_packet[2].state = CMD_VALID_PACKET;
-	rx_packet[2].dest_addr = 0x5D;
-
-	i = msg_size - (255 - 12) + 7;
-
-	header = (struct mctp_base_protocol_transport_header*) rx_packet[3].data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = i - 2;
-	header->source_addr = 0xAB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->som = 0;
+	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = 1;
 	header->msg_tag = 0x00;
-	header->packet_seq = 1;
-
-	memcpy (&rx_packet[3].data[7], &payload[255 - 12], msg_size - (255 - 12));
-	rx_packet[3].data[i] = checksum_crc8 (0xBA, rx_packet[3].data, i);
-	rx_packet[3].pkt_size = i + 1;
-	rx_packet[3].state = CMD_VALID_PACKET;
-	rx_packet[3].dest_addr = 0x5D;
-
-	memset (&tx_packet, 0, sizeof (tx_packet));
-
-	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 15;
-	header->source_addr = 0xBB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = 0;
-	header->msg_tag = 0x00;
 	header->packet_seq = 0;
 
-	tx_packet.data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-
-	memcpy (&tx_packet.data[8], &pci_vid, sizeof (pci_vid));
-
-	tx_packet.data[10] = 0x00;
-	tx_packet.data[11] = 0x7F;
-	tx_packet.data[12] = 0xF1;
-	tx_packet.data[13] = 0x00;
-	tx_packet.data[14] = 0x00;
-	tx_packet.data[15] = 0x00;
-	tx_packet.data[16] = 0x00;
-	tx_packet.data[17] = checksum_crc8 (0xAA, tx_packet.data, 17);
-	tx_packet.pkt_size = 18;
-	tx_packet.state = CMD_VALID_PACKET;
-	tx_packet.dest_addr = 0x55;
-
-	error_packet.data = error_data;
-	error_packet.length = sizeof (error_data);
-
-	error->header.msg_type = 0x7E;
-	error->header.pci_vendor_id = 0x1414;
-	error->header.crypt = 0;
-	error->header.reserved2 = 0;
-	error->header.integrity_check = 0;
-	error->header.reserved1 = 0;
-	error->header.rq = 0;
-	error->header.command = 0x7F;
-	error->error_code = CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG;
-	error->error_data = 0;
+	rx_packet[2].data[7] = 0x32;
+	rx_packet[2].data[8] = 0x10;
+	rx_packet[2].data[9] = 0x10;
+	rx_packet[2].data[10] = 0x10;
+	rx_packet[2].data[11] = 0x1B;
+	rx_packet[2].data[12] = 0x1A;
+	rx_packet[2].data[13] = 0x11;
+	rx_packet[2].data[14] = 0x12;
+	rx_packet[2].data[15] = 0x13;
+	rx_packet[2].data[16] = 0x14;
+	rx_packet[2].data[17] = checksum_crc8 (0xBA, rx_packet[2].data, 17);
+	rx_packet[2].pkt_size = 18;
+	rx_packet[2].state = CMD_VALID_PACKET;
+	rx_packet[2].dest_addr = 0x5D;
 
 	setup_mock_cmd_channel_test (test, &channel);
 
+	request.data = data;
+	request.length = sizeof (data);
+	memcpy (request.data, &rx_packet[2].data[7], request.length);
+	request.payload = data;
+	request.payload_length = sizeof (data);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x55;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.is_encrypted = false;
+	request.crypto_timeout = false;
+	request.channel_id = 0;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+
+	response.data = data;
+	response.payload = response.data;
+
+	/* Drop the overflow packet. */
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
-	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[0],
-		sizeof (struct cmd_packet), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_channel_receive_and_process (&channel.test.base, &channel.mctp, -1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&channel.test.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&channel.cmd_cerberus.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
-	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[1],
-		sizeof (struct cmd_packet), -1);
+	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[0], sizeof (struct cmd_packet),
+		-1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2479,10 +2368,11 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 	status = mock_validate (&channel.cmd_cerberus.mock);
 	CuAssertIntEquals (test, 0, status);
 
+	/* And the next one. */
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
-	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[2],
-		sizeof (struct cmd_packet), -1);
+	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[1], sizeof (struct cmd_packet),
+		-1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2495,20 +2385,22 @@ static void cmd_channel_test_receive_and_process_overflow_packet (CuTest *test)
 	status = mock_validate (&channel.cmd_cerberus.mock);
 	CuAssertIntEquals (test, 0, status);
 
+	/* The following packet should be processed. */
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
-	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[3],
-		sizeof (struct cmd_packet), -1);
+	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[2], sizeof (struct cmd_packet),
+		-1);
 
-	status |= mock_expect (&channel.cmd_cerberus.mock,
-		channel.cmd_cerberus.base.generate_error_packet, &channel.cmd_cerberus,	0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0),
-		MOCK_ARG (0));
-	status |= mock_expect_output (&channel.cmd_cerberus.mock, 0, &error_packet,
-		sizeof (error_packet), -1);
+	status |= mock_expect (&channel.req_handler.mock,
+		channel.req_handler.base.is_message_type_supported, &channel.req_handler, 0,
+		MOCK_ARG (0x32));
 
-	status |= mock_expect (&channel.test.mock, channel.test.base.send_packet, &channel.test, 0,
-		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+	status |= mock_expect (&channel.req_handler.mock, channel.req_handler.base.base.process_request,
+		&channel.req_handler, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
+			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
+	status |= mock_expect_output_deep_copy (&channel.req_handler.mock, 0, &response,
+		sizeof (response), cmd_interface_mock_copy_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2522,75 +2414,28 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 {
 	struct cmd_channel_testing channel;
 	int status;
-	struct cmd_packet rx_packet[5];
-	struct cmd_packet tx_packet;
-	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
-	struct cmd_interface_msg error_packet;
-	struct mctp_base_protocol_transport_header *header =
-		(struct mctp_base_protocol_transport_header*) rx_packet[0].data;
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
-	const int msg_size = 300;
-	uint16_t pci_vid = 0x1414;
-	uint8_t payload[msg_size];
+	struct cmd_packet rx_packet[4];
+	struct mctp_base_protocol_transport_header *header;
 	int i;
 
 	TEST_START;
 
-	for (i = 0; i < (int) sizeof (payload); i++) {
-		payload[i] = i;
-	}
-
 	memset (&rx_packet, 0, sizeof (rx_packet));
-	memset (&error_packet, 0, sizeof (error_packet));
 
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 252;
-	header->source_addr = 0xAB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->som = 1;
-	header->eom = 0;
-	header->tag_owner = 1;
-	header->msg_tag = 0x00;
-	header->packet_seq = 0;
+	for (i = 0; i < 3; i++) {
+		header = (struct mctp_base_protocol_transport_header*) rx_packet[i].data;
 
-	rx_packet[0].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	rx_packet[0].data[8] = 0x00;
-	rx_packet[0].data[9] = 0x00;
-	rx_packet[0].data[10] = 0x00;
-	memcpy (&rx_packet[0].data[11], payload, 255 - 12);
-	rx_packet[0].data[254] = checksum_crc8 (0xBA, rx_packet[0].data, 254);
-	rx_packet[0].pkt_size = 255;
-	rx_packet[0].state = CMD_VALID_PACKET;
-	rx_packet[0].dest_addr = 0x5D;
+		header->cmd_code = SMBUS_CMD_CODE_MCTP;
+		header->byte_count = 15;
+		header->source_addr = 0xAB;
+		header->rsvd = 0;
+		header->header_version = 1;
+		header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
-	header = (struct mctp_base_protocol_transport_header*) rx_packet[1].data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 15;
-	header->source_addr = 0xAB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	rx_packet[1].pkt_size = 5;
-	rx_packet[1].state = CMD_OVERFLOW_PACKET;
-	rx_packet[1].dest_addr = 0x5D;
-
-	header = (struct mctp_base_protocol_transport_header*) rx_packet[2].data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 252;
-	header->source_addr = 0xAB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	rx_packet[2].pkt_size = 5;
-	rx_packet[2].state = CMD_OVERFLOW_PACKET;
-	rx_packet[2].dest_addr = 0x5D;
+		rx_packet[i].pkt_size = 5;
+		rx_packet[i].state = CMD_OVERFLOW_PACKET;
+		rx_packet[i].dest_addr = 0x5D;
+	}
 
 	header = (struct mctp_base_protocol_transport_header*) rx_packet[3].data;
 
@@ -2600,80 +2445,27 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 	header->rsvd = 0;
 	header->header_version = 1;
 	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	rx_packet[3].pkt_size = 5;
-	rx_packet[3].state = CMD_VALID_PACKET;
-	rx_packet[3].dest_addr = 0x5D;
-
-	i = msg_size - (255 - 12) + 7;
-
-	header = (struct mctp_base_protocol_transport_header*) rx_packet[4].data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = i - 2;
-	header->source_addr = 0xAB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->som = 0;
+	header->som = 1;
 	header->eom = 1;
 	header->tag_owner = 1;
 	header->msg_tag = 0x00;
-	header->packet_seq = 1;
-
-	memcpy (&rx_packet[4].data[7], &payload[255 - 12], msg_size - (255 - 12));
-	rx_packet[4].data[i] = checksum_crc8 (0xBA, rx_packet[4].data, i);
-	rx_packet[4].pkt_size = i + 1;
-	rx_packet[4].state = CMD_VALID_PACKET;
-	rx_packet[4].dest_addr = 0x5D;
-
-	memset (&tx_packet, 0, sizeof (tx_packet));
-
-	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 15;
-	header->source_addr = 0xBB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = 0;
-	header->msg_tag = 0x00;
 	header->packet_seq = 0;
 
-	tx_packet.data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-
-	memcpy (&tx_packet.data[8], &pci_vid, sizeof (pci_vid));
-
-	tx_packet.data[10] = 0x00;
-	tx_packet.data[11] = 0x7F;
-	tx_packet.data[12] = 0xF1;
-	tx_packet.data[13] = 0x00;
-	tx_packet.data[14] = 0x00;
-	tx_packet.data[15] = 0x00;
-	tx_packet.data[16] = 0x00;
-	tx_packet.data[17] = checksum_crc8 (0xAA, tx_packet.data, 17);
-	tx_packet.pkt_size = 18;
-	tx_packet.state = CMD_VALID_PACKET;
-	tx_packet.dest_addr = 0x55;
-
-	error_packet.data = error_data;
-	error_packet.length = sizeof (error_data);
-
-	error->header.msg_type = 0x7E;
-	error->header.pci_vendor_id = 0x1414;
-	error->header.crypt = 0;
-	error->header.reserved2 = 0;
-	error->header.integrity_check = 0;
-	error->header.reserved1 = 0;
-	error->header.rq = 0;
-	error->header.command = 0x7F;
-	error->error_code = CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG;
-	error->error_data = 0;
+	rx_packet[3].data[7] = 0x23;
+	rx_packet[3].data[8] = 0x00;
+	rx_packet[3].data[9] = 0x00;
+	rx_packet[3].data[10] = 0x00;
+	rx_packet[3].data[11] = 0x0B;
+	rx_packet[3].data[12] = 0x0A;
+	rx_packet[3].data[13] = 0x01;
+	rx_packet[3].data[14] = 0x02;
+	rx_packet[3].data[15] = 0x03;
+	rx_packet[3].data[16] = 0x04;
+	rx_packet[3].data[17] = checksum_crc8 (0xBA, rx_packet[1].data, 17);
+	rx_packet[3].pkt_size = 18;
+	rx_packet[3].state = CMD_VALID_PACKET;
+	rx_packet[3].dest_addr = 0x5D;
 
 	setup_mock_cmd_channel_test (test, &channel);
 
@@ -2685,7 +2477,7 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_channel_receive_and_process (&channel.test.base, &channel.mctp, -1);
-	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, CMD_CHANNEL_PKT_OVERFLOW, status);
 
 	status = mock_validate (&channel.test.mock);
 	CuAssertIntEquals (test, 0, status);
@@ -2729,32 +2521,6 @@ static void cmd_channel_test_receive_and_process_multiple_overflow_packet (CuTes
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
 	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[3],
 		sizeof (struct cmd_packet), -1);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_channel_receive_and_process (&channel.test.base, &channel.mctp, -1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&channel.test.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_validate (&channel.cmd_cerberus.mock);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
-	status |= mock_expect_output (&channel.test.mock, 0, &rx_packet[4],
-		sizeof (struct cmd_packet), -1);
-
-	status |= mock_expect (&channel.cmd_cerberus.mock,
-		channel.cmd_cerberus.base.generate_error_packet, &channel.cmd_cerberus, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_ERROR_OUT_OF_ORDER_MSG), MOCK_ARG (0),
-		MOCK_ARG (0));
-	status |= mock_expect_output (&channel.cmd_cerberus.mock, 0, &error_packet,
-		sizeof (error_packet), -1);
-
-	status |= mock_expect (&channel.test.mock, channel.test.base.send_packet, &channel.test, 0,
-		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
 
 	CuAssertIntEquals (test, 0, status);
 
