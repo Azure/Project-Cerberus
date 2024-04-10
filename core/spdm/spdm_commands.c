@@ -1322,7 +1322,8 @@ static int spdm_negotiate_algorithms_construct_response (struct spdm_state *stat
 			spdm_negotiate_algorithms_get_next_alg_struct_table_entry (algstruct_table);
 	}
 
-	if (local_capabilities->flags.meas_cap == 1) {
+	if (local_capabilities->flags.meas_cap == SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITHOUT_SIG ||
+		local_capabilities->flags.meas_cap == SPDM_MEASUREMENT_RSP_CAP_MEASUREMENTS_WITH_SIG) {
 		resp->measurement_specification = (uint8_t) spdm_prioritize_algorithm (
 			local_algo_priority_table->measurement_spec_priority_table,
 			local_algo_priority_table->measurement_spec_priority_table_count,
