@@ -260,6 +260,7 @@ enum {
 	MCTP_BASE_PROTOCOL_INVALID_MSG = MCTP_BASE_PROTOCOL_ERROR (0x14),			/**< An invalid message was received. */
 	MCTP_BASE_PROTOCOL_OUT_OF_SEQUENCE = MCTP_BASE_PROTOCOL_ERROR (0x15),		/**< A packet was received out of sequence for a message. */
 	MCTP_BASE_PROTOCOL_MIDDLE_PKT_LENGTH = MCTP_BASE_PROTOCOL_ERROR (0x16),		/**< A middle packet was received with different length than SOM. */
+	MCTP_BASE_PROTOCOL_MAX_RESP_TOO_SMALL = MCTP_BASE_PROTOCOL_ERROR (0x17),	/**< The maximum response length is less than the required minimum. */
 };
 
 

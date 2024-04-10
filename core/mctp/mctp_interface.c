@@ -1004,16 +1004,6 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 				cmd_set = header->rq;
 			}
 
-			/* TODO:  Update the downstream protocol handlers to set right max response for
-			 * different message types. */
-			if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (mctp->state->msg_type)) {
-				mctp->state->req_buffer.max_response =
-					device_manager_get_max_message_len_by_eid (mctp->device_manager, src_eid);
-			}
-			else if (MCTP_BASE_PROTOCOL_IS_CONTROL_MSG (mctp->state->msg_type)) {
-				mctp->state->req_buffer.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
-			}
-
 			status = mctp->req_handler->base.process_request (&mctp->req_handler->base,
 				&mctp->state->req_buffer);
 

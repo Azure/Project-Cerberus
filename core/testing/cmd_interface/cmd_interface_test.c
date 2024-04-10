@@ -613,6 +613,89 @@ static void cmd_interface_test_msg_get_max_response_null (CuTest *test)
 	CuAssertIntEquals (test, 0, length);
 }
 
+static void cmd_interface_test_msg_set_max_response (CuTest *test)
+{
+	uint8_t data[16];
+	struct cmd_interface_msg msg = {
+		.data = data,
+		.length = sizeof (data),
+		.max_response = sizeof (data)
+	};
+	size_t expected = sizeof (data) - 2;
+
+	TEST_START;
+
+	msg.payload = data;
+	msg.payload_length = sizeof (data);
+
+	cmd_interface_msg_set_max_response (&msg, sizeof (data) - 2);
+	CuAssertIntEquals (test, expected, msg.max_response);
+	CuAssertIntEquals (test, expected, cmd_interface_msg_get_max_response (&msg));
+
+	msg.max_response = sizeof (data);
+	msg.payload += 5;
+	msg.payload_length -= 5;
+
+	cmd_interface_msg_set_max_response (&msg, sizeof (data) - 7);
+	CuAssertIntEquals (test, expected, msg.max_response);
+	CuAssertIntEquals (test, expected - 5, cmd_interface_msg_get_max_response (&msg));
+
+	msg.max_response = sizeof (data);
+	msg.payload += 2;
+	msg.payload_length -= 2;
+	expected -= 1;
+
+	cmd_interface_msg_set_max_response (&msg, sizeof (data) - 10);
+	CuAssertIntEquals (test, expected, msg.max_response);
+	CuAssertIntEquals (test, expected - 7, cmd_interface_msg_get_max_response (&msg));
+}
+
+static void cmd_interface_test_msg_set_max_response_larger_than_current (CuTest *test)
+{
+	uint8_t data[16];
+	struct cmd_interface_msg msg = {
+		.data = data,
+		.length = sizeof (data),
+		.max_response = sizeof (data)
+	};
+
+	TEST_START;
+
+	msg.payload = data;
+	msg.payload_length = sizeof (data);
+
+	cmd_interface_msg_set_max_response (&msg, sizeof (data) + 1);
+	CuAssertIntEquals (test, sizeof (data), msg.max_response);
+	CuAssertIntEquals (test, sizeof (data), cmd_interface_msg_get_max_response (&msg));
+
+	msg.max_response = sizeof (data) - 4;
+	msg.payload += 5;
+	msg.payload_length -= 5;
+
+	cmd_interface_msg_set_max_response (&msg, sizeof (data) - 8);
+	CuAssertIntEquals (test, sizeof (data) - 4, msg.max_response);
+	CuAssertIntEquals (test, sizeof (data) - 9, cmd_interface_msg_get_max_response (&msg));
+}
+
+static void cmd_interface_test_msg_set_max_response_null (CuTest *test)
+{
+	uint8_t data[16];
+	struct cmd_interface_msg msg = {
+		.data = data,
+		.length = sizeof (data),
+		.max_response = sizeof (data) - 6
+	};
+
+	TEST_START;
+
+	msg.payload = data;
+	msg.payload_length = sizeof (data);
+
+	cmd_interface_msg_set_max_response (NULL, sizeof (data) - 9);
+	CuAssertIntEquals (test, sizeof (data) - 6, msg.max_response);
+	CuAssertIntEquals (test, sizeof (data) - 6, cmd_interface_msg_get_max_response (&msg));
+}
+
 
 TEST_SUITE_START (cmd_interface);
 
@@ -642,5 +725,8 @@ TEST (cmd_interface_test_msg_get_max_response);
 TEST (cmd_interface_test_msg_get_max_response_payload_after_data_length);
 TEST (cmd_interface_test_msg_get_max_response_shorter_than_protocol_length);
 TEST (cmd_interface_test_msg_get_max_response_null);
+TEST (cmd_interface_test_msg_set_max_response);
+TEST (cmd_interface_test_msg_set_max_response_larger_than_current);
+TEST (cmd_interface_test_msg_set_max_response_null);
 
 TEST_SUITE_END;

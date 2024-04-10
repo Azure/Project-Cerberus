@@ -27,9 +27,12 @@ int cmd_interface_protocol_mctp_msft_vdm_handle_request_result (
 
 /**
  * Initialize a static protocol handler for Microsoft MCTP vendor defined messages.
+ *
+ * @param device_mgr_ptr Manager for information about other MCTP endpoints known to the device.
  */
-#define	cmd_interface_protocol_mctp_msft_vdm_static_init { \
+#define	cmd_interface_protocol_mctp_msft_vdm_static_init(device_mgr_ptr) { \
 		.base = CMD_INTERFACE_PROTOCOL_MCTP_MSFT_VDM_API_INIT, \
+		.device_mgr = device_mgr_ptr, \
 	}
 
 

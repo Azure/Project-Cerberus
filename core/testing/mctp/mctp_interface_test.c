@@ -2839,160 +2839,6 @@ static void mctp_interface_test_process_packet_max_response_min_packets (CuTest 
 	mctp_interface_testing_release (test, &mctp);
 }
 
-static void mctp_interface_test_process_packet_response_length_limited (CuTest *test)
-{
-	struct mctp_interface_testing mctp;
-	struct cmd_packet rx;
-	struct cmd_message *tx;
-	uint8_t data[10];
-	struct cmd_interface_msg request;
-	struct cmd_interface_msg response;
-	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
-	struct cmd_interface_msg error_packet;
-	struct mctp_base_protocol_transport_header *header =
-		(struct mctp_base_protocol_transport_header*) rx.data;
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
-	struct device_manager_full_capabilities remote;
-	int status;
-
-	TEST_START;
-
-	memset (&rx, 0, sizeof (rx));
-	memset (&request, 0, sizeof (request));
-	memset (&response, 0, sizeof (response));
-	memset (&error_packet, 0, sizeof (error_packet));
-
-	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = 15;
-	header->source_addr = 0xAB;
-	header->rsvd = 0;
-	header->header_version = 1;
-	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	header->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	header->som = 1;
-	header->eom = 1;
-	header->tag_owner = MCTP_BASE_PROTOCOL_TO_REQUEST;
-	header->msg_tag = 0x00;
-	header->packet_seq = 0;
-
-	rx.data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	rx.data[8] = 0x00;
-	rx.data[9] = 0x00;
-	rx.data[10] = 0x00;
-	rx.data[11] = 0x01;
-	rx.data[12] = 0x02;
-	rx.data[13] = 0x03;
-	rx.data[14] = 0x04;
-	rx.data[15] = 0x05;
-	rx.data[16] = 0x06;
-	rx.data[17] = checksum_crc8 (0xBA, rx.data, 17);
-	rx.pkt_size = 18;
-	rx.dest_addr = 0x5D;
-
-	error_packet.data = error_data;
-	error_packet.length = sizeof (error_data);
-	error_packet.payload = error_packet.data;
-	error_packet.payload_length = error_packet.length;
-
-	error->header.msg_type = 0x7E;
-	error->header.pci_vendor_id = 0x1414;
-	error->header.crypt = 0;
-	error->header.reserved2 = 0;
-	error->header.integrity_check = 0;
-	error->header.reserved1 = 0;
-	error->header.rq = 0;
-	error->header.command = 0x7F;
-	error->error_code = CERBERUS_PROTOCOL_NO_ERROR;
-	error->error_data = 0;
-
-	mctp_interface_testing_init (test, &mctp);
-
-	memset (&remote, 0, sizeof (remote));
-	remote.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
-	remote.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
-	remote.request.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
-	remote.request.bus_role = DEVICE_MANAGER_SLAVE_BUS_ROLE;
-	remote.request.hierarchy_role = DEVICE_MANAGER_AC_ROT_MODE;
-	remote.max_timeout = MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS / 10;
-	remote.max_sig = MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS / 100;
-
-	status = device_manager_update_device_capabilities (&mctp.device_mgr, 1, &remote);
-	CuAssertIntEquals (test, 0, status);
-
-	request.data = data;
-	request.length = sizeof (data);
-	memcpy (request.data, &rx.data[7], request.length);
-	request.payload = data;
-	request.payload_length = sizeof (data);
-	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	request.source_addr = 0x55;
-	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	request.is_encrypted = false;
-	request.crypto_timeout = false;
-	request.channel_id = 0;
-	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
-
-	memset (&response, 0, sizeof (response));
-	response.data = data;
-	response.payload = response.data;
-
-	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.is_message_type_supported,
-		&mctp.req_handler, 0, MOCK_ARG (0x7e));
-
-	status |= mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.base.process_request,
-		&mctp.req_handler, 0,
-		MOCK_ARG_VALIDATOR_DEEP_COPY (cmd_interface_mock_validate_request, &request,
-			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
-	status |= mock_expect_output_deep_copy (&mctp.req_handler.mock, 0, &response, sizeof (response),
-		cmd_interface_mock_copy_request);
-
-	status |= mock_expect (&mctp.cmd_cerberus.mock, mctp.cmd_cerberus.base.generate_error_packet,
-		&mctp.cmd_cerberus, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR),
-		MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output_deep_copy (&mctp.cmd_cerberus.mock, 0, &error_packet,
-		sizeof (error_packet), cmd_interface_mock_copy_request);
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = mctp_interface_process_packet (&mctp.test, &rx, &tx);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertPtrNotNull (test, tx);
-
-	CuAssertIntEquals (test, MCTP_ERROR_MSG_LENGTH, tx->msg_size);
-	CuAssertIntEquals (test, tx->msg_size, tx->pkt_size);
-	CuAssertIntEquals (test, 0x55, tx->dest_addr);
-
-	header = (struct mctp_base_protocol_transport_header*) tx->data;
-	error = (struct cerberus_protocol_error*) &tx->data[MCTP_HEADER_LENGTH];
-
-	CuAssertIntEquals (test, SMBUS_CMD_CODE_MCTP, header->cmd_code);
-	CuAssertIntEquals (test, tx->pkt_size - 3, header->byte_count);
-	CuAssertIntEquals (test, 0x5D << 1 | 1, header->source_addr);
-	CuAssertIntEquals (test, 0, header->rsvd);
-	CuAssertIntEquals (test, 1, header->header_version);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BMC_EID, header->destination_eid);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, header->source_eid);
-	CuAssertIntEquals (test, 1, header->som);
-	CuAssertIntEquals (test, 1, header->eom);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_TO_RESPONSE, header->tag_owner);
-	CuAssertIntEquals (test, 0, header->msg_tag);
-	CuAssertIntEquals (test, 0, header->packet_seq);
-	CuAssertIntEquals (test, checksum_crc8 (0xAA, tx->data, tx->pkt_size - 1),
-		tx->data[tx->pkt_size - 1]);
-
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, error->header.msg_type);
-	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, error->header.pci_vendor_id);
-	CuAssertIntEquals (test, 0, error->header.crypt);
-	CuAssertIntEquals (test, 0, error->header.reserved2);
-	CuAssertIntEquals (test, 0, error->header.integrity_check);
-	CuAssertIntEquals (test, 0, error->header.reserved1);
-	CuAssertIntEquals (test, 0, error->header.rq);
-	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR, error->header.command);
-	CuAssertIntEquals (test, CERBERUS_PROTOCOL_NO_ERROR, error->error_code);
-
-	mctp_interface_testing_release (test, &mctp);
-}
-
 static void mctp_interface_test_process_packet_two_packet_response_length_limited (CuTest *test)
 {
 	struct mctp_interface_testing mctp;
@@ -3523,7 +3369,7 @@ static void mctp_interface_test_process_packet_mctp_control_request (CuTest *tes
 	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
-	request.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data = response_data;
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
@@ -3898,7 +3744,7 @@ static void mctp_interface_test_process_packet_static_init_mctp_control_request 
 	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
-	request.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data = response_data;
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
@@ -7399,7 +7245,7 @@ static void mctp_interface_test_process_packet_mctp_control_request_fail (CuTest
 	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
-	request.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
 	status = mock_expect (&mctp.req_handler.mock, mctp.req_handler.base.is_message_type_supported,
 		&mctp.req_handler, 0, MOCK_ARG (0));
@@ -7706,7 +7552,7 @@ static void mctp_interface_test_process_packet_response_too_large_length_limited
 	request.is_encrypted = false;
 	request.crypto_timeout = false;
 	request.channel_id = 0;
-	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY - 128;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
 	response.data = response_data;
 	response.data[0] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
@@ -17463,7 +17309,6 @@ TEST (mctp_interface_test_process_packet_starting_sequence_non_zero);
 TEST (mctp_interface_test_process_packet_max_message);
 TEST (mctp_interface_test_process_packet_max_response);
 TEST (mctp_interface_test_process_packet_max_response_min_packets);
-TEST (mctp_interface_test_process_packet_response_length_limited);
 TEST (mctp_interface_test_process_packet_two_packet_response_length_limited);
 TEST (mctp_interface_test_process_packet_sequential_requests_no_response);
 TEST (mctp_interface_test_process_packet_sequential_requests_with_response);

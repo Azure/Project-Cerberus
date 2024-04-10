@@ -184,6 +184,28 @@ size_t cmd_interface_msg_get_max_response (const struct cmd_interface_msg *messa
 	return length;
 }
 
+/**
+ * Set the maximum data length allowed for responses messages that can be constructed in the message
+ * payload buffer.
+ *
+ * This will only reduce the maximum response length for the message.  If the current maximum
+ * response length is less than the requested setting, the length will not be changed.
+ *
+ * @param message The message to update.
+ * @param max_response The maximum message response payload to set.  This value represents the
+ * maximum payload that can be added, so it must exclude the length of any protocol headers
+ * preceding the payload data in the message buffer.
+ */
+void cmd_interface_msg_set_max_response (struct cmd_interface_msg *message, size_t max_response)
+{
+	if (message != NULL) {
+		max_response += cmd_interface_msg_get_protocol_length (message);
+		if (max_response < message->max_response) {
+			message->max_response = max_response;
+		}
+	}
+}
+
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 /**
  * Determine if received request is encrypted from header.

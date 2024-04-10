@@ -21,6 +21,10 @@ int cmd_interface_protocol_mctp_parse_message (const struct cmd_interface_protoc
 		return MCTP_BASE_PROTOCOL_MSG_TOO_SHORT;
 	}
 
+	if (cmd_interface_msg_get_max_response (message) < MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT) {
+		return MCTP_BASE_PROTOCOL_MAX_RESP_TOO_SMALL;
+	}
+
 	header = (const struct mctp_base_protocol_message_header*) message->payload;
 
 	if (header->msg_type != MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF) {
@@ -28,6 +32,12 @@ int cmd_interface_protocol_mctp_parse_message (const struct cmd_interface_protoc
 		 * integrity check bit be set to 0. */
 		if (header->integrity_check != 0) {
 			return MCTP_BASE_PROTOCOL_INVALID_MSG;
+		}
+
+		if (header->msg_type == MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG) {
+			/* MCTP control messages are not allowed to be larger than minimum transmission unit
+			 * size. */
+			cmd_interface_msg_set_max_response (message, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT);
 		}
 
 		/* TODO:  MCTP control message structures currently assume presence of the message header,

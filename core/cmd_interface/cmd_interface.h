@@ -254,6 +254,7 @@ void cmd_interface_msg_add_protocol_header (struct cmd_interface_msg *message,
 
 size_t cmd_interface_msg_get_protocol_length (const struct cmd_interface_msg *message);
 size_t cmd_interface_msg_get_max_response (const struct cmd_interface_msg *message);
+void cmd_interface_msg_set_max_response (struct cmd_interface_msg *message, size_t max_response);
 
 /* Internal functions for use by derived types. */
 int cmd_interface_process_cerberus_protocol_message (const struct cmd_interface *intf,

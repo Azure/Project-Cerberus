@@ -15,10 +15,12 @@ int cmd_interface_protocol_mctp_msft_vdm_parse_message (
 	const struct cmd_interface_protocol *protocol, struct cmd_interface_msg *message,
 	uint32_t *message_type)
 {
+	const struct cmd_interface_protocol_mctp_msft_vdm *mctp =
+		(const struct cmd_interface_protocol_mctp_msft_vdm*) protocol;
 	const struct mctp_base_protocol_vdm_pci_header *header;
 	const struct cerberus_protocol_msft_header *msft_header;
 
-	if ((protocol == NULL) || (message == NULL) || (message_type == NULL)) {
+	if ((mctp == NULL) || (message == NULL) || (message_type == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
@@ -33,6 +35,9 @@ int cmd_interface_protocol_mctp_msft_vdm_parse_message (
 		(buffer_unaligned_read16 (&header->pci_vendor_id) != CERBERUS_PROTOCOL_MSFT_PCI_VID)) {
 		return CMD_HANDLER_UNSUPPORTED_MSG;
 	}
+
+	cmd_interface_msg_set_max_response (message,
+		device_manager_get_max_message_len_by_eid (mctp->device_mgr, message->source_eid));
 
 	/* TODO:  Remove the MCTP header before returning from this protocol layer.  Requires updating
 	 * Cerberus message processing. */
@@ -87,12 +92,14 @@ int cmd_interface_protocol_mctp_msft_vdm_handle_request_result (
  * Initialize a protocol handler for Microsoft MCTP vendor defined messages.
  *
  * @param mctp The MCTP handler to initialize.
+ * @param device_mgr Manager for information about other MCTP endpoints known to the device.
  *
  * @return 0 if the handler was initialized successfully or an error code.
  */
-int cmd_interface_protocol_mctp_msft_vdm_init (struct cmd_interface_protocol_mctp_msft_vdm *mctp)
+int cmd_interface_protocol_mctp_msft_vdm_init (struct cmd_interface_protocol_mctp_msft_vdm *mctp,
+	struct device_manager *device_mgr)
 {
-	if (mctp == NULL) {
+	if ((mctp == NULL) || (device_mgr == NULL)) {
 		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
@@ -100,6 +107,8 @@ int cmd_interface_protocol_mctp_msft_vdm_init (struct cmd_interface_protocol_mct
 
 	mctp->base.parse_message = cmd_interface_protocol_mctp_msft_vdm_parse_message;
 	mctp->base.handle_request_result = cmd_interface_protocol_mctp_msft_vdm_handle_request_result;
+
+	mctp->device_mgr = device_mgr;
 
 	return 0;
 }
