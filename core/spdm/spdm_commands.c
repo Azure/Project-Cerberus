@@ -392,19 +392,6 @@ static uint32_t spdm_get_asym_signature_size (uint32_t asym_algo)
 }
 
 /**
- * Write a 24-bit value to memory that may be unaligned.
- *
- * @param buffer The pointer to a 24-bit value that may be unaligned.
- * @param value 24-bit value to write to buffer.
- */
-static void spdm_write_uint24 (uint8_t *buffer, uint32_t value)
-{
-	buffer[0] = (uint8_t)(value & 0xFF);
-	buffer[1] = (uint8_t)((value >> 8) & 0xFF);
-	buffer[2] = (uint8_t)((value >> 16) & 0xFF);
-}
-
-/**
  * Reset transcript(s) in the Transcript Manager according to the request/response code.
  *
  * @param state SPDM state.
@@ -2456,7 +2443,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 			response_size += measurement_length;
 
 			spdm_response->number_of_blocks = (uint8_t) measurement_count;
-			spdm_write_uint24 (spdm_response->measurement_record_len,
+			buffer_unaligned_write24 (spdm_response->measurement_record_len, 
 				(uint32_t) measurement_length);
 			break;
 
@@ -2475,7 +2462,8 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 			response_size += measurement_length;
 
 			spdm_response->number_of_blocks = 1;
-			spdm_write_uint24(spdm_response->measurement_record_len,
+
+			buffer_unaligned_write24 (spdm_response->measurement_record_len, 
 				(uint32_t) measurement_length);
 			break;
 	}

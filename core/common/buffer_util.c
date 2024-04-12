@@ -248,6 +248,19 @@ void buffer_unaligned_copy16 (uint16_t *dst, const uint16_t *src)
 }
 
 /**
+ * Copies a 24 bit value between 2 assumed unaligned addresses.
+ *
+ * This does not do any validation on the parameters.
+ *
+ * @param dst A pointer to copy the value to.
+ * @param src The address pointer to read from.
+ */
+void buffer_unaligned_copy24 (uint8_t *dst, const uint8_t *src)
+{
+	memcpy (dst, src, 3);
+}
+
+/**
  * Copies a 32 bit value between 2 assumed unaligned addresses.
  *
  * This does not do any validation on the parameters.
@@ -302,6 +315,22 @@ uint16_t buffer_unaligned_read16 (const uint16_t *buffer)
 }
 
 /**
+ * Reads a 24 bit value from an assumed unaligned address.
+ *
+ * This does not do any validation on the parameters.
+ *
+ * @param buffer The address pointer to read from.
+ */
+uint32_t buffer_unaligned_read24 (const uint8_t *buffer)
+{
+	uint32_t value = 0;
+
+	buffer_unaligned_copy24 ((uint8_t*)&value, buffer);
+
+	return value;
+}
+
+/**
  * Reads a 32 bit value from an assumed unaligned address.
  *
  * This does not do any validation on the parameters.
@@ -344,6 +373,19 @@ uint64_t buffer_unaligned_read64 (const uint64_t *buffer)
 void buffer_unaligned_write16 (uint16_t *buffer, uint16_t value)
 {
 	buffer_unaligned_copy16 (buffer, &value);
+}
+
+/**
+ * Writes a 24 bit value to an assumed unaligned address.
+ *
+ * This does not do any validation on the parameters.
+ *
+ * @param buffer The address pointer to write to.
+ * @param value The value to write.
+ */
+void buffer_unaligned_write24 (uint8_t *buffer, uint32_t value)
+{
+	buffer_unaligned_copy24 (buffer, (const uint8_t*)&value);
 }
 
 /**

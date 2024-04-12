@@ -1279,6 +1279,36 @@ static void buffer_unaligned_test_copy16_unaligned_dst (CuTest *test)
 	CuAssertIntEquals (test, 0x02, value[2]);
 }
 
+static void buffer_unaligned_test_copy24_unaligned_src (CuTest *test)
+{
+	uint32_t value = 0;
+
+	TEST_START;
+
+	buffer_unaligned_copy24 ((uint8_t*)&value, &BUFFER_TESTING_UNALIGNED_DATA[0]);
+	CuAssertIntEquals (test, 0x030201, value);
+
+	buffer_unaligned_copy24 ((uint8_t*)&value, &BUFFER_TESTING_UNALIGNED_DATA[1]);
+	CuAssertIntEquals (test, 0x040302, value);
+}
+
+static void buffer_unaligned_test_copy24_unaligned_dst (CuTest *test)
+{
+	uint8_t value[4] = { 0, };
+
+	TEST_START;
+
+	buffer_unaligned_copy24 (&value[0], BUFFER_TESTING_UNALIGNED_DATA);
+	CuAssertIntEquals (test, 0x01, value[0]);
+	CuAssertIntEquals (test, 0x02, value[1]);
+	CuAssertIntEquals (test, 0x03, value[2]);
+
+	buffer_unaligned_copy24 (&value[1], BUFFER_TESTING_UNALIGNED_DATA);
+	CuAssertIntEquals (test, 0x01, value[1]);
+	CuAssertIntEquals (test, 0x02, value[2]);
+	CuAssertIntEquals (test, 0x03, value[3]);
+}
+
 static void buffer_unaligned_test_copy32_unaligned_src (CuTest *test)
 {
 	uint32_t value = 0;
@@ -1472,6 +1502,19 @@ static void buffer_unaligned_test_read16 (CuTest *test)
 	CuAssertIntEquals (test, 0x0302, value);
 }
 
+static void buffer_unaligned_test_read24 (CuTest *test)
+{
+	uint32_t value;
+
+	TEST_START;
+
+	value = buffer_unaligned_read24 (&BUFFER_TESTING_UNALIGNED_DATA[0]);
+	CuAssertIntEquals (test, 0x030201, value);
+
+	value = buffer_unaligned_read24 (&BUFFER_TESTING_UNALIGNED_DATA[1]);
+	CuAssertIntEquals (test, 0x040302, value);
+}
+
 static void buffer_unaligned_test_read32 (CuTest *test)
 {
 	uint32_t value;
@@ -1535,6 +1578,23 @@ static void buffer_unaligned_test_write16 (CuTest *test)
 	buffer_unaligned_write16 ((uint16_t*) &value[1], 0x0201);
 	CuAssertIntEquals (test, 0x01, value[1]);
 	CuAssertIntEquals (test, 0x02, value[2]);
+}
+
+static void buffer_unaligned_test_write24 (CuTest *test)
+{
+	uint8_t value[4] = { 0, };
+
+	TEST_START;
+
+	buffer_unaligned_write24 (&value[0], 0x030201);
+	CuAssertIntEquals (test, 0x01, value[0]);
+	CuAssertIntEquals (test, 0x02, value[1]);
+	CuAssertIntEquals (test, 0x03, value[2]);
+
+	buffer_unaligned_write24 (&value[1], 0x030201);
+	CuAssertIntEquals (test, 0x01, value[1]);
+	CuAssertIntEquals (test, 0x02, value[2]);
+	CuAssertIntEquals (test, 0x03, value[3]);
 }
 
 static void buffer_unaligned_test_write32 (CuTest *test)
@@ -1718,14 +1778,18 @@ TEST (buffer_zerioze_test_zero_length);
 TEST (buffer_zerioze_test_null);
 TEST (buffer_unaligned_test_copy16_unaligned_src);
 TEST (buffer_unaligned_test_copy16_unaligned_dst);
+TEST (buffer_unaligned_test_copy24_unaligned_src);
+TEST (buffer_unaligned_test_copy24_unaligned_dst);
 TEST (buffer_unaligned_test_copy32_unaligned_src);
 TEST (buffer_unaligned_test_copy32_unaligned_dst);
 TEST (buffer_unaligned_test_copy64_unaligned_src);
 TEST (buffer_unaligned_test_copy64_unaligned_dst);
 TEST (buffer_unaligned_test_read16);
+TEST (buffer_unaligned_test_read24);
 TEST (buffer_unaligned_test_read32);
 TEST (buffer_unaligned_test_read64);
 TEST (buffer_unaligned_test_write16);
+TEST (buffer_unaligned_test_write24);
 TEST (buffer_unaligned_test_write32);
 TEST (buffer_unaligned_test_write64);
 

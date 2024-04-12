@@ -890,7 +890,7 @@ struct spdm_get_measurements_response {
  * @param resp Buffer with struct spdm_get_measurements_response
  */
 #define spdm_get_measurements_resp_measurement_record_len(resp) \
-	((*((uint32_t*) resp->measurement_record_len)) & 0x00FFFFFF)
+	buffer_unaligned_read24(resp->measurement_record_len)
 
 /**
  * Get the max measurement record length in SPDM get measurements response
@@ -911,20 +911,13 @@ struct spdm_get_measurements_response {
 	spdm_get_measurements_resp_measurement_record_len (resp))
 
 /**
- * Get pointer containing opaque data length buffer in SPDM get measurements response
- *
- * @param resp Buffer with struct spdm_get_measurements_response
- */
-#define	spdm_get_measurements_resp_opaque_len_ptr(resp)	\
-	((uint16_t*) (spdm_get_measurements_resp_nonce (resp) + SPDM_NONCE_LEN))
-
-/**
  * Get opaque data length in bytes in SPDM get measurements response
  *
  * @param resp Buffer with struct spdm_get_measurements_response
  */
 #define	spdm_get_measurements_resp_opaque_len(resp)	\
-	(*(spdm_get_measurements_resp_opaque_len_ptr (resp)))
+	buffer_unaligned_read16 ( \
+		(const uint16_t *)(spdm_get_measurements_resp_nonce (resp) + SPDM_NONCE_LEN))
 
 /**
  * Get the buffer containing the opaque data in SPDM get measurements response

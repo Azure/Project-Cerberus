@@ -36,14 +36,17 @@ int buffer_compare_dwords (const uint32_t *buf1, const uint32_t *buf2, size_t dw
 void buffer_zeroize (void *buffer, size_t length);
 
 void buffer_unaligned_copy16 (uint16_t *dst, const uint16_t *src);
+void buffer_unaligned_copy24 (uint8_t *dst, const uint8_t *src);
 void buffer_unaligned_copy32 (uint32_t *dst, const uint32_t *src);
 void buffer_unaligned_copy64 (uint64_t *dst, const uint64_t *src);
 
 uint16_t buffer_unaligned_read16 (const uint16_t *buffer);
+uint32_t buffer_unaligned_read24 (const uint8_t *buffer);
 uint32_t buffer_unaligned_read32 (const uint32_t *buffer);
 uint64_t buffer_unaligned_read64 (const uint64_t *buffer);
 
 void buffer_unaligned_write16 (uint16_t *buffer, uint16_t value);
+void buffer_unaligned_write24 (uint8_t *buffer, uint32_t value);
 void buffer_unaligned_write32 (uint32_t *buffer, uint32_t value);
 void buffer_unaligned_write64 (uint64_t *buffer, uint64_t value);
 
