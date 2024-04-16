@@ -138,6 +138,11 @@ extern const uint8_t SHA256_HMAC_KEY[];
 extern const uint8_t SHA384_HMAC_KEY[];
 extern const uint8_t SHA512_HMAC_KEY[];
 
+extern const uint8_t SHA1_HMAC_BLOCK_KEY[];
+extern const uint8_t SHA256_HMAC_BLOCK_KEY[];
+extern const uint8_t SHA384_HMAC_BLOCK_KEY[];
+extern const uint8_t SHA512_HMAC_BLOCK_KEY[];
+
 extern const uint8_t SHA1_TEST_HMAC[];
 extern const uint8_t SHA256_TEST_HMAC[];
 extern const uint8_t SHA384_TEST_HMAC[];
@@ -147,6 +152,11 @@ extern const uint8_t SHA1_FULL_BLOCK_1024_HMAC[];
 extern const uint8_t SHA256_FULL_BLOCK_1024_HMAC[];
 extern const uint8_t SHA384_FULL_BLOCK_1024_HMAC[];
 extern const uint8_t SHA512_FULL_BLOCK_1024_HMAC[];
+
+extern const uint8_t SHA1_FULL_BLOCK_4096_BLOCK_KEY_HMAC[];
+extern const uint8_t SHA256_FULL_BLOCK_4096_BLOCK_KEY_HMAC[];
+extern const uint8_t SHA384_FULL_BLOCK_4096_BLOCK_KEY_HMAC[];
+extern const uint8_t SHA512_FULL_BLOCK_4096_BLOCK_KEY_HMAC[];
 
 
 #endif /* HASH_TESTING_H_ */

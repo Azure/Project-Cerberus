@@ -15,5 +15,10 @@ int kdf_testing_expect_nist800_108_counter_mode (struct hash_engine_mock *hash,
 	const uint8_t *label, size_t label_length, const uint8_t *context, size_t context_length,
 	uint32_t bytes_out, const uint8_t *result, size_t result_length);
 
+int kdf_testing_expect_hkdf_expand (struct hash_engine_mock *hash,
+	enum hash_type hash_algo, const uint8_t *psk, size_t psk_length, const uint8_t *t,
+	size_t t_length, const uint8_t *info, size_t info_length, uint8_t round, const uint8_t *result,
+	size_t result_length);
+
 
 #endif /* KDF_TESTING_H_ */

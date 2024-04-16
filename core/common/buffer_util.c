@@ -110,7 +110,7 @@ void buffer_reverse_copy (uint8_t *dest, const uint8_t *src, size_t length)
 /**
  * Make a copy of a buffer, reversing the buffer contents one DWORD at a time.  This function will
  * return error if either buffer is null or not DWORD aligned.
- * 
+ *
  * These buffers must not be overlapping.
  *
  * The arguments on this function are reverse the normal semantics of input args first and output
@@ -119,7 +119,7 @@ void buffer_reverse_copy (uint8_t *dest, const uint8_t *src, size_t length)
  * @param dest Destination buffer for the reversed data.
  * @param src The buffer data to copy.
  * @param length The number of dwords to copy.
- * 
+ *
  * @return 0 if the operation was successful or an error code.
  */
 int buffer_reverse_copy_dwords (uint32_t *dest, const uint32_t *src, size_t length)
@@ -130,7 +130,7 @@ int buffer_reverse_copy_dwords (uint32_t *dest, const uint32_t *src, size_t leng
 	if (((uintptr_t) src & 0x3U) || ((uintptr_t) dest & 0x3U)) {
 		return BUFFER_UTIL_UNEXPETCED_ALIGNMENT;
 	}
-	
+
 	if ((src == NULL) || (dest == NULL)) {
 		return BUFFER_UTIL_INVALID_ARGUMENT;
 	}
@@ -325,7 +325,7 @@ uint32_t buffer_unaligned_read24 (const uint8_t *buffer)
 {
 	uint32_t value = 0;
 
-	buffer_unaligned_copy24 ((uint8_t*)&value, buffer);
+	buffer_unaligned_copy24 ((uint8_t*) &value, buffer);
 
 	return value;
 }
@@ -385,7 +385,7 @@ void buffer_unaligned_write16 (uint16_t *buffer, uint16_t value)
  */
 void buffer_unaligned_write24 (uint8_t *buffer, uint32_t value)
 {
-	buffer_unaligned_copy24 (buffer, (const uint8_t*)&value);
+	buffer_unaligned_copy24 (buffer, (const uint8_t*) &value);
 }
 
 /**

@@ -30,6 +30,9 @@ int hash_mock_expect_hmac_finish (struct hash_engine_mock *mock, const uint8_t *
 int hash_mock_expect_hmac (struct hash_engine_mock *mock, const uint8_t *key, size_t key_length,
 	const uint8_t *data, size_t length, uint8_t *hmac, size_t hmac_length, enum hash_type hmac_algo,
 	const uint8_t *expected, size_t exp_length);
+int hash_mock_expect_hmac_large_key (struct hash_engine_mock *mock, const uint8_t *key,
+	size_t key_length, const uint8_t *key_digest, const uint8_t *data, size_t length, uint8_t *hmac,
+	size_t hmac_length, enum hash_type hmac_algo, const uint8_t *expected, size_t exp_length);
 
 
 #endif /* HASH_MOCK_H_ */

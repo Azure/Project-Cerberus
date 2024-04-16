@@ -392,6 +392,13 @@ int hash_mock_expect_hmac_init (struct hash_engine_mock *mock, const uint8_t *ke
 	size_t i;
 
 	switch (hmac_algo) {
+#ifdef HASH_ENABLE_SHA1
+		case HASH_TYPE_SHA1:
+			status = mock_expect (&mock->mock, mock->base.start_sha1, mock, 0);
+			hmac_key_length = SHA1_BLOCK_SIZE;
+			break;
+#endif
+
 		case HASH_TYPE_SHA256:
 			status = mock_expect (&mock->mock, mock->base.start_sha256, mock, 0);
 			hmac_key_length = SHA256_BLOCK_SIZE;
@@ -454,6 +461,13 @@ int hash_mock_expect_hmac_finish (struct hash_engine_mock *mock, const uint8_t *
 	status |= mock_expect_save_arg (&mock->mock, 0, inner);
 
 	switch (hmac_algo) {
+#ifdef HASH_ENABLE_SHA1
+		case HASH_TYPE_SHA1:
+			status |= mock_expect (&mock->mock, mock->base.start_sha1, mock, 0);
+			hmac_key_length = SHA256_BLOCK_SIZE;
+			break;
+#endif
+
 		case HASH_TYPE_SHA256:
 			status |= mock_expect (&mock->mock, mock->base.start_sha256, mock, 0);
 			hmac_key_length = SHA256_BLOCK_SIZE;
@@ -527,6 +541,83 @@ int hash_mock_expect_hmac (struct hash_engine_mock *mock, const uint8_t *key, si
 
 	status |= hash_mock_expect_hmac_finish (mock, key, key_length, hmac, hmac_length, hmac_algo,
 		expected, exp_length);
+
+	return status;
+}
+
+/**
+ * Add expectations to run an HMAC with the mock hash engine when the input key is larger than the
+ * the hash block size.
+ *
+ * @param mock The mock to use for the HMAC.
+ * @param key The HMAC key.
+ * @param key_length The length of the HMAC key.
+ * @param key_digest The expected digest of the large HMAC key
+ * @param data The data for the HMAC.
+ * @param length The length of the data.
+ * @param hmac The expected HMAC output buffer.  Set to null if the output buffer pointer is unknown.
+ * @param hmac_length The expected length of the output buffer.
+ * @param hmac_algo The hash algorithm to use for the HMAC.
+ * @param expected The expected HMAC output to generate.
+ * @param exp_length The length of the HMAC output.
+ *
+ * @return 0 if the expectations were added successfully or an error code.
+ */
+int hash_mock_expect_hmac_large_key (struct hash_engine_mock *mock, const uint8_t *key,
+	size_t key_length, const uint8_t *key_digest, const uint8_t *data, size_t length, uint8_t *hmac,
+	size_t hmac_length, enum hash_type hmac_algo, const uint8_t *expected, size_t exp_length)
+{
+	size_t digest_length;
+	int status = 0;
+
+	switch (hmac_algo) {
+#ifdef HASH_ENABLE_SHA1
+		case HASH_TYPE_SHA1:
+			status = mock_expect (&mock->mock, mock->base.calculate_sha1, mock, 0,
+				MOCK_ARG_PTR_CONTAINS (key, key_length), MOCK_ARG (key_length), MOCK_ARG_NOT_NULL,
+				MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+			digest_length = SHA1_HASH_LENGTH;
+			break;
+#endif
+
+		case HASH_TYPE_SHA256:
+			status = mock_expect (&mock->mock, mock->base.calculate_sha256, mock, 0,
+				MOCK_ARG_PTR_CONTAINS (key, key_length), MOCK_ARG (key_length), MOCK_ARG_NOT_NULL,
+				MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+			digest_length = SHA256_HASH_LENGTH;
+			break;
+
+#ifdef HASH_ENABLE_SHA384
+		case HASH_TYPE_SHA384:
+			status = mock_expect (&mock->mock, mock->base.calculate_sha384, mock, 0,
+				MOCK_ARG_PTR_CONTAINS (key, key_length), MOCK_ARG (key_length), MOCK_ARG_NOT_NULL,
+				MOCK_ARG_AT_LEAST (SHA1_HASH_LENGTH));
+			digest_length = SHA384_HASH_LENGTH;
+			break;
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+		case HASH_TYPE_SHA512:
+			status = mock_expect (&mock->mock, mock->base.calculate_sha512, mock, 0,
+				MOCK_ARG_PTR_CONTAINS (key, key_length), MOCK_ARG (key_length), MOCK_ARG_NOT_NULL,
+				MOCK_ARG_AT_LEAST (SHA512_HASH_LENGTH));
+			digest_length = SHA512_HASH_LENGTH;
+			break;
+#endif
+
+		default:
+			return HASH_ENGINE_UNKNOWN_HASH;
+	}
+
+	status |= mock_expect_output (&mock->mock, 2, key_digest, digest_length, 3);
+
+	status |= hash_mock_expect_hmac_init (mock, key_digest, digest_length, hmac_algo);
+
+	status |= mock_expect (&mock->mock, mock->base.update, mock, 0,
+		MOCK_ARG_PTR_CONTAINS (data, length), MOCK_ARG (length));
+
+	status |= hash_mock_expect_hmac_finish (mock, key_digest, digest_length, hmac, hmac_length,
+		hmac_algo, expected, exp_length);
 
 	return status;
 }

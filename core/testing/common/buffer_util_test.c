@@ -1285,10 +1285,10 @@ static void buffer_unaligned_test_copy24_unaligned_src (CuTest *test)
 
 	TEST_START;
 
-	buffer_unaligned_copy24 ((uint8_t*)&value, &BUFFER_TESTING_UNALIGNED_DATA[0]);
+	buffer_unaligned_copy24 ((uint8_t*) &value, &BUFFER_TESTING_UNALIGNED_DATA[0]);
 	CuAssertIntEquals (test, 0x030201, value);
 
-	buffer_unaligned_copy24 ((uint8_t*)&value, &BUFFER_TESTING_UNALIGNED_DATA[1]);
+	buffer_unaligned_copy24 ((uint8_t*) &value, &BUFFER_TESTING_UNALIGNED_DATA[1]);
 	CuAssertIntEquals (test, 0x040302, value);
 }
 

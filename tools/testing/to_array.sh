@@ -17,15 +17,16 @@ fi
 var_name=`echo $data_out | tr 'a-z' 'A-Z'`
 
 
-img=`xxd -p -c 1 $1 | head --bytes=-1 | tr '\n' ' ' | sed 's/ /,0x/g'`
-fmt=`echo 0x$img | fold -w 80`
+img=`xxd -p -c 1 $1 | head --bytes=-1 | tr '\n' ' ' | sed 's/ /, 0x/g'`
+fmt=`echo 0x$img | fold -w 96`
 
 
 cat << EOF > $data_out.c
+#include <stddef.h>
 #include <stdint.h>
 
 const uint8_t ${var_name}[] = {
 $fmt
 };
-const uint32_t ${var_name}_LEN = sizeof (${var_name});
+const size_t ${var_name}_LEN = sizeof (${var_name});
 EOF

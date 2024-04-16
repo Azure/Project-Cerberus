@@ -33,7 +33,7 @@ extern const size_t ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN;
 
 extern const struct ecc_ecdsa_signature ECC_KAT_VECTORS_P384_ECDSA_SIGNATURE;
 extern const uint8_t ECC_KAT_VECTORS_P384_ECDSA_SIGNATURE_DER[];
-extern const uint32_t ECC_KAT_VECTORS_P384_ECDSA_SIGNATURE_DER_LEN;
+extern const size_t ECC_KAT_VECTORS_P384_ECDSA_SIGNATURE_DER_LEN;
 
 /* ECC P-521 */
 extern const uint8_t ECC_KAT_VECTORS_P521_ECC_PRIVATE[];
@@ -46,7 +46,7 @@ extern const size_t ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN;
 
 extern const struct ecc_ecdsa_signature ECC_KAT_VECTORS_P521_ECDSA_SIGNATURE;
 extern const uint8_t ECC_KAT_VECTORS_P521_ECDSA_SIGNATURE_DER[];
-extern const uint32_t ECC_KAT_VECTORS_P521_ECDSA_SIGNATURE_DER_LEN;
+extern const size_t ECC_KAT_VECTORS_P521_ECDSA_SIGNATURE_DER_LEN;
 
 /* ECDSA */
 extern const uint8_t ECC_KAT_VECTORS_ECDSA_SIGNED[];

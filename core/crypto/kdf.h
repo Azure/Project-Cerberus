@@ -4,20 +4,29 @@
 #ifndef KDF_H_
 #define KDF_H_
 
-
 #include <stdint.h>
 #include <stddef.h>
 #include "status/rot_status.h"
 #include "hash.h"
 
 
-int kdf_nist800_108_counter_mode (struct hash_engine *hash, enum hmac_hash hash_type, 
-	const uint8_t *key_derivation_key, size_t key_derivation_key_len, const uint8_t *label, 
-	size_t label_len, const uint8_t *context, size_t context_len, uint8_t *key, uint32_t key_len);
+int kdf_nist800_108_counter_mode (struct hash_engine *hash, enum hmac_hash hash_type,
+	const uint8_t *key_derivation_key, size_t key_derivation_key_len, const uint8_t *label,
+	size_t label_len, const uint8_t *context, size_t context_len, uint8_t *key, size_t key_len);
+
+int kdf_run_self_test_nist800_108_counter_mode_sha1 (struct hash_engine *hash);
+int kdf_run_self_test_nist800_108_counter_mode_sha256 (struct hash_engine *hash);
+int kdf_run_self_test_nist800_108_counter_mode_sha384 (struct hash_engine *hash);
+int kdf_run_self_test_nist800_108_counter_mode_sha512 (struct hash_engine *hash);
 
 int kdf_hkdf_expand (struct hash_engine *hash, enum hmac_hash hash_type,
 	const uint8_t *pseudorandom_key, size_t pseudorandom_key_len, const uint8_t *info,
 	size_t info_len, uint8_t *output_keying_material, size_t output_keying_material_len);
+
+int kdf_run_self_test_hkdf_expand_sha1 (struct hash_engine *hash);
+int kdf_run_self_test_hkdf_expand_sha256 (struct hash_engine *hash);
+int kdf_run_self_test_hkdf_expand_sha384 (struct hash_engine *hash);
+int kdf_run_self_test_hkdf_expand_sha512 (struct hash_engine *hash);
 
 
 #define	KDF_ERROR(code)		ROT_ERROR (ROT_MODULE_KDF, code)
@@ -30,6 +39,16 @@ enum {
 	KDF_NO_MEMORY = KDF_ERROR (0x01),						/**< Memory allocation failed. */
 	KDF_OPERATION_UNSUPPORTED = KDF_ERROR (0x02),			/**< Requested operation not supported. */
 	KDF_BAD_INPUT_DATA = KDF_ERROR (0x03),					/**< Input data is not valid. */
+	KDF_INPUT_KEY_TOO_SHORT = KDF_ERROR (0x04),				/**< Input KDF key is not long enough. */
+	KDF_OUTPUT_KEY_TOO_LONG = KDF_ERROR (0x05),				/**< Output key is longer than is supported by the KDF. */
+	KDF_NIST800_108_SHA1_KAT_FAILED = KDF_ERROR (0x06),		/**< Failed a SHA-1 NIST800-108 self test. */
+	KDF_NIST800_108_SHA256_KAT_FAILED = KDF_ERROR (0x07),	/**< Failed a SHA-256 NIST800-108 self test. */
+	KDF_NIST800_108_SHA384_KAT_FAILED = KDF_ERROR (0x08),	/**< Failed a SHA-384 NIST800-108 self test. */
+	KDF_NIST800_108_SHA512_KAT_FAILED = KDF_ERROR (0x09),	/**< Failed a SHA-512 NIST800-108 self test. */
+	KDF_HKDF_EXPAND_SHA1_KAT_FAILED = KDF_ERROR (0x0a),		/**< Failed a SHA-1 HKDF-Expand self test. */
+	KDF_HKDF_EXPAND_SHA256_KAT_FAILED = KDF_ERROR (0x0b),	/**< Failed a SHA-256 HKDF-Expand self test. */
+	KDF_HKDF_EXPAND_SHA384_KAT_FAILED = KDF_ERROR (0x0c),	/**< Failed a SHA-384 HKDF-Expand self test. */
+	KDF_HKDF_EXPAND_SHA512_KAT_FAILED = KDF_ERROR (0x0d),	/**< Failed a SHA-512 HKDF-Expand self test. */
 };
 
 
