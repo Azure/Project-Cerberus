@@ -36,6 +36,9 @@ int keystore_flash_load_key (const struct keystore *store, int id, uint8_t **key
 		return KEYSTORE_INVALID_ARGUMENT;
 	}
 
+	/* TODO: add better error handling for scenarios where keystore isn't initialized and the flash
+	 * region allocated for keystore is not blank. In such scenarios, returned key_len is not valid
+	 * and can result in either malloc or read failure */
 	key_len = flash->store->get_data_length (flash->store, id);
 	if (ROT_IS_ERROR (key_len)) {
 		if (key_len == FLASH_STORE_NO_DATA) {
