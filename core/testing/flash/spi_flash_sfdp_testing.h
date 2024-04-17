@@ -131,5 +131,17 @@ extern const uint32_t SFDP_PARAMS_ADDR_SST26VF064B;
 extern const uint32_t SFDP_PARAMS_SST26VF064B[];
 extern const size_t SFDP_PARAMS_SST26VF064B_LEN;
 
+/* Infineon flash */
+
+/* S28HS02GT */
+extern const uint8_t FLASH_ID_S28HS02GT[];
+
+extern const uint32_t SFDP_HEADER_S28HS02GT[];
+extern const size_t SFDP_HEADER_S28HS02GT_LEN;
+
+extern const uint32_t SFDP_PARAMS_ADDR_S28HS02GT;
+
+extern const uint32_t SFDP_PARAMS_S28HS02GT[];
+extern const size_t SFDP_PARAMS_S28HS02GT_LEN;
 
 #endif /* SPI_FLASH_SFDP_TESTING_H_ */

@@ -31,7 +31,7 @@ struct spi_flash_sfdp_header {
 	uint8_t minor_revision;								/**< SFDP minor revision. */
 	uint8_t major_revision;								/**< SFDP major revision. */
 	uint8_t header_count;								/**< The number of parameters headers. */
-	uint8_t unused;										/**< Unused.  Must be 0xff. */
+	uint8_t access_protocol;							/**< SFDP access protocol. */
 	struct spi_flash_sfdp_parameter_header parameter0;	/**< Header for the first parameter table. */
 };
 #pragma pack(pop)

@@ -322,7 +322,7 @@ static void host_flash_manager_single_testing_initialize_flash_device (CuTest *t
 		0x757a757a,
 		0x5cd5a2f7,
 		0xff2df719,
-		0x80f830e9
+		0x85f950f0
 	};
 	uint8_t mode_expected[] = {0x20};
 	int status;
@@ -6474,7 +6474,7 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_with_flash_i
 		0x757a757a,
 		0x5cd5a2f7,
 		0xff2df719,
-		0x80f830e9
+		0x85f950f0
 	};
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t read_status = 0x7c;

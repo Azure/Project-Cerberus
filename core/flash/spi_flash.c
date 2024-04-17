@@ -30,6 +30,22 @@
 #define	SPI_FLASH_DO_RESET			(1U << 0)
 #define	SPI_FLASH_RESET_IS_REQUIRED	(1U << 1)
 
+/* Infineon Flash status and configuration register address space.
+ STR stands for status register , CFR stands for configuration register,
+ V stands for Volatile, N stands for Nonvolatile. */
+#define INFINEON_STR1V				0x00800000
+#define INFINEON_STR2V				0x00800001
+#define INFINEON_CFR1V				0x00800002
+#define INFINEON_CFR2V				0x00800003
+#define INFINEON_CFR3V				0x00800004
+#define INFINEON_CFR4V				0x00800005
+#define INFINEON_CFR5V				0x00800006
+#define INFINEON_STR1N				0x00000000
+#define INFINEON_CFR1N				0x00000002
+#define INFINEON_CFR2N				0x00000003
+#define INFINEON_CFR3N				0x00000004
+#define INFINEON_CFR4N				0x00000005
+#define INFINEON_CFR5N				0x00000006
 
 /**
  * Check the requested operation to ensure it is valid for the device.
@@ -779,6 +795,43 @@ static int spi_flash_wait_for_write_completion (const struct spi_flash *flash, i
 }
 
 /**
+ * Send a write command that writes to Infineon flash register that requires addressing.
+ * This will block until the register write has completed.
+ *
+ * @param flash The flash instance to use to send the command.
+ * @param addr The address of the register to write.
+ * @param data The data to write to the register.
+ * @param length The length of the data to write.
+ *
+ * @return 0 if the command was successfully completed or an error code.
+ */
+static int spi_flash_infineon_write_register (const struct spi_flash *flash, uint32_t addr,
+	uint8_t *data, size_t length)
+{
+	struct flash_xfer xfer;
+	int status;
+
+	status = spi_flash_is_wip_set (flash);
+	if (status != 0) {
+		return (status == 1) ? SPI_FLASH_WRITE_IN_PROGRESS : status;
+	}
+
+	status = spi_flash_write_enable (flash);
+	if (status != 0) {
+		return status;
+	}
+
+	/* Assume 4byte address mode. */
+	FLASH_XFER_INIT_WRITE (xfer, FLASH_CMD_INFINEON_WR_ARG, addr, 0, data, length, FLASH_FLAG_4BYTE_ADDRESS);
+	status = flash->spi->xfer (flash->spi, &xfer);
+	if (status != 0) {
+		return status;
+	}
+
+	return spi_flash_wait_for_write_completion (flash, -1, 1);
+}
+
+/**
  * Send a write command that writes to register that requires no addressing.  This will block until
  * the register write has completed.
  *
@@ -866,6 +919,25 @@ int spi_flash_discover_device_properties (const struct spi_flash *flash,
 	flash->state->capabilities = spi_capabilities;
 	flash->state->reset_3byte = false;
 
+	status = spi_flash_sfdp_get_4byte_mode_switch (&parameters, &flash->state->switch_4byte);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Based on special cases for 4 byte mode switch, fix 3 byte or 4 byte address mode. */
+	switch (flash->state->switch_4byte) {
+		case SPI_FLASH_SFDP_4BYTE_MODE_FIXED:
+			flash->state->capabilities &= ~FLASH_CAP_3BYTE_ADDR;
+			break;
+
+		case SPI_FLASH_SFDP_4BYTE_MODE_UNSUPPORTED:
+			flash->state->capabilities &= ~FLASH_CAP_4BYTE_ADDR;
+			break;
+
+		default:
+			break;
+	}
+
 	switch (flash->state->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) {
 		case (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR):
 			if (!spi_flash_sfdp_supports_4byte_commands (&parameters)) {
@@ -887,11 +959,6 @@ int spi_flash_discover_device_properties (const struct spi_flash *flash,
 	}
 
 	spi_flash_set_device_commands (flash, &read, &parameters);
-
-	status = spi_flash_sfdp_get_4byte_mode_switch (&parameters, &flash->state->switch_4byte);
-	if (status != 0) {
-		goto exit;
-	}
 
 	status = spi_flash_sfdp_get_quad_enable (&parameters, &flash->state->quad_enable);
 	if (status != 0) {
@@ -1239,7 +1306,7 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 
 	platform_mutex_lock (&flash->state->lock);
 
-	if (vendor != FLASH_ID_MICROCHIP) {
+	if ((vendor != FLASH_ID_MICROCHIP) && (vendor != FLASH_ID_INFINEON)) {
 		/* Depending on the quad enable bit, the block clear needs to be handled differently:
 		 *   - If the quad bit is in SR1, then we need to be sure not to clear it.
 		 *   - On some devices, writing only 1 byte to SR1 will automatically clear SR2.  On these
@@ -1281,6 +1348,29 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 			status = spi_flash_write_register (flash, FLASH_CMD_WRSR, reg, cmd_len,
 				flash->state->sr1_volatile);
 		}
+	}
+	else if (vendor == FLASH_ID_INFINEON) {
+		/* Infineon devices have a different block protect mechanism. The block protect bits are
+		 * in the status register 1, but the content of STR1 is different from legacy devices.
+		 * The block protect bits are cleared by writing 0 to the block protect bits. Along with that,
+		 * single byte write has to be enabled by writing 0 to volatile configuration register 4. */
+		FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, reg, 1, 0);
+		status = flash->spi->xfer (flash->spi, &xfer);
+		if (status != 0) {
+			goto exit;
+		}
+
+		if (reg[0] & 0x1c) {
+			reg[0] &= ~0x1c;
+			status = spi_flash_infineon_write_register (flash, INFINEON_STR1V, reg, 1);
+			if (status != 0) {
+				goto exit;
+			}
+		}
+
+		/* Enable single byte write */
+		reg[0] = 0xC0;
+		status = spi_flash_infineon_write_register (flash, INFINEON_CFR4V, reg, 1);
 	}
 	else {
 		/* Microchip flash does not have block protect bits in the status register.  Instead, there

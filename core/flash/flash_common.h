@@ -19,6 +19,7 @@ enum {
 	FLASH_CMD_WRDI = 0x04,				/**< Write disable */
 	FLASH_CMD_RDSR = 0x05,				/**< Read status register */
 	FLASH_CMD_WREN = 0x06,				/**< Write enable */
+	FLASH_CMD_INFINEON_RDSR2 = 0x07,	/**< Read status register 2 in an Infineon OSPI device. */
 	FLASH_CMD_FAST_READ = 0x0b,			/**< Fast read */
 	FLASH_CMD_4BYTE_FAST_READ = 0x0c,	/**< Fast read with 4 byte address */
 	FLASH_CMD_4BYTE_PP = 0x12,			/**< Page program with 4 byte address */
@@ -34,10 +35,13 @@ enum {
 	FLASH_CMD_ALT_RDSR2 = 0x3f,			/**< Alternate Read status register 2 */
 	FLASH_CMD_VOLATILE_WREN = 0x50,		/**< Volatile write enable for status register 1 */
 	FLASH_CMD_SFDP = 0x5a,				/**< Read SFDP registers */
+	FLASH_CMD_INFINEON_RD_ARG = 0x65,	/**< Read any register in an Infineon OSPI device. */
 	FLASH_CMD_RSTEN = 0x66,				/**< Reset enable */
 	FLASH_CMD_QUAD_READ = 0x6b,			/**< Quad output read */
 	FLASH_CMD_4BYTE_QUAD_READ = 0x6c,	/**< Quad output read with 4 byte address */
 	FLASH_CMD_RDSR_FLAG = 0x70,			/**< Read flag status register */
+	FLASH_CMD_INFINEON_WR_ARG = 0x71,	/**< Write any register in an Infineon OSPI flash. */
+	FLASH_CMD_INFINEON_CLR_ERROR = 0x82,/**< Clear erase error and program error status register in Infineon device. */
 	FLASH_CMD_GBULK = 0x98,				/**< Global block protection unlock */
 	FLASH_CMD_RST = 0x99,				/**< Reset device */
 	FLASH_CMD_RDID = 0x9f,				/**< Read identification */
@@ -64,6 +68,7 @@ enum {
 	FLASH_ID_SPANSION = 0x01,		/**< Spansion manufacturer ID. */
 	FLASH_ID_MICRON = 0x20,			/**< Micron Authenta manufacturer ID. */
 	FLASH_ID_MICRON_X = 0x2C,		/**< Micron Xccela manufacturer ID. */
+	FLASH_ID_INFINEON = 0x34,		/**< Infineon manufacturer ID. */
 	FLASH_ID_MICROCHIP = 0xbf,		/**< Microchip manufacturer ID. */
 	FLASH_ID_MACRONIX = 0xc2,		/**< Macronix manufacturer ID. */
 	FLASH_ID_WINBOND = 0xef			/**< Winbond manufacturer ID. */
@@ -81,6 +86,7 @@ enum {
 	FLASH_ID_MT25QL = 0xba00,		/**< Micron MT25QL flash device IDs. */
 	FLASH_ID_MT25QU = 0xbb00,		/**< Micron MT25QU flash device IDs. */
 	FLASH_ID_MT35X = 0x5b00,		/**< Micron MT35X flash device IDs. */
+	FLASH_ID_S28HS = 0x5b00			/**< Infineon S28HS flash device IDs. */
 };
 
 /**

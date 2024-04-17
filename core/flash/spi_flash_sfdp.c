@@ -144,6 +144,15 @@ struct spi_flash_sfdp_basic_parameter_table_1_5 {
 };
 #pragma pack(pop)
 
+/**
+ * Flag to check if SFDP table reports support for exit from 4byte adress mode.
+ */
+#define SPI_FLASH_SFDP_SUPPORTS_4B_EXIT (SPI_FLASH_SFDP_4B_EXIT_E9 | \
+	SPI_FLASH_SFDP_4B_EXIT_06_E9 | SPI_FLASH_SFDP_4B_EXIT_EAR_C5 | \
+	SPI_FLASH_SFDP_4B_EXIT_BANK_REG | SPI_FLASH_SFDP_4B_EXIT_NV_CFG | \
+	SPI_FLASH_SFDP_4B_EXIT_HW_RESET | SPI_FLASH_SFDP_4B_EXIT_SW_RESET | \
+	SPI_FLASH_SFDP_4B_EXIT_AC_RESET)
+
 
 /**
  * Initialize an SFDP interface for SPI flash.
@@ -182,14 +191,20 @@ int spi_flash_sfdp_init (struct spi_flash_sfdp *sfdp, const struct flash_master 
 		return SPI_FLASH_SFDP_BAD_SIGNATURE;
 	}
 
-	if ((sfdp->sfdp_header.unused != 0xff) ||
-		(SPI_FLASH_SFDP_PARAMETER_ID (sfdp->sfdp_header.parameter0) != 0xff00)) {
+	if (SPI_FLASH_SFDP_PARAMETER_ID (sfdp->sfdp_header.parameter0) != 0xff00) {
 		return SPI_FLASH_SFDP_BAD_HEADER;
 	}
 
 	sfdp->flash = flash;
 	sfdp->vendor = id[0];
 	sfdp->device = (id[1] << 8) | id[2];
+
+	if ((sfdp->vendor == FLASH_ID_INFINEON) &&
+		(FLASH_ID_DEVICE_SERIES (sfdp->device) == FLASH_ID_S28HS)) {
+		/* Infineon OSPI flash has 20 DWORDS for parameter table 0. However, it reports parameter0
+		 * minor revision 0. We are manually setting the minor revision to 5 as a workaround. */
+		sfdp->sfdp_header.parameter0.minor_revision = 5;
+	}
 
 	return 0;
 }
@@ -610,7 +625,8 @@ int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_tabl
 		if ((params->enter_4b & 0x7f) == 0) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_UNSUPPORTED;
 		}
-		else if (params->enter_4b & SPI_FLASH_SFDP_ALWAYS_4B) {
+		else if ((params->enter_4b & SPI_FLASH_SFDP_ALWAYS_4B) ||
+			((params->reset_exit_4b & SPI_FLASH_SFDP_SUPPORTS_4B_EXIT) == 0)) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_FIXED;
 		}
 		else if ((params->enter_4b & SPI_FLASH_SFDP_4B_ENTER_B7) &&
@@ -657,7 +673,7 @@ bool spi_flash_sfdp_exit_4byte_mode_on_reset (const struct spi_flash_sfdp_basic_
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 	bool revert = true;		// Assume a device will revert unless SFDP explicitly says otherwise.
 
-	if ((table != NULL) && table->sfdp->sfdp_header.parameter0.minor_revision >= 5) {
+	if ((table != NULL) && (table->sfdp->sfdp_header.parameter0.minor_revision >= 5)) {
 		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
 		revert = !!(params->reset_exit_4b & SPI_FLASH_SFDP_4B_EXIT_SW_RESET);
 	}
