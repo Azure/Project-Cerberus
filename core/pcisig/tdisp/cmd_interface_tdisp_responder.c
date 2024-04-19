@@ -45,6 +45,11 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 				tdisp_responder->rng_engine, request);
 			break;
 
+		case TDISP_REQUEST_GET_DEVICE_INTERFACE_STATE:
+			status = tdisp_get_device_interface_state (tdisp_responder->state,
+				tdisp_responder->tdisp_driver, request);
+			break;
+
 		default:
 			tdisp_generate_error_response (request, TDISP_VERSION_1_0, 0,
 				TDISP_ERROR_CODE_UNSUPPORTED_REQUEST, 0);
