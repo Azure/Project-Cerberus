@@ -231,13 +231,6 @@ int hash_get_block_size (enum hash_type hash_type);
 
 bool hash_is_alg_supported (enum hash_type type);
 
-int hash_run_self_test_sha1 (struct hash_engine *hash);
-int hash_run_self_test_sha256 (struct hash_engine *hash);
-int hash_run_self_test_sha384 (struct hash_engine *hash);
-int hash_run_self_test_sha512 (struct hash_engine *hash);
-
-int hash_run_all_self_tests (struct hash_engine *hash);
-
 
 /* HMAC functions */
 
@@ -272,13 +265,6 @@ int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum h
 int hash_hmac_update (struct hmac_engine *engine, const uint8_t *data, size_t length);
 int hash_hmac_finish (struct hmac_engine *engine, uint8_t *hmac, size_t hmac_length);
 void hash_hmac_cancel (struct hmac_engine *engine);
-
-int hash_hmac_run_self_test_sha1 (struct hash_engine *hash);
-int hash_hmac_run_self_test_sha256 (struct hash_engine *hash);
-int hash_hmac_run_self_test_sha384 (struct hash_engine *hash);
-int hash_hmac_run_self_test_sha512 (struct hash_engine *hash);
-
-int hash_hmac_run_all_self_tests (struct hash_engine *hash);
 
 /**
  * Determine the output length for an HMAC.
