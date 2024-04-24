@@ -1990,6 +1990,336 @@ static void tdisp_commands_test_get_device_interface_state_fail (CuTest *test)
 	tdisp_commands_testing_release_dependencies (test, &testing);
 }
 
+static void tdisp_commands_test_start_interface (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct tdisp_start_interface_request *rq =  (struct tdisp_start_interface_request*) buf;
+	struct tdisp_start_interface_response *resp = (struct tdisp_start_interface_response*) buf;
+	struct cmd_interface_msg msg;
+	int status;
+	struct tdisp_commands_testing testing;
+	uint32_t function_id;
+	uint8_t nonce[TDISP_START_INTERFACE_NONCE_SIZE];
+	uint8_t i;
+	struct tdisp_state *tdisp_state;
+
+	TEST_START;
+
+	tdisp_commands_testing_init_dependencies (test, &testing);
+
+	tdisp_state = &testing.tdisp_state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct tdisp_start_interface_request);
+	msg.length = msg.payload_length;
+
+	function_id = rand ();
+	for (i = 0; i < TDISP_START_INTERFACE_NONCE_SIZE; i++) {
+		nonce[i] = rand ();
+	}
+
+	rq->header.version = TDISP_CURRENT_VERSION;
+	rq->header.message_type = TDISP_REQUEST_START_INTERFACE;
+	rq->header.interface_id.function_id = function_id;
+	memcpy (rq->start_interface_nonce, nonce, TDISP_START_INTERFACE_NONCE_SIZE);
+
+	tdisp_state->interface_context[0].interface_id.function_id = function_id;
+	memcpy (tdisp_state->interface_context[0].start_interface_nonce, nonce,
+		TDISP_START_INTERFACE_NONCE_SIZE);
+
+	status = mock_expect (&testing.tdisp_driver_mock.mock,
+		testing.tdisp_driver_mock.base.start_interface_request, &testing.tdisp_driver_mock,
+		0, MOCK_ARG(function_id));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = tdisp_start_interface (tdisp_state, &testing.tdisp_driver_mock.base, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct tdisp_start_interface_response), msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, resp, msg.payload);
+	CuAssertIntEquals (test, TDISP_CURRENT_VERSION, resp->header.version);
+	CuAssertIntEquals (test, TDISP_RESPONSE_START_INTERFACE, resp->header.message_type);
+	CuAssertIntEquals (test, function_id, resp->header.interface_id.function_id);
+
+	tdisp_commands_testing_release_dependencies (test, &testing);
+}
+
+static void tdisp_commands_test_start_interface_invalid_params (CuTest *test)
+{
+	int status;
+	struct tdisp_commands_testing testing;
+	struct cmd_interface_msg request;
+
+	TEST_START;
+
+	tdisp_commands_testing_init_dependencies (test, &testing);
+
+	status = tdisp_start_interface (NULL, &testing.tdisp_driver_mock.base, &request);
+	CuAssertIntEquals (test, CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT, status);
+
+	status = tdisp_start_interface (&testing.tdisp_state, NULL,
+		&request);
+	CuAssertIntEquals (test, CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT, status);
+
+	status = tdisp_start_interface (&testing.tdisp_state, &testing.tdisp_driver_mock.base, NULL);
+	CuAssertIntEquals (test, CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT, status);
+
+	tdisp_commands_testing_release_dependencies (test, &testing);
+}
+
+static void tdisp_commands_test_start_interface_lt_min_length (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct tdisp_start_interface_request *rq = (struct tdisp_start_interface_request*) buf;
+	struct tdisp_error_response *error_response = (struct tdisp_error_response*) buf;
+	struct cmd_interface_msg msg;
+	int status;
+	struct tdisp_commands_testing testing;
+
+	TEST_START;
+
+	tdisp_commands_testing_init_dependencies (test, &testing);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct tdisp_start_interface_request) - 1;
+	msg.length = msg.payload_length;
+
+	rq->header.version = TDISP_CURRENT_VERSION;
+	rq->header.message_type = TDISP_REQUEST_START_INTERFACE;
+	rq->header.interface_id.function_id = rand ();
+
+	status = tdisp_start_interface (&testing.tdisp_state, &testing.tdisp_driver_mock.base, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct tdisp_error_response), msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, error_response, msg.payload);
+	CuAssertIntEquals (test, TDISP_VERSION_1_0, error_response->header.version);
+	CuAssertIntEquals (test, TDISP_ERROR_CODE_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, TDISP_ERROR, error_response->header.message_type);
+	CuAssertIntEquals (test, 0, error_response->header.interface_id.function_id);
+
+	tdisp_commands_testing_release_dependencies (test, &testing);
+}
+
+static void tdisp_commands_test_start_interface_invalid_version (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct tdisp_start_interface_request *rq = (struct tdisp_start_interface_request*) buf;
+	struct tdisp_error_response *error_response = (struct tdisp_error_response*) buf;
+	struct cmd_interface_msg msg;
+	int status;
+	struct tdisp_commands_testing testing;
+	uint32_t function_id;
+
+	TEST_START;
+
+	tdisp_commands_testing_init_dependencies (test, &testing);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct tdisp_start_interface_request);
+	msg.length = msg.payload_length;
+
+	function_id = rand ();
+
+	rq->header.version = UINT8_MAX;
+	rq->header.message_type = TDISP_REQUEST_START_INTERFACE;
+	rq->header.interface_id.function_id = function_id;
+
+	status = tdisp_start_interface (&testing.tdisp_state, &testing.tdisp_driver_mock.base, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct tdisp_error_response), msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, error_response, msg.payload);
+	CuAssertIntEquals (test, TDISP_VERSION_1_0, error_response->header.version);
+	CuAssertIntEquals (test, TDISP_ERROR_CODE_VERSION_MISMATCH, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, TDISP_ERROR, error_response->header.message_type);
+	CuAssertIntEquals (test, function_id, error_response->header.interface_id.function_id);
+
+	tdisp_commands_testing_release_dependencies (test, &testing);
+}
+
+static void  tdisp_commands_test_start_interface_no_interface_context (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct tdisp_start_interface_request *rq =  (struct tdisp_start_interface_request*) buf;
+	struct tdisp_error_response *error_response = (struct tdisp_error_response*) buf;
+	struct cmd_interface_msg msg;
+	int status;
+	struct tdisp_commands_testing testing;
+	uint32_t function_id;
+
+	TEST_START;
+
+	tdisp_commands_testing_init_dependencies (test, &testing);
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct tdisp_start_interface_request);
+	msg.length = msg.payload_length;
+
+	function_id = rand ();
+
+	rq->header.version = TDISP_CURRENT_VERSION;
+	rq->header.message_type = TDISP_REQUEST_START_INTERFACE;
+	rq->header.interface_id.function_id = function_id;
+
+	status = tdisp_start_interface (&testing.tdisp_state, &testing.tdisp_driver_mock.base, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct tdisp_error_response), msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, error_response, msg.payload);
+	CuAssertIntEquals (test, TDISP_VERSION_1_0, error_response->header.version);
+	CuAssertIntEquals (test, TDISP_ERROR_CODE_INVALID_INTERFACE, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, TDISP_ERROR, error_response->header.message_type);
+	CuAssertIntEquals (test, function_id, error_response->header.interface_id.function_id);
+
+	tdisp_commands_testing_release_dependencies (test, &testing);
+}
+
+static void  tdisp_commands_test_start_interface_nonce_mismatch (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct tdisp_start_interface_request *rq =  (struct tdisp_start_interface_request*) buf;
+	struct tdisp_error_response *error_response = (struct tdisp_error_response*) buf;
+	struct cmd_interface_msg msg;
+	int status;
+	struct tdisp_commands_testing testing;
+	uint32_t function_id;
+	uint8_t nonce[TDISP_START_INTERFACE_NONCE_SIZE];
+	uint8_t i;
+	struct tdisp_state *tdisp_state;
+
+	TEST_START;
+
+	tdisp_commands_testing_init_dependencies (test, &testing);
+
+	tdisp_state = &testing.tdisp_state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct tdisp_start_interface_request);
+	msg.length = msg.payload_length;
+
+	function_id = rand ();
+	for (i = 0; i < TDISP_START_INTERFACE_NONCE_SIZE; i++) {
+		nonce[i] = rand ();
+	}
+
+	rq->header.version = TDISP_CURRENT_VERSION;
+	rq->header.message_type = TDISP_REQUEST_START_INTERFACE;
+	rq->header.interface_id.function_id = function_id;
+	memcpy (rq->start_interface_nonce, nonce, TDISP_START_INTERFACE_NONCE_SIZE);
+
+	tdisp_state->interface_context[0].interface_id.function_id = function_id;
+	memcpy (tdisp_state->interface_context[0].start_interface_nonce, nonce,
+		TDISP_START_INTERFACE_NONCE_SIZE);
+	tdisp_state->interface_context[0].start_interface_nonce[0] =
+		~tdisp_state->interface_context[0].start_interface_nonce[0];
+
+	status = tdisp_start_interface (tdisp_state, &testing.tdisp_driver_mock.base, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct tdisp_error_response), msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, error_response, msg.payload);
+	CuAssertIntEquals (test, TDISP_VERSION_1_0, error_response->header.version);
+	CuAssertIntEquals (test, TDISP_ERROR_CODE_INVALID_NONCE, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, TDISP_ERROR, error_response->header.message_type);
+	CuAssertIntEquals (test, function_id, error_response->header.interface_id.function_id);
+
+	tdisp_commands_testing_release_dependencies (test, &testing);
+}
+
+static void  tdisp_commands_test_start_interface_fail (CuTest *test)
+{
+	uint8_t buf[DOE_MESSAGE_MAX_SIZE_IN_BYTES];
+	struct tdisp_start_interface_request *rq =  (struct tdisp_start_interface_request*) buf;
+	struct tdisp_error_response *error_response = (struct tdisp_error_response*) buf;
+	struct cmd_interface_msg msg;
+	int status;
+	struct tdisp_commands_testing testing;
+	uint32_t function_id;
+	uint8_t nonce[TDISP_START_INTERFACE_NONCE_SIZE];
+	uint8_t i;
+	struct tdisp_state *tdisp_state;
+
+	TEST_START;
+
+	tdisp_commands_testing_init_dependencies (test, &testing);
+
+	tdisp_state = &testing.tdisp_state;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = buf;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct tdisp_start_interface_request);
+	msg.length = msg.payload_length;
+
+	function_id = rand ();
+	for (i = 0; i < TDISP_START_INTERFACE_NONCE_SIZE; i++) {
+		nonce[i] = rand ();
+	}
+
+	rq->header.version = TDISP_CURRENT_VERSION;
+	rq->header.message_type = TDISP_REQUEST_START_INTERFACE;
+	rq->header.interface_id.function_id = function_id;
+	memcpy (rq->start_interface_nonce, nonce, TDISP_START_INTERFACE_NONCE_SIZE);
+
+	tdisp_state->interface_context[0].interface_id.function_id = function_id;
+	memcpy (tdisp_state->interface_context[0].start_interface_nonce, nonce,
+		TDISP_START_INTERFACE_NONCE_SIZE);
+
+	status = mock_expect (&testing.tdisp_driver_mock.mock,
+		testing.tdisp_driver_mock.base.start_interface_request, &testing.tdisp_driver_mock,
+		TDISP_DRIVER_START_INTERFACE_REQUEST_FAILED, MOCK_ARG(function_id));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = tdisp_start_interface (tdisp_state, &testing.tdisp_driver_mock.base, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct tdisp_error_response), msg.length);
+	CuAssertIntEquals (test, msg.length, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, error_response, msg.payload);
+	CuAssertIntEquals (test, TDISP_VERSION_1_0, error_response->header.version);
+	CuAssertIntEquals (test, TDISP_ERROR_CODE_UNSPECIFIED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, TDISP_ERROR, error_response->header.message_type);
+	CuAssertIntEquals (test, function_id, error_response->header.interface_id.function_id);
+
+	tdisp_commands_testing_release_dependencies (test, &testing);
+}
+
+
 TEST_SUITE_START (tdisp_commands);
 
 TEST (tdisp_commands_test_header_format);
@@ -2040,5 +2370,12 @@ TEST (tdisp_commands_test_get_device_interface_state_lt_min_length);
 TEST (tdisp_commands_test_get_device_interface_state_invalid_version);
 TEST (tdisp_commands_test_get_device_interface_state_insufficient_response_buffer);
 TEST (tdisp_commands_test_get_device_interface_state_fail);
+TEST (tdisp_commands_test_start_interface);
+TEST (tdisp_commands_test_start_interface_invalid_params);
+TEST (tdisp_commands_test_start_interface_lt_min_length);
+TEST (tdisp_commands_test_start_interface_invalid_version);
+TEST (tdisp_commands_test_start_interface_no_interface_context);
+TEST (tdisp_commands_test_start_interface_nonce_mismatch);
+TEST (tdisp_commands_test_start_interface_fail);
 
 TEST_SUITE_END;

@@ -54,5 +54,8 @@ int tdisp_lock_interface (struct tdisp_state *tdisp_state,
 int tdisp_get_device_interface_state (struct tdisp_state *tdisp_state,
 	const struct tdisp_driver *tdisp_driver, struct cmd_interface_msg *request);
 
+int tdisp_start_interface (struct tdisp_state *tdisp_state,
+	const struct tdisp_driver *tdisp_driver, struct cmd_interface_msg *request);
+
 
 #endif /* TDISP_COMMANDS_H */

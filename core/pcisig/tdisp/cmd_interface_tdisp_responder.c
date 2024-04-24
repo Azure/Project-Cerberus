@@ -50,6 +50,11 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 				tdisp_responder->tdisp_driver, request);
 			break;
 
+		case TDISP_REQUEST_START_INTERFACE:
+			status = tdisp_start_interface (tdisp_responder->state, tdisp_responder->tdisp_driver,
+				request);
+			break;
+
 		default:
 			tdisp_generate_error_response (request, TDISP_VERSION_1_0, 0,
 				TDISP_ERROR_CODE_UNSUPPORTED_REQUEST, 0);
@@ -140,7 +145,7 @@ int cmd_interface_tdisp_responder_init_state (
 {
 	int status;
 
-	if ((tdisp_responder == NULL) || (tdisp_responder->tdisp_driver == NULL) || 
+	if ((tdisp_responder == NULL) || (tdisp_responder->tdisp_driver == NULL) ||
 		(tdisp_responder->version_num == NULL) || (tdisp_responder->version_num_count == 0) ||
 		(tdisp_responder->rng_engine == NULL)) {
 		status = CMD_INTERFACE_TDISP_RESPONDER_INVALID_ARGUMENT;
