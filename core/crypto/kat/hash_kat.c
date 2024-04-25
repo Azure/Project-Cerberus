@@ -7,6 +7,7 @@
 #include "crypto/kat/hash_kat_vectors.h"
 #include "crypto/kat/hmac_kat_vectors.h"
 
+
 /**
  * Run SHA known answer tests (KAT) against the hash engine instance for a single hash algorithm.
  *
