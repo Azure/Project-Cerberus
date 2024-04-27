@@ -45,6 +45,10 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 				tdisp_responder->rng_engine, request);
 			break;
 
+		case TDISP_REQUEST_GET_DEVICE_INTERFACE_REPORT:
+			status = tdisp_get_device_interface_report (tdisp_responder->tdisp_driver, request);
+			break;
+
 		case TDISP_REQUEST_GET_DEVICE_INTERFACE_STATE:
 			status = tdisp_get_device_interface_state (tdisp_responder->state,
 				tdisp_responder->tdisp_driver, request);
@@ -53,6 +57,10 @@ int cmd_interface_tdisp_responder_process_request (const struct cmd_interface *i
 		case TDISP_REQUEST_START_INTERFACE:
 			status = tdisp_start_interface (tdisp_responder->state, tdisp_responder->tdisp_driver,
 				request);
+			break;
+
+		case TDISP_REQUEST_STOP_INTERFACE:
+			status = tdisp_stop_interface (tdisp_responder->tdisp_driver, request);
 			break;
 
 		default:

@@ -41,12 +41,18 @@ struct tdisp_driver {
 	 *
 	 * @param tdisp_driver The TDISP driver interface to query.
 	 * @param function_id The device interface function Id.
-	 * @param interface_report The device interface report.
+	 * @param request_offset The requested offset of the report.
+	 * @param request_length The requested length of the report.
+	 * @param report_length On input, length of the interface_report buffer.
+	 * On output, the length of the returned report.
+	 * @param interface_report The device interface report buffer.
+	 * @param remainder_length The length of the remainder of the report.
 	 *
 	 * @return 0 if device interface report was returned successfully or an error code.
 	 */
 	int (*get_device_interface_report) (const struct tdisp_driver *tdisp_driver,
-		uint32_t function_id, struct tdisp_device_interface_report *device_interface_report);
+		uint32_t function_id, uint16_t request_offset, uint16_t request_length, 
+		uint16_t *report_length, uint8_t *interface_report, uint16_t *remainder_length);
 
 	/**
 	 * Get the device interface state.

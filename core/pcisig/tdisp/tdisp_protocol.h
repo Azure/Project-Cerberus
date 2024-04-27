@@ -263,6 +263,14 @@ struct tdisp_device_interface_report_response {
 };
 
 /**
+ * Get the buffer at which the device report starts.
+ *
+ * @param resp The TDISP DEVICE_INTERFACE_REPORT response.
+ */
+#define	tdisp_device_interface_report_resp_report_ptr(resp)	\
+	(((uint8_t*) resp) + sizeof (struct tdisp_device_interface_report_response))
+
+/**
  * TDISP LOCK_INTERFACE_REQUEST request flags.
  */
 struct tdisp_mmio_range_attributes {

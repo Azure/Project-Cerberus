@@ -38,7 +38,8 @@ static int tdisp_driver_mock_lock_interface_request (const struct tdisp_driver *
 }
 
 static int tdisp_driver_mock_get_device_interface_report (const struct tdisp_driver *tdisp_driver,
-	uint32_t function_id, struct tdisp_device_interface_report *device_interface_report)
+	uint32_t function_id, uint16_t request_offset, uint16_t request_length, 
+	uint16_t *report_length, uint8_t *interface_report, uint16_t *remainder_length)
 {
 	struct tdisp_driver_interface_mock *mock = (struct tdisp_driver_interface_mock*) tdisp_driver;
 
@@ -47,7 +48,9 @@ static int tdisp_driver_mock_get_device_interface_report (const struct tdisp_dri
 	}
 
 	MOCK_RETURN (&mock->mock, tdisp_driver_mock_get_device_interface_report, tdisp_driver,
-		MOCK_ARG_CALL (function_id), MOCK_ARG_PTR_CALL (device_interface_report));
+		MOCK_ARG_CALL (function_id), MOCK_ARG_CALL (request_offset), MOCK_ARG_CALL (request_length),
+		MOCK_ARG_PTR_CALL (report_length), MOCK_ARG_PTR_CALL (interface_report),
+		MOCK_ARG_PTR_CALL (remainder_length));
 }
 
 static int tdisp_driver_mock_get_device_interface_state (const struct tdisp_driver *tdisp_driver,
@@ -112,7 +115,7 @@ static int tdisp_driver_mock_func_arg_count (void *func)
 		return 2;
 	}
 	else if (func == tdisp_driver_mock_get_device_interface_report) {
-		return 2;
+		return 6;
 	}
 	else if (func == tdisp_driver_mock_get_device_interface_state) {
 		return 2;
@@ -154,7 +157,15 @@ static const char* tdisp_driver_mock_arg_name_map (void *func, int arg)
 			case 0:
 				return "function_id";
 			case 1:
-				return "device_interface_report";
+				return "request_offset";
+			case 2:
+				return "request_length";
+			case 3:
+				return "report_length";
+			case 4:
+				return "interface_report";
+			case 5:
+				return "remainder_length";
 		}
 	}
 	else if (func == tdisp_driver_mock_get_device_interface_state) {
