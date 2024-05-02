@@ -143,7 +143,9 @@ int buffer_reverse_copy_dwords (uint32_t *dest, const uint32_t *src, size_t leng
 }
 
 /**
- * A constant time replacement for memcmp for use in secure contexts.
+ * A constant time replacement for memcmp for use in secure contexts.  Unlike memcmp, this only
+ * checks for matching buffers and provides no information about the relative values if they don't
+ * match.
  *
  * @param buf1 First input buffer for the comparison.
  * @param buf2 Second input buffer for the comparison.
@@ -175,8 +177,12 @@ int buffer_compare (const uint8_t *buf1, const uint8_t *buf2, size_t length)
 }
 
 /**
- * A constant time replacement for memcmp for use in secure contexts.  This version operates only on
- * buffers of 32-bit arrays, which is useful in scenarios where byte access is not possible.
+ * A constant time replacement for memcmp for use in secure contexts.  Unlike memcmp, this only
+ * checks for matching buffers and provides no information about the relative values if they don't
+ * match.
+ *
+ * This version operates only on buffers of 32-bit arrays, which is useful in scenarios where byte
+ * access is not possible.
  *
  * @param buf1 First input buffer for the comparison.
  * @param buf2 Second input buffer for the comparison.

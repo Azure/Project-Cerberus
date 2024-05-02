@@ -894,6 +894,114 @@ static void common_math_test_set_next_bit_in_array_odd_count_all_bits_set (CuTes
 	CuAssertIntEquals (test, COMMON_MATH_OUT_OF_RANGE, status);
 }
 
+static void common_math_test_is_array_zero (CuTest *test)
+{
+	uint8_t zero[] = {0x00};
+	uint8_t non_zero[] = {0x55};
+	int status;
+
+	TEST_START;
+
+	status = common_math_is_array_zero (zero, sizeof (zero));
+	CuAssertIntEquals (test, true, status);
+
+	status = common_math_is_array_zero (non_zero, sizeof (non_zero));
+	CuAssertIntEquals (test, false, status);
+}
+
+static void common_math_test_is_array_zero_multiple_bytes (CuTest *test)
+{
+	uint8_t zero[] = {0x00, 0x00, 0x00, 0x00};
+	uint8_t non_zero[] = {0x00, 0x00, 0x55, 0x00};
+	int status;
+
+	TEST_START;
+
+	status = common_math_is_array_zero (zero, sizeof (zero));
+	CuAssertIntEquals (test, true, status);
+
+	status = common_math_is_array_zero (non_zero, sizeof (non_zero));
+	CuAssertIntEquals (test, false, status);
+}
+
+static void common_math_test_is_array_zero_multiple_words (CuTest *test)
+{
+	uint8_t zero[] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00
+	};
+	uint8_t non_zero[] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x55, 0x00
+	};
+	int status;
+
+	TEST_START;
+
+	status = common_math_is_array_zero (zero, sizeof (zero));
+	CuAssertIntEquals (test, true, status);
+
+	status = common_math_is_array_zero (non_zero, sizeof (non_zero));
+	CuAssertIntEquals (test, false, status);
+}
+
+static void common_math_test_is_array_zero_multiple_bytes_end_not_aligned (CuTest *test)
+{
+	uint8_t zero[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	uint8_t non_zero[] = {0x00, 0x00, 0x00, 0x00, 0x55, 0x00};
+	int status;
+
+	TEST_START;
+
+	status = common_math_is_array_zero (zero, sizeof (zero));
+	CuAssertIntEquals (test, true, status);
+
+	status = common_math_is_array_zero (non_zero, sizeof (non_zero));
+	CuAssertIntEquals (test, false, status);
+}
+
+static void common_math_test_is_array_zero_multiple_words_start_not_aligned (CuTest *test)
+{
+	uint8_t zero[] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00
+	};
+	uint8_t non_zero[] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x55, 0x00
+	};
+	int status;
+
+	TEST_START;
+
+	status = common_math_is_array_zero (&zero[1], sizeof (zero) - 1);
+	CuAssertIntEquals (test, true, status);
+
+	status = common_math_is_array_zero (&non_zero[3], sizeof (non_zero) - 3);
+	CuAssertIntEquals (test, false, status);
+}
+
+static void common_math_test_is_array_zero_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = common_math_is_array_zero (NULL, 1);
+	CuAssertIntEquals (test, false, status);
+}
+
+static void common_math_test_is_array_zero_empty (CuTest *test)
+{
+	uint8_t zero[] = {0x00};
+	int status;
+
+	TEST_START;
+
+	status = common_math_is_array_zero (zero, 0);
+	CuAssertIntEquals (test, false, status);
+}
+
 
 TEST_SUITE_START (common_math);
 
@@ -957,5 +1065,12 @@ TEST (common_math_test_set_next_bit_in_array_odd_count_set_multiple_bits);
 TEST (common_math_test_set_next_bit_in_array_odd_count_null);
 TEST (common_math_test_set_next_bit_in_array_odd_count_zero_bytes);
 TEST (common_math_test_set_next_bit_in_array_odd_count_all_bits_set);
+TEST (common_math_test_is_array_zero);
+TEST (common_math_test_is_array_zero_multiple_bytes);
+TEST (common_math_test_is_array_zero_multiple_words);
+TEST (common_math_test_is_array_zero_multiple_bytes_end_not_aligned);
+TEST (common_math_test_is_array_zero_multiple_words_start_not_aligned);
+TEST (common_math_test_is_array_zero_null);
+TEST (common_math_test_is_array_zero_empty);
 
 TEST_SUITE_END;

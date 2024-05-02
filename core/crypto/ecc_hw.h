@@ -127,6 +127,13 @@ enum {
 	ECC_HW_FREE_CHECK_FAILED = ECC_HW_ERROR (0x14),			/**< An error occurred while checking if ECC HW is free. */
 	ECC_HW_MEM_WIPE_FAILED = ECC_HW_ERROR (0x15),			/**< An error occurred while attempting to wipe internal memory for the ECC hardware. */
 	ECC_HW_UNSUPPORTED_OP = ECC_HW_ERROR (0x16),		    /**< The ECC HW does not support this command. */
+	ECC_HW_INT_TO_MONT_FAILED = ECC_HW_ERROR (0x17),		/**< Failed to convert to Montgomery representation. */
+	ECC_HW_MONT_TO_INT_FAILED = ECC_HW_ERROR (0x18),		/**< Failed to convert from Montgomery representation. */
+	ECC_HW_MOD_INVERSE_FAILED = ECC_HW_ERROR (0x19),		/**< Failed a modular inversion calculation. */
+	ECC_HW_MOD_MULTIPLY_FAILED = ECC_HW_ERROR (0x1a),		/**< Failed a modular multiplication. */
+	ECC_HW_MOD_ADD_FAILED = ECC_HW_ERROR (0x1b),			/**< Failed a modular addition. */
+	ECC_HW_MOD_REDUCE_FAILED = ECC_HW_ERROR (0x1c),			/**< Failed a modular reduction. */
+	ECC_HW_PRIV_KEY_GEN_FAILED = ECC_HW_ERROR (0x1d),		/**< Failed to generate a valid private key for the curve. */
 
 	/* Error codes >0x80 are reserved for reporting HW status bits. */
 };

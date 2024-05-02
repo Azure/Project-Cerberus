@@ -165,6 +165,25 @@ int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_ro
 }
 
 /**
+ * Check a byte array to see if it contains all zeros.
+ *
+ * @param bytes The byte array to check.
+ * @param length Length of the byte array.
+ *
+ * @return true if all bytes are zero, false otherwise.  Empty or null arrays will return false.
+ */
+bool common_math_is_array_zero (const uint8_t *bytes, size_t length)
+{
+	if ((bytes == NULL) || (length == 0)) {
+		return false;
+	}
+
+	/* memcmp is fine here since the comparison is against a constant value and timing attacks are
+	 * not a concern. */
+	return ((bytes[0] == 0) && (memcmp (bytes, &bytes[1], length - 1) == 0));
+}
+
+/**
  * Get the byte position and bit mask for a specific bit in an array of bytes.
  *
  * @param bytes The byte array.
