@@ -265,6 +265,37 @@ struct spdm_get_capabilities {
 #define SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1		0x2
 
 /**
+ * SPDM Opaque Data Format 1 (v1.2) table header
+ */
+struct spdm_general_opaque_data_table_header {
+	uint8_t total_elements;		/**< Total number of elements in the table */
+	uint8_t reserved[3];		/**< Reserved */
+};
+
+/**
+ * SPDM Opaque Data element table header.
+ */
+struct spdm_opaque_element_table_header {
+	uint8_t id;					/**< Registry or standards body ID */
+	uint8_t vendor_len;			/**< Length of the vendor Id */
+};
+
+/* SPDM registry_id */
+#define SPDM_REGISTRY_ID_DMTF		0x0
+#define SPDM_REGISTRY_ID_TCG		0x1
+#define SPDM_REGISTRY_ID_USB		0x2
+#define SPDM_REGISTRY_ID_PCISIG		0x3
+#define SPDM_REGISTRY_ID_IANA		0x4
+#define SPDM_REGISTRY_ID_HDBASET	0x5
+#define SPDM_REGISTRY_ID_MIPI		0x6
+#define SPDM_REGISTRY_ID_CXL		0x7
+#define SPDM_REGISTRY_ID_JEDEC		0x8
+#define SPDM_REGISTRY_ID_VESA		0x9
+#define SPDM_REGISTRY_ID_IANA_CBOR	0xa
+#define SPDM_REGISTRY_ID_MAX		0xa
+
+
+/**
  * SPDM Negotiate Algorithm request KEY_SCHEDULE algorithm.
  */
 #define SPDM_ALG_KEY_SCHEDULE_HMAC_HASH		0x00000001
@@ -1007,6 +1038,55 @@ struct spdm_respond_if_ready_request {
 	uint8_t token;							/**< Token received in ResponseNotReady response */
 };
 
+/**
+ * SPDM KEY_EXCHANGE request format.
+ */
+struct spdm_key_exchange_request {
+	struct spdm_protocol_header header;		/**< Message header */
+	uint8_t measurement_summary_hash_type;	/**< Type of measurement summary hash requested. */
+	uint8_t slot_id;						/**< Slot number of the Responder certificate chain that shall be used for authentication. */
+	uint16_t req_session_id;				/**< Requester part of the session Id. */
+	uint8_t session_policy;					/**< Session termination policy. */
+	uint8_t reserved;						/**< Reserved */
+	uint8_t random_data[32];				/**< Random data. */
+};
+
+/**
+ * SPDM KEY_EXCHANGE response format.
+ */
+struct spdm_key_exchange_response {
+	struct spdm_protocol_header header;		/**< Message header */
+	uint8_t heartbeat_period;				/**< Heartbeat period. */
+	uint8_t reserved;						/**< Reserved */
+	uint16_t rsp_session_id;				/**< Responder part of the session Id. */
+	uint8_t mut_auth_requested;				/**< Mutual authentication request. */
+	uint8_t req_slot_id_param;				/**< Slot number of the Requester certificate chain that shall be used for authentication. */
+	uint8_t random_data[32];				/**< Random data. */
+};
+
+/**
+ * SPDM KEY_UPDATE request format.
+ */
+struct spdm_key_update_request {
+	struct spdm_protocol_header header;		/**< Message header */
+	uint8_t key_operation;					/**< Key update operation. */
+	uint8_t tag;							/**< Key update tag. */
+};
+
+/**
+ * Get the requester's DHE public key ptr.
+ * 
+ * @param rq Buffer with struct spdm_key_exchange_request
+ */
+#define	spdm_key_exchange_rq_exchange_data(rq)	(((uint8_t*) rq) + sizeof (struct spdm_key_exchange_request))
+
+/**
+ * Get the responder's DHE public key ptr.
+ * 
+ * @param resp Buffer with struct spdm_key_exchange_response
+ */
+#define	spdm_key_exchange_resp_exchange_data(resp)	(((uint8_t*) resp) + sizeof (struct spdm_key_exchange_response))
+
 #pragma pack(pop)
 
 /**
@@ -1105,6 +1185,7 @@ struct spdm_connection_info {
 	struct spdm_version_number version; 				/**< Negotiated version */
 	struct spdm_device_capability peer_capabilities;	/**< Peer capabilities. */
 	struct spdm_device_algorithms peer_algorithms;		/**< Negotiated algorithms. */
+	struct spdm_version_number secure_message_version;	/**< Negotiated secure message version. */
 };
 
 /**
@@ -1127,6 +1208,9 @@ struct spdm_state {
 	bool last_spdm_request_session_id_valid; 			/**< Session Id validity. [TODO] This will be moved to the session manager */
 	struct spdm_connection_info connection_info;		/**< Connection info. */
 	enum spdm_response_state response_state; 			/**< Responder response state */
+	uint64_t max_spdm_session_sequence_number;			/**< Max SPDM session sequence number. */
+	uint8_t sequence_number_endian;						/**< Sequence number endianness. */
+	uint16_t current_local_session_id; 					/**< Current local session Id. */
 };
 
 /* TODO:  This is a temporary work-around in the absence of a SPDM connection handler that is
@@ -1190,8 +1274,20 @@ int spdm_process_get_measurements_response (struct cmd_interface_msg *response);
 int spdm_generate_respond_if_ready_request (uint8_t *buf, size_t buf_len,
 	uint8_t original_request_code, uint8_t token, uint8_t spdm_minor_version);
 
+int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
+
 int spdm_format_signature_digest (struct hash_engine *hash, enum hash_type hash_type,
 	uint8_t spdm_minor_version, char *spdm_state, uint8_t *digest);
 
+enum hash_type spdm_get_hash_type (uint32_t hash_algo);
+
+uint32_t spdm_get_dhe_pub_key_size (uint16_t dhe_named_group);
+
+uint32_t spdm_get_aead_key_size (uint16_t aead_cipher_suite);
+
+uint32_t spdm_get_aead_iv_size (uint16_t aead_cipher_suite);
+
+uint32_t spdm_get_aead_tag_size (uint16_t aead_cipher_suite);
 
 #endif /* SPDM_COMMANDS_H_ */

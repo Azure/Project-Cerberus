@@ -456,8 +456,8 @@ exit:
 
 int spdm_transcript_manager_get_hash (
 	const struct spdm_transcript_manager *transcript_manager,
-	enum spdm_transcript_manager_context_type context_type, bool use_session_context,
-	uint8_t session_idx, uint8_t *hash, size_t hash_size)
+	enum spdm_transcript_manager_context_type context_type, bool finish_hash,
+	bool use_session_context, uint8_t session_idx, uint8_t *hash, size_t hash_size)
 {
 	int status;
 	struct spdm_transcript_manager_state *state;
@@ -513,11 +513,13 @@ int spdm_transcript_manager_get_hash (
 	}
 
 	hash_engine = transcript_manager->hash_engine[hash_context->hash_engine_idx];
-	status = hash_engine->finish (hash_engine, hash, hash_size);
+	status = finish_hash ?
+		hash_engine->finish (hash_engine, hash, hash_size) :
+		hash_engine->get_hash (hash_engine, hash, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
-	hash_context->hash_started = false;
+	hash_context->hash_started = !finish_hash;
 
 exit:
 	return status;

@@ -8,14 +8,17 @@
 #include "common/array_size.h"
 #include "common/common_math.h"
 #include "common/unused.h"
+#include "common/buffer_util.h"
 #include "crypto/hash.h"
 #include "crypto/ecc.h"
+#include "crypto/kdf.h"
 #include "mctp/mctp_base_protocol.h"
 #include "riot/riot_key_manager.h"
 #include "cmd_interface_spdm.h"
 #include "spdm_logging.h"
 #include "spdm_commands.h"
 #include "cmd_interface_spdm_responder.h"
+#include "spdm_secure_session_manager.h"
 
 
 /**
@@ -350,7 +353,7 @@ static uint32_t spdm_prioritize_algorithm (const uint32_t *priority_table,
  *
  * @return Hash type if algorithm is supported, HASH_TYPE_INVALID otherwise.
  */
-static enum hash_type spdm_get_hash_type (uint32_t hash_algo)
+enum hash_type spdm_get_hash_type (uint32_t hash_algo)
 {
 	enum hash_type hash_type = HASH_TYPE_INVALID;
 
@@ -376,7 +379,6 @@ static enum hash_type spdm_get_hash_type (uint32_t hash_algo)
  *
  * @param asym_algo Signature algorithm.
  *
- * @return Signature size.
  * @return Signature size if the algorithm is supported, 0 otherwise.
  */
 static uint32_t spdm_get_asym_signature_size (uint32_t asym_algo)
@@ -389,6 +391,530 @@ static uint32_t spdm_get_asym_signature_size (uint32_t asym_algo)
 		default:
 			return 0;
 	}
+}
+
+/**
+ * Get the DHE algorithm public key size.
+ *
+ * @param dhe_named_group DHE named group.
+ *
+ * @return DHE algorithm public key size if the algorithm is supported, 0 otherwise.
+ */
+uint32_t spdm_get_dhe_pub_key_size (uint16_t dhe_named_group)
+{
+	/* [TODO] Add support for other algorithms. */
+	switch (dhe_named_group) {
+		case SPDM_ALG_DHE_NAMED_GROUP_SECP_384_R1:
+			return (ECC_KEY_LENGTH_384 << 1);
+
+		default:
+			return 0;
+	}
+}
+
+/**
+ * Get the AEAD algorithm key size.
+ *
+ * @param aead_cipher_suite AEAD cipher suite
+ *
+ * @return AEAD algorithm key size if the algorithm is supported, 0 otherwise.
+ */
+uint32_t spdm_get_aead_key_size (uint16_t aead_cipher_suite)
+{
+	/* [TODO] Add support for other algorithms. */
+	switch (aead_cipher_suite) {
+		case SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM:
+			return 32;
+
+		default:
+			return 0;
+	}
+}
+
+/**
+ * Get the AEAD algorithm IV size.
+ *
+ * @param aead_cipher_suite aead cipher suite
+ *
+ * @return AEAD algorithm IV size if the algorithm is supported, 0 otherwise.
+ */
+uint32_t spdm_get_aead_iv_size (uint16_t aead_cipher_suite)
+{
+	/* [TODO] Add support for other algorithms. */
+	switch (aead_cipher_suite) {
+		case SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM:
+			return 12;
+
+		default:
+			return 0;
+	}
+}
+
+/**
+ * Get the AEAD algorithm tag size.
+ *
+ * @param aead_cipher_suite AEAD cipher suite
+ *
+ * @return AEAD algorithm tag size if the algorithm is supported, 0 otherwise.
+ */
+uint32_t spdm_get_aead_tag_size (uint16_t aead_cipher_suite)
+{
+	/* [TODO] Add support for other algorithms. */
+	switch (aead_cipher_suite) {
+		case SPDM_ALG_AEAD_CIPHER_SUITE_AES_256_GCM:
+			return 16;
+
+		default:
+			return 0;
+	}
+}
+
+/**
+ *  Validate the opaque data in KEY_EXCHANGE request.
+ *
+ * @param  spdm_version SPDM version.
+ * @param  opaque_data_format Opaque data format.
+ * @param  data_in Opaque data pointer.
+ * @param  data_in_size Size of opaque data.
+ * 
+ * @retval 0 if the general opaque data is valid, error code otherwise.
+ */
+static int spdm_validate_general_opaque_data (uint8_t spdm_version, uint8_t opaque_data_format,
+	const void *data_in, size_t data_in_size)
+{
+	int status = CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+	const struct spdm_general_opaque_data_table_header *general_opaque_data_table_header;
+	const struct spdm_opaque_element_table_header *opaque_element_table_header;
+	uint8_t element_num;
+	uint8_t element_index;
+	uint16_t opaque_element_data_len;
+	size_t data_element_size;
+	size_t current_element_len;
+	size_t total_element_len;
+	uint8_t zero_padding[4] = {0};
+
+	total_element_len = 0;
+
+	if ((spdm_version >= SPDM_VERSION_1_2) &&
+		(opaque_data_format == SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1)) {
+		/* Check byte alignment. */
+		if ((data_in_size & 3) != 0) {
+			goto exit;
+		}
+
+		general_opaque_data_table_header = data_in;
+		/* Buffer will be atleast of size struct spdm_general_opaque_data_table_header (4 Bytes)
+		 * due to the alignment check above, so no additional check needed. */
+
+		if (general_opaque_data_table_header->total_elements == 0) {
+			goto exit;
+		}
+		opaque_element_table_header = (const void *)(general_opaque_data_table_header + 1);
+		element_num = general_opaque_data_table_header->total_elements;
+		data_element_size = data_in_size - sizeof (struct spdm_general_opaque_data_table_header);
+
+		for (element_index = 0; element_index < element_num; element_index++) {
+			/* Ensure the opaque_element_table_header is valid. */
+			if ((total_element_len + sizeof (struct spdm_opaque_element_table_header) +
+				sizeof (opaque_element_data_len)) > data_element_size) {
+				goto exit;
+			}
+
+			/* Validate the element header id. */
+			if (opaque_element_table_header->id > SPDM_REGISTRY_ID_MAX) {
+				goto exit;
+			}
+
+			opaque_element_data_len = *(uint16_t*)((size_t)(opaque_element_table_header + 1)) +
+				opaque_element_table_header->vendor_len;
+
+			current_element_len = sizeof (struct spdm_opaque_element_table_header) +
+				opaque_element_table_header->vendor_len + sizeof (opaque_element_data_len) +
+				opaque_element_data_len;
+
+			if ((current_element_len & 3) != 0) {
+				if (memcmp (zero_padding, 
+					(uint8_t *)(size_t) (opaque_element_table_header) + current_element_len,
+					4 - (current_element_len & 3)) != 0) {
+					goto exit;
+				}
+			}
+
+			/* Add Padding. */
+			current_element_len = (current_element_len + 3) & ~3;
+
+			total_element_len += current_element_len;
+
+			if (total_element_len > data_element_size) {
+				goto exit;
+			}
+
+			/* Move to next the element. */
+			opaque_element_table_header =(const struct spdm_opaque_element_table_header*)
+				((const uint8_t*)opaque_element_table_header + current_element_len);
+		}
+	}
+
+	status = 0;
+
+exit:
+	return status;
+}
+
+/**
+ * Get the size of the opaque data supported version.
+ *
+ * @param  negotiated_version Negotiated connection version.
+ * @param  version_count Version count.
+ *
+ * @return Size of the opaque data supported version.
+ **/
+static size_t spdm_get_untrusted_opaque_data_supported_version_data_size (
+	uint8_t negotiated_version, uint8_t version_count)
+{
+	size_t size;
+
+	if (negotiated_version >= SPDM_VERSION_1_2) {
+		size = sizeof(struct spdm_general_opaque_data_table_header) +
+			sizeof(struct spdm_secured_message_opaque_element_table_header) +
+			sizeof(struct spdm_secured_message_opaque_element_supported_version) +
+			sizeof(struct spdm_version_number) * version_count;
+	} else {
+		size = sizeof(struct spdm_secured_message_general_opaque_data_table_header) +
+			sizeof(struct spdm_secured_message_opaque_element_table_header) +
+			sizeof(struct spdm_secured_message_opaque_element_supported_version) +
+			sizeof(struct spdm_version_number) * version_count;
+	}
+
+	/* Add Padding. */
+	return (size + 3) & ~3;
+}
+
+/**
+ * Get the size of opaque data version selection.
+ * 
+ * @param negotiated_version Negotiated connection version.
+ * @param secure_message_version_count Number of secure message versions supported.
+ *
+ * @return Size in bytes of opaque data version selection. 
+ */
+static size_t spdm_get_opaque_data_version_selection_data_size (uint8_t negotiated_version,
+	uint8_t secure_message_version_count)
+{
+	size_t size;
+
+	/* If no secure message version(s) supported, no opaque data is added. */
+	if (secure_message_version_count == 0) {
+		return 0;
+	}
+
+	if (negotiated_version >= SPDM_VERSION_1_2) {
+		size = sizeof (struct spdm_general_opaque_data_table_header) +
+			   sizeof (struct spdm_secured_message_opaque_element_table_header) +
+			   sizeof (struct spdm_secured_message_opaque_element_version_selection);
+	} else {
+		size = sizeof (struct spdm_secured_message_general_opaque_data_table_header) +
+			   sizeof (struct spdm_secured_message_opaque_element_table_header) +
+			   sizeof (struct spdm_secured_message_opaque_element_version_selection);
+	}
+	/* Add Padding*/
+	return (size + 3) & ~3;
+}
+
+/**
+ * Get element from multi-element opaque data by element id.
+ *
+ * @param state SPDM state.
+ * @param data_in_size Size of multi-element opaque data.
+ * @param data_in Multi-element opaque data buffer.
+ * @param element_id Element id.
+ * @param sm_data_id Id to identify the secured message data type.
+ * @param get_element_ptr Pointer to the element found.
+ * @param get_element_len Length of the element found.
+ *
+ * @retval 0 if the element was rerieved successfully, error code otherwise.
+ */
+static int spdm_get_element_from_opaque_data (struct spdm_state *state, size_t data_in_size,
+	const void *data_in, uint8_t element_id, uint8_t sm_data_id, const void **get_element_ptr,
+	size_t *get_element_len)
+{
+	int status = CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+	const struct spdm_secured_message_general_opaque_data_table_header
+		*general_opaque_data_table_header;
+	const struct spdm_general_opaque_data_table_header *spdm_general_opaque_data_table_header;
+	const struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
+	const struct spdm_secured_message_opaque_element_header *secured_message_element_header;
+	uint8_t element_num;
+	uint8_t element_index;
+	size_t data_element_size;
+	size_t current_element_len;
+	size_t total_element_len;
+
+	total_element_len = 0;
+
+	if ((element_id > SPDM_REGISTRY_ID_MAX) || (data_in_size == 0) || (data_in == NULL)) {
+		goto exit;
+	}
+
+	if (spdm_get_connection_version (state) >= SPDM_VERSION_1_2) {
+		spdm_general_opaque_data_table_header = data_in;
+		if (data_in_size < sizeof(struct spdm_general_opaque_data_table_header)) {
+			goto exit;
+		}
+		if (spdm_general_opaque_data_table_header->total_elements < 1) {
+			goto exit;
+		}
+		opaque_element_table_header = (const void *)(spdm_general_opaque_data_table_header + 1);
+
+		element_num = spdm_general_opaque_data_table_header->total_elements;
+
+		data_element_size = data_in_size - sizeof (struct spdm_general_opaque_data_table_header);
+	} else {
+		general_opaque_data_table_header = data_in;
+		if (data_in_size < sizeof (struct spdm_secured_message_general_opaque_data_table_header)) {
+			goto exit;
+		}
+		if ((general_opaque_data_table_header->spec_id != SPDM_SECURED_MESSAGE_OPAQUE_DATA_SPEC_ID) ||
+			(general_opaque_data_table_header->opaque_version != SPDM_SECURED_MESSAGE_OPAQUE_VERSION) ||
+			(general_opaque_data_table_header->total_elements < 1)) {
+			goto exit;
+		}
+		opaque_element_table_header = (const void *)(general_opaque_data_table_header + 1);
+
+		element_num = general_opaque_data_table_header->total_elements;
+
+		data_element_size = data_in_size -
+							sizeof (struct spdm_secured_message_general_opaque_data_table_header);
+	}
+
+	for (element_index = 0; element_index < element_num; element_index++) {
+		/* Ensure the opaque_element_table_header is valid. */
+		if ((total_element_len + sizeof (struct spdm_secured_message_opaque_element_table_header)) >
+			data_element_size) {
+			goto exit;
+		}
+
+		/* Check element header Id. */
+		if ((opaque_element_table_header->id > SPDM_REGISTRY_ID_MAX) ||
+			(opaque_element_table_header->vendor_len != 0)) {
+			goto exit;
+		}
+
+		current_element_len = sizeof (struct spdm_secured_message_opaque_element_table_header) +
+			opaque_element_table_header->opaque_element_data_len;
+		/* Add Padding. */
+		current_element_len = (current_element_len + 3) & ~3;
+
+		total_element_len += current_element_len;
+
+		if (data_element_size < total_element_len) {
+			goto exit;
+		}
+
+		if (opaque_element_table_header->id == element_id) {
+			secured_message_element_header = (const void *)(opaque_element_table_header + 1);
+			if (((const uint8_t*) secured_message_element_header +
+				sizeof (struct spdm_secured_message_opaque_element_header)) >
+				((const uint8_t*) data_in + data_in_size)) {
+				goto exit;
+			}
+
+			if ((secured_message_element_header->sm_data_id == sm_data_id) &&
+				(secured_message_element_header->sm_data_version ==
+				 SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION)) {
+				/* Get the element by element id. */
+				*get_element_ptr = opaque_element_table_header;
+				*get_element_len = current_element_len;
+			}
+		}
+
+		/* Move to the next element. */
+		opaque_element_table_header = 
+			(const struct spdm_secured_message_opaque_element_table_header*)
+			((const uint8_t*) opaque_element_table_header + current_element_len);
+	}
+
+	/* Ensure the data size is correct. */
+	if (data_element_size != total_element_len) {
+		goto exit;
+	}
+
+	status = 0;
+
+exit:
+	return status;
+}
+
+/**
+ * Process the opaque data supported version data and find a common secure message version.
+ *
+ * @param state SPDM state.
+ * @param secure_message_version_num Local secure message version number(s).
+ * @param secure_message_version_num_count Secure message version number count.
+ * @param data_in Opaque data buffer.
+ * @param data_in_size Opaque data buffer size.
+ *
+ * @return 0 if the opaque data supported version data is valid, error code otherwise.
+ */
+static int spdm_process_opaque_data_supported_version_data (struct spdm_state *state,
+	const struct spdm_version_num_entry *secure_message_version_num,
+	uint8_t secure_message_version_num_count, const void *data_in, size_t data_in_size)
+{
+	int status;
+	const struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
+	const struct spdm_secured_message_opaque_element_supported_version
+		*opaque_element_support_version;
+	const struct spdm_version_number *versions_list;
+	struct spdm_version_number common_version = {0};
+	uint8_t version_count;
+	const void *get_element_ptr;
+	size_t get_element_len;
+	uint8_t local_ver_idx, peer_ver_idx;
+	uint8_t local_ver, peer_ver;
+
+	get_element_ptr = NULL;
+
+	if (secure_message_version_num_count == 0) {
+		return 0;
+	}
+
+	if (data_in_size < spdm_get_untrusted_opaque_data_supported_version_data_size(
+			spdm_get_connection_version (state), 1)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		goto exit;
+	}
+
+	status = spdm_get_element_from_opaque_data (state, data_in_size, data_in, SPDM_REGISTRY_ID_DMTF,
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_SUPPORTED_VERSION, &get_element_ptr,
+		&get_element_len);
+	if (status != 0) {
+		goto exit;
+	}
+
+	if (get_element_ptr == NULL) {
+		status =  CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+		goto exit;
+	}
+
+	opaque_element_table_header = (const struct spdm_secured_message_opaque_element_table_header*)
+		get_element_ptr;
+
+	/* Check for supported version data. */
+	opaque_element_support_version = (const void *)(opaque_element_table_header + 1);
+
+	if ((const uint8_t*)opaque_element_support_version +
+		sizeof (struct spdm_secured_message_opaque_element_supported_version) >
+		(const uint8_t*)opaque_element_table_header + get_element_len) {
+		status =  CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+		goto exit;
+	}
+
+	if (opaque_element_support_version->version_count == 0) {
+		status =  CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+		goto exit;
+	}
+
+	version_count = opaque_element_support_version->version_count;
+
+	if ((opaque_element_table_header->vendor_len != 0) ||
+		(opaque_element_table_header->opaque_element_data_len !=
+		 sizeof (struct spdm_secured_message_opaque_element_supported_version) +
+		 sizeof (struct spdm_version_number) * version_count)) {
+		status =  CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+		goto exit;
+	}
+
+	versions_list = (const void*)(opaque_element_support_version + 1);
+
+	if (((const uint8_t*)versions_list + (sizeof (struct spdm_version_number) * version_count)) >
+		((const uint8_t*)opaque_element_table_header + get_element_len)) {
+		status =  CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
+		goto exit;
+	}
+
+	/* Find a common secure message version. */
+	for (local_ver_idx = 0; local_ver_idx < secure_message_version_num_count; local_ver_idx++) {
+		local_ver = SPDM_MAKE_VERSION (secure_message_version_num[local_ver_idx].major_version,
+				secure_message_version_num[local_ver_idx].minor_version);
+
+		for (peer_ver_idx = 0; peer_ver_idx < version_count; peer_ver_idx++) {
+			peer_ver = SPDM_MAKE_VERSION (versions_list[peer_ver_idx].major_version,
+				versions_list[peer_ver_idx].minor_version);
+
+			if (local_ver == peer_ver) {
+				common_version = versions_list[peer_ver_idx];
+				break;
+			}
+		}
+	}
+
+	if (SPDM_MAKE_VERSION (common_version.major_version, common_version.minor_version) == 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
+		goto exit;
+	}
+	state->connection_info.secure_message_version = common_version;
+
+exit:
+	return status;
+}
+
+/**
+ * Build the opaque data version selection data.
+ *
+ * @param spdm_responder SPDM responder instance.
+ * @param data_out A pointer to the buffer to store the opaque data version selection.
+ **/
+static void spdm_build_opaque_data_version_selection_data (
+	const struct cmd_interface_spdm_responder *spdm_responder, void *data_out)
+{
+	size_t final_data_size;
+	struct spdm_secured_message_general_opaque_data_table_header *secured_general_opaque_data_table_header;
+	struct spdm_general_opaque_data_table_header *general_opaque_data_table_header;
+	struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
+	struct spdm_secured_message_opaque_element_version_selection *opaque_element_version_section;
+	void *end;
+	struct spdm_state *state = spdm_responder->state;
+
+	if (spdm_responder->secure_message_version_num_count == 0) {
+		return;
+	}
+
+	final_data_size = spdm_get_opaque_data_version_selection_data_size (
+		spdm_get_connection_version (state), spdm_responder->secure_message_version_num_count);
+
+	if (spdm_get_connection_version (state) >= SPDM_VERSION_1_2) {
+		general_opaque_data_table_header = data_out;
+		general_opaque_data_table_header->total_elements = 1;
+		buffer_unaligned_write24 (general_opaque_data_table_header->reserved, 0);
+
+		opaque_element_table_header = (void *)(general_opaque_data_table_header + 1);
+	} else {
+		secured_general_opaque_data_table_header = data_out;
+		secured_general_opaque_data_table_header->spec_id =
+			SPDM_SECURED_MESSAGE_OPAQUE_DATA_SPEC_ID;
+		secured_general_opaque_data_table_header->opaque_version =
+			SPDM_SECURED_MESSAGE_OPAQUE_VERSION;
+		secured_general_opaque_data_table_header->total_elements = 1;
+		secured_general_opaque_data_table_header->reserved = 0;
+
+		opaque_element_table_header = (void *)(secured_general_opaque_data_table_header + 1);
+	}
+	opaque_element_table_header->id = SPDM_REGISTRY_ID_DMTF;
+	opaque_element_table_header->vendor_len = 0;
+	opaque_element_table_header->opaque_element_data_len =
+		sizeof (struct spdm_secured_message_opaque_element_version_selection);
+
+	opaque_element_version_section = (void *)(opaque_element_table_header + 1);
+	opaque_element_version_section->sm_data_version =
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_DATA_VERSION;
+	opaque_element_version_section->sm_data_id =
+		SPDM_SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_VERSION_SELECTION;
+	opaque_element_version_section->selected_version =
+		state->connection_info.secure_message_version;
+
+	/* Zero Padding */
+	end = opaque_element_version_section + 1;
+	memset (end, 0, (size_t) data_out + final_data_size - (size_t) end);
 }
 
 /**
@@ -447,9 +973,9 @@ static void spdm_reset_transcript_via_request_code (struct spdm_state *state,
  * @param keys_out On success, ptr. to the RIoT keys. This must be released by the caller by calling
  * riot_key_manager_release_riot_keys.
  *
- * @return 0 if certificate chain was retrieved successfully or an error code.
+ * @return 0 if certificate list was retrieved successfully or an error code.
  */
-static int spdm_get_certificate_chain (struct riot_key_manager *key_manager,
+static int spdm_get_certificate_list (struct riot_key_manager *key_manager,
 	uint8_t *cert_count_out, struct der_cert *cert, const struct riot_keys **keys_out)
 {
 	int status = 0;
@@ -493,6 +1019,98 @@ static int spdm_get_certificate_chain (struct riot_key_manager *key_manager,
 exit:
 	if (keys != NULL) {
 		riot_key_manager_release_riot_keys (key_manager, keys);
+	}
+
+	return status;
+}
+
+/**
+ * Get the digest of the spdm certificate chain.
+ *
+ * @param key_manager RIoT device key manager.
+ * @param hash_engine Hash engine for hashing operations.
+ * @param hash_type Hash type.
+ * @param digest Buffer to hold the digest.
+ *
+ * @return 0 if the digest was calculated successfully or an error code.
+ */
+static int spdm_get_certificate_chain_digest (struct riot_key_manager *key_manager,
+	struct hash_engine *hash_engine, enum hash_type hash_type, uint8_t *digest)
+{
+	int status;
+	uint8_t i_cert;
+	struct der_cert cert[SPDM_MAX_CERT_COUNT_IN_CHAIN];
+	uint8_t cert_count;
+	struct spdm_cert_chain cert_chain;
+	uint32_t cert_chain_length;
+	const struct riot_keys *keys = NULL;
+	int hash_size;
+	bool cancel_hash = false;
+
+	/* Retrieve the certificate chain. */
+	status = spdm_get_certificate_list (key_manager, &cert_count, cert, &keys);
+	if (status != 0) {
+		goto exit;
+	}
+
+	hash_size = hash_get_hash_length (hash_type);
+	if (hash_size == HASH_ENGINE_UNKNOWN_HASH) {
+		status = HASH_ENGINE_UNKNOWN_HASH;
+		goto exit;
+	}
+
+	/* Hash the root cert. */
+	status = hash_calculate (hash_engine, hash_type, cert[0].cert, cert[0].length,
+		cert_chain.root_hash, hash_size);
+	if (ROT_IS_ERROR (status)) {
+		goto exit;
+	}
+	status = 0;
+
+	/* Calculate the cert chain length. */
+	cert_chain_length = 0;
+	for (i_cert = 0; i_cert < cert_count; ++i_cert) {
+		cert_chain_length += cert[i_cert].length;
+	}
+
+	cert_chain.header.length = spdm_get_digests_cert_chain_length (hash_size, cert_chain_length);
+	cert_chain.header.reserved = 0;
+
+	/* Start the cert chain hash. */
+	status = hash_start_new_hash (hash_engine, hash_type);
+	if (status != 0) {
+		goto exit;
+	}
+	cancel_hash = true;
+
+	/* Hash the header of the cert chain and the root cert digest. */
+	status = hash_engine->update (hash_engine, (uint8_t*) &cert_chain,
+			offsetof (struct spdm_cert_chain, root_hash) + hash_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Hash the individual certs in the cert chain. */
+	for (i_cert = 0; i_cert < cert_count; i_cert++) {
+		status = hash_engine->update (hash_engine, cert[i_cert].cert, cert[i_cert].length);
+		if (status != 0) {
+			goto exit;
+		}
+	}
+
+	status = hash_engine->finish (hash_engine, digest, hash_size);
+	if (status != 0) {
+		goto exit;
+	}
+	cancel_hash = false;
+
+exit:
+	if (keys != NULL) {
+		riot_key_manager_release_riot_keys (key_manager, keys);
+	}
+
+	if (cancel_hash == true) {
+		hash_engine->cancel (hash_engine);
 	}
 
 	return status;
@@ -558,9 +1176,11 @@ static void spdm_create_signing_context (struct spdm_state *state, uint8_t op_co
 			SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_SIZE);
 
 		/* Patch the version. */
-		spdm_signing_context[11] = (char)('0' + (version.major_version));
-		spdm_signing_context[13] = (char)('0' + (version.minor_version));
-		spdm_signing_context[15] = (char)('*');
+		spdm_signing_context[SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_MAJOR_VERSION_OFFSET] =
+			(char)('0' + (version.major_version));
+		spdm_signing_context[SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_MINOR_VERSION_OFFSET] =
+			(char)('0' + (version.minor_version));
+		spdm_signing_context[SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_ASTERIX_OFFSET] = (char)('*');
 		spdm_signing_context += SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_SIZE;
 	}
 
@@ -711,7 +1331,7 @@ static int spdm_generate_measurement_signature (
 
 	/* Get the L1L2 hash. */
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
-		(session_info != NULL), session_idx, l1l2_hash, l1l2_hash_size);
+		true /* finish hash */, (session_info != NULL), session_idx, l1l2_hash, l1l2_hash_size);
 
 	/* Reset the L1L2 hash context. */
 	transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
@@ -724,6 +1344,94 @@ static int spdm_generate_measurement_signature (
 	/* Sign the L1L2 hash. */
 	status = spdm_responder_data_sign (state, key_manager, ecc_engine, hash_engine,
 		SPDM_RESPONSE_GET_MEASUREMENTS, l1l2_hash, l1l2_hash_size, signature, sig_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+exit:
+	return status;
+}
+
+/**
+ * Generate the KEY_EXCHANGE response signature.
+ *
+ * @param transcript_manager SPDM transcript manager.
+ * @param state SPDM state.
+ * @param key_manager RIoT device key manager.
+ * @param ecc_engine ECC engine.
+ * @param hash_engine Hash engine.
+ * @param session SPDM secure session.
+ * @param signature Buffer to store the signature.
+ * @param sig_size The size of the signature buffer.
+ *
+ * @return 0 if the signature is generated successfully, error code otherwise.
+ */
+static int spdm_generate_key_exchange_rsp_signature (
+	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
+	struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
+	struct hash_engine *hash_engine, struct spdm_secure_session *session, uint8_t *signature,
+	uint32_t sig_size)
+{
+	int status;
+	uint8_t th_hash[HASH_MAX_HASH_LEN];
+	int th_hash_size;
+
+	th_hash_size = hash_get_hash_length (
+		spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo));
+
+	/* Get the TH hash; do not complete the hash context as it is needed later. */
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, false,
+		true, session->session_index, th_hash, th_hash_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Sign the TH hash. */
+	status = spdm_responder_data_sign (state, key_manager, ecc_engine, hash_engine,
+		SPDM_RESPONSE_KEY_EXCHANGE, th_hash, th_hash_size, signature, sig_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+exit:
+	return status;
+}
+
+/*
+ * Calculate the TH HMAC with the response finished_key.
+ *
+ * @param transcript_manager SPDM transcript manager.
+ * @param state SPDM state.
+ * @param ecc_engine ECC engine.
+ * @param hash_engine Hash engine.
+ * @param session SPDM session.
+ * @param th_hmac_buffer Buffer to store the TH HMAC
+ *
+ * @return 0 if the current TH HMAC is calculated successfully, error code otherwise.
+ */
+static int spdm_calculate_th_hmac_for_key_exchange_rsp (
+	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
+	struct ecc_engine *ecc_engine, struct hash_engine *hash_engine,
+	struct spdm_secure_session *session, uint8_t *th_hmac_buffer)
+{
+	int status;
+	uint8_t th_hash[HASH_MAX_HASH_LEN];
+	int hash_size;
+	enum hash_type hash_type;
+
+	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
+	hash_size = hash_get_hash_length (hash_type);
+
+	/* Get the TH hash; do not complete the hash as it is needed later. */
+	status = transcript_manager->get_hash (transcript_manager,
+		TRANSCRIPT_CONTEXT_TYPE_TH, false, true, session->session_index, th_hash, hash_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Calculate the TH HMAC. */
+	status = hash_generate_hmac (hash_engine, session->handshake_secret.response_finished_key,
+		hash_size, th_hash, hash_size, hash_type, th_hmac_buffer, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -748,6 +1456,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_get_version_response *rsp;
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
+	struct spdm_secure_session_manager *session_manager;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
@@ -756,6 +1465,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	rq = (struct spdm_get_version_request*) request->payload;
 	state = spdm_responder->state;
 	transcript_manager = spdm_responder->transcript_manager;
+	session_manager = spdm_responder->session_manager;
 
 	if (request->payload_length < sizeof (struct spdm_get_version_request)) {
 		/* [TODO] Look into the possiblity of having a common place to encode the error msg. */
@@ -805,7 +1515,8 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	/* Initialize the SPDM state. No error check as this function call cannot fail. */
 	spdm_init_state (state);
 
-	/* [TODO] Reset the SPDM Session Manager when it is available. */
+	/* Reset any in-progress session(s). */
+	session_manager->reset (session_manager);
 
 	/* Contruct the response. */
 	rsp = (struct spdm_get_version_response*) request->payload;
@@ -938,7 +1649,7 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	spdm_version = SPDM_MAKE_VERSION (header->spdm_major_version, header->spdm_minor_version);
 	if (spdm_check_request_version_compatibility (state, spdm_responder->version_num,
 			spdm_responder->version_num_count, spdm_version) == false) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+		spdm_generate_error_response (request, 0,
 			SPDM_ERROR_VERSION_MISMATCH, 0x00, NULL, 0, SPDM_REQUEST_GET_CAPABILITIES,
 			CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH);
 		goto exit;
@@ -1655,19 +2366,12 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	void *session_info;
 	uint32_t response_size;
 	int hash_size;
-	uint8_t i_cert;
-	struct der_cert cert[SPDM_MAX_CERT_COUNT_IN_CHAIN];
-	uint8_t cert_count;
-	struct spdm_cert_chain cert_chain;
-	uint32_t cert_chain_length;
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
 	struct riot_key_manager *key_manager;
 	struct hash_engine *hash_engine;
 	enum hash_type hash_type;
-	bool cancel_hash = false;
-	const struct riot_keys *keys = NULL;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
@@ -1677,7 +2381,7 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
 	key_manager = spdm_responder->key_manager;
-	hash_engine = spdm_responder->hash_engine;
+	hash_engine = spdm_responder->hash_engine[0];
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 
 	/* Validate the request. */
@@ -1723,21 +2427,6 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	/* Reset transcript manager state as per request code. */
 	spdm_reset_transcript_via_request_code (state, transcript_manager, SPDM_REQUEST_GET_DIGESTS);
 
-	/* Retrieve the certificate chain. */
-	/* [TODO] Refactor this function into an API. */
-	status = spdm_get_certificate_chain (key_manager, &cert_count, cert, &keys);
-	if (status != 0) {
-		spdm_error = SPDM_ERROR_UNSPECIFIED;
-		goto exit;
-	}
-
-	hash_size = hash_get_hash_length (hash_type);
-	if (hash_size == HASH_ENGINE_UNKNOWN_HASH) {
-		status = HASH_ENGINE_UNKNOWN_HASH;
-		spdm_error = SPDM_ERROR_UNSPECIFIED;
-		goto exit;
-	}
-
 	/* Add request to M1M2 hash context. */
 	if (session_info == NULL) {
 		status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
@@ -1750,6 +2439,13 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	}
 
 	/* Construct the response. */
+	hash_size = hash_get_hash_length (hash_type);
+	if (hash_size == HASH_ENGINE_UNKNOWN_HASH) {
+		status = HASH_ENGINE_UNKNOWN_HASH;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	response_size = sizeof (struct spdm_get_digests_response) + hash_size;
 	if (response_size > cmd_interface_msg_get_max_response (request)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
@@ -1764,55 +2460,13 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 		SPDM_GET_MINOR_VERSION (spdm_version));
 	spdm_response->slot_mask = 1;
 
-	/* Hash the root cert. */
-	status = hash_calculate (hash_engine, hash_type, cert[0].cert, cert[0].length,
-		cert_chain.root_hash, hash_size);
-	if (ROT_IS_ERROR (status)) {
-		spdm_error = SPDM_ERROR_UNSPECIFIED;
-		goto exit;
-	}
-	status = 0;
-
-	/* Calculate the cert chain length. */
-	cert_chain_length = 0;
-	for (i_cert = 0; i_cert < cert_count; ++i_cert) {
-		cert_chain_length += cert[i_cert].length;
-	}
-
-	cert_chain.header.length = spdm_get_digests_cert_chain_length (hash_size, cert_chain_length);
-	cert_chain.header.reserved = 0;
-
-	/* Start the cert chain hash. */
-	status = hash_start_new_hash (hash_engine, hash_type);
+	/* Get the digest of the certificate chain. */
+	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type,
+		(uint8_t *)(spdm_response + 1));
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
 	}
-	cancel_hash = true;
-
-	/* Hash the header of the cert chain and the root cert digest. */
-	status = hash_engine->update (hash_engine, (uint8_t*) &cert_chain,
-			offsetof (struct spdm_cert_chain, root_hash) + hash_size);
-	if (status != 0) {
-		spdm_error = SPDM_ERROR_UNSPECIFIED;
-		goto exit;
-	}
-
-	/* Hash the individual certs in the cert chain. */
-	for (i_cert = 0; i_cert < cert_count; i_cert++) {
-		status = hash_engine->update (hash_engine, cert[i_cert].cert, cert[i_cert].length);
-		if (status != 0) {
-			spdm_error = SPDM_ERROR_UNSPECIFIED;
-			goto exit;
-		}
-	}
-
-	status = hash_engine->finish (hash_engine, (uint8_t *)(spdm_response + 1), hash_size);
-	if (status != 0) {
-		spdm_error = SPDM_ERROR_UNSPECIFIED;
-		goto exit;
-	}
-	cancel_hash = false;
 
 	/* Add response to M1M2 hash context. */
 	if (session_info == NULL) {
@@ -1833,17 +2487,10 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	}
 
 exit:
-	if (keys != NULL) {
-		riot_key_manager_release_riot_keys (key_manager, keys);
-	}
-
 	if (status != 0) {
 		spdm_generate_error_response (request, state->connection_info.version.minor_version,
 			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_GET_DIGESTS, status);
 
-		if (cancel_hash == true) {
-			hash_engine->cancel (hash_engine);
-		}
 	}
 	return 0;
 }
@@ -1944,7 +2591,7 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
 	key_manager = spdm_responder->key_manager;
-	hash_engine = spdm_responder->hash_engine;
+	hash_engine = spdm_responder->hash_engine[0];
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 
 	/* Validate the request. */
@@ -1994,9 +2641,8 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 		goto exit;
 	}
 
-	/* Retrieve the certificate chain. */
-	/* [TODO] Refactor this function into an API. */
-	status = spdm_get_certificate_chain (key_manager, &cert_count, cert, &keys);
+	/* Retrieve the list of certificates in the certificate chain. */
+	status = spdm_get_certificate_list (key_manager, &cert_count, cert, &keys);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -2295,7 +2941,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	transcript_manager = spdm_responder->transcript_manager;
 	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
-	hash_engine = spdm_responder->hash_engine;
+	hash_engine = spdm_responder->hash_engine[0];
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 	measurements = spdm_responder->measurements;
 	rng_engine = spdm_responder->rng_engine;
@@ -2626,6 +3272,378 @@ int spdm_generate_respond_if_ready_request (uint8_t *buf, size_t buf_len,
 	rq->original_request_code = original_request_code;
 
 	return rq_length;
+}
+
+/**
+ * Process the SPDM KEY_EXCHANGE request.
+ *
+ * @param spdm_responder SPDM responder instance.
+ * @param request KEY_EXCHANGE request to process.
+ *
+ * @return 0 if request was processed successfully, or an error code.
+ */
+int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request)
+{
+	int status = 0;
+	int spdm_error;
+	uint8_t spdm_version;
+	struct spdm_key_exchange_request *spdm_request;
+	struct spdm_key_exchange_response *spdm_response;
+	uint8_t slot_id;
+	size_t dhe_key_size;
+	size_t hash_size;
+	uint32_t meas_summary_hash_size;
+	uint32_t sig_size;
+	size_t request_size;
+	size_t response_size;
+	uint16_t req_session_id;
+	uint16_t rsp_session_id;
+	uint32_t session_id = SPDM_INVALID_SESSION_ID;
+	struct spdm_secure_session *session = NULL;
+	uint8_t *ptr;
+	uint16_t opaque_data_length;
+	size_t opaque_key_exchange_rsp_size;
+	size_t pub_key_component_size;
+	uint8_t session_policy;
+	const struct spdm_transcript_manager *transcript_manager;
+	struct spdm_state *state;
+	const struct spdm_device_capability *local_capabilities;
+	struct riot_key_manager *key_manager;
+	struct hash_engine *hash_engine;
+	struct rng_engine *rng_engine;
+	bool release_session = false;
+	uint8_t cert_chain_hash[HASH_MAX_HASH_LEN];
+	struct spdm_secure_session_manager *session_manager;
+	struct ecc_point_public_key peer_pub_key_point;
+	enum hash_type hash_type;
+	const struct spdm_measurements* measurements;
+	uint8_t meas_summary_hash_type;
+
+	if ((spdm_responder == NULL) || (request == NULL)) {
+		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+	}
+
+	transcript_manager = spdm_responder->transcript_manager;
+	state = spdm_responder->state;
+	local_capabilities = spdm_responder->local_capabilities;
+	key_manager = spdm_responder->key_manager;
+	hash_engine = spdm_responder->hash_engine[0];
+	rng_engine = spdm_responder->rng_engine;
+	session_manager = spdm_responder->session_manager;
+	measurements = spdm_responder->measurements;
+	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
+
+	/* Validate the request. */
+	if (request->payload_length < sizeof (struct spdm_key_exchange_request)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+	spdm_request = (struct spdm_key_exchange_request*) request->payload;
+	spdm_version = SPDM_MAKE_VERSION (spdm_request->header.spdm_major_version,
+		spdm_request->header.spdm_minor_version);
+	if (spdm_version != spdm_get_connection_version (state)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_VERSION_MISMATCH;
+		spdm_error = SPDM_ERROR_VERSION_MISMATCH;
+		goto exit;
+	}
+
+	/* Verify SPDM state. */
+	if (state->response_state != SPDM_RESPONSE_STATE_NORMAL) {
+		spdm_handle_response_state (state, request, SPDM_REQUEST_KEY_EXCHANGE);
+		goto exit;
+	}
+	if (state->connection_info.connection_state < SPDM_CONNECTION_STATE_NEGOTIATED) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
+		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check for key exchange capability support. */
+	if ((local_capabilities->flags.key_ex_cap == 0) ||
+		(state->connection_info.peer_capabilities.flags.key_ex_cap == 0)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_CAPABILITY;
+		spdm_error = SPDM_ERROR_UNSUPPORTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check if a previous session is active. */
+	/* [TODO] Move this flag to session manager in FINISH request processing. */
+	if (state->last_spdm_request_session_id_valid == true) {
+		status = CMD_HANDLER_SPDM_RESPONDER_PREV_SESSION_VALID;
+		spdm_error = SPDM_ERROR_UNEXPECTED_REQUEST;
+		goto exit;
+	}
+
+	/* Check the type of measurement summary hash. */
+	meas_summary_hash_type = spdm_request->measurement_summary_hash_type;
+	if ((meas_summary_hash_type > SPDM_MEASUREMENT_SUMMARY_HASH_NONE) && 
+		((local_capabilities->flags.meas_cap == 0) ||
+		(state->connection_info.peer_algorithms.measurement_spec == 0) ||
+		(state->connection_info.peer_algorithms.measurement_hash_algo == 0))) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	/* Check the slot Id. */
+	slot_id = spdm_request->slot_id;
+	if (slot_id != 0) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	/* Get the crypto parameter sizes. */
+	hash_size = hash_get_hash_length (hash_type);
+	sig_size = spdm_get_asym_signature_size (state->connection_info.peer_algorithms.base_asym_algo);
+	dhe_key_size = spdm_get_dhe_pub_key_size (state->connection_info.peer_algorithms.dhe_named_group);
+	meas_summary_hash_size = 
+		(spdm_request->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_NONE) ?
+		0 : hash_size;
+
+	/* Check if the request contains the DHE public key and the opaque data length. */
+	if (request->payload_length < (sizeof (struct spdm_key_exchange_request) + dhe_key_size +
+		sizeof (uint16_t))) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	/* Copy the public key from the request. Public key is in point format (x, y). */
+	ptr = spdm_key_exchange_rq_exchange_data (spdm_request);
+	pub_key_component_size = dhe_key_size >> 1;
+	memcpy (peer_pub_key_point.x, ptr, pub_key_component_size);
+	memcpy (peer_pub_key_point.y, ptr + pub_key_component_size, pub_key_component_size);
+	peer_pub_key_point.key_length = pub_key_component_size;
+
+	/* Read the opaque data length. */
+	ptr += dhe_key_size;
+	opaque_data_length = buffer_unaligned_read16 ((const uint16_t*) ptr);
+
+	/* Check if the request contains the DHE public key, the opaque data length and the opaque data. */
+	if (request->payload_length < (sizeof (struct spdm_key_exchange_request) + dhe_key_size +
+		sizeof (uint16_t) + opaque_data_length)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+	request_size = sizeof (struct spdm_key_exchange_request) + dhe_key_size + sizeof (uint16_t) + 
+		opaque_data_length;
+
+	ptr += sizeof (uint16_t);
+	if (opaque_data_length != 0) {
+		/* Validate the opaque data. */
+		status = spdm_validate_general_opaque_data (spdm_version,
+			state->connection_info.peer_algorithms.other_params_support.opaque_data_format, ptr,
+			opaque_data_length);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
+		}
+
+		/* Process the opaque data and negotiate the secure message version. */
+		status = spdm_process_opaque_data_supported_version_data (state,
+			spdm_responder->secure_message_version_num,
+			spdm_responder->secure_message_version_num_count, ptr, opaque_data_length);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
+		}
+	}
+
+	/* Get the size of the opaque data for the response. */
+	opaque_key_exchange_rsp_size = spdm_get_opaque_data_version_selection_data_size (spdm_version,
+		spdm_responder->secure_message_version_num_count);
+
+	/* Reset the transcript manager state as per the request code. */
+	spdm_reset_transcript_via_request_code (state, transcript_manager, SPDM_REQUEST_KEY_EXCHANGE);
+
+	/* Construct the session Id from the requester and responder session Ids. */
+	req_session_id = spdm_request->req_session_id;	
+	rsp_session_id = (state->current_local_session_id + 1);
+	session_id = MAKE_SESSION_ID (req_session_id, rsp_session_id);
+
+	/* Create a session and assign the constructed session Id to it. */
+	session = session_manager->create_session (session_manager, session_id, false,
+		&state->connection_info);
+	if (session == NULL) {
+		status = CMD_HANDLER_SPDM_RESPONDER_SESSION_LIMIT_EXCEEDED;
+		spdm_error = SPDM_ERROR_SESSION_LIMIT_EXCEEDED;
+		goto exit;
+	}
+	release_session = true;
+	
+	/* Obtain the cert chain hash. */
+	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type,
+		cert_chain_hash);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Add the cert chain hash to the TH session hash context. This is needed for signature and hmac. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH,
+		cert_chain_hash, hash_size, true, session->session_index);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Add the request to the TH session hash context. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH,
+			(uint8_t*) spdm_request, request_size, true, session->session_index);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Save the session policy from the request. */
+	if (spdm_version >= SPDM_VERSION_1_2) {
+		session_policy = spdm_request->session_policy;
+	}
+
+	/* Construct the response. */
+	response_size = sizeof (struct spdm_key_exchange_response) + dhe_key_size +
+		meas_summary_hash_size + sizeof (uint16_t) + opaque_key_exchange_rsp_size + sig_size +
+		hash_size /* HMAC */;
+	if (response_size > cmd_interface_msg_get_max_response (request)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	spdm_response = (struct spdm_key_exchange_response*) request->payload;
+	memset (spdm_response, 0, response_size);
+
+	spdm_populate_header (&spdm_response->header, SPDM_RESPONSE_KEY_EXCHANGE,
+		SPDM_GET_MINOR_VERSION (spdm_version));
+	spdm_response->heartbeat_period = 0;
+	spdm_response->rsp_session_id = rsp_session_id;
+	spdm_response->mut_auth_requested = 0;
+	spdm_response->req_slot_id_param = 0;
+
+	/* Generate random data for the response. */
+	status = rng_engine->generate_random_buffer (rng_engine,
+		sizeof (spdm_response->random_data), spdm_response->random_data);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Generate the shared secret. Also, copy the generated local public key to the response buffer. */
+	ptr = spdm_key_exchange_resp_exchange_data (spdm_response);
+	status = session_manager->generate_shared_secret (session_manager, session,
+		&peer_pub_key_point, ptr);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+	ptr += dhe_key_size;
+
+	/* Add the measurement summary hash if requested. */
+	if (meas_summary_hash_type > SPDM_MEASUREMENT_SUMMARY_HASH_NONE) {
+		status = measurements->get_measurement_summary_hash (measurements,
+			spdm_responder->hash_engine[0], hash_type, spdm_responder->hash_engine[1], hash_type,
+			(meas_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB), ptr,
+			meas_summary_hash_size);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+		ptr += meas_summary_hash_size;
+	}
+
+	/* Write the opaque data length. */
+	buffer_unaligned_write16 ((uint16_t*) ptr, opaque_key_exchange_rsp_size);
+	ptr += sizeof (uint16_t);
+
+	/* Build the selected secure session version as opaque data. */
+	spdm_build_opaque_data_version_selection_data (spdm_responder, ptr);
+	ptr += opaque_key_exchange_rsp_size;
+
+	/* Add the response to the TH session hash context. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH,
+			(uint8_t*) spdm_response, ((size_t) ptr - (size_t) spdm_response), true,
+			session->session_index);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Generate the response signature. */
+	status = spdm_generate_key_exchange_rsp_signature (transcript_manager, state,
+		spdm_responder->key_manager, spdm_responder->ecc_engine, hash_engine, session, ptr,
+		sig_size);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Add the signature to the TH session hash context. */
+	status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, ptr,
+		sig_size, true, session->session_index);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+	ptr += sig_size;
+
+	/* Generate the session handshake keys. */
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	/* Generate the responder verification data. */
+	if ((state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0) &&
+		(local_capabilities->flags.handshake_in_the_clear_cap == 0)) {
+
+		status = spdm_calculate_th_hmac_for_key_exchange_rsp (transcript_manager, state,
+			spdm_responder->ecc_engine, hash_engine, session, ptr);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+
+		/* Add the HMAC to the TH Session transcript. */
+		status = transcript_manager->update (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, ptr,
+			hash_size, true, session->session_index);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+	}
+
+	/* Set the request session policy on the session. */
+	if (spdm_version >= SPDM_VERSION_1_2) {
+		session->session_policy = session_policy;
+	}
+
+	/* Set the payload length. */
+	cmd_interface_msg_set_message_payload_length (request, response_size);
+
+	/* Set the session state. */
+	session_manager->set_session_state (session_manager, session_id,
+		SPDM_SESSION_STATE_HANDSHAKING);
+
+	/* Update the Responder state. */
+	state->current_local_session_id += 1;
+
+	release_session = false;
+
+exit:
+	if (release_session == true) {
+		session_manager->release_session (session_manager, session_id);
+	}
+
+	if (status != 0) {
+		spdm_generate_error_response (request, state->connection_info.version.minor_version,
+			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_KEY_EXCHANGE, status);
+	}
+	return 0;
 }
 
 /**

@@ -53,8 +53,8 @@ static int spdm_transcript_manager_mock_update (
 
 static int spdm_transcript_manager_mock_get_hash (
 	const struct spdm_transcript_manager *transcript_manager,
-	enum spdm_transcript_manager_context_type context_type, bool use_session_context,
-	uint8_t session_idx, uint8_t *hash, size_t hash_size)
+	enum spdm_transcript_manager_context_type context_type, bool finish_hash, 
+	bool use_session_context, uint8_t session_idx, uint8_t *hash, size_t hash_size)
 {
 	struct spdm_transcript_manager_mock *mock =
 		(struct spdm_transcript_manager_mock*) transcript_manager;
@@ -64,8 +64,9 @@ static int spdm_transcript_manager_mock_get_hash (
 	}
 
 	MOCK_RETURN (&mock->mock, spdm_transcript_manager_mock_get_hash, transcript_manager,
-		MOCK_ARG_CALL (context_type), MOCK_ARG_CALL (use_session_context),
-		MOCK_ARG_CALL (session_idx), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_size));
+		MOCK_ARG_CALL (context_type), MOCK_ARG_CALL (finish_hash),
+		MOCK_ARG_CALL (use_session_context), MOCK_ARG_CALL (session_idx), MOCK_ARG_PTR_CALL (hash),
+		MOCK_ARG_CALL (hash_size));
 }
 
 static void spdm_transcript_manager_mock_reset_context (
@@ -124,7 +125,7 @@ static int spdm_transcript_manager_mock_func_arg_count (void *func)
 		return 5;
 	}
 	else if (func == spdm_transcript_manager_mock_get_hash) {
-		return 5;
+		return 6;
 	}
 	else if (func == spdm_transcript_manager_mock_reset_context) {
 		return 3;
@@ -178,15 +179,18 @@ static const char* spdm_transcript_manager_mock_arg_name_map (void *func, int ar
 				return "context_type";
 
 			case 1:
-				return "use_session_context";
+				return "finish_hash";
 
 			case 2:
-				return "session_idx";
+				return "use_session_context";
 
 			case 3:
-				return "hash";
+				return "session_idx";
 
 			case 4:
+				return "hash";
+
+			case 5:
 				return "hash_size";
 		}
 	}

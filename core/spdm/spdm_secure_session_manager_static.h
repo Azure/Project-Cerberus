@@ -1,0 +1,77 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
+#ifndef SPDM_SECURE_SESSION_MANAGER_STATIC_H_
+#define SPDM_SECURE_SESSION_MANAGER_STATIC_H_
+
+
+#include "spdm_secure_session_manager.h"
+
+
+/* Internal function declarations to allow for static initialization. */
+struct spdm_secure_session* spdm_secure_session_manager_create_session (
+	const struct spdm_secure_session_manager *session_manager, uint32_t session_id,
+	bool is_requester, const struct spdm_connection_info *connection_info);
+
+void spdm_secure_session_manager_release_session (
+	const struct spdm_secure_session_manager *session_manager, uint32_t session_id);
+
+void spdm_secure_session_manager_set_session_state (
+	const struct spdm_secure_session_manager *session_manager, uint32_t session_id,
+	enum spdm_secure_session_state session_state);
+
+void spdm_secure_session_manager_reset (const struct spdm_secure_session_manager *session_manager);
+
+struct spdm_secure_session* spdm_secure_session_manager_get_session (
+	const struct spdm_secure_session_manager *session_manager, uint32_t session_id);
+
+int spdm_secure_session_manager_generate_shared_secret (
+	const struct spdm_secure_session_manager *session_manager,
+	struct spdm_secure_session* session_info, const struct ecc_point_public_key *peer_pub_key_point,
+	uint8_t *local_pub_key_point);
+
+int spdm_secure_session_manager_generate_session_handshake_keys (
+	const struct spdm_secure_session_manager *session_manager,
+	struct spdm_secure_session *session_info);
+
+/**
+ * Constant initializer for the Secure Session Manager API.
+ */
+#define	SECURE_SESSION_MANAGER_API_INIT \
+	.create_session = spdm_secure_session_manager_create_session, \
+	.release_session = spdm_secure_session_manager_release_session, \
+	.get_session = spdm_secure_session_manager_get_session, \
+	.set_session_state = spdm_secure_session_manager_set_session_state, \
+	.reset = spdm_secure_session_manager_reset, \
+	.generate_shared_secret = spdm_secure_session_manager_generate_shared_secret, \
+	.generate_session_handshake_keys = spdm_secure_session_manager_generate_session_handshake_keys
+
+/**
+ * SPDM Secure Session Manager Static Initialization.
+ *
+ * There is no validation done on the arguments.
+ *
+ * @param state_ptr Pointer to the state.
+ * @param local_cap_ptr Pointer to the local capabilities.
+ * @param local_algo_ptr Pointer to the local algorithms.
+ * @param aes_engine_ptr Pointer to the AES engine.
+ * @param hash_engine_ptr Pointer to the hash engine.
+ * @param rng_engine_ptr Pointer to the RNG engine.
+ * @param ecc_engine_ptr Pointer to the ECC engine.
+ * @param transcript_manager_ptr Pointer to the transcript manager.
+ */
+#define	spdm_secure_session_manager_static_init(state_ptr, local_cap_ptr, local_algo_ptr, aes_engine_ptr, \
+	hash_engine_ptr, rng_engine_ptr, ecc_engine_ptr, transcript_manager_ptr)	{ \
+		SECURE_SESSION_MANAGER_API_INIT, \
+		.state = state_ptr, \
+		.local_capabilities = local_cap_ptr, \
+		.local_algorithms = local_algo_ptr, \
+		.aes_engine = aes_engine_ptr, \
+		.hash_engine = hash_engine_ptr, \
+		.rng_engine = rng_engine_ptr, \
+		.ecc_engine = ecc_engine_ptr, \
+		.transcript_manager = transcript_manager_ptr \
+	}
+
+
+#endif /* SPDM_SECURE_SESSION_MANAGER_STATIC_H_ */

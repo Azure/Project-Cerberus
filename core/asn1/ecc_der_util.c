@@ -937,7 +937,7 @@ static int ecc_der_encode_ecdsa_integer (const uint8_t *sig, size_t key_length, 
  * buffers must each be able to hold this much data.  The encoded data cannot be used to reliably
  * determine the key length since INTEGER encoding adds and removes leading zeros.
  *
- * @return 0 if the signature was parse successfully or an error code.
+ * @return 0 if the signature was parsed successfully or an error code.
  */
 int ecc_der_decode_ecdsa_signature (const uint8_t *der, size_t length, uint8_t *sig_r,
 	uint8_t *sig_s, size_t key_length)

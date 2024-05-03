@@ -493,8 +493,8 @@ static void spdm_transcript_manager_test_update_m1m2_SHA256 (CuTest *test)
 		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, false,
-		SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA256_HASH_LENGTH);
@@ -630,8 +630,8 @@ static void spdm_transcript_manager_test_update_m1m2_SHA384 (CuTest *test)
 		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, false,
-		SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA384_HASH_LENGTH);
@@ -768,8 +768,8 @@ static void spdm_transcript_manager_test_update_m1m2_SHA512 (CuTest *test)
 		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, false,
-		SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA512_HASH_LENGTH);
@@ -1266,8 +1266,8 @@ static void spdm_transcript_manager_test_update_l1l2_SHA256_v_1_2 (CuTest *test)
 		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, false,
-		SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA256_HASH_LENGTH);
@@ -1413,8 +1413,8 @@ static void spdm_transcript_manager_test_update_l1l2_SHA384_v_1_2 (CuTest *test)
 		 (uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,  false,
-		SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA384_HASH_LENGTH);
@@ -1561,8 +1561,8 @@ static void spdm_transcript_manager_test_update_l1l2_SHA512_v_1_2 (CuTest *test)
 		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, false,
-		SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA512_HASH_LENGTH);
@@ -1707,8 +1707,8 @@ static void spdm_transcript_manager_test_update_l1l2_SHA256_v_1_1 (CuTest *test)
 		 (uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, false,
-		SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA256_HASH_LENGTH);
@@ -1811,8 +1811,8 @@ static void spdm_transcript_manager_test_update_l1l2_SHA384_v_1_1 (CuTest *test)
 		 (uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,  false,
-		SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA384_HASH_LENGTH);
@@ -1917,8 +1917,8 @@ static void spdm_transcript_manager_test_update_l1l2_SHA512_v_1_1 (CuTest *test)
 		(uint8_t*) &data, sizeof (data), false, SPDM_MAX_SESSION_COUNT);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, false,
-		SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA512_HASH_LENGTH);
@@ -2022,7 +2022,7 @@ static void spdm_transcript_manager_test_session_update_l1l2_SHA256_v_1_2 (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
-		0, hash, ARRAY_SIZE (hash));
+		true, 0, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA256_HASH_LENGTH);
@@ -2171,7 +2171,7 @@ static void spdm_transcript_manager_test_session_update_l1l2_SHA384_v_1_2 (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
-		0, hash, ARRAY_SIZE (hash));
+		true, 0, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA384_HASH_LENGTH);
@@ -2321,7 +2321,7 @@ static void spdm_transcript_manager_test_session_update_l1l2_SHA512_v_1_2 (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
-		0, hash, ARRAY_SIZE (hash));
+		true, 0, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA512_HASH_LENGTH);
@@ -2469,7 +2469,7 @@ static void spdm_transcript_manager_test_session_update_l1l2_SHA256_v_1_1 (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
-		0, hash, ARRAY_SIZE (hash));
+		true, 0, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA256_HASH_LENGTH);
@@ -2575,7 +2575,7 @@ static void spdm_transcript_manager_test_session_update_l1l2_SHA384_v_1_1 (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
-		0, hash, ARRAY_SIZE (hash));
+		true, 0, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA384_HASH_LENGTH);
@@ -2683,7 +2683,7 @@ static void spdm_transcript_manager_test_session_update_l1l2_SHA512_v_1_1 (CuTes
 	CuAssertIntEquals (test, 0, status);
 
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
-		0, hash, ARRAY_SIZE (hash));
+		true, 0, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA512_HASH_LENGTH);
@@ -2810,8 +2810,8 @@ static void spdm_transcript_manager_test_session_update_th_SHA256 (CuTest *test)
 		(uint8_t*) &data, sizeof (data), true, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, true, 0,
-		hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, true,
+		true, 0, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA256_HASH_LENGTH);
@@ -2951,8 +2951,8 @@ static void spdm_transcript_manager_test_session_update_th_SHA384 (CuTest *test)
 		(uint8_t*) &data, sizeof (data), true, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, true, 0,
-		hash, ARRAY_SIZE (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, true,
+		true, 0, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA384_HASH_LENGTH);
@@ -3094,7 +3094,7 @@ static void spdm_transcript_manager_test_session_update_th_SHA512 (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, true,
-		0, hash, ARRAY_SIZE (hash));
+		true, 0, hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	status = memcmp (hash, expected_hash, SHA512_HASH_LENGTH);
@@ -3363,33 +3363,33 @@ static void spdm_transcript_manager_test_session_get_hash_invalid_params (CuTest
 	transcript_manager = &testing.transcript_manager;
 
 	/* transcript_manager = NULL */
-	status = transcript_manager->get_hash (NULL, TRANSCRIPT_CONTEXT_TYPE_M1M2, false,
+	status = transcript_manager->get_hash (NULL, TRANSCRIPT_CONTEXT_TYPE_M1M2, true, false,
 		SPDM_MAX_SESSION_COUNT, hash, hash_size);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
 
 	/* transcript context = TRANSCRIPT_CONTEXT_TYPE_MAX */
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_MAX, false,
-		SPDM_MAX_SESSION_COUNT, hash, hash_size);
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_MAX, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, hash_size);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_UNSUPPORTED_CONTEXT_TYPE, status);
 
 	/* hash = NULL */
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, false,
-		SPDM_MAX_SESSION_COUNT, NULL, hash_size);
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
+		false, SPDM_MAX_SESSION_COUNT, NULL, hash_size);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
 
 	/* hash_size = 0 */
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, false,
-		SPDM_MAX_SESSION_COUNT, hash, 0);
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, 0);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
 
 	/* use_session_context == true && hash_type == TRANSCRIPT_CONTEXT_TYPE_M1M2 */
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, true,
-		SPDM_MAX_SESSION_COUNT, hash, hash_size);
+		true, SPDM_MAX_SESSION_COUNT, hash, hash_size);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
 
 	/* use_session_context == false && hash_type == TRANSCRIPT_CONTEXT_TYPE_TH */
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, false,
-		SPDM_MAX_SESSION_COUNT, hash, hash_size);
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, hash_size);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_ARGUMENT, status);
 
 	spdm_transcript_manager_testing_release (test, &testing);
@@ -3409,7 +3409,7 @@ static void spdm_transcript_manager_test_session_get_hash_invalid_session_idx (C
 	transcript_manager = &testing.transcript_manager;
 
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
-		true, transcript_manager->state->session_transcript_count, hash, hash_size);
+		true, true, transcript_manager->state->session_transcript_count, hash, hash_size);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_INVALID_SESSION_IDX, status);
 
 	spdm_transcript_manager_testing_release (test, &testing);
@@ -3429,7 +3429,7 @@ static void spdm_transcript_manager_test_session_get_hash_unsupported_hash_type 
 	transcript_manager = &testing.transcript_manager;
 
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH + 1,
-		false,  SPDM_MAX_SESSION_COUNT, hash, hash_size);
+		true, false,  SPDM_MAX_SESSION_COUNT, hash, hash_size);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_UNSUPPORTED_CONTEXT_TYPE, status);
 
 	spdm_transcript_manager_testing_release (test, &testing);
@@ -3448,8 +3448,8 @@ static void spdm_transcript_manager_test_session_get_hash_not_started (CuTest *t
 	spdm_transcript_manager_testing_init (test, &testing, true);
 	transcript_manager = &testing.transcript_manager;
 
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, false,
-		SPDM_MAX_SESSION_COUNT, hash, hash_size);
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, hash_size);
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_HASH_NOT_STARTED, status);
 
 	spdm_transcript_manager_testing_release (test, &testing);
@@ -3476,13 +3476,13 @@ static void spdm_transcript_manager_test_session_get_hash_double_get (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	/* First get_hash. */
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, false,
-		SPDM_MAX_SESSION_COUNT, hash, sizeof (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
 
 	/* Secong get_hash. */
-	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, false,
-		SPDM_MAX_SESSION_COUNT, hash, sizeof (hash));
+	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2, true,
+		false, SPDM_MAX_SESSION_COUNT, hash, sizeof (hash));
 	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_HASH_NOT_STARTED, status);
 
 	spdm_transcript_manager_testing_release (test, &testing);
@@ -3530,7 +3530,7 @@ static void spdm_transcript_manager_test_session_get_hash_finish_fail (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_M1M2,
-		false, SPDM_MAX_SESSION_COUNT , hash, ARRAY_SIZE (hash));
+		true, false, SPDM_MAX_SESSION_COUNT , hash, ARRAY_SIZE (hash));
 	CuAssertIntEquals (test, HASH_ENGINE_FINISH_FAILED, status);
 
 	spdm_transcript_manager_testing_release (test, &testing);

@@ -21,8 +21,8 @@ int spdm_transcript_manager_update (
 
 int spdm_transcript_manager_get_hash (
 	const struct spdm_transcript_manager *transcript_manager,
-	enum spdm_transcript_manager_context_type context_type, bool use_session_context,
-	uint8_t session_idx, uint8_t *hash, size_t hash_size);
+	enum spdm_transcript_manager_context_type context_type, bool finish_hash,
+	bool use_session_context, uint8_t session_idx, uint8_t *hash, size_t hash_size);
 
 void spdm_transcript_manager_reset_context (
 	const struct spdm_transcript_manager *transcript_manager,

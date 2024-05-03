@@ -61,6 +61,10 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 			status = spdm_get_measurements (spdm_responder, request);
 			break;
 
+		case SPDM_REQUEST_KEY_EXCHANGE:
+			status = spdm_key_exchange (spdm_responder, request);
+			break;
+
 		default:
 			spdm_generate_error_response (request, 0, SPDM_ERROR_UNSUPPORTED_REQUEST, 0x00, NULL, 0,
 				req_code, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION);
@@ -119,9 +123,12 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
  * @param spdm_responder SPDM responder instance.
  * @param state SPDM state.
  * @param transcript_manager SPDM transcript manager.
- * @param hash_engine Hash engine instance.
+ * @param hash_engine Hash engine instances.
+ * @param hash_engine_count Number of hash engine instances
  * @param version_num Supported SPDM version number entries.
  * @param version_num_count Number of version numbers entries.
+ * @param secure_message_version_num Supported secured message version number entries.
+ * @param secure_message_version_num_count Number of secured message version number entries.
  * @param local_capabilities Local SPDM capabilities.
  * @param local_algorithms Local SPDM algorithms.
  * @param key_manager RIoT device key manager.
@@ -133,11 +140,15 @@ int cmd_interface_spdm_generate_error_packet (const struct cmd_interface *intf,
  */
 int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_state *state, const struct spdm_transcript_manager *transcript_manager,
-	struct hash_engine *hash_engine, const struct spdm_version_num_entry *version_num,
-	uint8_t version_num_count, const struct spdm_device_capability *local_capabilities,
+	struct hash_engine **hash_engine, uint8_t hash_engine_count,
+	const struct spdm_version_num_entry *version_num, uint8_t version_num_count,
+	const struct spdm_version_num_entry *secure_message_version_num,
+	uint8_t secure_message_version_num_count,
+	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
 	struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
-	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine)
+	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine,
+	struct spdm_secure_session_manager *session_manager)
 {
 	int status;
 
@@ -150,15 +161,19 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 
 	spdm_responder->state = state;
 	spdm_responder->hash_engine = hash_engine;
+	spdm_responder->hash_engine_count = hash_engine_count;
 	spdm_responder->transcript_manager = transcript_manager;
 	spdm_responder->version_num = version_num;
 	spdm_responder->version_num_count = version_num_count;
+	spdm_responder->secure_message_version_num = secure_message_version_num;
+	spdm_responder->secure_message_version_num_count = secure_message_version_num_count;
 	spdm_responder->local_capabilities = local_capabilities;
 	spdm_responder->local_algorithms = local_algorithms;
 	spdm_responder->key_manager = key_manager;
 	spdm_responder->measurements = measurements;
 	spdm_responder->ecc_engine = ecc_engine;
 	spdm_responder->rng_engine = rng_engine;
+	spdm_responder->session_manager = session_manager;
 
 	spdm_responder->base.process_request = cmd_interface_spdm_process_request;
 #ifdef CMD_ENABLE_ISSUE_REQUEST
@@ -249,15 +264,28 @@ int cmd_interface_spdm_responder_init_state (
 {
 	int status;
 	uint8_t supported_max_version;
+	uint8_t idx;
 
 	if ((spdm_responder == NULL) || (spdm_responder->hash_engine == NULL) ||
+		(spdm_responder->hash_engine_count < SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT) ||
 		(spdm_responder->transcript_manager == NULL) || (spdm_responder->version_num == NULL) ||
-		(spdm_responder->version_num_count == 0) || (spdm_responder->local_capabilities == NULL) ||
+		(spdm_responder->version_num_count == 0) || 
+		((spdm_responder->secure_message_version_num_count != 0) &&
+		 (spdm_responder->secure_message_version_num == NULL)) ||
+		 (spdm_responder->local_capabilities == NULL) ||
 		(spdm_responder->local_algorithms == NULL) || (spdm_responder->key_manager == NULL) ||
 		(spdm_responder->measurements == NULL) || (spdm_responder->ecc_engine == NULL) ||
-		(spdm_responder->rng_engine == NULL)) {
+		(spdm_responder->rng_engine == NULL) || (spdm_responder->session_manager == NULL)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 		goto exit;
+	}
+
+	/* Check if the hash engine instances are valid. */
+	for (idx = 0; idx < spdm_responder->hash_engine_count; idx++) {
+		if (spdm_responder->hash_engine[idx] == NULL) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+			goto exit;
+		}
 	}
 
 	/* Validate the local device capabilities. */

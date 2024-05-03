@@ -17,12 +17,18 @@
 
 
 /**
+ * Minimum number of hash engines required for an SPDM responder.
+ */
+#define SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT		2
+
+/**
  * Command interface for processing SPDM protocol requests.
  */
 struct cmd_interface_spdm_responder {
 	struct cmd_interface base;											/**< Base command interface. */
 	struct spdm_state *state;											/**< SPDM state. */
-	struct hash_engine *hash_engine;									/**< Hash engine for hashing operations. */
+	struct hash_engine **hash_engine;									/**< Hash engines for hashing operations. */
+	uint8_t hash_engine_count;											/**< Number of hash engine instances. */
 	const struct spdm_transcript_manager *transcript_manager;			/**< Transcript manager for SPDM. */
 	struct riot_key_manager *key_manager;								/**< Manager for device certificate chain. */
 	const struct spdm_measurements *measurements;						/**< Measurements for the device. */
@@ -30,18 +36,25 @@ struct cmd_interface_spdm_responder {
 	struct rng_engine *rng_engine;										/**< Engine for random number generation. */
 	const struct spdm_version_num_entry *version_num;					/**< Supported version number(s). */
 	uint8_t version_num_count;											/**< Number of supported version number(s). */
+	const struct spdm_version_num_entry *secure_message_version_num;	/**< Supported secure message version number(s). */
+	uint8_t secure_message_version_num_count;							/**< Number of secure message supported version number(s). */
 	const struct spdm_device_capability *local_capabilities;			/**< Local SPDM capabilities. */
 	const struct spdm_local_device_algorithms *local_algorithms;		/**< Local SPDM algorithms and their priorities. */
+	struct spdm_secure_session_manager *session_manager;				/**< Session manager for managing secure sessions. */
 };
 
 
 int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_state *state, const struct spdm_transcript_manager *transcript_manager,
-	struct hash_engine *hash_engine, const struct spdm_version_num_entry *version_num,
-	uint8_t version_num_count, const struct spdm_device_capability *local_capabilities,
+	struct hash_engine **hash_engine, uint8_t hash_engine_count,
+	const struct spdm_version_num_entry *version_num, uint8_t version_num_count,
+	const struct spdm_version_num_entry *secure_message_version_num,
+	uint8_t secure_message_version_num_count,
+	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
 	struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
-	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine);
+	struct ecc_engine *ecc_engine, struct rng_engine *rng_engine,
+	struct spdm_secure_session_manager *session_manager);
 
 int cmd_interface_spdm_responder_init_state (
 	const struct cmd_interface_spdm_responder *spdm_responder);
@@ -71,6 +84,14 @@ enum {
 	CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0c),			/**< An internal error occurred. */
 	CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0d),		/**< The response is too large. */
 	CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SIG_SIZE = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0e),		/**< The signature size is not supported. */
+	CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_DHE_KEY_SIZE = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x0f),	/**< The DHE key size is not supported. */
+	CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_HMAC_HASH_TYPE = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x10),/**< The HMAC hash type is not supported. */
+	CMD_HANDLER_SPDM_RESPONDER_INVALID_RESPONSE_STATE = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x11),	/**< The response state is invalid. */
+	CMD_HANDLER_SPDM_RESPONDER_INVALID_CONNECTION_STATE = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x12),	/**< The connection state is invalid. */
+	CMD_HANDLER_SPDM_RESPONDER_PREV_SESSION_VALID = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x13),		/**< The previous session is still valid. */
+	CMD_HANDLER_SPDM_RESPONDER_SESSION_LIMIT_EXCEEDED = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x14),	/**< The session limit has been exceeded. */
+	CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_HASH_ALGO = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x15),		/**< The hash algorithm is not supported. */
+	CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x16),/**< The opaque data format is invalid. */
 };
 
 

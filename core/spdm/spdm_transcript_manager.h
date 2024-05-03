@@ -187,11 +187,14 @@ struct spdm_transcript_manager {
 		size_t message_size, bool use_session_context, uint8_t session_idx);
 
 	/**
-	 * Get the hash based on the hash type. Getting the hash completes the hashing operation.
-	 * Additional call to update will start a new hashing operation.
+	 * Get the hash based on the hash type. The hashing operation is finished if finish_hash is set
+	 * to true. In that case, an additional call to update will start a new hashing operation. 
+	 * If finish_hash is set to false, the hash is not finalized and can be updated with additional
+	 * calls to update.
 	 *
 	 * @param transcript_manager	Transcript manager instance.
 	 * @param context_type			Transcript context type to get the hash from.
+	 * @param finish_hash			Flag to indicate to finish the hash.
 	 * @param use_session_context	Use session context to update an SPDM session transcript.
 	 * @param session_idx			SPDM session index.
 	 * @param hash					Buffer to copy the hash to.
@@ -200,8 +203,8 @@ struct spdm_transcript_manager {
 	 * @return 0 if the hash was returned successfully or an error code.
 	 */
 	int (*get_hash) (const struct spdm_transcript_manager *transcript_manager,
-		enum spdm_transcript_manager_context_type context_type, bool use_session_context,
-		uint8_t session_idx, uint8_t *hash, size_t hash_size);
+		enum spdm_transcript_manager_context_type context_type, bool finish_hash,
+		bool use_session_context, uint8_t session_idx, uint8_t *hash, size_t hash_size);
 
 	/**
 	 * Reset a transcript context.
