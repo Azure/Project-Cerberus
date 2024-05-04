@@ -18,7 +18,7 @@ static struct spdm_secure_session* spdm_secure_session_manager_mock_create_sessi
 
 	MOCK_RETURN_CAST_PTR (&mock->mock, struct spdm_secure_session*,
 		spdm_secure_session_manager_mock_create_session, session_manager,
-		MOCK_ARG_CALL (session_id), MOCK_ARG_CALL (is_requester), MOCK_ARG_CALL (connection_info));
+		MOCK_ARG_CALL (session_id), MOCK_ARG_CALL (is_requester), MOCK_ARG_PTR_CALL (connection_info));
 }
 
 static void spdm_secure_session_manager_mock_release_session (
@@ -92,8 +92,8 @@ static int spdm_secure_session_manager_mock_generate_shared_secret (
 	}
 
 	MOCK_RETURN (&mock->mock, spdm_secure_session_manager_mock_generate_shared_secret,
-		session_manager, MOCK_ARG_CALL (session), MOCK_ARG_CALL (peer_pub_key_point),
-		MOCK_ARG_CALL (local_pub_key_point));
+		session_manager, MOCK_ARG_PTR_CALL (session), MOCK_ARG_PTR_CALL (peer_pub_key_point),
+		MOCK_ARG_PTR_CALL (local_pub_key_point));
 }
 
 static int spdm_secure_session_manager_mock_generate_session_handshake_keys (
@@ -108,7 +108,7 @@ static int spdm_secure_session_manager_mock_generate_session_handshake_keys (
 	}
 
 	MOCK_RETURN (&mock->mock, spdm_secure_session_manager_mock_generate_session_handshake_keys,
-		session_manager, MOCK_ARG_CALL (session));
+		session_manager, MOCK_ARG_PTR_CALL (session));
 }
 
 static int spdm_secure_session_manager_mock_func_arg_count (void *func)

@@ -2134,8 +2134,8 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -2182,13 +2182,13 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -2240,7 +2240,7 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_session_handshake_keys,
-		&testing.session_manager_mock.base, 0, MOCK_ARG (&secure_session));
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,

@@ -1419,6 +1419,8 @@ static int spdm_calculate_th_hmac_for_key_exchange_rsp (
 	int hash_size;
 	enum hash_type hash_type;
 
+	UNUSED (ecc_engine);
+
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 	hash_size = hash_get_hash_length (hash_type);
 
@@ -1431,7 +1433,7 @@ static int spdm_calculate_th_hmac_for_key_exchange_rsp (
 
 	/* Calculate the TH HMAC. */
 	status = hash_generate_hmac (hash_engine, session->handshake_secret.response_finished_key,
-		hash_size, th_hash, hash_size, hash_type, th_hmac_buffer, hash_size);
+		hash_size, th_hash, hash_size, (enum hmac_hash) hash_type, th_hmac_buffer, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -3305,7 +3307,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	uint16_t opaque_data_length;
 	size_t opaque_key_exchange_rsp_size;
 	size_t pub_key_component_size;
-	uint8_t session_policy;
+	uint8_t session_policy = 0;
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_state *state;
 	const struct spdm_device_capability *local_capabilities;
