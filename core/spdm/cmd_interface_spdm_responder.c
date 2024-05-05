@@ -270,14 +270,21 @@ int cmd_interface_spdm_responder_init_state (
 		(spdm_responder->hash_engine_count < SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT) ||
 		(spdm_responder->transcript_manager == NULL) || (spdm_responder->version_num == NULL) ||
 		(spdm_responder->version_num_count == 0) || 
-		((spdm_responder->secure_message_version_num_count != 0) &&
-		 (spdm_responder->secure_message_version_num == NULL)) ||
-		 (spdm_responder->local_capabilities == NULL) ||
+		(spdm_responder->local_capabilities == NULL) ||
 		(spdm_responder->local_algorithms == NULL) || (spdm_responder->key_manager == NULL) ||
 		(spdm_responder->measurements == NULL) || (spdm_responder->ecc_engine == NULL) ||
-		(spdm_responder->rng_engine == NULL) || (spdm_responder->session_manager == NULL)) {
+		(spdm_responder->rng_engine == NULL)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 		goto exit;
+	}
+
+	/* Optional objects for secure session support */
+	if (spdm_responder->secure_message_version_num_count != 0) {
+		if (spdm_responder->secure_message_version_num == NULL ||
+			spdm_responder->session_manager == NULL) {
+				status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+				goto exit;
+			}
 	}
 
 	/* Check if the hash engine instances are valid. */

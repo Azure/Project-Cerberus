@@ -1518,7 +1518,9 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	spdm_init_state (state);
 
 	/* Reset any in-progress session(s). */
-	session_manager->reset (session_manager);
+	if (session_manager) {
+		session_manager->reset (session_manager);
+	}
 
 	/* Contruct the response. */
 	rsp = (struct spdm_get_version_response*) request->payload;
@@ -3335,6 +3337,15 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	session_manager = spdm_responder->session_manager;
 	measurements = spdm_responder->measurements;
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
+
+	/* Check if secure session support is available. This is excessive check, as session_manager
+	 * can't be NULL if secure_message_version_num_count !=0 based on initialization checks, but
+	 * it is still safer to check both */
+	if ((spdm_responder->secure_message_version_num_count == 0) || (session_manager == NULL)) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
 
 	/* Validate the request. */
 	if (request->payload_length < sizeof (struct spdm_key_exchange_request)) {

@@ -365,6 +365,35 @@ static void cmd_interface_spdm_responder_test_static_init (CuTest *test)
 	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
 }
 
+static void cmd_interface_spdm_responder_test_static_init_non_secure (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	const struct cmd_interface_spdm_responder spdm_responder =
+		cmd_interface_spdm_responder_static_init (
+			&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+			testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
+			ARRAY_SIZE (testing.version_num), NULL, 0, &testing.local_capabilities,
+			&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
+			&testing.ecc_mock.base, &testing.rng_mock.base, NULL);
+
+	status = cmd_interface_spdm_responder_init_state (&spdm_responder);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, spdm_responder.base.process_request);
+	CuAssertPtrNotNull (test, spdm_responder.base.process_response);
+	CuAssertPtrNotNull (test, spdm_responder.base.generate_error_packet);
+
+	cmd_interface_spdm_responder_deinit (&spdm_responder);
+
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
+}
+
 static void cmd_interface_spdm_responder_test_static_init_invalid_arg (CuTest *test)
 {
 	int status;
@@ -740,6 +769,32 @@ static void cmd_interface_spdm_responder_test_init (CuTest *test)
 		&testing.local_capabilities, &testing.local_algorithms, &testing.key_manager,
 		&testing.measurements_mock.base, &testing.ecc_mock.base, &testing.rng_mock.base,
 		&testing.session_manager_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_request);
+	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_response);
+	CuAssertPtrNotNull (test, testing.spdm_responder.base.generate_error_packet);
+
+	cmd_interface_spdm_responder_deinit (&testing.spdm_responder);
+
+	cmd_interface_spdm_responder_testing_release_dependencies (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_init_non_secure (CuTest *test)
+{
+	int status;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init_dependencies (test, &testing);
+
+	status = cmd_interface_spdm_responder_init (&testing.spdm_responder,
+		&testing.spdm_responder_state, &testing.transcript_manager_mock.base,
+		testing.hash_engine, ARRAY_SIZE (testing.hash_engine), testing.version_num,
+		ARRAY_SIZE (testing.version_num), NULL,	0, &testing.local_capabilities,
+		&testing.local_algorithms, &testing.key_manager, &testing.measurements_mock.base,
+		&testing.ecc_mock.base, &testing.rng_mock.base, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_request);
@@ -2489,6 +2544,7 @@ static void cmd_interface_spdm_responder_test_generate_error_packet (
 TEST_SUITE_START (cmd_interface_spdm_responder);
 
 TEST (cmd_interface_spdm_responder_test_static_init);
+TEST (cmd_interface_spdm_responder_test_static_init_non_secure);
 TEST (cmd_interface_spdm_responder_test_static_init_invalid_arg);
 TEST (cmd_interface_spdm_responder_test_static_init_incompatible_capabilities);
 TEST (cmd_interface_spdm_responder_test_static_init_ct_exponent_gt_max);
@@ -2496,6 +2552,7 @@ TEST (cmd_interface_spdm_responder_test_static_init_data_transfer_size_lt_min_si
 TEST (cmd_interface_spdm_responder_test_static_init_data_transfer_size_gt_max_size);
 TEST (cmd_interface_spdm_responder_test_static_init_data_transfer_size_ne_max_size);
 TEST (cmd_interface_spdm_responder_test_init);
+TEST (cmd_interface_spdm_responder_test_init_non_secure);
 TEST (cmd_interface_spdm_responder_test_init_invalid_arg);
 TEST (cmd_interface_spdm_responder_test_init_incompatible_capabilities);
 TEST (cmd_interface_spdm_responder_test_init_ct_exponent_gt_max);
