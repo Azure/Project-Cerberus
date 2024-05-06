@@ -48,6 +48,12 @@ static void add_all_crypto_tests (CuSuite *suite)
 	!defined TESTING_SKIP_ECC_THREAD_SAFE_SUITE
 	TESTING_RUN_SUITE (ecc_thread_safe);
 #endif
+#if (defined TESTING_RUN_ECDSA_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_ECDSA_SUITE
+	TESTING_RUN_SUITE (ecdsa);
+#endif
 #if (defined TESTING_RUN_HASH_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

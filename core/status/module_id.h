@@ -145,6 +145,7 @@ enum {
 	ROT_MODULE_TDISP_DRIVER = 0x0085,					/**< Driver interface for programming TDISP registers. */
 	ROT_MODULE_MCTP_NOTIFIER = 0x0086,					/**< MCTP Notifier module. */
 	ROT_MODULE_SPDM_SESSION_MANAGER = 0x0087,			/**< SPDM Session Manager. */
+	ROT_MODULE_ECDSA = 0x0088,							/**< ECDSA signature handling. */
 };
 
 
