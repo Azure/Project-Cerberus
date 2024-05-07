@@ -1625,7 +1625,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_first_k_hmac_error (CuTest 
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HMAC_SHA256,
+	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HASH_TYPE_SHA256,
 		SHA256_TEST_HASH, SHA256_HASH_LENGTH, ECC_PRIVKEY, ECC_KEY_LENGTH_256,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K0, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V0,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1);
@@ -1658,7 +1658,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_init_erro
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HMAC_SHA256,
+	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HASH_TYPE_SHA256,
 		SHA256_TEST_HASH, SHA256_HASH_LENGTH, ECC_PRIVKEY, ECC_KEY_LENGTH_256,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K0, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V0,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1);
@@ -1670,7 +1670,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_init_erro
 
 	status = hash_mock_expect_hmac (&hash, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1,
 		SHA256_HASH_LENGTH, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1, SHA256_HASH_LENGTH, NULL,
-		0, HMAC_SHA256, ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0, SHA256_HASH_LENGTH);
+		0, HASH_TYPE_SHA256, ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ecdsa_deterministic_k_drbg_generate (&hash.base, &drbg, k, sizeof (k));
@@ -1700,7 +1700,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_update_v_
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HMAC_SHA256,
+	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HASH_TYPE_SHA256,
 		SHA256_TEST_HASH, SHA256_HASH_LENGTH, ECC_PRIVKEY, ECC_KEY_LENGTH_256,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K0, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V0,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1);
@@ -1712,7 +1712,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_update_v_
 
 	status = hash_mock_expect_hmac (&hash, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1,
 		SHA256_HASH_LENGTH, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1, SHA256_HASH_LENGTH, NULL,
-		0, HMAC_SHA256, ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0, SHA256_HASH_LENGTH);
+		0, HASH_TYPE_SHA256, ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ecdsa_deterministic_k_drbg_generate (&hash.base, &drbg, k, sizeof (k));
@@ -1751,7 +1751,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_update_oc
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HMAC_SHA256,
+	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HASH_TYPE_SHA256,
 		SHA256_TEST_HASH, SHA256_HASH_LENGTH, ECC_PRIVKEY, ECC_KEY_LENGTH_256,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K0, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V0,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1);
@@ -1763,7 +1763,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_update_oc
 
 	status = hash_mock_expect_hmac (&hash, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1,
 		SHA256_HASH_LENGTH, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1, SHA256_HASH_LENGTH, NULL,
-		0, HMAC_SHA256, ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0, SHA256_HASH_LENGTH);
+		0, HASH_TYPE_SHA256, ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ecdsa_deterministic_k_drbg_generate (&hash.base, &drbg, k, sizeof (k));
@@ -1804,7 +1804,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_finish_er
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HMAC_SHA256,
+	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HASH_TYPE_SHA256,
 		SHA256_TEST_HASH, SHA256_HASH_LENGTH, ECC_PRIVKEY, ECC_KEY_LENGTH_256,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K0, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V0,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1);
@@ -1816,7 +1816,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_key_hmac_finish_er
 
 	status = hash_mock_expect_hmac (&hash, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1,
 		SHA256_HASH_LENGTH, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1, SHA256_HASH_LENGTH, NULL,
-		0, HMAC_SHA256, ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0, SHA256_HASH_LENGTH);
+		0, HASH_TYPE_SHA256, ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ecdsa_deterministic_k_drbg_generate (&hash.base, &drbg, k, sizeof (k));
@@ -1860,7 +1860,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_value_hmac_error (
 	status = hash_mock_init (&hash);
 	CuAssertIntEquals (test, 0, status);
 
-	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HMAC_SHA256,
+	status = ecdsa_testing_expect_deterministic_k_drbg_instantiate (&hash, HASH_TYPE_SHA256,
 		SHA256_TEST_HASH, SHA256_HASH_LENGTH, ECC_PRIVKEY, ECC_KEY_LENGTH_256,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K0, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V0,
 		ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1);
@@ -1872,7 +1872,7 @@ static void ecdsa_test_deterministic_k_drbg_generate_second_k_value_hmac_error (
 
 	status = hash_mock_expect_hmac (&hash, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_K1,
 		SHA256_HASH_LENGTH, ECDSA_TESTING_DETERMINISTIC_K_DRBG_SHA256_V1, SHA256_HASH_LENGTH, NULL,
-		0, HMAC_SHA256, ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0, SHA256_HASH_LENGTH);
+		0, HASH_TYPE_SHA256, ECDSA_TESTING_DETERMINISTIC_K_DRBG_ECC256_K_OUT_0, SHA256_HASH_LENGTH);
 	CuAssertIntEquals (test, 0, status);
 
 	status = ecdsa_deterministic_k_drbg_generate (&hash.base, &drbg, k, sizeof (k));
