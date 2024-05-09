@@ -3,16 +3,19 @@
 # Licensed under the MIT license.
 
 # Usage:
-#  tools/spdm_measurements_to_cfm.py <input_filename> <output_filename> <filetype>
+#  spdm_measurements_to_cfm.py <component_name> <input_filename> <output_filename> <filetype>
 #  Optional Params:
-#  -s <slot_num> -r <rootca_digest> -b <base_hash_alg> -m <meas_hash_alg>
+#  -s <slot_num> -r <rootca_digest> -b <base_hash_alg> -m <meas_hash_alg> -g <file_signed(True/False) -i <workspace_dir>
 #  Debug Param(Provides debug logs):
 #  -d
 #  E.g.
-#  spdm_measurements_to_cfm.py spdm_measurement.rim cfm_component.xml RIM
-#  spdm_measurements_to_cfm.py spdm_measurement.corim cfm_component.xml CORIM
-#  spdm_measurements_to_cfm.py spdm_measurement.rim cfm_component.xml RIM -s 0 -r <sha384 hash> -b SHA384 -m SHA384
-#  spdm_measurements_to_cfm.py spdm_measurement.corim -o cfm_component.xml CORIM -s 0 -r <sha384 hash> -b SHA384 -m SHA384
+#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.corim cfm_component.xml CORIM
+#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.rim cfm_component.xml RIM -r <sha384 hash> -b SHA384 -m SHA384 -g True -i workspace
+#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.rim cfm_component.xml CORIM -b SHA384 -m SHA384 -i workspace
+#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.corim cfm_component.xml CORIM -r <sha384 hash> -b SHA384 -m SHA384 -g True 
+#   spdm_measurements_to_cfm.py <comp_name> spdm_measurement.cbor cfm_component.xml CORIM -b SHA384 -m SHA384 -g False
+
+# TODO: Replace shell commands with python file system APIs
 
 import os
 import sys
@@ -25,13 +28,16 @@ from enum import Enum
 import base64
 
 #globals
+smc_component_name="component"
 smc_input_filename="spdm_measurement.rim"
 smc_output_filename="cfm_component.xml"
 smc_filetype="RIM"
 smc_slot_num="0"
-smc_rootca_digest="4A284657C5509147DA86D2C82DFF98360182EFAA26D3DCFA7AE485F4DC61B3BCB3A854AFC9A6A58F4DAEC35B2594FF0E"
+smc_rootca_digest=""
 smc_base_hash_alg="SHA384"
 smc_meas_hash_alg="SHA384"
+smc_signed_flag=True
+smc_ws_dir="."
 smc_debug=False
 
 #filetypes
@@ -124,6 +130,9 @@ def indent(elem, level=0):
     else:
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
+
+def is_not_blank(s):
+    return bool(s and not s.isspace())
 
 class Measurement_Type(Enum):
     """
@@ -238,7 +247,7 @@ class Corim_Measurement:
         return f'id = {self.id}, type = {self.type}, subtype = {self.subtype}, value = {self.value}, mask = {self.mask}'
 
 class Corim_Data:
-    def __init__(self, filename, output_filename, config):
+    def __init__(self, filetype, filename, output_filename, config):
         """
         Represents CORIM data and configuration
 
@@ -246,6 +255,7 @@ class Corim_Data:
         :param output_filename: Output filename
         :param: config: CORIM configuration data
         """
+        self.filetype = filetype
         self.filename = filename
         self.id = 0
         self.name = "UNKNOWN"
@@ -277,19 +287,30 @@ class Corim_Data:
         :return List of JSON filenames
         """
         json_filenames = []
-        self.execute_command("dd bs=1 skip=6 if=" + self.filename + " of=" + self.filename + "_untagged")
-        self.execute_command("cocli corim extract -f " + self.filename + "_untagged" + " --output-dir=.")
-        for filename in os.listdir("."):
+        self.execute_command("rm -rf " + smc_ws_dir)
+        self.execute_command("mkdir " + smc_ws_dir)
+        if smc_signed_flag == "True":
+            self.execute_command("dd bs=1 skip=6 if=" + self.filename + " of=" + self.filename + "_untagged")
+            self.execute_command("$COCLI_PATH/cocli corim extract -f " + self.filename + "_untagged" + " --output-dir=" + smc_ws_dir)
+        else:
+            self.execute_command("$COCLI_PATH/cocli corim extract -f " + self.filename + " --output-dir=" + smc_ws_dir)
+
+        for filename in os.listdir(smc_ws_dir):
             if filename.endswith(".cbor"):
                 json_filename = filename.split(".")[0] + ".json"
-                self.execute_command("cocli comid display --file " + filename + " > " + json_filename)
-                json_filenames.append(json_filename)
-                self.execute_command("sed -i '1d' " + json_filename)
+                filepath = os.path.join(smc_ws_dir, filename)
+                json_filepath = os.path.join(smc_ws_dir, json_filename)
+                self.execute_command("$COCLI_PATH/cocli comid display --file " + filepath + " > " + json_filepath)
+                json_filenames.append(json_filepath)
+                self.execute_command("sed -i '1d' " + json_filepath)
 
-        self.execute_command("rm -f " + self.filename + "_untagged")
-        for filename in os.listdir("."):
+        if self.filetype == CONFIG_TYPE_CORIM:
+            self.execute_command("rm -f " + self.filename + "_untagged")
+
+        for filename in os.listdir(smc_ws_dir):
             if filename.endswith(".cbor"):
-                self.execute_command("rm -f " + filename)
+                filepath = os.path.join(smc_ws_dir, filename)
+                self.execute_command("rm -f " + filepath)
         return json_filenames
 
     def parse_json_file(self, json_filename):
@@ -310,7 +331,10 @@ class Corim_Data:
             if CONFIG_TAG_ENTITIES in data:
                 d = data[CONFIG_TAG_ENTITIES][0]
                 self.name = d[CONFIG_TAG_NAME]
-                self.regid = d[CONFIG_TAG_REGID]
+                if (CONFIG_TAG_REGID in d):
+                    self.regid = d[CONFIG_TAG_REGID]
+                else:
+                    self.regid = 0
                 self.roles = d[CONFIG_TAG_ROLES]
 
             d = data[CONFIG_TAG_TRIPLES][CONFIG_TAG_REFERNCE_VAUES][0]
@@ -319,23 +343,37 @@ class Corim_Data:
             self.vendor = tag_environment[CONFIG_TAG_CLASS][CONFIG_TAG_VENDOR]
             if CONFIG_TAG_MODEL in tag_environment[CONFIG_TAG_CLASS]:
                 self.model = tag_environment[CONFIG_TAG_CLASS][CONFIG_TAG_MODEL]
+                self.model = self.model.upper()
+                if smc_component_name in self.model:
+                    self.model = smc_component_name
+                elif ' ' in self.model:
+                    self.model = self.model.split(' ', 1)[0]
 
             tag_measurements = d[CONFIG_TAG_MEASUREMENTS]
             for d in tag_measurements:
                 if CONFIG_TAG_RAW_VALUE in d[CONFIG_TAG_VALUE]:
-                    value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE])
+                    if CONFIG_TAG_VALUE in d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE]:
+                        value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE][CONFIG_TAG_VALUE])
+                    else:
+                        value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE])
                     if CONFIG_TAG_RAW_VALUE_MASK in d[CONFIG_TAG_VALUE]:
                         mask = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_RAW_VALUE_MASK]).hex()
                     else:
                         mask = format((1 << (len(value) * 8)) - 1, 'x')
                     measurement = Corim_Measurement(d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE], Measurement_Type.CONFIG_TYPE_UINT,
                         CONFIG_TAG_RAW_VALUE, value.hex(), mask)
-                    #update self.model
-                    if (d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE] == 2):
-                        encoded = measurement.value.replace('00', '')
-                        self.model = bytearray.fromhex(encoded).decode()
+                    if smc_component_name not in self.model:
+                      #update self.model
+                        if (d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE] == 2):
+                            encoded = measurement.value.replace('00', '')
+                            if (is_not_blank(bytearray.fromhex(encoded).decode())):
+                                self.model = bytearray.fromhex(encoded).decode()
+                            print ("self.model =", self.model)
                 else:
-                    value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_DIGESTS][0].split(':')[1]).hex()
+                    if ':' in d[CONFIG_TAG_VALUE][CONFIG_TAG_DIGESTS][0]:
+                        value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_DIGESTS][0].split(':')[1]).hex()
+                    else:
+                        value = base64.b64decode(d[CONFIG_TAG_VALUE][CONFIG_TAG_DIGESTS][0].split(';')[1]).hex()
                     measurement = Corim_Measurement(d[CONFIG_TAG_KEY][CONFIG_TAG_VALUE], Measurement_Type.CONFIG_TYPE_DIGEST,
                         CONFIG_TAG_DIGESTS, value, None)
                 self.measurements.append(measurement)
@@ -403,7 +441,7 @@ class SPDM_Measurement_Data():
         if self.filetype == CONFIG_TYPE_RIM:
             self.data = Rim_Data(input_filename, output_filename, self.config)
         elif self.filetype == CONFIG_TYPE_CORIM:
-            self.data = Corim_Data(input_filename, output_filename, self.config)
+            self.data = Corim_Data(filetype, input_filename, output_filename, self.config)
 
     def execute_command(self, cmd_str):
         """
@@ -474,13 +512,18 @@ class SPDM_Measurement_Data():
         :param: output_filename: Output Filename
         """
         root = et.Element(CONFIG_STR_CFM_COMPONENT)
-        root.set(CONFIG_STR_TYPE, data.model)
+        if is_not_blank(data.model):
+            root.set(CONFIG_STR_TYPE, data.model)
+        else:
+            root.set(CONFIG_STR_TYPE, smc_component_name)
+
         root.set(CONFIG_STR_ATTESTATION_PROTOCOL, CONFIG_VALUE_ATTESTATION_PROTOCOL_SPDM)
         root.set(CONFIG_STR_SLOT_NUM, data.slot_num)
         root.set(CONFIG_STR_TRANSCRIPT_HASH_TYPE, data.base_hash_alg)
         root.set(CONFIG_STR_MEASUREMENT_HASH_TYPE, data.meas_hash_alg)
 
-        self.add_cfm_root_ca_digest(root, data)
+        if (smc_rootca_digest != ""):
+            self.add_cfm_root_ca_digest(root, data)
 
         pmr_id = 0
         measurement_id = 0
@@ -519,31 +562,40 @@ class SPDM_Measurement_Data():
         if self.filetype == CONFIG_TYPE_RIM:
             self.data.parse_json_file()
             self.data.display()
-            self.create_cfm_file(self.data, self.output_filename)
+            if is_not_blank(self.data.model):
+                self.create_cfm_file(self.data, self.output_filename.split(".")[0] + "_" + self.data.model + ".xml")
+            else:
+                self.create_cfm_file(self.data, self.output_filename.split(".")[0] + "_" + smc_component_name + ".xml")
         elif self.filetype == CONFIG_TYPE_CORIM:
             json_filenames = self.data.create_json_files()
             for json_filename in json_filenames:
                 self.data.parse_json_file(json_filename)
                 self.data.display(json_filename)
-                if self.data.model == "":
-                    print ("Warning: Invalid model value. Proceed to create CFM.")
-                    self.create_cfm_file(self.data, self.output_filename)
-                else:
+                if is_not_blank(self.data.model):
                     self.create_cfm_file(self.data, self.output_filename.split(".")[0] + "_" + self.data.model + ".xml")
-            for filename in os.listdir("."):
-                if filename.endswith(".json"):
-                    self.execute_command("rm -f " + filename)
+                else:
+                    self.create_cfm_file(self.data, self.output_filename.split(".")[0] + "_" + smc_component_name + ".xml")
 
-def cmd_validate_input_args(input_filename, output_filename, filetype):
+            for filename in os.listdir(smc_ws_dir):
+                if filename.endswith(".json"):
+                    filepath = os.path.join(smc_ws_dir, filename)
+                    self.execute_command("rm -f " + filepath)
+            self.execute_command("rm -rf " + smc_ws_dir)
+
+def cmd_validate_input_args(component_name, input_filename, output_filename, filetype):
     """
     Validates the input arguments.
-
+   
+    :param component_name: Component name
     :param input_filename: Input filename
     :param output_filename: Output filename
     :param filetype: File Type
 
     :return 0 on success and -1 on failure
     """
+    
+    if component_name == None:
+        return -1
     if input_filename == None:
         return -1
     if output_filename == None:
@@ -552,7 +604,7 @@ def cmd_validate_input_args(input_filename, output_filename, filetype):
         return -1
     return 0
 
-def cmd_validate_optional_input_args(slot_num, rootca_digest, base_hash_alg, meas_hash_alg):
+def cmd_validate_optional_input_args(slot_num, rootca_digest, base_hash_alg, meas_hash_alg, signed_flag, workspace_dir):
     """
     Validates the optional input arguments.
 
@@ -560,9 +612,12 @@ def cmd_validate_optional_input_args(slot_num, rootca_digest, base_hash_alg, mea
     :param rootca_digest: RootCA Digest
     :param base_hash_alg: Base Hash Algorithm
     :param meas_hash_alg: Meas Hash Algorithm
+    :param signed_flag: Flag to indicate input file is signed_flag or not
+    :param workspace_dir: Folder to store intermediate files
 
     :return 0 on success and -1 on failure
     """
+    
     if slot_num == None:
         return -1
     if rootca_digest == None:
@@ -571,32 +626,16 @@ def cmd_validate_optional_input_args(slot_num, rootca_digest, base_hash_alg, mea
         return -1
     if meas_hash_alg == None:
         return -1
+    if workspace_dir == None:
+        return -1
+
+
     return 0
-
-def cmd_usage(cmd_str):
-    """
-    Prints the usage of SPDM Measurement to CFM script
-
-    :param cmd_str: command string to print
-    """
-    print (cmd_str)
-
-    print ("Usage:")
-    print("tools/spdm_measurements_to_cfm.py <input_filename> <output_filename> <filetype>")
-    print("Optional Params:")
-    print("-s <slot_num> -r <rootca_digest> -b <base_hash_alg> -m <meas_hash_algo>")
-    print("Debug Param(Provides debug logs):")
-    print("-d")
-    print("E.g.")
-    print("tools/spdm_measurements_to_cfm.py spdm_measurement.rim cfm_component.xml -f RIM")
-    print("tools/spdm_measurements_to_cfm.py spdm_measurement.corim cfm_component.xml -f CORIM")
-    print("tools/spdm_measurements_to_cfm.py spdm_measurement.rim cfm_component.xml -f RIM -s 0 -r <sha384 hash> -a SHA384")
-    print("tools/spdm_measurements_to_cfm.py spdm_measurement.corim cfm_component.xml -f CORIM -s 0 -r <sha384 hash> -a SHA384")
-
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description = 'SPDM Measurements to CFM')
+    parser.add_argument ('component_name', help = 'Component Name')
     parser.add_argument ('input_filename', help = 'Input SPDM Measurement File')
     parser.add_argument ('output_filename', help = 'Output CFM File')
     parser.add_argument ('filetype', help = 'File Type(RIM/CORIM)')
@@ -606,10 +645,13 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--rootca_digest', help = 'RootCA Ceritificate Digest')
     parser.add_argument('-b', '--base_hash_alg', help = 'Base Hash Algorithm Supported')
     parser.add_argument('-m', '--meas_hash_alg', help = 'Meas Hash Algorithm Supported')
+    parser.add_argument ('-g', '--signed_flag', help = 'Flag to indicate input file is signed or not')
+    parser.add_argument ('-i', '--workspace_dir', help = 'Folder to store intermediate files')
     parser.add_argument('-d', '--debug', action="store_true", help = 'Enable debuggging')
 
     args = parser.parse_args()
 
+    smc_component_name = args.component_name
     smc_input_filename = args.input_filename
     smc_output_filename = args.output_filename
     smc_filetype = args.filetype
@@ -623,23 +665,25 @@ if __name__ == "__main__":
         smc_base_hash_alg = args.base_hash_alg
     if args.meas_hash_alg:
         smc_meas_hash_alg = args.meas_hash_alg
+    if args.signed_flag:
+        smc_signed_flag = args.signed_flag
+    if args.workspace_dir:
+        smc_ws_dir = os.path.join(smc_ws_dir, args.workspace_dir)
     if args.debug:
         smc_debug = True
 
-    if (cmd_validate_input_args(smc_input_filename, smc_output_filename, smc_filetype) != 0):
-        cmd_usage("Error: Invalid Args")
+    if (cmd_validate_input_args(smc_component_name, smc_input_filename, smc_output_filename, smc_filetype) != 0):
         exit()
 
-    print("Input Args: input_filename=", smc_input_filename, "output_filename=", smc_output_filename,
+    print("Input Args: component_name=", smc_component_name, "input_filename=", smc_input_filename, "output_filename=", smc_output_filename,
             "smc_filetype=", smc_filetype)
 
     if (cmd_validate_optional_input_args(smc_slot_num, smc_rootca_digest, smc_base_hash_alg,
-            smc_meas_hash_alg) != 0):
-        cmd_usage("Error: Invalid Optional Args")
+            smc_meas_hash_alg, smc_signed_flag, smc_ws_dir) != 0):
         exit()
 
     print("Optional Input Args: smc_slot_num=", smc_slot_num, "smc_rootca_digest=", smc_rootca_digest,
-            "smc_base_hash_alg=", smc_base_hash_alg, "smc_meas_hash_alg=", smc_meas_hash_alg)
+            "smc_base_hash_alg=", smc_base_hash_alg, "smc_meas_hash_alg=", smc_meas_hash_alg, "smc_signed_flag=", smc_signed_flag, "smc_ws_dir=", smc_ws_dir)
 
     config = SPDM_Measurement_Config(smc_slot_num, smc_rootca_digest, smc_base_hash_alg,
             smc_meas_hash_alg)
