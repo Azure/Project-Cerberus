@@ -49,9 +49,11 @@ enum {
 	CMD_HANDLER_SPDM_UNSUPPORTED_MSG = CMD_HANDLER_SPDM_ERROR (0x06),		/**< Message type not supported. */
 	CMD_HANDLER_SPDM_UNSUPPORTED_OPERATION = CMD_HANDLER_SPDM_ERROR (0x07),	/**< The requested operation is not supported. */
 	CMD_HANDLER_SPDM_NOT_INTEROPERABLE = CMD_HANDLER_SPDM_ERROR (0x08),		/**< Received message using different specification major version */
-	CMD_HANDLER_SPDM_UNSUPPORTED_MEAS_SPEC = CMD_HANDLER_SPDM_ERROR (0x09), /**< Requested measurement specification unsupported */
-	CMD_HANDLER_SPDM_UNSUPPORTED_ASYM_ALGO = CMD_HANDLER_SPDM_ERROR (0x0a), /**< Requested asymmetric cryptographic algorithm unsupported  */
-	CMD_HANDLER_SPDM_UNSUPPORTED_HASH_ALGO = CMD_HANDLER_SPDM_ERROR (0x0b), /**< Requested hashing algorithm unsupported  */
+	CMD_HANDLER_SPDM_UNSUPPORTED_MEAS_SPEC = CMD_HANDLER_SPDM_ERROR (0x09),	/**< Requested measurement specification unsupported */
+	CMD_HANDLER_SPDM_UNSUPPORTED_ASYM_ALGO = CMD_HANDLER_SPDM_ERROR (0x0a),	/**< Requested asymmetric cryptographic algorithm unsupported  */
+	CMD_HANDLER_SPDM_UNSUPPORTED_HASH_ALGO = CMD_HANDLER_SPDM_ERROR (0x0b),	/**< Requested hashing algorithm unsupported  */
+	CMD_HANDLER_SPDM_UNSUPPORTED_SLOT_ID = CMD_HANDLER_SPDM_ERROR (0x0c),	/**< Requested slot id unsupported  */
+	CMD_HANDLER_SPDM_BAD_RESPONSE = CMD_HANDLER_SPDM_ERROR (0x0d),			/**< Received bad response to request */
 };
 
 

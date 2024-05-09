@@ -22,7 +22,7 @@
 #define SPDM_NONCE_LEN								32
 
 #define SPDM_MAJOR_VERSION							1
-#define SPDM_MIN_MINOR_VERSION						1
+#define SPDM_MIN_MINOR_VERSION						0
 #define SPDM_MAX_MINOR_VERSION						2
 
 #define SPDM_MAX_RESPONSE_TIMEOUT_MS				100
@@ -38,14 +38,9 @@
 /**
  * Supported SPDM versions.
  */
+#define SPDM_VERSION_1_0		SPDM_MAKE_VERSION (1, 0)
 #define SPDM_VERSION_1_1		SPDM_MAKE_VERSION (1, 1)
 #define SPDM_VERSION_1_2		SPDM_MAKE_VERSION (1, 2)
-
-/**
- * GET_VERSION/VERSION SPDM message version.
- */
-#define SPDM_VERSION_1_0		SPDM_MAKE_VERSION (1, 0)
-
 
 /**
  * Get SPDM major version.

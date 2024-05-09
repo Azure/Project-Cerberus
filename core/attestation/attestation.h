@@ -37,6 +37,14 @@ enum {
  */
 enum attestation_protocol {
 	ATTESTATION_PROTOCOL_CERBERUS = 0,							/**< Cerberus challenge protocol */
+	ATTESTATION_PROTOCOL_DMTF_SPDM,							    /**< DMTF SPDM protocol */
+};
+
+/**
+ * Attestation protocols spdm minor version numbers
+ */
+enum attestation_spdm_minor_version {
+	ATTESTATION_PROTOCOL_DMTF_SPDM_1_0 = 0,						/**< DMTF SPDM protocol 1.0 */
 	ATTESTATION_PROTOCOL_DMTF_SPDM_1_1,							/**< DMTF SPDM protocol 1.1 */
 	ATTESTATION_PROTOCOL_DMTF_SPDM_1_2,							/**< DMTF SPDM protocol 1.2 */
 };

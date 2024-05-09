@@ -39,6 +39,7 @@ struct attestation_requester_transaction_state {
 	size_t msg_buffer_len;										/**< Length of data in message buffer */
 	enum attestation_requester_request_state request_status;	/**< Response processing status. */
 	enum attestation_protocol protocol;							/**< Attestation protocol utilized with this device. */
+	enum attestation_spdm_minor_version spdm_minor_version;		/**< Attestation spdm minor version utilized with this device. */
 	uint32_t sleep_duration_ms;									/**< Duration in milliseconds to sleep while waiting for response. */
 	uint16_t device_version_set;								/**< Version set selected for device. */
 	uint8_t *cert_buffer;										/**< A temporary dynamically allocated buffer for aggregating and verifying certificate chain. */

@@ -1799,44 +1799,55 @@ int spdm_generate_get_capabilities_request (uint8_t *buf, size_t buf_len,
 		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
 	}
 
-	if (spdm_minor_version < 2) {
+	if (spdm_minor_version < 1) {
+		if (buf_len < sizeof (struct spdm_get_capabilities_1_0)) {
+			return CMD_HANDLER_SPDM_BUF_TOO_SMALL;
+		}
+		memset (rq, 0, sizeof (struct spdm_get_capabilities_1_0));
+	}
+	else if (spdm_minor_version < 2) {
 		if (buf_len < sizeof (struct spdm_get_capabilities_1_1)) {
 			return CMD_HANDLER_SPDM_BUF_TOO_SMALL;
 		}
+		memset (rq, 0, sizeof (struct spdm_get_capabilities_1_1));
 	}
 	else {
 		if (buf_len < sizeof (struct spdm_get_capabilities)) {
 			return CMD_HANDLER_SPDM_BUF_TOO_SMALL;
 		}
+		memset (rq, 0, sizeof (struct spdm_get_capabilities));
 	}
-
-	memset (rq, 0, sizeof (struct spdm_get_capabilities));
 
 	spdm_populate_header (&rq->base_capabilities.header, SPDM_REQUEST_GET_CAPABILITIES,
 		spdm_minor_version);
 
-	rq->base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
+	if (spdm_minor_version > 0) {
+		rq->base_capabilities.ct_exponent = SPDM_MAX_CT_EXPONENT;
 
-	rq->base_capabilities.flags.cache_cap = SPDM_REQUESTER_CACHE_CAP;
-	rq->base_capabilities.flags.cert_cap = SPDM_REQUESTER_CERT_CAP;
-	rq->base_capabilities.flags.chal_cap = SPDM_REQUESTER_CHAL_CAP;
-	rq->base_capabilities.flags.meas_cap = SPDM_REQUESTER_MEAS_CAP;
-	rq->base_capabilities.flags.meas_fresh_cap = SPDM_REQUESTER_MEAS_FRESH_CAP;
-	rq->base_capabilities.flags.encrypt_cap = SPDM_REQUESTER_ENCRYPT_CAP;
-	rq->base_capabilities.flags.mac_cap = SPDM_REQUESTER_MAC_CAP;
-	rq->base_capabilities.flags.mut_auth_cap = SPDM_REQUESTER_MUT_AUTH_CAP;
-	rq->base_capabilities.flags.key_ex_cap = SPDM_REQUESTER_KEY_EX_CAP;
-	rq->base_capabilities.flags.psk_cap = SPDM_REQUESTER_PSK_CAP;
-	rq->base_capabilities.flags.encap_cap = SPDM_REQUESTER_ENCAP_CAP;
-	rq->base_capabilities.flags.hbeat_cap = SPDM_REQUESTER_HBEAT_CAP;
-	rq->base_capabilities.flags.key_upd_cap = SPDM_REQUESTER_KEY_UPD_CAP;
-	rq->base_capabilities.flags.handshake_in_the_clear_cap =
-		SPDM_REQUESTER_HANDSHAKE_IN_THE_CLEAR_CAP;
-	rq->base_capabilities.flags.pub_key_id_cap = SPDM_REQUESTER_PUB_KEY_ID_CAP;
-	rq->base_capabilities.flags.chunk_cap = SPDM_REQUESTER_CHUNK_CAP;
-	rq->base_capabilities.flags.alias_cert_cap = SPDM_REQUESTER_ALIAS_CERT_CAP;
-
-	if (spdm_minor_version < 2) {
+		rq->base_capabilities.flags.cache_cap = SPDM_REQUESTER_CACHE_CAP;
+		rq->base_capabilities.flags.cert_cap = SPDM_REQUESTER_CERT_CAP;
+		rq->base_capabilities.flags.chal_cap = SPDM_REQUESTER_CHAL_CAP;
+		rq->base_capabilities.flags.meas_cap = SPDM_REQUESTER_MEAS_CAP;
+		rq->base_capabilities.flags.meas_fresh_cap = SPDM_REQUESTER_MEAS_FRESH_CAP;
+		rq->base_capabilities.flags.encrypt_cap = SPDM_REQUESTER_ENCRYPT_CAP;
+		rq->base_capabilities.flags.mac_cap = SPDM_REQUESTER_MAC_CAP;
+		rq->base_capabilities.flags.mut_auth_cap = SPDM_REQUESTER_MUT_AUTH_CAP;
+		rq->base_capabilities.flags.key_ex_cap = SPDM_REQUESTER_KEY_EX_CAP;
+		rq->base_capabilities.flags.psk_cap = SPDM_REQUESTER_PSK_CAP;
+		rq->base_capabilities.flags.encap_cap = SPDM_REQUESTER_ENCAP_CAP;
+		rq->base_capabilities.flags.hbeat_cap = SPDM_REQUESTER_HBEAT_CAP;
+		rq->base_capabilities.flags.key_upd_cap = SPDM_REQUESTER_KEY_UPD_CAP;
+		rq->base_capabilities.flags.handshake_in_the_clear_cap =
+			SPDM_REQUESTER_HANDSHAKE_IN_THE_CLEAR_CAP;
+		rq->base_capabilities.flags.pub_key_id_cap = SPDM_REQUESTER_PUB_KEY_ID_CAP;
+		rq->base_capabilities.flags.chunk_cap = SPDM_REQUESTER_CHUNK_CAP;
+		rq->base_capabilities.flags.alias_cert_cap = SPDM_REQUESTER_ALIAS_CERT_CAP;
+	}
+	
+	if (spdm_minor_version < 1) {
+		return sizeof (struct spdm_get_capabilities_1_0);
+	}
+	else if (spdm_minor_version < 2) {
 		return sizeof (struct spdm_get_capabilities_1_1);
 	}
 	else {
@@ -2326,6 +2337,11 @@ int spdm_process_negotiate_algorithms_response (struct cmd_interface_msg *respon
 	}
 
 	resp = (struct spdm_negotiate_algorithms_response*) response->payload;
+	if (resp->header.spdm_minor_version < 1) {
+		if (resp->num_alg_structure_tables != 0) {
+			return CMD_HANDLER_SPDM_BAD_RESPONSE;
+		}
+	}
 
 	if ((response->payload_length < sizeof (struct spdm_negotiate_algorithms_response)) ||
 		(response->payload_length != resp->length) ||
@@ -3183,11 +3199,19 @@ int spdm_generate_get_measurements_request (uint8_t *buf, size_t buf_len, uint8_
 {
 	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
 	size_t rq_length = sizeof (struct spdm_get_measurements_request) +
-		((1 + SPDM_NONCE_LEN) * sig_required);
+		((SPDM_NONCE_LEN) * sig_required);
 	uint8_t *slot_id;
 
 	if ((buf == NULL) || ((nonce == NULL) && sig_required)) {
 		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	}
+
+	if ((spdm_minor_version == 0) && (slot_num != 0)) {
+		return CMD_HANDLER_SPDM_UNSUPPORTED_SLOT_ID;
+	}
+	
+	if (spdm_minor_version > 0) {
+		rq_length += sig_required;
 	}
 
 	if (buf_len < rq_length) {
@@ -3206,8 +3230,10 @@ int spdm_generate_get_measurements_request (uint8_t *buf, size_t buf_len, uint8_
 	}
 
 	if (sig_required) {
-		slot_id = spdm_get_measurements_rq_slot_id_ptr (rq);
-		*slot_id = slot_num;
+		if (spdm_minor_version > 0) {
+			slot_id = spdm_get_measurements_rq_slot_id_ptr (rq);
+			*slot_id = slot_num;
+		}
 
 		memcpy (spdm_get_measurements_rq_nonce (rq), nonce, SPDM_NONCE_LEN);
 	}

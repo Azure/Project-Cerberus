@@ -174,6 +174,15 @@ enum spdm_pre_shared_key_capability_options {
 };
 
 /**
+ * SPDM get capabilities request format for SPDM 1.0
+ */
+struct spdm_get_capabilities_1_0 {
+	struct spdm_protocol_header header;					/**< Message header */
+	uint8_t reserved;									/**< Reserved */
+	uint8_t reserved2;									/**< Reserved */
+};
+
+/**
  * SPDM get capabilities request/response format for SPDM 1.1
  */
 struct spdm_get_capabilities_1_1 {
@@ -852,6 +861,14 @@ struct spdm_get_measurements_request {
  */
 #define	spdm_get_measurements_rq_length(rq)		(sizeof (struct spdm_get_measurements_request) + \
 	((rq)->sig_required * (sizeof (uint8_t) + SPDM_NONCE_LEN)))
+
+/**
+ * Get the total length of a SPDM 1.0 get measurements request message
+ *
+ * @param rq Buffer containing struct spdm_get_measurements_request
+ */
+#define	spdm_get_measurements_rq_length_1_0(rq)	(sizeof (struct spdm_get_measurements_request) + \
+	((rq)->sig_required * SPDM_NONCE_LEN))
 
 /**
  * Get the buffer containing the nonce in SPDM get measurements request.  This is only valid when

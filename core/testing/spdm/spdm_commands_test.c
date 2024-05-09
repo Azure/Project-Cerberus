@@ -94,7 +94,7 @@ struct spdm_command_testing {
 	struct spdm_secure_session_manager_state session_manager_state;		/**< The session manager state. */
 	struct hash_engine_mock hash_engine_mock[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];	/**< Mock hash engine for the responder. */
 	struct hash_engine *hash_engine[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];				/**< Hash engines. */
-	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION];	/**< Version number entries. */
+	struct spdm_version_num_entry version_num[2];					/**< Version number entries. */
 	struct spdm_version_num_entry secured_message_version_num[SECURED_MESSAGE_VERSION_COUNT];	/**< Secured version number entries. */
 	struct spdm_device_capability local_capabilities;				/**< Local capabilities. */
 	struct spdm_local_device_algorithms local_algorithms;			/**< Local algorithms. */
@@ -117,7 +117,7 @@ static void spdm_command_testing_init_dependencies (CuTest *test,
 	struct spdm_command_testing *testing)
 {
 	int status;
-	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION] =
+	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION - SPDM_MIN_MINOR_VERSION + 1] =
 		{ {0, 0, 1, 1}, {0, 0, 2, 1} };
 	struct spdm_version_number secured_message_version_num[SECURED_MESSAGE_VERSION_COUNT] = 
 		{ {0, 0, 0, 1}, {0, 0, 1, 1} };
@@ -498,6 +498,26 @@ static void spdm_test_get_capabilities_1_1_format (CuTest *test)
 	CuAssertIntEquals (test, 1, msg->flags.pub_key_id_cap);
 	CuAssertIntEquals (test, 0, msg->flags.reserved);
 	CuAssertIntEquals (test, 0, msg->flags.reserved2);
+}
+
+static void spdm_test_get_capabilities_1_0_format (CuTest *test)
+{
+	uint8_t raw_buffer_msg[] = {
+		0x10,0xe1,
+		0x01,0x02
+	};
+	struct spdm_get_capabilities_1_0 *msg = (struct spdm_get_capabilities_1_0*) raw_buffer_msg;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer_msg), sizeof (struct spdm_get_capabilities_1_0));
+
+	CuAssertIntEquals (test, 0x00, msg->header.spdm_minor_version);
+	CuAssertIntEquals (test, 0x01, msg->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_REQUEST_GET_CAPABILITIES,	msg->header.req_rsp_code);
+
+	CuAssertIntEquals (test, 1, msg->reserved);
+	CuAssertIntEquals (test, 2, msg->reserved2);
 }
 
 static void spdm_test_negotiate_algorithms_request_format (CuTest *test)
@@ -3612,6 +3632,25 @@ static void spdm_test_generate_get_capabilities_request_1_1 (CuTest *test)
 	CuAssertIntEquals (test, 0, rq->flags.reserved2);
 }
 
+static void spdm_test_generate_get_capabilities_request_1_0 (CuTest *test)
+{
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
+	struct spdm_get_capabilities_1_0 *rq = (struct spdm_get_capabilities_1_0*) buf;
+	int status;
+
+	TEST_START;
+
+	memset (buf, 0x55, sizeof (buf));
+
+	status = spdm_generate_get_capabilities_request (buf, sizeof (buf), 0);
+	CuAssertIntEquals (test, sizeof (struct spdm_get_capabilities_1_0), status);
+	CuAssertIntEquals (test, 0, rq->header.spdm_minor_version);
+	CuAssertIntEquals (test, 1, rq->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_REQUEST_GET_CAPABILITIES,	rq->header.req_rsp_code);
+	CuAssertIntEquals (test, 0, rq->reserved);
+	CuAssertIntEquals (test, 0, rq->reserved2);
+}
+
 static void spdm_test_generate_get_capabilities_request_null (CuTest *test)
 {
 	uint8_t buf[sizeof (struct spdm_get_capabilities)];
@@ -3642,6 +3681,17 @@ static void spdm_test_generate_get_capabilities_request_1_1_buf_too_small (CuTes
 	TEST_START;
 
 	status = spdm_generate_get_capabilities_request (buf, sizeof (buf), 1);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BUF_TOO_SMALL, status);
+}
+
+static void spdm_test_generate_get_capabilities_request_1_0_buf_too_small (CuTest *test)
+{
+	uint8_t buf[sizeof (struct spdm_get_capabilities_1_0) - 1];
+	int status;
+
+	TEST_START;
+
+	status = spdm_generate_get_capabilities_request (buf, sizeof (buf), 0);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BUF_TOO_SMALL, status);
 }
 
@@ -3756,6 +3806,48 @@ static void spdm_test_process_get_capabilities_1_1_response (CuTest *test)
 	CuAssertPtrEquals (test, resp, msg.payload);
 }
 
+static void spdm_test_process_get_capabilities_1_0_response (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_get_capabilities_1_1 *resp = (struct spdm_get_capabilities_1_1*) &buf[16];
+	struct cmd_interface_msg msg;
+	int status;
+
+	TEST_START;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) resp;
+	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1);
+	msg.length = msg.payload_length + 16;
+
+	resp->header.spdm_minor_version = 0;
+	resp->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	resp->header.req_rsp_code = SPDM_RESPONSE_GET_CAPABILITIES;
+
+	resp->reserved = 0;
+	resp->reserved2 = 0;
+	resp->reserved3 = 0;
+	resp->ct_exponent = 1;
+	resp->reserved4 = 0;
+
+	resp->flags.cache_cap = 1;
+	resp->flags.cert_cap = 1;
+	resp->flags.chal_cap = 1;
+	resp->flags.meas_cap = 1;
+	resp->flags.meas_fresh_cap = 1;
+	resp->flags.encrypt_cap = 1;
+	resp->flags.mac_cap = 1;
+
+	status = spdm_process_get_capabilities_response (&msg);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 16 + sizeof (struct spdm_get_capabilities_1_1), msg.length);
+	CuAssertIntEquals (test, sizeof (struct spdm_get_capabilities_1_1), msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, resp, msg.payload);
+}
+
 static void spdm_test_process_get_capabilities_response_null (CuTest *test)
 {
 	int status;
@@ -3818,6 +3910,41 @@ static void spdm_test_process_get_capabilities_response_1_1_bad_length (CuTest *
 	msg.length = msg.payload_length + 8;
 
 	resp->header.spdm_minor_version = 1;
+	resp->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	resp->header.req_rsp_code = SPDM_RESPONSE_GET_CAPABILITIES;
+
+	status = spdm_process_get_capabilities_response (&msg);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);
+
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1) + 1;
+	msg.length = msg.payload_length + 8;
+
+	status = spdm_process_get_capabilities_response (&msg);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);
+
+	CuAssertIntEquals (test, 8 + sizeof (struct spdm_get_capabilities_1_1) + 1, msg.length);
+	CuAssertIntEquals (test, sizeof (struct spdm_get_capabilities_1_1) + 1, msg.payload_length);
+	CuAssertPtrEquals (test, buf, msg.data);
+	CuAssertPtrEquals (test, resp, msg.payload);
+}
+
+static void spdm_test_process_get_capabilities_response_1_0_bad_length (CuTest *test)
+{
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
+	struct spdm_get_capabilities_1_1 *resp = (struct spdm_get_capabilities_1_1*) &buf[8];
+	struct cmd_interface_msg msg;
+	int status;
+
+	TEST_START;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) resp;
+	msg.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	msg.payload_length = sizeof (struct spdm_get_capabilities_1_1) - 1;
+	msg.length = msg.payload_length + 8;
+
+	resp->header.spdm_minor_version = 0;
 	resp->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	resp->header.req_rsp_code = SPDM_RESPONSE_GET_CAPABILITIES;
 
@@ -8029,6 +8156,28 @@ static void spdm_test_process_negotiate_algorithms_response (CuTest *test)
 		msg.payload_length);
 	CuAssertPtrEquals (test, buf, msg.data);
 	CuAssertPtrEquals (test, resp, msg.payload);
+}
+
+static void spdm_test_process_negotiate_algorithms_response_1_0_non_zero_alg_tables (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_negotiate_algorithms_response *resp =
+		(struct spdm_negotiate_algorithms_response*) &buf[8];
+	struct cmd_interface_msg msg;
+	int status;
+
+	TEST_START;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) resp;
+
+	resp->header.spdm_minor_version = 0;
+
+	resp->num_alg_structure_tables = 1;
+
+	status = spdm_process_negotiate_algorithms_response (&msg);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_RESPONSE, status);
 }
 
 static void spdm_test_process_negotiate_algorithms_response_null (CuTest *test)
@@ -22158,6 +22307,38 @@ static void spdm_test_generate_get_measurements_request (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void spdm_test_generate_get_measurements_request_1_0 (CuTest *test)
+{
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
+	struct spdm_get_measurements_request *rq = (struct spdm_get_measurements_request*) buf;
+	uint8_t nonce[SPDM_NONCE_LEN] = {0};
+	int status;
+
+	TEST_START;
+
+	memset (buf, 0x55, sizeof (buf));
+
+	nonce[0] = 0xaa;
+	nonce[10] = 0xbb;
+	nonce[20] = 0xcc;
+	nonce[30] = 0xdd;
+	nonce[31] = 0xee;
+
+	status = spdm_generate_get_measurements_request (buf, sizeof (buf), 0, 4, 1, 0, nonce, 0);
+	CuAssertIntEquals (test, sizeof (struct spdm_get_measurements_request) + SPDM_NONCE_LEN,
+		status);
+	CuAssertIntEquals (test, 0, rq->header.spdm_minor_version);
+	CuAssertIntEquals (test, 1, rq->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_REQUEST_GET_MEASUREMENTS, rq->header.req_rsp_code);
+	CuAssertIntEquals (test, 1, rq->sig_required);
+	CuAssertIntEquals (test, 0, rq->raw_bit_stream_requested);
+	CuAssertIntEquals (test, 0, rq->reserved);
+	CuAssertIntEquals (test, 4, rq->measurement_operation);
+
+	status = testing_validate_array (nonce, spdm_get_measurements_rq_nonce (rq), sizeof (nonce));
+	CuAssertIntEquals (test, 0, status);
+}
+
 static void spdm_test_generate_get_measurements_request_no_sig_required (CuTest *test)
 {
 	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG] = {0};
@@ -22213,6 +22394,18 @@ static void spdm_test_generate_get_measurements_request_raw_bitstream_requested 
 
 	status = testing_validate_array (nonce, spdm_get_measurements_rq_nonce (rq), sizeof (nonce));
 	CuAssertIntEquals (test, 0, status);
+}
+
+static void spdm_test_generate_get_measurements_request_SPDM_1_0_invalid_slotid (CuTest *test)
+{
+	uint8_t buf[sizeof (struct spdm_get_measurements_request)];
+	uint8_t nonce[SPDM_NONCE_LEN];
+	int status;
+
+	TEST_START;
+
+	status = spdm_generate_get_measurements_request (buf, sizeof (buf), 2, 4, 1, 0, nonce, 0);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_UNSUPPORTED_SLOT_ID, status);
 }
 
 static void spdm_test_generate_get_measurements_request_null (CuTest *test)
@@ -22397,6 +22590,7 @@ TEST (spdm_test_get_version_request_format);
 TEST (spdm_test_get_version_response_format);
 TEST (spdm_test_get_capabilities_format);
 TEST (spdm_test_get_capabilities_1_1_format);
+TEST (spdm_test_get_capabilities_1_0_format);
 TEST (spdm_test_negotiate_algorithms_request_format);
 TEST (spdm_test_negotiate_algorithms_response_format);
 TEST (spdm_test_get_digests_request_format);
@@ -22450,14 +22644,18 @@ TEST (spdm_test_get_capabilities_append_request_fail);
 TEST (spdm_test_get_capabilities_append_response_fail);
 TEST (spdm_test_generate_get_capabilities_request);
 TEST (spdm_test_generate_get_capabilities_request_1_1);
+TEST (spdm_test_generate_get_capabilities_request_1_0);
 TEST (spdm_test_generate_get_capabilities_request_null);
 TEST (spdm_test_generate_get_capabilities_request_buf_too_small);
 TEST (spdm_test_generate_get_capabilities_request_1_1_buf_too_small);
+TEST (spdm_test_generate_get_capabilities_request_1_0_buf_too_small);
 TEST (spdm_test_process_get_capabilities_response);
 TEST (spdm_test_process_get_capabilities_1_1_response);
+TEST (spdm_test_process_get_capabilities_1_0_response);
 TEST (spdm_test_process_get_capabilities_response_null);
 TEST (spdm_test_process_get_capabilities_response_bad_length);
 TEST (spdm_test_process_get_capabilities_response_1_1_bad_length);
+TEST (spdm_test_process_get_capabilities_response_1_0_bad_length);
 TEST (spdm_test_negotiate_algorithms);
 TEST (spdm_test_negotiate_algorithms_highest_pri_hash_algo);
 TEST (spdm_test_negotiate_algorithms_lowest_pri_hash_algo);
@@ -22500,6 +22698,7 @@ TEST (spdm_test_generate_negotiate_algorithms_request);
 TEST (spdm_test_generate_negotiate_algorithms_request_null);
 TEST (spdm_test_generate_negotiate_algorithms_request_buf_too_small);
 TEST (spdm_test_process_negotiate_algorithms_response);
+TEST (spdm_test_process_negotiate_algorithms_response_1_0_non_zero_alg_tables);
 TEST (spdm_test_process_negotiate_algorithms_response_null);
 TEST (spdm_test_process_negotiate_algorithms_response_bad_length);
 TEST (spdm_test_get_digests_sha256);
@@ -22664,8 +22863,10 @@ TEST (spdm_test_process_challenge_response);
 TEST (spdm_test_process_challenge_response_null);
 TEST (spdm_test_process_challenge_response_bad_length);
 TEST (spdm_test_generate_get_measurements_request);
+TEST (spdm_test_generate_get_measurements_request_1_0);
 TEST (spdm_test_generate_get_measurements_request_no_sig_required);
 TEST (spdm_test_generate_get_measurements_request_raw_bitstream_requested);
+TEST (spdm_test_generate_get_measurements_request_SPDM_1_0_invalid_slotid);
 TEST (spdm_test_generate_get_measurements_request_null);
 TEST (spdm_test_generate_get_measurements_request_buf_too_small);
 TEST (spdm_test_process_get_measurements_response);

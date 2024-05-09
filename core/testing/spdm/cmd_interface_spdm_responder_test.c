@@ -80,7 +80,7 @@ struct cmd_interface_spdm_responder_testing {
 	struct spdm_secure_session_manager_state session_manager_state;	/**< The session manager state. */
 	struct hash_engine_mock hash_engine_mock[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];	/**< Mock hash engine for the responder. */
 	struct hash_engine *hash_engine[SPDM_RESPONDER_HASH_ENGINE_REQUIRED_COUNT];				/**< Hash engines. */
-	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION];	/**< Version number entries. */
+	struct spdm_version_num_entry version_num[2];					/**< Version number entries. */
 	struct spdm_version_num_entry secure_message_version_num[SECURED_MESSAGE_VERSION_COUNT];	/**< Secured version number entries. */
 	struct spdm_device_capability local_capabilities;				/**< Local capabilities. */
 	struct spdm_local_device_algorithms local_algorithms;			/**< Local algorithms. */
@@ -103,7 +103,7 @@ void cmd_interface_spdm_responder_testing_init_dependencies (CuTest *test,
 	struct cmd_interface_spdm_responder_testing *testing)
 {
 	int status;
-	struct spdm_version_num_entry version_num[SPDM_MAX_MINOR_VERSION] =
+	struct spdm_version_num_entry version_num[2] =
 		{ {0, 0, 1, 1}, {0, 0, 2, 1} };
 	struct spdm_version_number secure_message_version_num[SECURED_MESSAGE_VERSION_COUNT] = 
 		{ {0, 0, 0, 1}, {0, 0, 1, 1} };
@@ -1092,7 +1092,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_version (CuTes
 	struct spdm_get_version_response *expected_rsp =
 		(struct spdm_get_version_response*) expected_buf;
 	struct cmd_interface_msg request;
-	size_t version_count = SPDM_MAX_MINOR_VERSION - SPDM_MIN_MINOR_VERSION + 1;
+	size_t version_count = 2;
 	size_t version_length = version_count * sizeof (struct spdm_version_num_entry);
 	struct spdm_version_num_entry *version_num =
 		spdm_get_version_resp_version_table (expected_rsp);
