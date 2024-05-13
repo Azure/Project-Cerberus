@@ -63,29 +63,45 @@ int cmd_interface_protocol_mctp_msft_vdm_handle_request_result (
 
 	msft_header = (struct cerberus_protocol_msft_header*) &message->payload[sizeof (*header)];
 
-	/* TODO:  Add the MCTP VDP header in this layer. */
+	/* TODO:  Add the MCTP VDM header in this layer. */
 	// cmd_interface_msg_add_protocol_header (message, sizeof (*header));
 
 	/* Only update the header in the case of a successful response. */
 	if (result == 0) {
-		header = (struct mctp_base_protocol_vdm_pci_header*) message->payload;
+		if ((message->payload_length == 0) || (message->length == 0)) {
+			/* If the handler did not generate any response payload, create a Cerberus status
+			 * response indicating that the command completed successfully.  There must always be a
+			 * response payload when exiting this layer.
+			 *
+			 * TODO:  This logic is duplicated from cmd_interface_protocol_cerberus.  It should
+			 * really be removed from here and only exist in that handler. */
+			cerberus_protocol_build_error_response (message, CERBERUS_PROTOCOL_NO_ERROR, 0,
+				message_type, 0);
+		}
+		else {
+			header = (struct mctp_base_protocol_vdm_pci_header*) message->payload;
 
-		header->msg_header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-		header->msg_header.integrity_check = 0;
-		buffer_unaligned_write16 (&header->pci_vendor_id, CERBERUS_PROTOCOL_MSFT_PCI_VID);
+			header->msg_header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+			header->msg_header.integrity_check = 0;
+			buffer_unaligned_write16 (&header->pci_vendor_id, CERBERUS_PROTOCOL_MSFT_PCI_VID);
 
-		msft_header->rq = message_type;
+			msft_header->rq = message_type;
+		}
 	}
 	else {
-		/* TODO:  Generate an error response on failure.  It should not be possible to exit this
-		 * handler without a valid response generated.  This impacts error logging in the MCTP
-		 * interface, though. */
-		// cerberus_protocol_build_error_response (message, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,
-		// 	result, message_type);
+		/* No errors can escape this layer.  There must always be a response available.  If upper
+		 * layers did not generate any kind of response, a Cerberus error message will be
+		 * created and logged.
+		 *
+		 * TODO:  Currently assume the request buffer hasn't been changed by the failure.  Ideally,
+		 * the command code would be set to 0 here, since it's not known at this layer, and this
+		 * level of detail would be left to the cmd_interface_protocol_cerberus handler. */
+		cerberus_protocol_build_error_response (message, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,
+			result, message_type, msft_header->command);
 	}
 
-	/* TODO:  Eventually, this should always return 0. */
-	return result;
+	/* There will always be a response populated when exiting. */
+	return 0;
 }
 
 /**

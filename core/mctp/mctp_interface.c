@@ -516,6 +516,69 @@ static int mctp_interface_handle_response_message (const struct mctp_interface *
 }
 
 /**
+ * Handle a received request message to generate an appropriate response.
+ *
+ * @param mctp The MCTP handler that received the message.
+ * @param rx_packet The last received packet in the message.
+ * @param tx_message Output for a response message to send.  If this is null, there is was no
+ * response generated for the received data.  If this is not null, this will point to the packetized
+ * message data in the MCTP message buffer.
+ *
+ * @return 0 if the request was processed successfully or an error code.
+ */
+static int mctp_interface_handle_request_message (const struct mctp_interface *mctp,
+	struct cmd_packet *rx_packet, struct cmd_message **tx_message)
+{
+	uint8_t response_addr;
+	int status;
+
+	mctp->state->req_buffer.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+
+	status = mctp->req_handler->base.process_request (&mctp->req_handler->base,
+		&mctp->state->req_buffer);
+	if (status != 0) {
+		mctp_interface_reset_message_assembly (mctp);
+
+		return status;
+	}
+
+	/* Check to see if the response requires the message timeout to be adjusted. */
+	if (rx_packet->timeout_valid && mctp->state->req_buffer.crypto_timeout) {
+		platform_increase_timeout (
+			MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS - MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS,
+			&rx_packet->pkt_timeout);
+	}
+
+	/* If a response was generated during request processing, packetize the message for transmission
+	 * back to the requester. */
+	if (mctp->state->req_buffer.length > 0) {
+		response_addr = mctp->state->req_buffer.source_addr;
+
+		status = mctp_interface_generate_packets_from_payload (mctp, mctp->state->req_buffer.data,
+			mctp->state->req_buffer.length, mctp->state->req_buffer.source_eid, response_addr,
+			mctp->state->req_buffer.target_eid, rx_packet->dest_addr, mctp->state->msg_tag,
+			MCTP_BASE_PROTOCOL_TO_RESPONSE, mctp->state->resp_buffer.data,
+			sizeof (mctp->state->msg_buffer), &mctp->state->resp_buffer.pkt_size);
+
+		mctp_interface_reset_message_assembly (mctp);
+		if (ROT_IS_ERROR (status)) {
+			return status;
+		}
+
+		mctp->state->resp_buffer.msg_size = status;
+		mctp->state->resp_buffer.dest_addr = response_addr;
+
+		*tx_message = &mctp->state->resp_buffer;
+	}
+	else {
+		mctp_interface_reset_message_assembly (mctp);
+		*tx_message = NULL;
+	}
+
+	return 0;
+}
+
+/**
  * Initialize a handler for MCTP messages.  MCTP packets will use the SMBus transport binding.
  *
  * @param mctp The MCTP interface to initialize.
@@ -662,72 +725,6 @@ int mctp_interface_set_channel_id (const struct mctp_interface *mctp, int channe
 }
 
 /**
- * Construct an MCTP packet for an error response.
- *
- * @param mctp MCTP interface instance.
- * @param self_eid EID of Cerberus device.
- * @param error_code Identifier for the error.
- * @param error_data Data for the error condition.
- * @param src_eid EID of the original message source.
- * @param dest_eid EID of the original message destination.
- * @param msg_tag Tag of the original message.
- * @param response_addr SMBUS address to respond to.
- * @param source_addr SMBUS address responding from.
- * @param cmd_set Command set to respond on.
- * @param tag_owner Tag owner of incoming message.
- * @param message Output for the buffer containing the error message.
- *
- * @return 0 if the packet was successfully constructed or an error code.
- */
-static int mctp_interface_generate_error_packet (const struct mctp_interface *mctp,
-	int self_eid, uint8_t error_code, uint32_t error_data, uint8_t src_eid, uint8_t dest_eid,
-	uint8_t msg_tag, uint8_t response_addr, uint8_t source_addr, uint8_t cmd_set, uint8_t tag_owner,
-	struct cmd_message **message)
-{
-	int status;
-
-	if (error_code != CERBERUS_PROTOCOL_NO_ERROR) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP,
-			MCTP_LOGGING_CHANNEL, mctp->state->channel_id, 0);
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
-			MCTP_LOGGING_PROTOCOL_ERROR,
-			(error_code << 24 | src_eid << 16 | dest_eid << 8 | msg_tag), error_data);
-	}
-
-	if ((dest_eid != self_eid) || (tag_owner == MCTP_BASE_PROTOCOL_TO_RESPONSE)) {
-		return 0;
-	}
-
-	mctp_interface_reset_message_assembly (mctp);
-
-	mctp->state->req_buffer.max_response = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
-	status = mctp->cmd_cerberus->generate_error_packet (mctp->cmd_cerberus,
-		&mctp->state->req_buffer, error_code, error_data, cmd_set);
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-
-	if (mctp->state->req_buffer.length > MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT) {
-		return MCTP_BASE_PROTOCOL_MSG_TOO_LARGE;
-	}
-
-	status = mctp_base_protocol_construct (mctp->state->req_buffer.data,
-		mctp->state->req_buffer.length, mctp->state->resp_buffer.data,
-		sizeof (mctp->state->msg_buffer), source_addr, src_eid, dest_eid, true, true, 0, msg_tag,
-		MCTP_BASE_PROTOCOL_TO_RESPONSE, response_addr);
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-
-	mctp->state->resp_buffer.msg_size = status;
-	mctp->state->resp_buffer.pkt_size = status;
-	mctp->state->resp_buffer.dest_addr = response_addr;
-
-	*message = &mctp->state->resp_buffer;
-	return 0;
-}
-
-/**
  * Drop an invalid or unsupported MCTP packet.
  *
  * @param mctp The MCTP transport layer that received the packet.
@@ -826,7 +823,7 @@ static int mctp_interface_drop_packet (const struct mctp_interface *mctp,
 /**
  * Process a received MCTP packet using the SMBus transport binding.
  *
- * If the packet completes an MCTP message, the appropriate handler will get called to process the
+ * If the packet completes an MCTP message, the request handler will get called to process the
  * message and generate an appropriate response.  If the packet only represents a partial message,
  * the data will be saved until the rest of the message has been received.
  *
@@ -850,7 +847,6 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 	uint8_t packet_seq;
 	uint8_t crc = 0;
 	uint8_t response_addr = 0;
-	uint8_t cmd_set = 0;
 	uint8_t tag_owner;
 	uint8_t msg_type;
 	size_t payload_len;
@@ -993,86 +989,7 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 		}
 		else {
 			/* The message contains request data. */
-			mctp->state->req_buffer.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
-
-			/* TODO:  This is only necessary for generating error messages.  Once that is no longer
-			 * present in this layer, this should also be removed. */
-			if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (mctp->state->msg_type)) {
-				struct cerberus_protocol_header *header =
-					(struct cerberus_protocol_header*) mctp->state->req_buffer.data;
-
-				cmd_set = header->rq;
-			}
-
-			status = mctp->req_handler->base.process_request (&mctp->req_handler->base,
-				&mctp->state->req_buffer);
-
-			/* Regardless of the processing status, check to see if the timeout needs adjusting. */
-			if (rx_packet->timeout_valid && mctp->state->req_buffer.crypto_timeout) {
-				platform_increase_timeout (
-					MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS -
-						MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS,
-					&rx_packet->pkt_timeout);
-			}
-
-			/* TODO:  Error messages should not be generated at this layer.  Debug logging should
-			 * also not happen here.  Generic log entries are already created in the cmd_channel,
-			 * and protocol specific logs should be created by the appropriate protocol handler. */
-			if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (mctp->state->msg_type)) {
-				if (status != 0) {
-					return mctp_interface_generate_error_packet (mctp, self_eid,
-						CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, status, src_eid, dest_eid, msg_tag,
-						response_addr, rx_packet->dest_addr, cmd_set, tag_owner, tx_message);
-				}
-				else if (mctp->state->req_buffer.length == 0) {
-					return mctp_interface_generate_error_packet (mctp, self_eid,
-						CERBERUS_PROTOCOL_NO_ERROR, status, src_eid, dest_eid, msg_tag,
-						response_addr, rx_packet->dest_addr, cmd_set, tag_owner, tx_message);
-				}
-
-				if (mctp->state->req_buffer.length >
-					device_manager_get_max_message_len_by_eid (mctp->device_manager, src_eid)) {
-					return mctp_interface_generate_error_packet (mctp, self_eid,
-						CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, MCTP_BASE_PROTOCOL_MSG_TOO_LARGE,
-						src_eid, dest_eid, msg_tag, response_addr, rx_packet->dest_addr, cmd_set,
-						tag_owner, tx_message);
-				}
-			}
-			else if (status != 0) {
-				if (MCTP_BASE_PROTOCOL_IS_CONTROL_MSG (mctp->state->msg_type)) {
-					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
-						MCTP_LOGGING_MCTP_CONTROL_REQ_FAIL, status, mctp->state->channel_id);
-				}
-
-				mctp_interface_reset_message_assembly (mctp);
-
-				return status;
-			}
-		}
-
-		/* If a response was generated during request processing, packetize the message for
-		 * transmission back to the requester. */
-		if (mctp->state->req_buffer.length > 0) {
-			status = mctp_interface_generate_packets_from_payload (mctp,
-				mctp->state->req_buffer.data, mctp->state->req_buffer.length,
-				mctp->state->req_buffer.source_eid, response_addr,
-				mctp->state->req_buffer.target_eid, rx_packet->dest_addr, mctp->state->msg_tag,
-				MCTP_BASE_PROTOCOL_TO_RESPONSE, mctp->state->resp_buffer.data,
-				sizeof (mctp->state->msg_buffer), &mctp->state->resp_buffer.pkt_size);
-
-			mctp_interface_reset_message_assembly (mctp);
-			if (ROT_IS_ERROR (status)) {
-				return status;
-			}
-
-			mctp->state->resp_buffer.msg_size = status;
-			mctp->state->resp_buffer.dest_addr = response_addr;
-
-			*tx_message = &mctp->state->resp_buffer;
-		}
-		else {
-			mctp_interface_reset_message_assembly (mctp);
-			*tx_message = NULL;
+			return mctp_interface_handle_request_message (mctp, rx_packet, tx_message);
 		}
 	}
 

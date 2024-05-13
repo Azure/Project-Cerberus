@@ -353,6 +353,7 @@ static void cmd_channel_test_receive_and_process_single_packet_response (CuTest 
 	response.data[4] = 0x0B;
 	response.data[5] = 0x0A;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
@@ -511,6 +512,7 @@ static void cmd_channel_test_receive_and_process_multi_packet_response (CuTest *
 	response.data[3] = 0;
 	memcpy (&response.data[4], payload, msg_size);
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
@@ -650,6 +652,7 @@ static void cmd_channel_test_receive_and_process_max_response (CuTest *test)
 	response.data = payload;
 	response.length = sizeof (payload);
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
@@ -691,11 +694,8 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	uint8_t data[msg_size + 4];
 	struct cmd_interface_msg request;
 	struct cmd_interface_msg response;
-	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
-	struct cmd_interface_msg error_packet;
 	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) rx_packet[0].data;
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
 	int status;
@@ -710,7 +710,6 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	memset (&rx_packet, 0, sizeof (rx_packet));
 	memset (&request, 0, sizeof (request));
 	memset (&response, 0, sizeof (response));
-	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
@@ -791,20 +790,6 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 	tx_packet.state = CMD_VALID_PACKET;
 	tx_packet.dest_addr = 0x55;
 
-	error_packet.data = error_data;
-	error_packet.length = sizeof (error_data);
-
-	error->header.msg_type = 0x7E;
-	error->header.pci_vendor_id = 0x1414;
-	error->header.crypt = 0;
-	error->header.reserved2 = 0;
-	error->header.integrity_check = 0;
-	error->header.reserved1 = 0;
-	error->header.rq = 0;
-	error->header.command = 0x7F;
-	error->error_code = CERBERUS_PROTOCOL_NO_ERROR;
-	error->error_data = 0;
-
 	setup_mock_cmd_channel_test (test, &channel);
 
 	request.data = data;
@@ -858,15 +843,6 @@ static void cmd_channel_test_receive_and_process_multi_packet_message (CuTest *t
 			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 	status |= mock_expect_output_deep_copy (&channel.req_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
-
-	status |= mock_expect (&channel.cmd_cerberus.mock,
-		channel.cmd_cerberus.base.generate_error_packet, &channel.cmd_cerberus, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&channel.cmd_cerberus.mock, 0, &error_packet,
-		sizeof (error_packet), -1);
-
-	status |= mock_expect (&channel.test.mock, channel.test.base.send_packet, &channel.test, 0,
-		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -950,6 +926,7 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout (CuT
 	response.data[4] = 0x0B;
 	response.data[5] = 0x0A;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
@@ -1082,6 +1059,7 @@ static void cmd_channel_test_receive_and_process_request_processing_timeout_not_
 	response.data[4] = 0x0B;
 	response.data[5] = 0x0A;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
@@ -1215,6 +1193,7 @@ static void cmd_channel_test_receive_and_process_set_receive_timeout (CuTest *te
 	response.data[4] = 0x0B;
 	response.data[5] = 0x0A;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
@@ -1345,6 +1324,7 @@ static void cmd_channel_test_receive_and_process_channel_rx_error (CuTest *test)
 	response.data[4] = 0x0B;
 	response.data[5] = 0x0A;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
@@ -1384,11 +1364,10 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	uint8_t data[msg_size + 4];
 	struct cmd_interface_msg request;
 	struct cmd_interface_msg response;
-	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
-	struct cmd_interface_msg error_packet;
+	uint8_t response_data[sizeof (struct cerberus_protocol_error)];
 	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) rx_packet[0].data;
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) response_data;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
 	int i;
@@ -1402,7 +1381,6 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	memset (&rx_packet, 0, sizeof (rx_packet));
 	memset (&request, 0, sizeof (request));
 	memset (&response, 0, sizeof (response));
-	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
@@ -1502,9 +1480,6 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
-	error_packet.data = error_data;
-	error_packet.length = sizeof (error_data);
-
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
 	error->header.crypt = 0;
@@ -1517,7 +1492,14 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 	error->error_data = 0;
 
 	memset (&response, 0, sizeof (response));
-	response.data = data;
+	response.data = response_data;
+	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.crypto_timeout = false;
 
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
@@ -1562,12 +1544,6 @@ static void cmd_channel_test_receive_and_process_null (CuTest *test)
 			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 	status |= mock_expect_output_deep_copy (&channel.req_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
-
-	status |= mock_expect (&channel.cmd_cerberus.mock,
-		channel.cmd_cerberus.base.generate_error_packet, &channel.cmd_cerberus, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&channel.cmd_cerberus.mock, 0, &error_packet,
-		sizeof (error_packet), -1);
 
 	status |= mock_expect (&channel.test.mock, channel.test.base.send_packet, &channel.test, 0,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
@@ -1709,6 +1685,7 @@ static void cmd_channel_test_receive_and_process_send_failure (CuTest *test)
 	response.data[3] = 0;
 	memcpy (&response.data[4], payload, msg_size);
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
@@ -1833,11 +1810,10 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	uint8_t data[msg_size + 4];
 	struct cmd_interface_msg request;
 	struct cmd_interface_msg response;
-	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
-	struct cmd_interface_msg error_packet;
+	uint8_t response_data[sizeof (struct cerberus_protocol_error)];
 	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) rx_packet[0].data;
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) response_data;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
 	int i;
@@ -1851,7 +1827,6 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	memset (&rx_packet, 0, sizeof (rx_packet));
 	memset (&request, 0, sizeof (request));
 	memset (&response, 0, sizeof (response));
-	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
@@ -1951,9 +1926,6 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
-	error_packet.data = error_data;
-	error_packet.length = sizeof (error_data);
-
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
 	error->header.crypt = 0;
@@ -1966,7 +1938,14 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	error->error_data = 0;
 
 	memset (&response, 0, sizeof (response));
-	response.data = data;
+	response.data = response_data;
+	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.crypto_timeout = false;
 
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
@@ -2014,12 +1993,6 @@ static void cmd_channel_test_receive_and_process_receive_failure (CuTest *test)
 	status |= mock_expect_output_deep_copy (&channel.req_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
 
-	status |= mock_expect (&channel.cmd_cerberus.mock,
-		channel.cmd_cerberus.base.generate_error_packet, &channel.cmd_cerberus, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&channel.cmd_cerberus.mock, 0, &error_packet,
-		sizeof (error_packet), -1);
-
 	status |= mock_expect (&channel.test.mock, channel.test.base.send_packet, &channel.test, 0,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
 
@@ -2041,11 +2014,10 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	uint8_t data[msg_size + 4];
 	struct cmd_interface_msg request;
 	struct cmd_interface_msg response;
-	uint8_t error_data[sizeof (struct cerberus_protocol_error)];
-	struct cmd_interface_msg error_packet;
+	uint8_t response_data[sizeof (struct cerberus_protocol_error)];
 	struct mctp_base_protocol_transport_header *header =
 		(struct mctp_base_protocol_transport_header*) rx_packet[0].data;
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) response_data;
 	uint16_t pci_vid = 0x1414;
 	uint8_t payload[msg_size];
 	int i;
@@ -2059,7 +2031,6 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	memset (&rx_packet, 0, sizeof (rx_packet));
 	memset (&request, 0, sizeof (request));
 	memset (&response, 0, sizeof (response));
-	memset (&error_packet, 0, sizeof (error_packet));
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = 252;
@@ -2159,9 +2130,6 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	request.channel_id = 0;
 	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 
-	error_packet.data = error_data;
-	error_packet.length = sizeof (error_data);
-
 	error->header.msg_type = 0x7E;
 	error->header.pci_vendor_id = 0x1414;
 	error->header.crypt = 0;
@@ -2174,7 +2142,14 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 	error->error_data = 0;
 
 	memset (&response, 0, sizeof (response));
-	response.data = data;
+	response.data = response_data;
+	response.length = sizeof (response_data);
+	response.payload = response.data;
+	response.payload_length = response.length;
+	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
+	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response.crypto_timeout = false;
 
 	status = mock_expect (&channel.test.mock, channel.test.base.receive_packet, &channel.test, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG (-1));
@@ -2221,12 +2196,6 @@ static void cmd_channel_test_receive_and_process_receive_timeout (CuTest *test)
 			sizeof (request), cmd_interface_mock_save_request, cmd_interface_mock_free_request));
 	status |= mock_expect_output_deep_copy (&channel.req_handler.mock, 0, &response,
 		sizeof (response), cmd_interface_mock_copy_request);
-
-	status |= mock_expect (&channel.cmd_cerberus.mock,
-		channel.cmd_cerberus.base.generate_error_packet, &channel.cmd_cerberus, 0,
-		MOCK_ARG_NOT_NULL, MOCK_ARG (CERBERUS_PROTOCOL_NO_ERROR), MOCK_ARG (0), MOCK_ARG (0));
-	status |= mock_expect_output (&channel.cmd_cerberus.mock, 0, &error_packet,
-		sizeof (error_packet), -1);
 
 	status |= mock_expect (&channel.test.mock, channel.test.base.send_packet, &channel.test, 0,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));

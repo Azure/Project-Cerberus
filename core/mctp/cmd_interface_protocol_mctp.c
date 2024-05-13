@@ -5,6 +5,7 @@
 #include <string.h>
 #include "cmd_interface_protocol_mctp.h"
 #include "mctp_base_protocol.h"
+#include "mctp_logging.h"
 #include "common/unused.h"
 
 
@@ -81,6 +82,10 @@ int cmd_interface_protocol_mctp_handle_request_result (
 
 			header->msg_type = message_type;
 			header->integrity_check = 0;
+		}
+		else if (message_type == MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
+				MCTP_LOGGING_MCTP_CONTROL_REQ_FAIL, result, message->channel_id);
 		}
 	}
 	else {

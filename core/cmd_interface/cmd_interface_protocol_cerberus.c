@@ -73,19 +73,21 @@ int cmd_interface_protocol_cerberus_handle_request_result (
 	/* TODO:  Just like in the pre-processing case, a Cerberus header should be added to the payload
 	 * rather than leaving the payload pointer in the same place. */
 
+	header = (struct cerberus_protocol_header*) message->payload;
+
 	/* Only update the header in the case of a successful response. */
 	if (result == 0) {
 		/* If the handler did not generate any response payload, create a status response indicating
-		 * that the command completed successfully.
+		 * that the command completed successfully.  The rq bit from the request is used to
+		 * determine what value to set in the response.
 		 *
 		 * This checks both payload and data lengths to cover command handlers that don't correctly
 		 * update the payload length. */
 		if ((message->payload_length == 0) || (message->length == 0)) {
-			cerberus_protocol_build_error_response (message, CERBERUS_PROTOCOL_NO_ERROR, 0, 0);
+			cerberus_protocol_build_error_response (message, CERBERUS_PROTOCOL_NO_ERROR, 0,
+				header->rq, 0);
 		}
 		else {
-			header = (struct cerberus_protocol_header*) message->payload;
-
 			/* TODO:  These are MCTP components and should be updated by MCTP protocol handlers
 			 * rather then here.  These will eventually be removed. */
 			header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
@@ -101,15 +103,15 @@ int cmd_interface_protocol_cerberus_handle_request_result (
 		}
 	}
 	else {
-		/* TODO:  Generate an error response on failure.  It should not be possible to exit this
-		 * handler without a valid response generated.  This impacts error logging in the MCTP
-		 * interface, though. */
-		// cerberus_protocol_build_error_response (message, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,
-		// 	result, 0);
+		/* Generate an error response on failure.  It should not be possible to exit this handler
+		 * without a valid response generated.  Use the request header data, which should not have
+		 * been modified by this point to determine the rq bit value for the response. */
+		cerberus_protocol_build_error_response (message, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,
+			result, header->rq, message_type);
 	}
 
-	/* TODO:  Eventually, this should always return 0. */
-	return result;
+	/* There will always be a response populated when exiting. */
+	return 0;
 }
 
 /**

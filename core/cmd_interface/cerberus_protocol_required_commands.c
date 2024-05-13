@@ -28,9 +28,11 @@
  * @param error_data The detailed error code to provide with the response.
  * @param cmd_set The value to assign to the rq bit in the response header, corresponding to the
  * type of message that generated the error.
+ * @param command_code The Cerberus command that generated the error. If the command code is unknown
+ * or unavailable, set this to 0.
  */
 void cerberus_protocol_build_error_response (struct cmd_interface_msg *message, uint8_t error_code,
-	uint32_t error_data, uint8_t cmd_set)
+	uint32_t error_data, uint8_t cmd_set, uint8_t command_code)
 {
 	struct cerberus_protocol_error *error_msg;
 
@@ -52,8 +54,13 @@ void cerberus_protocol_build_error_response (struct cmd_interface_msg *message, 
 
 	cmd_interface_msg_set_message_payload_length (message, sizeof (*error_msg));
 
-	/* TODO:  Generate a log message.  There needs to be logging consistency with the current
-	 * handling in the MCTP interface. */
+	if (error_code != CERBERUS_PROTOCOL_NO_ERROR) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+			CMD_LOGGING_CERBERUS_REQUEST_FAIL,
+			((error_code << 24) | (command_code << 16) | (message->source_eid << 8) |
+				message->channel_id),
+			error_data);
+	}
 }
 
 /**

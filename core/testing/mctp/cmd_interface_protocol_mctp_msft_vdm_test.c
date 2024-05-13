@@ -7,9 +7,12 @@
 #include <string.h>
 #include "testing.h"
 #include "cmd_interface/cerberus_protocol.h"
+#include "cmd_interface/cmd_logging.h"
 #include "mctp/cmd_interface_protocol_mctp_msft_vdm.h"
 #include "mctp/cmd_interface_protocol_mctp_msft_vdm_static.h"
 #include "mctp/mctp_base_protocol.h"
+#include "testing/logging/debug_log_testing.h"
+#include "testing/mock/logging/logging_mock.h"
 
 
 TEST_SUITE_LABEL ("cmd_interface_protocol_mctp_msft_vdm");
@@ -20,6 +23,7 @@ TEST_SUITE_LABEL ("cmd_interface_protocol_mctp_msft_vdm");
  */
 struct cmd_interface_protocol_mctp_msft_vdm_testing {
 	struct device_manager device_mgr;						/**< Device manager. */
+	struct logging_mock log;								/**< Mock for the debug log. */
 	struct cmd_interface_protocol_mctp_msft_vdm test;		/**< Protocol handler being tested. */
 };
 
@@ -35,6 +39,9 @@ static void cmd_interface_protocol_mctp_msft_vdm_testing_init_dependencies (CuTe
 {
 	int status;
 
+	status = logging_mock_init (&mctp->log);
+	CuAssertIntEquals (test, 0, status);
+
 	status = device_manager_init (&mctp->device_mgr, 2, 0, 0, DEVICE_MANAGER_PA_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -46,6 +53,8 @@ static void cmd_interface_protocol_mctp_msft_vdm_testing_init_dependencies (CuTe
 	status = device_manager_update_not_attestable_device_entry (&mctp->device_mgr, 1,
 		MCTP_BASE_PROTOCOL_BMC_EID, 0x51, DEVICE_MANAGER_NOT_PCD_COMPONENT);
 	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &mctp->log.base;
 }
 
 /**
@@ -57,6 +66,13 @@ static void cmd_interface_protocol_mctp_msft_vdm_testing_init_dependencies (CuTe
 static void cmd_interface_protocol_mctp_msft_vdm_testing_release_dependencies (CuTest *test,
 	struct cmd_interface_protocol_mctp_msft_vdm_testing *mctp)
 {
+	int status;
+
+	debug_log = NULL;
+
+	status = logging_mock_validate_and_release (&mctp->log);
+	CuAssertIntEquals (test, 0, status);
+
 	device_manager_release (&mctp->device_mgr);
 }
 
@@ -1034,16 +1050,13 @@ static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_payl
 	cmd_interface_protocol_mctp_msft_vdm_testing_release (test, &mctp);
 }
 
-static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_request_failure (
+static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_success_no_payload (
 	CuTest *test)
 {
 	struct cmd_interface_protocol_mctp_msft_vdm_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct cmd_interface_msg message;
-	struct mctp_base_protocol_vdm_pci_header *header =
-		(struct mctp_base_protocol_vdm_pci_header*) data;
-	struct cerberus_protocol_msft_header *msft_header =
-		(struct cerberus_protocol_msft_header*) &data[sizeof (*header)];
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) data;
 	int status;
 	uint32_t message_type = 0;
 
@@ -1051,29 +1064,34 @@ static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_requ
 
 	cmd_interface_protocol_mctp_msft_vdm_testing_init (test, &mctp);
 
-	header->msg_header.msg_type = 0x13;
-	header->msg_header.integrity_check = 1;
-	header->pci_vendor_id = 0x1234;
+	error->header.msg_type = 0x45;
+	error->header.integrity_check = 1;
+	error->header.pci_vendor_id = 0x1234;
+	error->header.reserved1 = 3;
+	error->header.crypt = 1;
+	error->header.reserved2 = 1;
+	error->header.rq = 1;
+	error->header.command = 0x12;
+	error->error_code = 0x34;
+	error->error_data = 0x56;
 
-	msft_header->rq = 1;
-
+	/* TODO:  Input should be a payload offset past the MCTP header. */
 	memset (&message, 0, sizeof (message));
 	message.data = data;
 	message.length = sizeof (data);
 	message.max_response = sizeof (data);
 	message.payload = data;
-	message.payload_length = sizeof (data);
+	message.payload_length = 0;
 	message.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	message.source_addr = 0x55;
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.test.base.handle_request_result (&mctp.test.base, CMD_HANDLER_PROCESS_FAILED,
-		message_type, &message);
-	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, status);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, 0, message_type, &message);
+	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, data, message.data);
-	CuAssertIntEquals (test, sizeof (data), message.length);
+	CuAssertIntEquals (test, sizeof (*error), message.length);
 	CuAssertIntEquals (test, sizeof (data), message.max_response);
 	CuAssertPtrEquals (test, message.data, message.payload);
 	CuAssertIntEquals (test, message.length, message.payload_length);
@@ -1084,10 +1102,239 @@ static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_requ
 	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 4, message.channel_id);
 
-	CuAssertIntEquals (test, 0x13, header->msg_header.msg_type);
-	CuAssertIntEquals (test, 1, header->msg_header.integrity_check);
-	CuAssertIntEquals (test, 0x1234, header->pci_vendor_id);
-	CuAssertIntEquals (test, 1, msft_header->rq);
+	CuAssertIntEquals (test, 0x7e, error->header.msg_type);
+	CuAssertIntEquals (test, 0, error->header.integrity_check);
+	CuAssertIntEquals (test, 0x1414, error->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, error->header.reserved1);
+	CuAssertIntEquals (test, 0, error->header.crypt);
+	CuAssertIntEquals (test, 0, error->header.reserved2);
+	CuAssertIntEquals (test, 0, error->header.rq);
+	CuAssertIntEquals (test, 0x7f, error->header.command);
+	CuAssertIntEquals (test, 0, error->error_code);
+	CuAssertIntEquals (test, 0, error->error_data);
+
+	cmd_interface_protocol_mctp_msft_vdm_testing_release (test, &mctp);
+}
+
+static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_success_zero_data_length (
+	CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_msft_vdm_testing mctp;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg message;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) data;
+	int status;
+	uint32_t message_type = 1;
+
+	TEST_START;
+
+	cmd_interface_protocol_mctp_msft_vdm_testing_init (test, &mctp);
+
+	error->header.msg_type = 0x45;
+	error->header.integrity_check = 1;
+	error->header.pci_vendor_id = 0x1234;
+	error->header.reserved1 = 3;
+	error->header.crypt = 1;
+	error->header.reserved2 = 1;
+	error->header.rq = 0;
+	error->header.command = 0x12;
+	error->error_code = 0x34;
+	error->error_data = 0x56;
+
+	/* TODO:  Input should be a payload offset past the MCTP header. */
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = 0;
+	message.max_response = sizeof (data);
+	message.payload = data;
+	message.payload_length = sizeof (data);
+	message.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	message.source_addr = 0x55;
+	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	message.channel_id = 4;
+
+	status = mctp.test.base.handle_request_result (&mctp.test.base, 0, message_type, &message);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (*error), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BMC_EID, message.source_eid);
+	CuAssertIntEquals (test, 0x55, message.source_addr);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, message.target_eid);
+	CuAssertIntEquals (test, false, message.is_encrypted);
+	CuAssertIntEquals (test, false, message.crypto_timeout);
+	CuAssertIntEquals (test, 4, message.channel_id);
+
+	CuAssertIntEquals (test, 0x7e, error->header.msg_type);
+	CuAssertIntEquals (test, 0, error->header.integrity_check);
+	CuAssertIntEquals (test, 0x1414, error->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, error->header.reserved1);
+	CuAssertIntEquals (test, 0, error->header.crypt);
+	CuAssertIntEquals (test, 0, error->header.reserved2);
+	CuAssertIntEquals (test, 1, error->header.rq);
+	CuAssertIntEquals (test, 0x7f, error->header.command);
+	CuAssertIntEquals (test, 0, error->error_code);
+	CuAssertIntEquals (test, 0, error->error_data);
+
+	cmd_interface_protocol_mctp_msft_vdm_testing_release (test, &mctp);
+}
+
+static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_request_failure (
+	CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_msft_vdm_testing mctp;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg message;
+	struct mctp_base_protocol_vdm_pci_header *header =
+		(struct mctp_base_protocol_vdm_pci_header*) data;
+	struct cerberus_protocol_msft_header *msft_header =
+		(struct cerberus_protocol_msft_header*) &data[sizeof (*header)];
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) data;
+	int status;
+	uint32_t message_type = 0;
+	struct debug_log_entry_info entry1 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+		.msg_index = CMD_LOGGING_CERBERUS_REQUEST_FAIL,
+		.arg1 = 0x04840a07,
+		.arg2 = CMD_HANDLER_PROCESS_FAILED
+	};
+
+	TEST_START;
+
+	cmd_interface_protocol_mctp_msft_vdm_testing_init (test, &mctp);
+
+	header->msg_header.msg_type = 0x13;
+	header->msg_header.integrity_check = 1;
+	header->pci_vendor_id = 0x1234;
+
+	msft_header->rq = 1;
+	msft_header->command = 0x84;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data);
+	message.payload = data;
+	message.payload_length = sizeof (data);
+	message.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	message.source_addr = 0x55;
+	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	message.channel_id = 7;
+
+	status = mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry1)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.handle_request_result (&mctp.test.base, CMD_HANDLER_PROCESS_FAILED,
+		message_type, &message);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (*error), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BMC_EID, message.source_eid);
+	CuAssertIntEquals (test, 0x55, message.source_addr);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, message.target_eid);
+	CuAssertIntEquals (test, false, message.is_encrypted);
+	CuAssertIntEquals (test, false, message.crypto_timeout);
+	CuAssertIntEquals (test, 7, message.channel_id);
+
+	CuAssertIntEquals (test, 0x7e, error->header.msg_type);
+	CuAssertIntEquals (test, 0, error->header.integrity_check);
+	CuAssertIntEquals (test, 0x1414, error->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, error->header.reserved1);
+	CuAssertIntEquals (test, 0, error->header.crypt);
+	CuAssertIntEquals (test, 0, error->header.reserved2);
+	CuAssertIntEquals (test, 0, error->header.rq);
+	CuAssertIntEquals (test, 0x7f, error->header.command);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, error->error_code);
+	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, error->error_data);
+
+	cmd_interface_protocol_mctp_msft_vdm_testing_release (test, &mctp);
+}
+
+static void cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_request_failure_type_1 (
+	CuTest *test)
+{
+	struct cmd_interface_protocol_mctp_msft_vdm_testing mctp;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg message;
+	struct mctp_base_protocol_vdm_pci_header *header =
+		(struct mctp_base_protocol_vdm_pci_header*) data;
+	struct cerberus_protocol_msft_header *msft_header =
+		(struct cerberus_protocol_msft_header*) &data[sizeof (*header)];
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) data;
+	int status;
+	uint32_t message_type = 1;
+	struct debug_log_entry_info entry1 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+		.msg_index = CMD_LOGGING_CERBERUS_REQUEST_FAIL,
+		.arg1 = 0x04144502,
+		.arg2 = CMD_HANDLER_UNKNOWN_REQUEST
+	};
+
+	TEST_START;
+
+	cmd_interface_protocol_mctp_msft_vdm_testing_init (test, &mctp);
+
+	header->msg_header.msg_type = 0x13;
+	header->msg_header.integrity_check = 1;
+	header->pci_vendor_id = 0x1234;
+
+	msft_header->command = 0x14;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data);
+	message.payload = data;
+	message.payload_length = sizeof (data);
+	message.source_eid = 0x45;
+	message.source_addr = 0x55;
+	message.target_eid = 0x54;
+	message.channel_id = 2;
+
+	status = mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry1)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.handle_request_result (&mctp.test.base, CMD_HANDLER_UNKNOWN_REQUEST,
+		message_type, &message);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (*error), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
+	CuAssertIntEquals (test, 0x45, message.source_eid);
+	CuAssertIntEquals (test, 0x55, message.source_addr);
+	CuAssertIntEquals (test, 0x54, message.target_eid);
+	CuAssertIntEquals (test, false, message.is_encrypted);
+	CuAssertIntEquals (test, false, message.crypto_timeout);
+	CuAssertIntEquals (test, 2, message.channel_id);
+
+	CuAssertIntEquals (test, 0x7e, error->header.msg_type);
+	CuAssertIntEquals (test, 0, error->header.integrity_check);
+	CuAssertIntEquals (test, 0x1414, error->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, error->header.reserved1);
+	CuAssertIntEquals (test, 0, error->header.crypt);
+	CuAssertIntEquals (test, 0, error->header.reserved2);
+	CuAssertIntEquals (test, 1, error->header.rq);
+	CuAssertIntEquals (test, 0x7f, error->header.command);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, error->error_code);
+	CuAssertIntEquals (test, CMD_HANDLER_UNKNOWN_REQUEST, error->error_data);
 
 	cmd_interface_protocol_mctp_msft_vdm_testing_release (test, &mctp);
 }
@@ -1225,7 +1472,10 @@ TEST (cmd_interface_protocol_mctp_msft_vdm_test_parse_message_with_integrity_che
 TEST (cmd_interface_protocol_mctp_msft_vdm_test_parse_message_wrong_vendor_id);
 TEST (cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result);
 TEST (cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_payload_offset);
+TEST (cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_success_no_payload);
+TEST (cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_success_zero_data_length);
 TEST (cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_request_failure);
+TEST (cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_request_failure_type_1);
 TEST (cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_static_init);
 TEST (cmd_interface_protocol_mctp_msft_vdm_test_handle_request_result_null);
 

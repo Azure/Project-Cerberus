@@ -432,6 +432,7 @@ static void cmd_channel_handler_test_execute (CuTest *test)
 	response.data[4] = 0x0B;
 	response.data[5] = 0x0A;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 
@@ -562,6 +563,7 @@ static void cmd_channel_handler_test_execute_static_init (CuTest *test)
 	response.data[4] = 0x0B;
 	response.data[5] = 0x0A;
 	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	response.source_addr = 0x55;
 	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.crypto_timeout = false;
 

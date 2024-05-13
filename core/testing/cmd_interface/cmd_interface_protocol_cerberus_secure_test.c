@@ -9,8 +9,11 @@
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cmd_interface_protocol_cerberus_secure.h"
 #include "cmd_interface/cmd_interface_protocol_cerberus_secure_static.h"
+#include "cmd_interface/cmd_logging.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
 #include "testing/mock/cmd_interface/session_manager_mock.h"
+#include "testing/mock/logging/logging_mock.h"
 
 
 TEST_SUITE_LABEL ("cmd_interface_protocol_cerberus_secure");
@@ -21,6 +24,7 @@ TEST_SUITE_LABEL ("cmd_interface_protocol_cerberus_secure");
  */
 struct cmd_interface_protocol_cerberus_secure_testing {
 	struct session_manager_mock session;				/**< Mock for the session manager. */
+	struct logging_mock log;							/**< Mock for the debug log. */
 	struct cmd_interface_protocol_cerberus_secure test;	/**< The protocol handler under test. */
 };
 
@@ -38,6 +42,11 @@ static void cmd_interface_protocol_cerberus_secure_testing_init_dependencies (Cu
 
 	status = session_manager_mock_init (&cerberus->session);
 	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_init (&cerberus->log);
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &cerberus->log.base;
 }
 
 /**
@@ -51,7 +60,11 @@ static void cmd_interface_protocol_cerberus_secure_testing_release_dependencies 
 {
 	int status;
 
+	debug_log = NULL;
+
 	status = session_manager_mock_validate_and_release (&cerberus->session);
+	status |= logging_mock_validate_and_release (&cerberus->log);
+
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -1414,7 +1427,7 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_su
 	CuAssertIntEquals (test, 0, error->header.reserved1);
 	CuAssertIntEquals (test, 0, error->header.crypt);
 	CuAssertIntEquals (test, 0, error->header.reserved2);
-	CuAssertIntEquals (test, 0, error->header.rq);
+	CuAssertIntEquals (test, 1, error->header.rq);
 	CuAssertIntEquals (test, 0x7f, error->header.command);
 	CuAssertIntEquals (test, 0, error->error_code);
 	CuAssertIntEquals (test, 0, error->error_data);
@@ -1575,7 +1588,7 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_su
 	error->header.reserved1 = 3;
 	error->header.crypt = 1;
 	error->header.reserved2 = 1;
-	error->header.rq = 1;
+	error->header.rq = 0;
 	error->header.command = 0x12;
 	error->error_code = 0x34;
 	error->error_data = 0x56;
@@ -1629,8 +1642,17 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_re
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) data;
 	int status;
-	uint32_t message_type = 0x23;
+	uint32_t message_type = 0x82;
+	struct debug_log_entry_info entry1 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+		.msg_index = CMD_LOGGING_CERBERUS_REQUEST_FAIL,
+		.arg1 = 0x04820a07,
+		.arg2 = CMD_HANDLER_PROCESS_FAILED
+	};
 
 	TEST_START;
 
@@ -1654,14 +1676,19 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_re
 	message.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	message.source_addr = 0x55;
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	message.channel_id = 4;
+	message.channel_id = 7;
+
+	status = mock_expect (&cerberus.log.mock, cerberus.log.base.create_entry, &cerberus.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry1)));
+	CuAssertIntEquals (test, 0, status);
 
 	status = cerberus.test.base.base.handle_request_result (&cerberus.test.base.base,
 		CMD_HANDLER_PROCESS_FAILED, message_type, &message);
-	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, status);
+	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, data, message.data);
-	CuAssertIntEquals (test, sizeof (data), message.length);
+	CuAssertIntEquals (test, sizeof (*error), message.length);
 	CuAssertIntEquals (test, sizeof (data), message.max_response);
 	CuAssertPtrEquals (test, message.data, message.payload);
 	CuAssertIntEquals (test, message.length, message.payload_length);
@@ -1670,16 +1697,158 @@ static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_re
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, message.target_eid);
 	CuAssertIntEquals (test, false, message.is_encrypted);
 	CuAssertIntEquals (test, false, message.crypto_timeout);
+	CuAssertIntEquals (test, 7, message.channel_id);
+
+	CuAssertIntEquals (test, 0x7e, error->header.msg_type);
+	CuAssertIntEquals (test, 0, error->header.integrity_check);
+	CuAssertIntEquals (test, 0x1414, error->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, error->header.reserved1);
+	CuAssertIntEquals (test, 0, error->header.crypt);
+	CuAssertIntEquals (test, 0, error->header.reserved2);
+	CuAssertIntEquals (test, 1, error->header.rq);
+	CuAssertIntEquals (test, 0x7f, error->header.command);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED, error->error_code);
+	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, error->error_data);
+
+	cmd_interface_protocol_cerberus_secure_testing_release (test, &cerberus);
+}
+
+static void cmd_interface_protocol_cerberus_secure_test_handle_request_result_encrypted_request_failure (
+	CuTest *test)
+{
+	struct cmd_interface_protocol_cerberus_secure_testing cerberus;
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg message;
+	struct cerberus_protocol_header *header = (struct cerberus_protocol_header*) data;
+	uint8_t encrypted_data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg encrypted;
+	uint8_t error_data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
+	struct cmd_interface_msg error_msg;
+	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) error_data;
+	int status;
+	uint32_t message_type = 0x23;
+	struct debug_log_entry_info entry1 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+		.msg_index = CMD_LOGGING_CERBERUS_REQUEST_FAIL,
+		.arg1 = 0x04234502,
+		.arg2 = CMD_HANDLER_UNKNOWN_REQUEST
+	};
+
+	TEST_START;
+
+	cmd_interface_protocol_cerberus_secure_testing_init (test, &cerberus);
+
+	header->msg_type = 0x45;
+	header->integrity_check = 1;
+	header->pci_vendor_id = 0x1234;
+	header->reserved1 = 3;
+	header->crypt = 1;
+	header->reserved2 = 1;
+	header->rq = 0;
+	header->command = 0x12;
+
+	memset (&message, 0, sizeof (message));
+	message.data = data;
+	message.length = sizeof (data);
+	message.max_response = sizeof (data) - SESSION_MANAGER_TRAILER_LEN;
+	message.payload = data;
+	message.payload_length = sizeof (data);
+	message.source_eid = 0x45;
+	message.source_addr = 0x55;
+	message.target_eid = 0x65;
+	message.is_encrypted = true;
+	message.channel_id = 2;
+
+	/* Error message. */
+	error->header.msg_type = 0x7e;
+	error->header.integrity_check = 0;
+	error->header.pci_vendor_id = 0x1414;
+	error->header.reserved1 = 0;
+	error->header.crypt = 0;
+	error->header.reserved2 = 0;
+	error->header.rq = 0;
+	error->header.command = 0x7f;
+	error->error_code = CERBERUS_PROTOCOL_ERROR_UNSPECIFIED;
+	error->error_data = CMD_HANDLER_UNKNOWN_REQUEST;
+
+	memset (&error_msg, 0, sizeof (error_msg));
+	error_msg.data = error_data;
+	error_msg.length = sizeof (*error);
+	error_msg.max_response = sizeof (data);
+	error_msg.payload = error_msg.data;
+	error_msg.payload_length = error_msg.length;
+	error_msg.source_eid = 0x45;
+	error_msg.source_addr = 0x55;
+	error_msg.target_eid = 0x65;
+	error_msg.is_encrypted = true;
+	error_msg.channel_id = 2;
+
+	/* Encrypted message. */
+	header = (struct cerberus_protocol_header*) encrypted_data;
+
+	header->msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	header->integrity_check = 0;
+	header->pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	header->reserved1 = 0;
+	header->crypt = 0;
+	header->reserved2 = 0;
+	header->rq = 0;
+	header->command = 0x76;
+
+	memset (&encrypted, 0, sizeof (encrypted));
+	encrypted.data = encrypted_data;
+	encrypted.length = sizeof (encrypted_data);
+	encrypted.max_response = sizeof (data);
+	encrypted.payload = encrypted_data;
+	encrypted.payload_length = sizeof (encrypted_data);
+	encrypted.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	encrypted.source_addr = 0x55;
+	encrypted.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	encrypted.is_encrypted = true;
+	encrypted.channel_id = 4;
+
+	status = mock_expect (&cerberus.session.mock, cerberus.session.base.encrypt_message,
+		&cerberus.session, 0,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &error_msg,
+			sizeof (error_msg), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+			cmd_interface_mock_duplicate_request));
+	status |= mock_expect_output_deep_copy (&cerberus.session.mock, 0, &encrypted,
+		sizeof (encrypted), cmd_interface_mock_copy_request);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&cerberus.log.mock, cerberus.log.base.create_entry, &cerberus.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry1)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cerberus.test.base.base.handle_request_result (&cerberus.test.base.base,
+		CMD_HANDLER_UNKNOWN_REQUEST, message_type, &message);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrEquals (test, data, message.data);
+	CuAssertIntEquals (test, sizeof (encrypted_data), message.length);
+	CuAssertIntEquals (test, sizeof (data), message.max_response);
+	CuAssertPtrEquals (test, message.data, message.payload);
+	CuAssertIntEquals (test, message.length, message.payload_length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_BMC_EID, message.source_eid);
+	CuAssertIntEquals (test, 0x55, message.source_addr);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, message.target_eid);
+	CuAssertIntEquals (test, true, message.is_encrypted);
+	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 4, message.channel_id);
 
-	CuAssertIntEquals (test, 0x45, header->msg_type);
-	CuAssertIntEquals (test, 1, header->integrity_check);
-	CuAssertIntEquals (test, 0x1234, header->pci_vendor_id);
-	CuAssertIntEquals (test, 3, header->reserved1);
+	header = (struct cerberus_protocol_header*) data;
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, header->msg_type);
+	CuAssertIntEquals (test, 0, header->integrity_check);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, header->pci_vendor_id);
+	CuAssertIntEquals (test, 0, header->reserved1);
 	CuAssertIntEquals (test, 1, header->crypt);
-	CuAssertIntEquals (test, 1, header->reserved2);
-	CuAssertIntEquals (test, 1, header->rq);
-	CuAssertIntEquals (test, 0x12, header->command);
+	CuAssertIntEquals (test, 0, header->reserved2);
+	CuAssertIntEquals (test, 0, header->rq);
+	CuAssertIntEquals (test, 0x76, header->command);
 
 	cmd_interface_protocol_cerberus_secure_testing_release (test, &cerberus);
 }
@@ -2047,6 +2216,7 @@ TEST (cmd_interface_protocol_cerberus_secure_test_handle_request_result_success_
 TEST (cmd_interface_protocol_cerberus_secure_test_handle_request_result_success_no_payload_encrypted);
 TEST (cmd_interface_protocol_cerberus_secure_test_handle_request_result_success_zero_data_length);
 TEST (cmd_interface_protocol_cerberus_secure_test_handle_request_result_request_failure);
+TEST (cmd_interface_protocol_cerberus_secure_test_handle_request_result_encrypted_request_failure);
 TEST (cmd_interface_protocol_cerberus_secure_test_handle_request_result_static_init);
 TEST (cmd_interface_protocol_cerberus_secure_test_handle_request_result_static_init_encrypted);
 TEST (cmd_interface_protocol_cerberus_secure_test_handle_request_result_null);

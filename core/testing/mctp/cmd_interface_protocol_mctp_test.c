@@ -9,9 +9,86 @@
 #include "mctp/cmd_interface_protocol_mctp.h"
 #include "mctp/cmd_interface_protocol_mctp_static.h"
 #include "mctp/mctp_base_protocol.h"
+#include "mctp/mctp_logging.h"
+#include "testing/logging/debug_log_testing.h"
+#include "testing/mock/logging/logging_mock.h"
 
 
 TEST_SUITE_LABEL ("cmd_interface_protocol_mctp");
+
+
+/**
+ * Dependencies for testing the protocol handler for MCTP messages.
+ */
+struct cmd_interface_protocol_mctp_testing {
+	struct logging_mock log;					/**< Mock for the debug log. */
+	struct cmd_interface_protocol_mctp test;	/**< Protocol handler being tested. */
+};
+
+
+/**
+ * Initialize all dependencies for testing.
+ *
+ * @param test The test framework.
+ * @param mctp Testing dependencies to initialize.
+ */
+static void cmd_interface_protocol_mctp_testing_init_dependencies (CuTest *test,
+	struct cmd_interface_protocol_mctp_testing *mctp)
+{
+	int status;
+
+	status = logging_mock_init (&mctp->log);
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &mctp->log.base;
+}
+
+/**
+ * Release all testing dependencies and validate all mocks.
+ *
+ * @param test The test framework.
+ * @param mctp Testing dependencies to release.
+ */
+static void cmd_interface_protocol_mctp_testing_release_dependencies (CuTest *test,
+	struct cmd_interface_protocol_mctp_testing *mctp)
+{
+	int status;
+
+	debug_log = NULL;
+
+	status = logging_mock_validate_and_release (&mctp->log);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Initialize a MCTP protocol handler for testing.
+ *
+ * @param test The test framework.
+ * @param mctp Testing components to initialize.
+ */
+static void cmd_interface_protocol_mctp_testing_init (CuTest *test,
+	struct cmd_interface_protocol_mctp_testing *mctp)
+{
+	int status;
+
+	cmd_interface_protocol_mctp_testing_init_dependencies (test, mctp);
+
+	status = cmd_interface_protocol_mctp_init (&mctp->test);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
+ * Release MCTP protocol test components and validate all mocks.
+ *
+ * @param test The test framework.
+ * @param mctp Testing components to release.
+ */
+static void cmd_interface_protocol_mctp_testing_release (CuTest *test,
+	struct cmd_interface_protocol_mctp_testing *mctp)
+{
+	cmd_interface_protocol_mctp_release (&mctp->test);
+	cmd_interface_protocol_mctp_testing_release_dependencies (test, mctp);
+}
 
 
 /*******************
@@ -20,40 +97,51 @@ TEST_SUITE_LABEL ("cmd_interface_protocol_mctp");
 
 static void cmd_interface_protocol_mctp_test_init (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	int status;
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
+	cmd_interface_protocol_mctp_testing_init_dependencies (test, &mctp);
+
+	status = cmd_interface_protocol_mctp_init (&mctp.test);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, mctp.base.parse_message);
-	CuAssertPtrNotNull (test, mctp.base.handle_request_result);
+	CuAssertPtrNotNull (test, mctp.test.base.parse_message);
+	CuAssertPtrNotNull (test, mctp.test.base.handle_request_result);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_init_null (CuTest *test)
 {
+	struct cmd_interface_protocol_mctp_testing mctp;
 	int status;
 
 	TEST_START;
 
+	cmd_interface_protocol_mctp_testing_init_dependencies (test, &mctp);
+
 	status = cmd_interface_protocol_mctp_init (NULL);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
+
+	cmd_interface_protocol_mctp_testing_release_dependencies (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_static_init (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp = cmd_interface_protocol_mctp_static_init;
+	struct cmd_interface_protocol_mctp_testing mctp = {
+		.test = cmd_interface_protocol_mctp_static_init
+	};
 
 	TEST_START;
 
-	CuAssertPtrNotNull (test, mctp.base.parse_message);
-	CuAssertPtrNotNull (test, mctp.base.handle_request_result);
+	CuAssertPtrNotNull (test, mctp.test.base.parse_message);
+	CuAssertPtrNotNull (test, mctp.test.base.handle_request_result);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_init_dependencies (test, &mctp);
+
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_release_null (CuTest *test)
@@ -65,7 +153,7 @@ static void cmd_interface_protocol_mctp_test_release_null (CuTest *test)
 
 static void cmd_interface_protocol_mctp_test_parse_message (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT * 2] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -75,8 +163,7 @@ static void cmd_interface_protocol_mctp_test_parse_message (CuTest *test)
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 0;
@@ -92,7 +179,7 @@ static void cmd_interface_protocol_mctp_test_parse_message (CuTest *test)
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0x13, message_type);
 
@@ -108,12 +195,12 @@ static void cmd_interface_protocol_mctp_test_parse_message (CuTest *test)
 	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 4, message.channel_id);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_payload_offset (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT * 2] = {0};
 	struct cmd_interface_msg message;
 	size_t payload_offset = 6;
@@ -124,8 +211,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_payload_offset (CuTes
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x27;
 	header->integrity_check = 0;
@@ -141,7 +227,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_payload_offset (CuTes
 	message.target_eid = 0x22;
 	message.channel_id = 7;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0x27, message_type);
 
@@ -157,12 +243,12 @@ static void cmd_interface_protocol_mctp_test_parse_message_payload_offset (CuTes
 	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 7, message.channel_id);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_minimum_length (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT * 2] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -172,8 +258,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_minimum_length (CuTes
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 0;
@@ -189,7 +274,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_minimum_length (CuTes
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0x13, message_type);
 
@@ -205,12 +290,12 @@ static void cmd_interface_protocol_mctp_test_parse_message_minimum_length (CuTes
 	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 4, message.channel_id);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_mctp_control (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT * 2] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -220,8 +305,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_mctp_control (CuTest 
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0;
 	header->integrity_check = 0;
@@ -237,7 +321,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_mctp_control (CuTest 
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, message_type);
 
@@ -254,7 +338,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_mctp_control (CuTest 
 	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 4, message.channel_id);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_mctp_control_payload_offset (
@@ -311,7 +395,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_mctp_control_payload_
 
 static void cmd_interface_protocol_mctp_test_parse_message_vendor_defined_pci (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -321,8 +405,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_vendor_defined_pci (C
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x7e;
 	header->integrity_check = 0;
@@ -338,7 +421,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_vendor_defined_pci (C
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, message_type);
 
@@ -354,13 +437,13 @@ static void cmd_interface_protocol_mctp_test_parse_message_vendor_defined_pci (C
 	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 4, message.channel_id);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_vendor_defined_pci_with_integrity_check (
 	CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -370,8 +453,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_vendor_defined_pci_wi
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x7e;
 	header->integrity_check = 1;
@@ -387,7 +469,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_vendor_defined_pci_wi
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, message_type);
 
@@ -403,12 +485,12 @@ static void cmd_interface_protocol_mctp_test_parse_message_vendor_defined_pci_wi
 	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 4, message.channel_id);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_spdm (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -418,8 +500,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_spdm (CuTest *test)
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x05;
 	header->integrity_check = 0;
@@ -435,7 +516,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_spdm (CuTest *test)
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM, message_type);
 
@@ -451,12 +532,14 @@ static void cmd_interface_protocol_mctp_test_parse_message_spdm (CuTest *test)
 	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 4, message.channel_id);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_static_init (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp = cmd_interface_protocol_mctp_static_init;
+	struct cmd_interface_protocol_mctp_testing mctp = {
+		.test = cmd_interface_protocol_mctp_static_init
+	};
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -465,6 +548,8 @@ static void cmd_interface_protocol_mctp_test_parse_message_static_init (CuTest *
 	uint32_t message_type;
 
 	TEST_START;
+
+	cmd_interface_protocol_mctp_testing_init_dependencies (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 0;
@@ -480,7 +565,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_static_init (CuTest *
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0x13, message_type);
 
@@ -496,12 +581,12 @@ static void cmd_interface_protocol_mctp_test_parse_message_static_init (CuTest *
 	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 4, message.channel_id);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_null (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -511,8 +596,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_null (CuTest *test)
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 0;
@@ -528,13 +612,13 @@ static void cmd_interface_protocol_mctp_test_parse_message_null (CuTest *test)
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (NULL, &message, &message_type);
+	status = mctp.test.base.parse_message (NULL, &message, &message_type);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
-	status = mctp.base.parse_message (&mctp.base, NULL, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, NULL, &message_type);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
-	status = mctp.base.parse_message (&mctp.base, &message, NULL);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, NULL);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -542,12 +626,12 @@ static void cmd_interface_protocol_mctp_test_parse_message_null (CuTest *test)
 	CuAssertPtrEquals (test, message.data, message.payload);
 	CuAssertIntEquals (test, message.length, message.payload_length);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_no_payload (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -557,8 +641,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_no_payload (CuTest *t
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 0;
@@ -574,7 +657,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_no_payload (CuTest *t
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TOO_SHORT, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -582,12 +665,12 @@ static void cmd_interface_protocol_mctp_test_parse_message_no_payload (CuTest *t
 	CuAssertPtrEquals (test, message.data, message.payload);
 	CuAssertIntEquals (test, 0, message.payload_length);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_integrity_check (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -597,8 +680,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_integrity_check (CuTe
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -614,7 +696,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_integrity_check (CuTe
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_MSG, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -622,13 +704,13 @@ static void cmd_interface_protocol_mctp_test_parse_message_integrity_check (CuTe
 	CuAssertPtrEquals (test, message.data, message.payload);
 	CuAssertIntEquals (test, message.length, message.payload_length);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_mctp_control_with_integrity_check (
 	CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -638,8 +720,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_mctp_control_with_int
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0;
 	header->integrity_check = 1;
@@ -655,7 +736,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_mctp_control_with_int
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_MSG, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -663,12 +744,12 @@ static void cmd_interface_protocol_mctp_test_parse_message_mctp_control_with_int
 	CuAssertPtrEquals (test, message.data, message.payload);
 	CuAssertIntEquals (test, message.length, message.payload_length);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_spdm_with_integrity_check (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -678,8 +759,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_spdm_with_integrity_c
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x05;
 	header->integrity_check = 1;
@@ -695,7 +775,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_spdm_with_integrity_c
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_MSG, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -703,12 +783,12 @@ static void cmd_interface_protocol_mctp_test_parse_message_spdm_with_integrity_c
 	CuAssertPtrEquals (test, message.data, message.payload);
 	CuAssertIntEquals (test, message.length, message.payload_length);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_small (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -718,8 +798,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_s
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 0;
@@ -735,7 +814,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_s
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESP_TOO_SMALL, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -743,13 +822,13 @@ static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_s
 	CuAssertPtrEquals (test, message.data, message.payload);
 	CuAssertIntEquals (test, message.length, message.payload_length);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_small_payload_offset (
 	CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT + 16] = {0};
 	struct cmd_interface_msg message;
 	size_t payload_offset = 17;
@@ -760,8 +839,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_s
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 0;
@@ -777,7 +855,7 @@ static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_s
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.parse_message (&mctp.base, &message, &message_type);
+	status = mctp.test.base.parse_message (&mctp.test.base, &message, &message_type);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_RESP_TOO_SMALL, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -785,12 +863,12 @@ static void cmd_interface_protocol_mctp_test_parse_message_response_length_too_s
 	CuAssertPtrEquals (test, &message.data[payload_offset], message.payload);
 	CuAssertIntEquals (test, message.length - payload_offset, message.payload_length);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -800,8 +878,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result (CuTest *test
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -817,7 +894,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result (CuTest *test
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.handle_request_result (&mctp.base, 0, message_type, &message);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, 0, message_type, &message);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -835,12 +912,12 @@ static void cmd_interface_protocol_mctp_test_handle_request_result (CuTest *test
 	CuAssertIntEquals (test, message_type, header->msg_type);
 	CuAssertIntEquals (test, 0, header->integrity_check);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result_payload_offset (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	size_t payload_offset = 9;
@@ -851,8 +928,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_payload_offse
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x27;
 	header->integrity_check = 0;
@@ -868,7 +944,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_payload_offse
 	message.target_eid = 0x22;
 	message.channel_id = 7;
 
-	status = mctp.base.handle_request_result (&mctp.base, 0, message_type, &message);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, 0, message_type, &message);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -886,12 +962,12 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_payload_offse
 	CuAssertIntEquals (test, message_type, header->msg_type);
 	CuAssertIntEquals (test, 0, header->integrity_check);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result_request_failure (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -901,8 +977,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_request_failu
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -918,8 +993,8 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_request_failu
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.handle_request_result (&mctp.base, CMD_HANDLER_PROCESS_FAILED, message_type,
-		&message);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, CMD_HANDLER_PROCESS_FAILED,
+		message_type, &message);
 	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -937,12 +1012,12 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_request_failu
 	CuAssertIntEquals (test, 0x13, header->msg_type);
 	CuAssertIntEquals (test, 1, header->integrity_check);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -952,8 +1027,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control 
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -969,7 +1043,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control 
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.handle_request_result (&mctp.base, 0, message_type, &message);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, 0, message_type, &message);
 	CuAssertIntEquals (test, 0, status);
 
 	/* TODO:  This should be updated to add the message header. */
@@ -988,24 +1062,31 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control 
 	CuAssertIntEquals (test, message_type, header->msg_type);
 	CuAssertIntEquals (test, 0, header->integrity_check);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control_request_failure (
 	CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
 		(struct mctp_base_protocol_message_header*) &data[1];
 	int status;
 	uint32_t message_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	struct debug_log_entry_info entry1 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_MCTP,
+		.msg_index = MCTP_LOGGING_MCTP_CONTROL_REQ_FAIL,
+		.arg1 = CMD_HANDLER_PROCESS_FAILED,
+		.arg2 = 4
+	};
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -1021,8 +1102,13 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control_
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.handle_request_result (&mctp.base, CMD_HANDLER_PROCESS_FAILED, message_type,
-		&message);
+	status = mock_expect (&mctp.log.mock, mctp.log.base.create_entry, &mctp.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry1)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp.test.base.handle_request_result (&mctp.test.base, CMD_HANDLER_PROCESS_FAILED,
+		message_type, &message);
 	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, status);
 
 	/* TODO:  This should be updated to add the message header. */
@@ -1041,12 +1127,12 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_mctp_control_
 	CuAssertIntEquals (test, 0x13, header->msg_type);
 	CuAssertIntEquals (test, 1, header->integrity_check);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result_vendor_defined_pci (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -1056,8 +1142,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_vendor_define
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -1073,7 +1158,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_vendor_define
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.handle_request_result (&mctp.base, 0, message_type, &message);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, 0, message_type, &message);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -1091,13 +1176,13 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_vendor_define
 	CuAssertIntEquals (test, 0x13, header->msg_type);
 	CuAssertIntEquals (test, 1, header->integrity_check);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result_vendor_defined_pci_request_failure (
 	CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -1107,8 +1192,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_vendor_define
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -1124,8 +1208,8 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_vendor_define
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.handle_request_result (&mctp.base, CMD_HANDLER_PROCESS_FAILED, message_type,
-		&message);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, CMD_HANDLER_PROCESS_FAILED,
+		message_type, &message);
 	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -1143,12 +1227,12 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_vendor_define
 	CuAssertIntEquals (test, 0x13, header->msg_type);
 	CuAssertIntEquals (test, 1, header->integrity_check);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result_spdm (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -1158,8 +1242,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_spdm (CuTest 
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -1175,7 +1258,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_spdm (CuTest 
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.handle_request_result (&mctp.base, 0, message_type, &message);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, 0, message_type, &message);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -1193,13 +1276,13 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_spdm (CuTest 
 	CuAssertIntEquals (test, message_type, header->msg_type);
 	CuAssertIntEquals (test, 0, header->integrity_check);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result_spdm_request_failure (
 	CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -1209,8 +1292,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_spdm_request_
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -1226,8 +1308,8 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_spdm_request_
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.handle_request_result (&mctp.base, CMD_HANDLER_PROCESS_FAILED, message_type,
-		&message);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, CMD_HANDLER_PROCESS_FAILED,
+		message_type, &message);
 	CuAssertIntEquals (test, CMD_HANDLER_PROCESS_FAILED, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -1245,12 +1327,14 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_spdm_request_
 	CuAssertIntEquals (test, 0x13, header->msg_type);
 	CuAssertIntEquals (test, 1, header->integrity_check);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result_static_init (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp = cmd_interface_protocol_mctp_static_init;
+	struct cmd_interface_protocol_mctp_testing mctp = {
+		.test = cmd_interface_protocol_mctp_static_init
+	};
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -1259,6 +1343,8 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_static_init (
 	uint32_t message_type = 0x76;
 
 	TEST_START;
+
+	cmd_interface_protocol_mctp_testing_init_dependencies (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -1274,7 +1360,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_static_init (
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.handle_request_result (&mctp.base, 0, message_type, &message);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, 0, message_type, &message);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -1292,12 +1378,12 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_static_init (
 	CuAssertIntEquals (test, message_type, header->msg_type);
 	CuAssertIntEquals (test, 0, header->integrity_check);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 static void cmd_interface_protocol_mctp_test_handle_request_result_null (CuTest *test)
 {
-	struct cmd_interface_protocol_mctp mctp;
+	struct cmd_interface_protocol_mctp_testing mctp;
 	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT] = {0};
 	struct cmd_interface_msg message;
 	struct mctp_base_protocol_message_header *header =
@@ -1307,8 +1393,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_null (CuTest 
 
 	TEST_START;
 
-	status = cmd_interface_protocol_mctp_init (&mctp);
-	CuAssertIntEquals (test, 0, status);
+	cmd_interface_protocol_mctp_testing_init (test, &mctp);
 
 	header->msg_type = 0x13;
 	header->integrity_check = 1;
@@ -1324,10 +1409,10 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_null (CuTest 
 	message.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	message.channel_id = 4;
 
-	status = mctp.base.handle_request_result (NULL, 0, message_type, &message);
+	status = mctp.test.base.handle_request_result (NULL, 0, message_type, &message);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
-	status = mctp.base.handle_request_result (&mctp.base, 0, message_type, NULL);
+	status = mctp.test.base.handle_request_result (&mctp.test.base, 0, message_type, NULL);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_INVALID_ARGUMENT, status);
 
 	CuAssertPtrEquals (test, data, message.data);
@@ -1342,7 +1427,7 @@ static void cmd_interface_protocol_mctp_test_handle_request_result_null (CuTest 
 	CuAssertIntEquals (test, false, message.crypto_timeout);
 	CuAssertIntEquals (test, 4, message.channel_id);
 
-	cmd_interface_protocol_mctp_release (&mctp);
+	cmd_interface_protocol_mctp_testing_release (test, &mctp);
 }
 
 

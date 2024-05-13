@@ -4549,7 +4549,7 @@ static void cerberus_protocol_required_commands_test_build_error_response (CuTes
 	response.channel_id = 4;
 
 	cerberus_protocol_build_error_response (&response, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,
-		0x12345678, 0);
+		0x12345678, 0, 0x12);
 
 	CuAssertPtrEquals (test, data, response.data);
 	CuAssertIntEquals (test, sizeof (*error), response.length);
@@ -4610,7 +4610,7 @@ static void cerberus_protocol_required_commands_test_build_error_response_cmd_se
 	response.channel_id = 4;
 
 	cerberus_protocol_build_error_response (&response, CERBERUS_PROTOCOL_ERROR_INVALID_CHECKSUM,
-		0x8172645, 1);
+		0x8172645, 1, 0);
 
 	CuAssertPtrEquals (test, data, response.data);
 	CuAssertIntEquals (test, sizeof (*error), response.length);
@@ -4673,7 +4673,7 @@ static void cerberus_protocol_required_commands_test_build_error_response_payloa
 	response.channel_id = 4;
 
 	cerberus_protocol_build_error_response (&response, CERBERUS_PROTOCOL_ERROR_INVALID_REQ,
-		0x142367, 0);
+		0x142367, 0, 0x87);
 
 	CuAssertPtrEquals (test, data, response.data);
 	CuAssertIntEquals (test, sizeof (*error), response.length);
@@ -4704,7 +4704,7 @@ static void cerberus_protocol_required_commands_test_build_error_response_null (
 	TEST_START;
 
 	cerberus_protocol_build_error_response (NULL, CERBERUS_PROTOCOL_ERROR_UNSPECIFIED,
-		0x12345678, 0);
+		0x12345678, 0, 0x01);
 }
 
 

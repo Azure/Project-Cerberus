@@ -43,6 +43,7 @@ enum {
 	CMD_LOGGING_CLEAR_CFM,					/**< Component manifest has been cleared. */
 	CMD_LOGGING_CLEAR_CFM_FAIL,				/**< Failed to clear component manifest. */
 	CMD_LOGGING_PERSIST_EID_FAIL,			/**< Failed to perist EID on flash. */
+	CMD_LOGGING_CERBERUS_REQUEST_FAIL,		/**< Failed to process a MSFT Cerberus request. */
 };
 
 
