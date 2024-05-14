@@ -111,6 +111,63 @@ static int spdm_secure_session_manager_mock_generate_session_handshake_keys (
 		session_manager, MOCK_ARG_PTR_CALL (session));
 }
 
+static int spdm_secure_session_manager_mock_generate_session_data_keys (
+	const struct spdm_secure_session_manager *session_manager,
+	struct spdm_secure_session *session)
+{
+	struct spdm_secure_session_manager_mock *mock =
+		(struct spdm_secure_session_manager_mock*) session_manager;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spdm_secure_session_manager_mock_generate_session_data_keys,
+		session_manager, MOCK_ARG_CALL (session));
+}
+
+static bool spdm_secure_session_manager_is_last_session_id_valid (
+	const struct spdm_secure_session_manager *session_manager)
+{
+	struct spdm_secure_session_manager_mock *mock =
+		(struct spdm_secure_session_manager_mock*) session_manager;
+
+	if (mock == NULL) {
+		return false;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, spdm_secure_session_manager_is_last_session_id_valid,
+		session_manager);
+}
+
+static uint32_t spdm_secure_session_manager_get_last_session_id (
+	const struct spdm_secure_session_manager *session_manager)
+{
+	struct spdm_secure_session_manager_mock *mock =
+		(struct spdm_secure_session_manager_mock*) session_manager;
+
+	if (mock == NULL) {
+		return 0;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, spdm_secure_session_manager_get_last_session_id,
+		session_manager);
+}
+
+static void spdm_secure_session_manager_mock_reset_last_session_id_validity (
+	const struct spdm_secure_session_manager *session_manager)
+{
+	struct spdm_secure_session_manager_mock *mock =
+		(struct spdm_secure_session_manager_mock*) session_manager;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, 
+		spdm_secure_session_manager_mock_reset_last_session_id_validity, session_manager);
+}
+
 static int spdm_secure_session_manager_mock_func_arg_count (void *func)
 {
 	if (func == spdm_secure_session_manager_mock_create_session) {
@@ -132,6 +189,18 @@ static int spdm_secure_session_manager_mock_func_arg_count (void *func)
 	}
 	else if (func == spdm_secure_session_manager_mock_generate_session_handshake_keys) {
 		return 1;
+	}
+	else if (func == spdm_secure_session_manager_mock_generate_session_data_keys) {
+		return 1;
+	}
+	else if (func == spdm_secure_session_manager_is_last_session_id_valid) {
+		return 0;
+	}
+	else if (func == spdm_secure_session_manager_get_last_session_id) {
+		return 0;
+	}
+	else if (func == spdm_secure_session_manager_mock_reset_last_session_id_validity) {
+		return 0;
 	}
 	else
 		return 0;
@@ -159,6 +228,18 @@ static const char* spdm_secure_session_manager_mock_func_name_map (void *func)
 	}
 	else if (func == spdm_secure_session_manager_mock_generate_session_handshake_keys) {
 		return "generate_session_handshake_keys";
+	}
+	else if (func == spdm_secure_session_manager_mock_generate_session_data_keys) {
+		return "generate_session_data_keys";
+	}
+	else if (func == spdm_secure_session_manager_is_last_session_id_valid) {
+		return "is_last_session_id_valid";
+	}
+	else if (func == spdm_secure_session_manager_get_last_session_id) {
+		return "get_last_session_id";
+	}
+	else if (func == spdm_secure_session_manager_mock_reset_last_session_id_validity) {
+		return "reset_last_session_id_validity";
 	}
 	else
 		return "unknown";
@@ -218,6 +299,24 @@ static const char* spdm_secure_session_manager_mock_arg_name_map (void *func, in
 				return "session";
 		}
 	}
+	else if (func == spdm_secure_session_manager_mock_generate_session_data_keys) {
+		switch (arg) {
+			case 0:
+				return "session";
+		}
+	}
+	else if (func == spdm_secure_session_manager_is_last_session_id_valid) {
+		switch (arg) {
+			case 0:
+				return "session_manager";
+		}
+	}
+	else if (func == spdm_secure_session_manager_get_last_session_id) {
+		switch (arg) {
+			case 0:
+				return "session_manager";
+		}
+	}
 	return "unknown";
 }
 
@@ -253,6 +352,12 @@ int spdm_secure_session_manager_mock_init (struct spdm_secure_session_manager_mo
 	mock->base.generate_shared_secret = spdm_secure_session_manager_mock_generate_shared_secret;
 	mock->base.generate_session_handshake_keys =
 		spdm_secure_session_manager_mock_generate_session_handshake_keys;
+	mock->base.generate_session_data_keys =
+		spdm_secure_session_manager_mock_generate_session_data_keys;
+	mock->base.is_last_session_id_valid = spdm_secure_session_manager_is_last_session_id_valid;
+	mock->base.get_last_session_id = spdm_secure_session_manager_get_last_session_id;
+	mock->base.reset_last_session_id_validity =
+		spdm_secure_session_manager_mock_reset_last_session_id_validity;
 
 	mock->mock.func_arg_count = spdm_secure_session_manager_mock_func_arg_count;
 	mock->mock.func_name_map = spdm_secure_session_manager_mock_func_name_map;

@@ -6,6 +6,7 @@
 #include <string.h>
 #include "cmd_interface_spdm_responder.h"
 #include "spdm_commands.h"
+#include "spdm_secure_session_manager.h"
 #include "common/unused.h"
 
 
@@ -24,10 +25,34 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 		(const struct cmd_interface_spdm_responder*) intf;
 	uint8_t req_code;
 	int status = 0;
+	struct spdm_secure_session_manager *session_manager;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 		goto exit;
+	}
+	session_manager = spdm_responder->session_manager;
+
+	/* Reset the validity of the last session id. */
+	if (session_manager != NULL) {
+		session_manager->reset_last_session_id_validity (session_manager);
+	}
+
+	/* If the request is secure, decode it. */
+	if (request->is_encrypted == true) {
+		if (session_manager == NULL) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			goto exit;
+		}
+
+		status = session_manager->decode_secure_message (session_manager, request) ;
+		if (status != 0) {
+			/* Note: Response is not being encoded in case of a decode failure. */
+			spdm_generate_error_response (request, 0, SPDM_ERROR_DECRYPT_ERROR, 0x00, NULL, 0,
+				0, status);
+			status = 0;
+			goto exit;
+		}
 	}
 
 	/* Pre-process the request and get the command Id. */
@@ -65,10 +90,32 @@ int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 			status = spdm_key_exchange (spdm_responder, request);
 			break;
 
+		case SPDM_REQUEST_FINISH:
+			status = spdm_finish (spdm_responder, request);
+			break;
+
+		case SPDM_REQUEST_END_SESSION:
+			status = spdm_end_session (spdm_responder, request);
+			break;
+
 		default:
 			spdm_generate_error_response (request, 0, SPDM_ERROR_UNSUPPORTED_REQUEST, 0x00, NULL, 0,
 				req_code, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION);
 			break;
+	}
+
+	if ((status == 0) && (request->is_encrypted == true)) {
+		/* If the request was encoded and was succesfully decoded, encode the response. */
+		status = session_manager->encode_secure_message (session_manager, request);
+		if (status != 0) {
+			/**
+			 * Note: An error of SPDM_ERROR_DECRYPT_ERROR is being sent to the requester to 
+			 * to terminate the session. */
+			spdm_generate_error_response (request, 0, SPDM_ERROR_DECRYPT_ERROR, 0x00, NULL, 0,
+				req_code, status);
+			status = 0;
+			goto exit;
+		}
 	}
 
 exit:

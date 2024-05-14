@@ -27,12 +27,32 @@ struct spdm_secure_session* spdm_secure_session_manager_get_session (
 
 int spdm_secure_session_manager_generate_shared_secret (
 	const struct spdm_secure_session_manager *session_manager,
-	struct spdm_secure_session* session_info, const struct ecc_point_public_key *peer_pub_key_point,
+	struct spdm_secure_session* session, const struct ecc_point_public_key *peer_pub_key_point,
 	uint8_t *local_pub_key_point);
 
 int spdm_secure_session_manager_generate_session_handshake_keys (
 	const struct spdm_secure_session_manager *session_manager,
-	struct spdm_secure_session *session_info);
+	struct spdm_secure_session *session);
+
+int spdm_secure_session_manager_generate_session_data_keys (
+	const struct spdm_secure_session_manager *session_manager,
+	struct spdm_secure_session *session);
+
+bool spdm_secure_session_manager_is_last_session_id_valid (
+	const struct spdm_secure_session_manager *session_manager);
+
+uint32_t spdm_secure_session_manager_get_last_session_id (
+	const struct spdm_secure_session_manager *session_manager);
+
+void spdm_secure_session_manager_reset_last_session_id_validity (
+	const struct spdm_secure_session_manager *session_manager);
+
+int spdm_secure_session_manager_decode_secure_message (
+	const struct spdm_secure_session_manager *session_manager, struct cmd_interface_msg *request);
+
+int spdm_secure_session_manager_encode_secure_message (
+	const struct spdm_secure_session_manager *session_manager, struct cmd_interface_msg *request);
+
 
 /**
  * Constant initializer for the Secure Session Manager API.
@@ -44,7 +64,13 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 	.set_session_state = spdm_secure_session_manager_set_session_state, \
 	.reset = spdm_secure_session_manager_reset, \
 	.generate_shared_secret = spdm_secure_session_manager_generate_shared_secret, \
-	.generate_session_handshake_keys = spdm_secure_session_manager_generate_session_handshake_keys
+	.generate_session_handshake_keys = spdm_secure_session_manager_generate_session_handshake_keys, \
+	.generate_session_data_keys = spdm_secure_session_manager_generate_session_data_keys, \
+	.is_last_session_id_valid = spdm_secure_session_manager_is_last_session_id_valid, \
+	.get_last_session_id = spdm_secure_session_manager_get_last_session_id, \
+	.reset_last_session_id_validity = spdm_secure_session_manager_reset_last_session_id_validity, \
+	.decode_secure_message = spdm_secure_session_manager_decode_secure_message, \
+	.encode_secure_message = spdm_secure_session_manager_encode_secure_message \
 
 /**
  * SPDM Secure Session Manager Static Initialization.

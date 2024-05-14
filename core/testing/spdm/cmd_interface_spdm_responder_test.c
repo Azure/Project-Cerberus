@@ -1128,7 +1128,11 @@ static void cmd_interface_spdm_responder_test_process_request_get_version (CuTes
 	memcpy (version_num, testing.version_num,
 		sizeof (struct spdm_version_num_entry) * ARRAY_SIZE (testing.version_num));
 
-	status = mock_expect (&testing.transcript_manager_mock.mock,
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset,
 		&testing.transcript_manager_mock.base, 0);
 
@@ -1200,6 +1204,11 @@ static void cmd_interface_spdm_responder_test_process_request_get_version_fail (
 	rq->reserved = 0;
 	rq->reserved2 = 0;
 
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1251,7 +1260,11 @@ static void cmd_interface_spdm_responder_test_process_request_get_capabilities (
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
 
-	status = mock_expect (&testing.transcript_manager_mock.mock,
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
@@ -1335,6 +1348,11 @@ uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	memcpy (request.payload, &rq, sizeof (struct spdm_get_capabilities));
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_VERSION;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
 
@@ -1425,7 +1443,11 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
 	spdm_state->connection_info.version.minor_version = 2;
 
-	status = mock_expect (&testing.transcript_manager_mock.mock,
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
@@ -1568,6 +1590,11 @@ static void cmd_interface_spdm_responder_test_process_request_negotiate_algorith
 	rq->header.spdm_minor_version = 2;
 	rq->header.req_rsp_code = SPDM_REQUEST_NEGOTIATE_ALGORITHMS;
 
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1621,7 +1648,15 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests (CuTes
 
 	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
 
-	status = mock_expect (&testing.transcript_manager_mock.mock,
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
@@ -1679,7 +1714,7 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = spdm_get_digests (spdm_responder, &request);
+	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct spdm_get_digests_response) +
@@ -1725,6 +1760,11 @@ static void cmd_interface_spdm_responder_test_process_request_get_digests_fail (
 	rq->header.req_rsp_code = SPDM_REQUEST_GET_DIGESTS;
 
 	TEST_START;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
 
@@ -1784,7 +1824,15 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 		key_manager->root_ca.length + key_manager->intermediate_ca.length +
 		key_manager->keys.alias_cert_length + key_manager->keys.devid_cert_length;
 
-	status = mock_expect (&testing.transcript_manager_mock.mock,
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
@@ -1894,6 +1942,11 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate_fa
 	rq->length = 0xFFFF;
 	rq->header.req_rsp_code = SPDM_REQUEST_GET_CERTIFICATE;
 
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = spdm_responder->base.process_request (&spdm_responder->base, &request);
 
 	CuAssertIntEquals (test, 0, status);
@@ -1958,7 +2011,15 @@ static void cmd_interface_spdm_responder_test_process_request_get_measurements (
 		expected_measurement_record[i] = rand ();
 	}
 
-	status = mock_expect (&testing.transcript_manager_mock.mock,
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);	
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
@@ -2057,7 +2118,15 @@ static void cmd_interface_spdm_responder_test_process_request_get_measurements_f
 
 	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
 
-	status = mock_expect (&testing.transcript_manager_mock.mock,
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
 		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
 		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
@@ -2177,7 +2246,15 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange (CuTe
 	versions_list->major_version = 1;
 	versions_list->minor_version = 0;
 
-	status = mock_expect (&testing.transcript_manager_mock.mock,
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
 		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
@@ -2376,10 +2453,335 @@ static void cmd_interface_spdm_responder_test_process_request_key_exchange_fail 
 	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
 	rq->header.spdm_minor_version = 2;
 
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
 
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), request.payload_length);
+
+	cmd_interface_spdm_responder_testing_release (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_process_request_finish (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request;
+	int status;
+	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
+	struct spdm_finish_response *rsp = (struct spdm_finish_response*) buf;
+	uint8_t rq_copy[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct cmd_interface_spdm_responder_testing testing;
+	struct spdm_secure_session session = {0};
+	size_t request_size = sizeof (struct spdm_finish_request) + SHA384_HASH_LENGTH;
+	uint8_t idx;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = (uint8_t*) rq;
+	request.max_response = sizeof (buf);
+	request.payload_length = request_size;
+	request.length = request.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+
+	rq->header.req_rsp_code = SPDM_REQUEST_FINISH;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->signature_included = 0;
+
+	session.session_state = SPDM_SESSION_STATE_HANDSHAKING;
+	session.hash_size = SHA384_HASH_LENGTH;
+	session.session_index = 0;
+	session.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 1);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.get_last_session_id,
+		&testing.session_manager_mock.base, 0xDEADBEEF);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.get_session,
+		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
+		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
+		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG_PTR_CONTAINS (rq_copy, sizeof (struct spdm_finish_request)),
+		MOCK_ARG (sizeof (struct spdm_finish_request)), MOCK_ARG (true),
+		MOCK_ARG (session.session_index));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
+		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (session.session_index), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	/* HMAC Rounds. */
+	for (idx = 0; idx < 2; idx++) {
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.start_sha384,
+			&testing.hash_engine_mock[0].base, 0);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update,
+			&testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.update,
+			&testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock[0].mock,
+			testing.hash_engine_mock[0].base.finish, &testing.hash_engine_mock[0].base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+	status |= mock_expect_output (&testing.hash_engine_mock[0].mock, 0, SHA384_TEST_HASH,
+		SHA384_HASH_LENGTH, -1);
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG_PTR_CONTAINS (SHA384_TEST_HASH, SHA384_HASH_LENGTH), MOCK_ARG (SHA384_HASH_LENGTH),
+		MOCK_ARG (true), MOCK_ARG (session.session_index));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.update,
+		&testing.transcript_manager_mock.base, 0,
+		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (struct spdm_finish_response)), MOCK_ARG (true),
+		MOCK_ARG (session.session_index));
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.generate_session_data_keys,
+		&testing.session_manager_mock.base, 0, MOCK_ARG (&session));
+
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (rq_copy, rq, request_size);
+	memcpy ((rq + 1), SHA384_TEST_HASH, SHA384_HASH_LENGTH);
+
+	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_finish_response), request.length);
+	CuAssertIntEquals (test, request.length, request.payload_length);
+	CuAssertPtrEquals (test, buf, request.data);
+	CuAssertPtrEquals (test, rsp, request.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_FINISH, rsp->header.req_rsp_code);
+
+	cmd_interface_spdm_responder_testing_release (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_process_request_finish_fail (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request;
+	int status;
+	struct spdm_finish_request *rq = (struct spdm_finish_request*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = (uint8_t*) rq;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_finish_request);
+	request.length = request.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	rq->header.req_rsp_code = SPDM_REQUEST_FINISH;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNEXPECTED_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), request.payload_length);
+
+	cmd_interface_spdm_responder_testing_release (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_process_request_end_session (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request;
+	int status;
+	struct spdm_end_session_request *rq = (struct spdm_end_session_request*) buf;
+	struct spdm_end_session_response *rsp = (struct spdm_end_session_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct cmd_interface_spdm_responder_testing testing;
+	struct spdm_secure_session session = {0};
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = (uint8_t*) rq;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_end_session_request);
+	request.length = request.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+
+	rq->header.req_rsp_code = SPDM_REQUEST_END_SESSION;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	session.session_state = SPDM_SESSION_STATE_ESTABLISHED;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 1);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.get_last_session_id,
+		&testing.session_manager_mock.base, 0xDEADBEEF);
+
+	status |= mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.get_session,
+		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
+		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
+		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG (false),
+		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct spdm_end_session_response), request.length);
+	CuAssertIntEquals (test, request.length, request.payload_length);
+	CuAssertPtrEquals (test, buf, request.data);
+	CuAssertPtrEquals (test, rsp, request.payload);
+	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
+	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
+	CuAssertIntEquals (test, SPDM_RESPONSE_END_SESSION, rsp->header.req_rsp_code);
+
+	cmd_interface_spdm_responder_testing_release (test, &testing);
+}
+
+static void cmd_interface_spdm_responder_test_process_request_end_session_fail (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request;
+	int status;
+	struct spdm_end_session_request *rq = (struct spdm_end_session_request*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_state *spdm_state;
+	struct cmd_interface_spdm_responder_testing testing;
+
+	TEST_START;
+
+	cmd_interface_spdm_responder_testing_init (test, &testing);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = spdm_responder->state;
+
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.payload = (uint8_t*) rq;
+	request.max_response = sizeof (buf);
+	request.payload_length = sizeof (struct spdm_end_session_request);
+	request.length = request.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+
+	rq->header.req_rsp_code = SPDM_REQUEST_END_SESSION;
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNEXPECTED_REQUEST, error_response->error_code);
 	CuAssertIntEquals (test, 0, error_response->error_data);
 	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
 	CuAssertIntEquals (test, sizeof (struct spdm_error_response), request.payload_length);
@@ -2428,6 +2830,11 @@ static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_i
 	request.payload_length = sizeof (struct spdm_protocol_header) - 1;
 	request.length = request.payload_length;
 
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_PAYLOAD_TOO_SHORT, status);
 
@@ -2459,6 +2866,11 @@ static void cmd_interface_spdm_responder_test_process_request_spdm_get_command_i
 	rq->header.req_rsp_code = SPDM_REQUEST_GET_VERSION;
 	rq->reserved = 0;
 	rq->reserved2 = 0;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_NOT_INTEROPERABLE, status);
@@ -2492,6 +2904,11 @@ static void cmd_interface_spdm_responder_test_process_request_unsupported_reques
 	rq->header.req_rsp_code = -1;
 	rq->reserved = 0;
 	rq->reserved2 = 0;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.reset_last_session_id_validity,
+		 &testing.session_manager_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
 
 	status = testing.spdm_responder.base.process_request (&testing.spdm_responder.base, &request);
 
@@ -2573,6 +2990,10 @@ TEST (cmd_interface_spdm_responder_test_process_request_get_measurements);
 TEST (cmd_interface_spdm_responder_test_process_request_get_measurements_fail);
 TEST (cmd_interface_spdm_responder_test_process_request_key_exchange);
 TEST (cmd_interface_spdm_responder_test_process_request_key_exchange_fail);
+TEST (cmd_interface_spdm_responder_test_process_request_finish);
+TEST (cmd_interface_spdm_responder_test_process_request_finish_fail);
+TEST (cmd_interface_spdm_responder_test_process_request_end_session);
+TEST (cmd_interface_spdm_responder_test_process_request_end_session_fail);
 TEST (cmd_interface_spdm_responder_test_process_request_invalid_arg);
 TEST (cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_short_payload);
 TEST (cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_unsupported_major_version);

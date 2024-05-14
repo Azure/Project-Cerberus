@@ -18,6 +18,13 @@
 #endif
 
 /**
+ * Maximum number of SPDM session sequence numbers.
+ */
+#ifndef SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER
+#define SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER		UINT64_MAX
+#endif
+
+/**
  * Max. DHE key size for supported hash algorithms.
  */
 #define SPDM_MAX_DHE_SHARED_SECRET_SIZE		ECC_MAX_KEY_LENGTH
@@ -144,6 +151,28 @@ struct spdm_secured_message_opaque_element_supported_version {
 	uint8_t sm_data_id; 		/**< SECURED_MESSAGE_OPAQUE_ELEMENT_SMDATA_ID_SUPPORTED_VERSION */
 	uint8_t version_count;		/**< Number of supported versions. */
 };
+
+/**
+ * SPDM secure message first part of the header.
+ */
+struct spdm_secured_message_data_header_1 {
+	uint32_t session_id;	/**< Session Id of the session. */
+};
+
+/**
+ * SPDM secure message last part of the header.
+ */
+struct spdm_secured_message_data_header_2 {
+	uint16_t length; /**< The length of the remaining data, including application_data_length(O), payload, Random(O) and MAC.*/
+};
+
+/**
+ * SPDM secure message cipher header.
+ */
+struct spdm_secured_message_cipher_header {
+	uint16_t application_data_length; /**< The length of the application payload. */
+};
+
 #pragma pack()
 
 /**
@@ -172,12 +201,26 @@ struct spdm_secure_session_handshake_secrets {
 };
 
 /**
+ * SPDM session data secrets.
+ */
+struct spdm_secure_session_data_secrets {
+	uint8_t request_data_secret[HASH_MAX_HASH_LEN];					/**< Requester data secret. */
+	uint8_t response_data_secret[HASH_MAX_HASH_LEN];				/**< Responder data secret. */
+	uint8_t request_data_encryption_key[SPDM_MAX_AEAD_KEY_SIZE];	/**< Requester data encryption key. */
+	uint8_t request_data_salt[SPDM_MAX_AEAD_IV_SIZE];				/**< Requester data salt. */
+	uint64_t request_data_sequence_number;							/**< Requester data sequence number. */
+	uint8_t response_data_encryption_key[SPDM_MAX_AEAD_KEY_SIZE];	/**< Responder data encryption key. */
+	uint8_t response_data_salt[SPDM_MAX_AEAD_IV_SIZE];				/**< Responder data salt. */
+	uint64_t response_data_sequence_number;							/**< Responder data sequence number. */
+};
+
+/**
  * SPDM secure session object.
  */
 struct spdm_secure_session {
-	uint32_t session_id;												/**< Session Id. */
-	uint32_t session_index;												/**< Index of session in session array. */
-	uint8_t end_session_attributes;										/**< End session attributes. */
+	uint32_t session_id;												/**< SPDM Session Id. */
+	uint32_t session_index;												/**< Index of session in sessions array. */
+	struct spdm_end_session_request_attributes end_session_attributes;	/**< End session attributes. */
 	uint8_t session_policy;												/**< Session termination policy. */
 	struct spdm_key_update_request last_key_update_request;				/**< Last key update request. */
 	enum spdm_secure_session_type session_type;							/**< Session type. */
@@ -195,10 +238,13 @@ struct spdm_secure_session {
 	enum spdm_secure_session_state session_state;						/**< State in which the SPDM session is. */
 	struct spdm_secure_session_master_secrets master_secret;			/**< Master secret. */
 	struct spdm_secure_session_handshake_secrets handshake_secret;		/**< Handshake secret. */
+	struct spdm_secure_session_data_secrets data_secret;				/**< Data secret. */
+	struct spdm_secure_session_data_secrets data_secret_backup;			/**< Data secret backup. */
 	bool requester_backup_valid;										/**< Requester backup is valid. */
 	bool responder_backup_valid;										/**< Responder backup is valid. */
 	uint8_t export_master_secret[HASH_MAX_HASH_LEN];					/**< Export master secret. */
 	bool is_requester;													/**< Requester or responder role. */
+	struct spdm_device_capability peer_capabilities;					/**< Peer capabilities. */
 };
 
 /**
@@ -207,6 +253,8 @@ struct spdm_secure_session {
 struct spdm_secure_session_manager_state {
 	struct spdm_secure_session sessions[SPDM_MAX_SESSION_COUNT];	/**< Secure Sessions. */
 	uint32_t current_session_count;									/**< Current number of active sessions. */
+	uint32_t last_spdm_request_secure_session_id;					/**< Secure session Id of last secure message. */
+	bool last_spdm_request_secure_session_id_valid; 				/**< Secure session Id validity. */
 };
 
 struct spdm_secure_session_manager {
@@ -280,12 +328,71 @@ struct spdm_secure_session_manager {
 	 * Generate handshake keys for an SPDM secure session.
 	 *
 	 * @param session_manager Session Manager.
-	 * @param session Session Info.
+	 * @param session Secure Session.
 	 *
 	 * @return 0 if the handshake keys are generated successfully, error code otherwise.
 	 */
 	int (*generate_session_handshake_keys) (const struct spdm_secure_session_manager *session_manager,
 		struct spdm_secure_session *session);
+
+	/**
+	 * Generate data keys for an SPDM secure session.
+	 * 
+	 * @param session_manager SPDM Session Manager.
+	 * @param session SPDM Secure Session.
+	 * 
+	 * @return 0 if the data keys are generated successfully, error code otherwise.
+	 */
+	int (*generate_session_data_keys) (const struct spdm_secure_session_manager *session_manager,
+		struct spdm_secure_session *session);
+
+	/**
+	 * Query if the last session is active.
+	 * 
+	 * @param session_manager SPDM session manager.
+	 * 
+	 * @return true if the last session is active, false otherwise.
+	 */
+	bool (*is_last_session_id_valid) (const struct spdm_secure_session_manager *session_manager);
+
+	/**
+	 * Get the last session id.
+	 * 
+	 * @param session_manager SPDM session manager.
+	 * 
+	 * @return Last session id.
+	 */
+	uint32_t (*get_last_session_id) (const struct spdm_secure_session_manager *session_manager);
+
+	/**
+	 * Reset the last session id validity.
+	 * 
+	 * @param session_manager SPDM session manager.
+	 */
+	void (*reset_last_session_id_validity) (
+		const struct spdm_secure_session_manager *session_manager);
+
+	/**
+	 * Decode a secure message. This includes MAC verification and optionally decryption.
+	 * 
+	 * @param session_manager SPDM session manager.
+	 * @param request SPDM request message.
+	 * 
+	 * @return 0 if the secure message is decoded successfully, error code otherwise.
+	 */
+	int (*decode_secure_message) (const struct spdm_secure_session_manager *session_manager,
+		struct cmd_interface_msg *request);
+
+	/**
+	 * Encode a secure message. This includes MAC generation and optionally encryption.
+	 * 
+	 * @param session_manager SPDM session manager.
+	 * @param request SPDM request message.
+	 * 
+	 * @return 0 if the secure message is encoded successfully, error code otherwise.
+	 */
+	int (*encode_secure_message) (const struct spdm_secure_session_manager *session_manager,
+		struct cmd_interface_msg *request);
 
 	const struct spdm_device_capability *local_capabilities;	/**< Local capabilities. */
 	const struct spdm_device_algorithms *local_algorithms;		/**< Local algorithms. */
@@ -295,6 +402,7 @@ struct spdm_secure_session_manager {
 	struct ecc_engine *ecc_engine;								/**< ECC engine. */
 	struct spdm_transcript_manager *transcript_manager;			/**< Transcript Manager. */
 	struct spdm_secure_session_manager_state *state;			/**< Session Manager State. */
+	uint64_t max_spdm_session_sequence_number;					/**< Max SPDM session sequence number. */
 };
 
 
@@ -309,16 +417,23 @@ void spdm_secure_session_manager_release (const struct spdm_secure_session_manag
 int spdm_secure_session_manager_init_state (const struct spdm_secure_session_manager *session_manager);
 
 
-#define	SPDM_SESSION_MANAGER_ERROR(code)	ROT_ERROR (ROT_MODULE_SPDM_SESSION_MANAGER, code)
+#define	SPDM_SECURE_SESSION_MANAGER_ERROR(code)	ROT_ERROR (ROT_MODULE_SPDM_SECURE_SESSION_MANAGER, code)
 
 /**
  * Error codes that can be generated by the Secure Session Manager.
  */
 enum {
-	SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT = SPDM_SESSION_MANAGER_ERROR (0x00),					/**< Input parameter is null or not valid. */
-	SPDM_SECURE_SESSION_MANAGER_NO_MEMORY = SPDM_SESSION_MANAGER_ERROR (0x01),							/**< Memory allocation failed. */
-	SPDM_SECURE_SESSION_MANAGER_GENERATE_SHARED_SECRET_FAILED = SPDM_SESSION_MANAGER_ERROR (0x02),		/**< Generate shared secret failed. */
-	SPDM_SECURE_SESSION_MANAGER_GENERATE_HANDSHAKE_KEYS_FAILED = SPDM_SESSION_MANAGER_ERROR (0x03),		/**< Generate handshake keys failed. */
+	SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT = SPDM_SECURE_SESSION_MANAGER_ERROR (0x00),				/**< Input parameter is null or not valid. */
+	SPDM_SECURE_SESSION_MANAGER_NO_MEMORY = SPDM_SECURE_SESSION_MANAGER_ERROR (0x01),						/**< Memory allocation failed. */
+	SPDM_SECURE_SESSION_MANAGER_GENERATE_SHARED_SECRET_FAILED = SPDM_SECURE_SESSION_MANAGER_ERROR (0x02),	/**< Generate shared secret failed. */
+	SPDM_SECURE_SESSION_MANAGER_GENERATE_HANDSHAKE_KEYS_FAILED = SPDM_SECURE_SESSION_MANAGER_ERROR (0x03),	/**< Generate handshake keys failed. */
+	SPDM_SECURE_SESSION_MANAGER_SEQUENCE_NUMBER_OVERFLOW = SPDM_SECURE_SESSION_MANAGER_ERROR (0x04),		/**< Sequence number overflow. */
+	SPDM_SECURE_SESSION_MANAGER_INVALID_MESSAGE_SIZE = SPDM_SECURE_SESSION_MANAGER_ERROR (0x05),			/**< Invalid message size. */
+	SPDM_SECURE_SESSION_MANAGER_BUFFER_TOO_SMALL = SPDM_SECURE_SESSION_MANAGER_ERROR (0x06),				/**< Buffer too small. */
+	SPDM_SECURE_SESSION_MANAGER_SESSION_TRY_DISCARD_KEY_UPDATE = SPDM_SECURE_SESSION_MANAGER_ERROR (0x07),	/**< Message decryption failed, try update keys. */
+	SPDM_SECURE_SESSION_MANAGER_UNSUPPORTED_CAPABILITY = SPDM_SECURE_SESSION_MANAGER_ERROR (0x08),			/**< Unsupported capability. */
+	SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR = SPDM_SECURE_SESSION_MANAGER_ERROR (0x09),					/**< Internal error. */
+	SPDM_SECURE_SESSION_MANAGER_GENERATE_DATA_KEYS_FAILED = SPDM_SECURE_SESSION_MANAGER_ERROR (0x0A),		/**< Generate data keys failed. */
 };
 
 #endif /* SPDM_SECURE_SESSION_MANAGER_H_ */

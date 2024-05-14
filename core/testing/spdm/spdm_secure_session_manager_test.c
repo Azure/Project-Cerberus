@@ -16,6 +16,7 @@
 #include "testing/engines/ecc_testing_engine.h"
 #include "testing/engines/aes_testing_engine.h"
 #include "testing/crypto/ecc_testing.h"
+#include "crypto/kdf.h"
 
 
 TEST_SUITE_LABEL ("spdm_secure_session_manager");
@@ -236,6 +237,10 @@ static void spdm_secure_session_manager_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, session_manager.reset);
 	CuAssertPtrNotNull (test, session_manager.generate_shared_secret);
 	CuAssertPtrNotNull (test, session_manager.generate_session_handshake_keys);
+	CuAssertPtrNotNull (test, session_manager.generate_session_data_keys);
+	CuAssertPtrNotNull (test, session_manager.is_last_session_id_valid);
+	CuAssertPtrNotNull (test, session_manager.get_last_session_id);
+	CuAssertPtrNotNull (test, session_manager.reset_last_session_id_validity);
 
 	spdm_secure_session_manager_release (&session_manager);
 
@@ -351,6 +356,10 @@ static void spdm_secure_session_manager_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, testing.session_manager.reset);
 	CuAssertPtrNotNull (test, testing.session_manager.generate_shared_secret);
 	CuAssertPtrNotNull (test, testing.session_manager.generate_session_handshake_keys);
+	CuAssertPtrNotNull (test, testing.session_manager.generate_session_data_keys);
+	CuAssertPtrNotNull (test, testing.session_manager.is_last_session_id_valid);
+	CuAssertPtrNotNull (test, testing.session_manager.get_last_session_id);
+	CuAssertPtrNotNull (test, testing.session_manager.reset_last_session_id_validity);
 
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
@@ -1177,6 +1186,1591 @@ static void spdm_secure_session_manager_test_generate_shared_secret_get_public_k
 	spdm_secure_session_manager_testing_release (test, &testing);
 }
 
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_invalid_param (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	/* session_manager = NULL */
+	status = session_manager->generate_session_handshake_keys (NULL, session);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	/* session = NULL */
+	status = session_manager->generate_session_handshake_keys (session_manager, NULL);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_get_hash_fail (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
+		SPDM_TRANSCRIPT_MANAGER_GET_HASH_FAILED, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->hash_size = SHA384_HASH_LENGTH;
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_GET_HASH_FAILED, status);
+	
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_handshake_keys_hash_generate_hmac_fail (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
+		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->base_hash_algo = UINT32_MAX;
+	session->hash_size = SHA384_HASH_LENGTH;
+	status = session_manager->generate_session_handshake_keys (session_manager, session);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+	
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_data_key (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	uint8_t idx;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	/* KDF */
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.finish, &testing.hash_engine_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	/* HMAC Rounds (3). */
+	for (idx = 0; idx < 3; idx++) {
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.finish, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
+		0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH), MOCK_ARG (false), MOCK_ARG (true),
+		MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
+
+	/* KDF. */
+	for (idx = 0; idx < 3; idx++) {
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+			
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+			
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.finish, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.finish, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	status = session_manager->generate_session_data_keys (session_manager, session);
+	CuAssertIntEquals (test, 0, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_data_keys_invalid_param (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	/* session_manager = NULL */
+	status = session_manager->generate_session_data_keys (NULL, session);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	/* session = NULL */
+	status = session_manager->generate_session_data_keys (session_manager, NULL);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_data_keys_kdf_hkdf_expand_fail (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->base_hash_algo = UINT32_MAX;
+	status = session_manager->generate_session_data_keys (session_manager, session);
+	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_generate_session_data_keys_get_hash_fail (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	uint8_t idx;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	/* KDF */
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
+
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	status |= mock_expect (&testing.hash_engine_mock.mock,
+		testing.hash_engine_mock.base.finish, &testing.hash_engine_mock.base, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	/* HMAC Rounds (3). */
+	for (idx = 0; idx < 3; idx++) {
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.start_sha384, &testing.hash_engine_mock.base, 0);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.update, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+		status |= mock_expect (&testing.hash_engine_mock.mock,
+			testing.hash_engine_mock.base.finish, &testing.hash_engine_mock.base, 0,
+			MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	}
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
+		SPDM_TRANSCRIPT_MANAGER_GET_HASH_FAILED, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (false), MOCK_ARG (true), MOCK_ARG (session->session_index), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA384_HASH_LENGTH));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session->hash_size = SHA384_HASH_LENGTH;
+	session->base_hash_algo = SPDM_TPM_ALG_SHA_384;
+	status = session_manager->generate_session_data_keys (session_manager, session);
+	CuAssertIntEquals (test, SPDM_TRANSCRIPT_MANAGER_GET_HASH_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t aead_tag_size = 16;
+	size_t encrypted_payload_length = 64;
+	struct spdm_secured_message_data_header_1 *record_header_1;
+	struct spdm_secured_message_data_header_2 *record_header_2;
+	struct spdm_secured_message_cipher_header *enc_msg_header;
+	uint8_t aes_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.request_data_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+	session->aead_key_size = 32;
+	memcpy (session->data_secret.request_data_encryption_key, aes_key, 32);
+	session->aead_iv_size = 12;
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size) +
+		encrypted_payload_length;
+	request.payload = buf;
+
+	record_header_1 = (void*) request.payload;
+	record_header_2 =  (void*)((uint8_t *) record_header_1 + 
+		sizeof (struct spdm_secured_message_data_header_1));
+	record_header_2->length = encrypted_payload_length + aead_tag_size;
+
+	enc_msg_header = (void*) (record_header_2 + 1);
+	enc_msg_header->application_data_length = encrypted_payload_length - 1;
+
+	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
+		0, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
+
+	status |= mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.decrypt_with_add_data,
+		&testing.aes_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, enc_msg_header->application_data_length , request.payload_length);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_invalid_param (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	struct cmd_interface_msg request;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	
+	/* session_manager = NULL */
+	status = session_manager->decode_secure_message (NULL, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	/* request = NULL */
+	status = session_manager->decode_secure_message (session_manager, NULL);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_payload_lt_min (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	struct cmd_interface_msg request = {0};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	request.payload_length = sizeof (struct spdm_secured_message_data_header_1) - 1;
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST, status);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_no_session (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = sizeof (struct spdm_secured_message_data_header_1);
+	request.payload = buf;
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST, status);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_session_state_handshaking (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_HANDSHAKING;
+	session->handshake_secret.request_handshake_sequence_number =
+		SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER;
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = sizeof (struct spdm_secured_message_data_header_1);
+	request.payload = buf;
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_SEQUENCE_NUMBER_OVERFLOW, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_session_state_established (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.request_data_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER;
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = sizeof (struct spdm_secured_message_data_header_1);
+	request.payload = buf;
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_SEQUENCE_NUMBER_OVERFLOW, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t aead_tag_size = 16;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.request_data_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size) - 1;
+	request.payload = buf;
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_MESSAGE_SIZE, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_2 (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t aead_tag_size = 16;
+	size_t encrypted_payload_length = 64;
+	struct spdm_secured_message_data_header_1 *record_header_1;
+	struct spdm_secured_message_data_header_2 *record_header_2;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.request_data_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size) +
+		encrypted_payload_length;
+	request.payload = buf;
+
+	record_header_1 = (void*) request.payload;
+	record_header_2 =  (void*)((uint8_t *) record_header_1 + 
+		sizeof (struct spdm_secured_message_data_header_1));
+	record_header_2->length = encrypted_payload_length + aead_tag_size + 1;
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_MESSAGE_SIZE, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_3 (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t aead_tag_size = 16;
+	size_t encrypted_payload_length = 64;
+	struct spdm_secured_message_data_header_1 *record_header_1;
+	struct spdm_secured_message_data_header_2 *record_header_2;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.request_data_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size) +
+		encrypted_payload_length;
+	request.payload = buf;
+
+	record_header_1 = (void*) request.payload;
+	record_header_2 =  (void*)((uint8_t *) record_header_1 + 
+		sizeof (struct spdm_secured_message_data_header_1));
+	record_header_2->length = aead_tag_size - 1;
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_MESSAGE_SIZE, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_4 (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t aead_tag_size = 16;
+	size_t encrypted_payload_length = 64;
+	struct spdm_secured_message_data_header_1 *record_header_1;
+	struct spdm_secured_message_data_header_2 *record_header_2;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.request_data_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size) +
+		encrypted_payload_length;
+	request.payload = buf;
+
+	record_header_1 = (void*) request.payload;
+	record_header_2 =  (void*)((uint8_t *) record_header_1 + 
+		sizeof (struct spdm_secured_message_data_header_1));
+	record_header_2->length = encrypted_payload_length + aead_tag_size - 1;
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_MESSAGE_SIZE, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_set_key_fail (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t aead_tag_size = 16;
+	size_t encrypted_payload_length = 64;
+	struct spdm_secured_message_data_header_1 *record_header_1;
+	struct spdm_secured_message_data_header_2 *record_header_2;
+	uint8_t aes_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.request_data_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+	session->aead_key_size = 32;
+	memcpy (session->data_secret.request_data_encryption_key, aes_key, 32);
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size) +
+		encrypted_payload_length;
+	request.payload = buf;
+
+	record_header_1 = (void*) request.payload;
+	record_header_2 =  (void*)((uint8_t *) record_header_1 + 
+		sizeof (struct spdm_secured_message_data_header_1));
+	record_header_2->length = encrypted_payload_length + aead_tag_size;
+
+	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
+		AES_ENGINE_SET_KEY_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)),
+		MOCK_ARG (sizeof (aes_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, AES_ENGINE_SET_KEY_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_decrypt_with_add_data_fail (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t aead_tag_size = 16;
+	size_t encrypted_payload_length = 64;
+	struct spdm_secured_message_data_header_1 *record_header_1;
+	struct spdm_secured_message_data_header_2 *record_header_2;
+	uint8_t aes_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.request_data_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+	session->aead_key_size = 32;
+	memcpy (session->data_secret.request_data_encryption_key, aes_key, 32);
+	session->aead_iv_size = 12;
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size) +
+		encrypted_payload_length;
+	request.payload = buf;
+
+	record_header_1 = (void*) request.payload;
+	record_header_2 =  (void*)((uint8_t *) record_header_1 + 
+		sizeof (struct spdm_secured_message_data_header_1));
+	record_header_2->length = encrypted_payload_length + aead_tag_size;
+
+	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
+		0, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
+
+	status |= mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.decrypt_with_add_data,
+		&testing.aes_mock, AES_ENGINE_DECRYPT_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, AES_ENGINE_DECRYPT_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_decode_secure_message_plaintext_size_gt_ciphertext_size (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_secured_message_data_header_1* secured_message_data_header_1 = (void *)buf;
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t aead_tag_size = 16;
+	size_t encrypted_payload_length = 64;
+	struct spdm_secured_message_data_header_1 *record_header_1;
+	struct spdm_secured_message_data_header_2 *record_header_2;
+	struct spdm_secured_message_cipher_header *enc_msg_header;
+	uint8_t aes_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.request_data_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+	session->aead_key_size = 32;
+	memcpy (session->data_secret.request_data_encryption_key, aes_key, 32);
+	session->aead_iv_size = 12;
+
+	secured_message_data_header_1->session_id = 0xDEADBEEF;
+	request.payload_length = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size) +
+		encrypted_payload_length;
+	request.payload = buf;
+
+	record_header_1 = (void*) request.payload;
+	record_header_2 =  (void*)((uint8_t *) record_header_1 + 
+		sizeof (struct spdm_secured_message_data_header_1));
+	record_header_2->length = encrypted_payload_length + aead_tag_size;
+
+	enc_msg_header = (void*) (record_header_2 + 1);
+	enc_msg_header->application_data_length = encrypted_payload_length + 1;
+
+	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
+		0, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
+
+	status |= mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.decrypt_with_add_data,
+		&testing.aes_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager->decode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_MESSAGE_SIZE, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_encode_secure_message_finish_response (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t plaintext_payload_length = 64;
+	size_t aead_tag_size = 16;
+	uint8_t aes_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.response_data_sequence_number =
+		SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+	session->aead_key_size = 32;
+	memcpy (session->data_secret.response_data_encryption_key, aes_key, 32);
+	session->aead_iv_size = 12;
+
+	request.payload_length = plaintext_payload_length;
+	request.max_response = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size + 
+		plaintext_payload_length + sizeof (struct spdm_secured_message_cipher_header));
+	request.payload = buf + sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) +
+		sizeof (struct spdm_secured_message_cipher_header);
+	((struct spdm_protocol_header*) request.payload)->req_rsp_code = SPDM_RESPONSE_FINISH;
+
+	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
+		0, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
+
+	status |= mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.encrypt_with_add_data,
+		&testing.aes_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager->encode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_SESSION_STATE_ESTABLISHED, session->session_state);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_encode_secure_message_end_session_response (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t plaintext_payload_length = 64;
+	size_t aead_tag_size = 16;
+	uint8_t aes_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.response_data_sequence_number =
+		SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+	session->aead_key_size = 32;
+	memcpy (session->data_secret.response_data_encryption_key, aes_key, 32);
+	session->aead_iv_size = 12;
+
+	request.payload_length = plaintext_payload_length;
+	request.max_response = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size + 
+		plaintext_payload_length + sizeof (struct spdm_secured_message_cipher_header));
+	request.payload = buf + sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) +
+		sizeof (struct spdm_secured_message_cipher_header);
+	((struct spdm_protocol_header*) request.payload)->req_rsp_code = SPDM_RESPONSE_END_SESSION;
+
+	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
+		0, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
+
+	status |= mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.encrypt_with_add_data,
+		&testing.aes_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager->encode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_encode_secure_message_invalid_param (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	struct cmd_interface_msg request;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	
+	/* session_manager = NULL */
+	status = session_manager->encode_secure_message (NULL, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	/* request = NULL */
+	status = session_manager->encode_secure_message (session_manager, NULL);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT, status);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_encode_secure_message_last_spdm_request_secure_session_id_invalid (CuTest *test)
+{
+	int status;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	struct cmd_interface_msg request;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	
+	session_manager->state->last_spdm_request_secure_session_id_valid = false;
+
+	status = session_manager->encode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR, status);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_encode_secure_message_no_session (CuTest *test)
+{
+	int status;
+	struct cmd_interface_msg request;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = 0xDEADBEEF;
+
+	status = session_manager->encode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR, status);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_session_state_handshaking (CuTest *test)
+{
+	int status;
+	struct cmd_interface_msg request;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_HANDSHAKING;
+	session->handshake_secret.response_handshake_sequence_number =
+		SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER;
+
+	status = session_manager->encode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_SEQUENCE_NUMBER_OVERFLOW, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_session_state_established (CuTest *test)
+{
+	int status;
+	struct cmd_interface_msg request;
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.response_data_sequence_number =
+		SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER;
+
+	status = session_manager->encode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_SEQUENCE_NUMBER_OVERFLOW, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_encode_secure_message_max_response_size_lt_required (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t plaintext_payload_length = 64;
+	size_t aead_tag_size = 16;
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.response_data_sequence_number =
+		SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+
+	request.payload_length = plaintext_payload_length;
+	request.max_response = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size + 
+		plaintext_payload_length + sizeof (struct spdm_secured_message_cipher_header)) - 1;
+	request.payload = buf;
+
+	status = session_manager->encode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, SPDM_SECURE_SESSION_MANAGER_BUFFER_TOO_SMALL, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_encode_secure_message_set_key_fail (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t plaintext_payload_length = 64;
+	size_t aead_tag_size = 16;
+	uint8_t aes_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.response_data_sequence_number =
+		SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+	session->aead_key_size = 32;
+	memcpy (session->data_secret.response_data_encryption_key, aes_key, 32);
+
+	request.payload_length = plaintext_payload_length;
+	request.max_response = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size + 
+		plaintext_payload_length + sizeof (struct spdm_secured_message_cipher_header));
+	request.payload = buf;
+
+	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
+		AES_ENGINE_SET_KEY_FAILED, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)),
+		MOCK_ARG (sizeof (aes_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager->encode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, AES_ENGINE_SET_KEY_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
+
+static void spdm_secure_session_manager_test_encode_secure_message_encrypt_with_add_data_fail (CuTest *test)
+{
+	int status;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg request = {0};
+	struct spdm_secure_session_manager_testing testing;
+	struct spdm_secure_session_manager* session_manager;
+	uint32_t session_id = 0xDEADBEEF;
+	struct spdm_secure_session *session;
+	struct spdm_connection_info connection_info;
+	size_t plaintext_payload_length = 64;
+	size_t aead_tag_size = 16;
+	uint8_t aes_key[] = {
+		0xf1,0x3b,0x43,0x16,0x2c,0xe4,0x05,0x75,0x73,0xc5,0x54,0x10,0xad,0xd5,0xc5,0xc6,
+		0x0e,0x9a,0x37,0xff,0x3e,0xa0,0x02,0x34,0xd6,0x41,0x80,0xfa,0x1a,0x0e,0x0a,0x04
+	};
+
+	TEST_START;
+
+	spdm_secure_session_manager_testing_init (test, &testing);
+	session_manager = &testing.session_manager;
+	session_manager->state->last_spdm_request_secure_session_id_valid = true;
+	session_manager->state->last_spdm_request_secure_session_id = session_id;
+
+	status = mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_TH),
+		MOCK_ARG (true), MOCK_ARG (0));
+
+	status |= mock_expect (&testing.transcript_manager_mock.mock,
+		testing.transcript_manager_mock.base.reset_session_transcript,
+		&testing.transcript_manager_mock.base, 0, MOCK_ARG (0));
+
+	CuAssertIntEquals (test, 0, status);
+
+	session = session_manager->create_session (session_manager, session_id, false, &connection_info);
+	CuAssertPtrNotNull (test, session);
+
+	session->session_state = SPDM_SESSION_STATE_ESTABLISHED;
+	session->data_secret.response_data_sequence_number =
+		SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER - 1;
+	session->aead_tag_size = aead_tag_size;
+	session->session_type = SPDM_SESSION_TYPE_ENC_MAC;
+	session->aead_key_size = 32;
+	memcpy (session->data_secret.response_data_encryption_key, aes_key, 32);
+	session->aead_iv_size = 12;
+
+	request.payload_length = plaintext_payload_length;
+	request.max_response = (sizeof (struct spdm_secured_message_data_header_1) +
+		sizeof (struct spdm_secured_message_data_header_2) + aead_tag_size + 
+		plaintext_payload_length + sizeof (struct spdm_secured_message_cipher_header));
+	request.payload = buf;
+
+	status = mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.set_key, &testing.aes_mock,
+		0, MOCK_ARG_PTR_CONTAINS_TMP (aes_key, sizeof (aes_key)), MOCK_ARG (sizeof (aes_key)));
+
+	status |= mock_expect (&testing.aes_mock.mock, testing.aes_mock.base.encrypt_with_add_data,
+		&testing.aes_mock, AES_ENGINE_DECRYPT_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = session_manager->encode_secure_message (session_manager, &request);
+	CuAssertIntEquals (test, AES_ENGINE_DECRYPT_FAILED, status);
+
+	session_manager->release_session (session_manager, session_id);
+
+	spdm_secure_session_manager_testing_release (test, &testing);
+}
 
 TEST_SUITE_START (spdm_secure_session_manager);
 
@@ -1204,6 +2798,35 @@ TEST (spdm_secure_session_manager_test_generate_shared_secret_ecc_der_encode_pub
 TEST (spdm_secure_session_manager_test_generate_shared_secret_init_public_key_fail);
 TEST (spdm_secure_session_manager_test_generate_shared_secret_generate_key_pair_fail);
 TEST (spdm_secure_session_manager_test_generate_shared_secret_get_public_key_der_fail);
-/* [TODO] TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_*);*/
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_invalid_param);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_get_hash_fail);
+TEST (spdm_secure_session_manager_test_generate_session_handshake_keys_hash_generate_hmac_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_key);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_invalid_param);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_kdf_hkdf_expand_fail);
+TEST (spdm_secure_session_manager_test_generate_session_data_keys_get_hash_fail);
+TEST (spdm_secure_session_manager_test_decode_secure_message);
+TEST (spdm_secure_session_manager_test_decode_secure_message_invalid_param);
+TEST (spdm_secure_session_manager_test_decode_secure_message_payload_lt_min);
+TEST (spdm_secure_session_manager_test_decode_secure_message_no_session);
+TEST (spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_session_state_handshaking);
+TEST (spdm_secure_session_manager_test_decode_secure_message_sequence_number_overflow_session_state_established);
+TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length);
+TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_2);
+TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_3);
+TEST (spdm_secure_session_manager_test_decode_secure_message_payload_incorrect_length_4);
+TEST (spdm_secure_session_manager_test_decode_secure_message_set_key_fail);
+TEST (spdm_secure_session_manager_test_decode_secure_message_decrypt_with_add_data_fail);
+TEST (spdm_secure_session_manager_test_decode_secure_message_plaintext_size_gt_ciphertext_size);
+TEST (spdm_secure_session_manager_test_encode_secure_message_finish_response);
+TEST (spdm_secure_session_manager_test_encode_secure_message_end_session_response);
+TEST (spdm_secure_session_manager_test_encode_secure_message_invalid_param);
+TEST (spdm_secure_session_manager_test_encode_secure_message_last_spdm_request_secure_session_id_invalid);
+TEST (spdm_secure_session_manager_test_encode_secure_message_no_session);
+TEST (spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_session_state_handshaking);
+TEST (spdm_secure_session_manager_test_encode_secure_message_sequence_number_overflow_session_state_established);
+TEST (spdm_secure_session_manager_test_encode_secure_message_max_response_size_lt_required);
+TEST (spdm_secure_session_manager_test_encode_secure_message_set_key_fail);
+TEST (spdm_secure_session_manager_test_encode_secure_message_encrypt_with_add_data_fail);
 
 TEST_SUITE_END;

@@ -1082,6 +1082,65 @@ struct spdm_key_exchange_response {
 };
 
 /**
+ * SPDM FINISH request format.
+ */
+struct spdm_finish_request {
+	struct spdm_protocol_header header;		/**< Message header */
+	uint8_t signature_included;				/**< Signature included. */
+	uint8_t req_slot_id;					/**< Slot number of the Requester certificate chain that shall be used for authentication. */
+};
+
+/**
+ *  SPDM FINISH request signature_included
+ */
+#define SPDM_FINISH_REQUEST_ATTRIBUTES_SIGNATURE_INCLUDED	0x00000001
+
+/**
+ *  SPDM FINISH response format
+ */
+struct spdm_finish_response {
+	struct spdm_protocol_header header;		/**< Message header */
+	uint8_t reserved1;						/**< Reserved */
+	uint8_t reserved2;						/**< Reserved */
+};
+
+/**
+ * Policy to either generate SPDM_ERROR_CODE_DECRYPT_ERROR response or drop the request silently.
+ * If bit0 = 0 of handle_error_return_policy, generate SPDM_ERROR_CODE_DECRYPT_ERROR response.
+ * If bit0 = 1, drop the request silently.
+ */
+#define SPDM_DATA_HANDLE_ERROR_RETURN_POLICY_DROP_ON_DECRYPT_ERROR		0x1
+
+/**
+ * SPDM END SESSION 'Negotiated State Preservation Indicator' format per DSP0274 Table 77.
+ */
+struct spdm_end_session_request_attributes {
+	uint8_t negotiated_state_preservation_indicator:1;	/**< State preservation config */
+	uint8_t reserved:7;									/**< Reserved */
+};
+
+/**
+ *  SPDM END_SESSION request format.
+ */
+struct spdm_end_session_request {
+	struct spdm_protocol_header header;									/**< Message header */
+	struct spdm_end_session_request_attributes end_session_attributes;	/**< Request attributes */
+	uint8_t reserved;													/**< Reserved */
+};
+
+/* SPDM END_SESSION request Attributes */
+#define SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR		0x00000001
+
+/**
+ *  SPDM END_SESSION response format.
+ */
+struct spdm_end_session_response {
+	struct spdm_protocol_header header;		/**< Message header */
+	uint8_t reserved1;						/**< Reserved */
+	uint8_t reserved2;						/**< Reserved */
+};
+
+/**
  * SPDM KEY_UPDATE request format.
  */
 struct spdm_key_update_request {
@@ -1103,6 +1162,15 @@ struct spdm_key_update_request {
  * @param resp Buffer with struct spdm_key_exchange_response
  */
 #define	spdm_key_exchange_resp_exchange_data(resp)	(((uint8_t*) resp) + sizeof (struct spdm_key_exchange_response))
+
+/**
+ * Get the requester's HMAC ptr.
+ * 
+ * @param rq Buffer with struct spdm_finish_request
+ */
+#define	spdm_finish_rq_hmac(rq, sig_size)	\
+	(((uint8_t*) rq) + sizeof (struct spdm_finish_request) + sig_size)
+
 
 #pragma pack(pop)
 
@@ -1203,6 +1271,10 @@ struct spdm_connection_info {
 	struct spdm_device_capability peer_capabilities;	/**< Peer capabilities. */
 	struct spdm_device_algorithms peer_algorithms;		/**< Negotiated algorithms. */
 	struct spdm_version_number secure_message_version;	/**< Negotiated secure message version. */
+	/** Specifies whether the cached negotiated state should be invalidated. (responder only)
+	 * This is a sticky bit wherein if it is set to 1 then it cannot be set to 0.
+	 */
+	struct spdm_end_session_request_attributes end_session_attributes;
 };
 
 /**
@@ -1221,13 +1293,11 @@ enum spdm_response_state {
  * SPDM context for a requester/responder.
  */
 struct spdm_state {
-	uint32_t last_spdm_request_session_id;				/**< Session Id of last secured message. [TODO] This will be moved to the session manager */
-	bool last_spdm_request_session_id_valid; 			/**< Session Id validity. [TODO] This will be moved to the session manager */
 	struct spdm_connection_info connection_info;		/**< Connection info. */
 	enum spdm_response_state response_state; 			/**< Responder response state */
 	uint64_t max_spdm_session_sequence_number;			/**< Max SPDM session sequence number. */
-	uint8_t sequence_number_endian;						/**< Sequence number endianness. */
 	uint16_t current_local_session_id; 					/**< Current local session Id. */
+	uint8_t handle_error_return_policy;					/**< Handle error return policy. */
 };
 
 /* TODO:  This is a temporary work-around in the absence of a SPDM connection handler that is
@@ -1292,6 +1362,12 @@ int spdm_generate_respond_if_ready_request (uint8_t *buf, size_t buf_len,
 	uint8_t original_request_code, uint8_t token, uint8_t spdm_minor_version);
 
 int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
+
+int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
+	struct cmd_interface_msg *request);
+
+int spdm_end_session (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request);
 
 int spdm_format_signature_digest (struct hash_engine *hash, enum hash_type hash_type,
