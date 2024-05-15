@@ -16225,8 +16225,8 @@ static void spdm_test_key_exchange (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -16273,13 +16273,13 @@ static void spdm_test_key_exchange (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -16331,7 +16331,7 @@ static void spdm_test_key_exchange (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_session_handshake_keys,
-		&testing.session_manager_mock.base, 0, MOCK_ARG (&secure_session));
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
@@ -17587,7 +17587,7 @@ static void spdm_test_key_exchange_create_session_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		0, MOCK_ARG_NOT_NULL, MOCK_ARG (false), MOCK_ARG (&spdm_state->connection_info));
+		0, MOCK_ARG_NOT_NULL, MOCK_ARG (false), MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -17709,8 +17709,8 @@ static void spdm_test_key_exchange_device_cert_null (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base,
@@ -17838,8 +17838,8 @@ static void spdm_test_key_exchange_device_zero_length (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base,
@@ -17967,8 +17967,8 @@ static void spdm_test_key_exchange_alias_cert_null (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base,
@@ -18096,8 +18096,8 @@ static void spdm_test_key_exchange_alias_cert_zero_length (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base,
@@ -18225,8 +18225,8 @@ static void spdm_test_key_exchange_unsuported_hash_algo (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base,
@@ -18354,8 +18354,8 @@ static void spdm_test_key_exchange_cert_chain_update_header_hash_fail (CuTest *t
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -18500,8 +18500,8 @@ static void spdm_test_key_exchange_cert_chain_update_cert_hash_fail (CuTest *tes
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -18651,8 +18651,8 @@ static void spdm_test_key_exchange_cert_chain_finish_hash_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -18808,8 +18808,8 @@ static void spdm_test_key_exchange_add_cert_chain_hash_to_th_session_hash_contex
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -18967,8 +18967,8 @@ static void spdm_test_key_exchange_add_request_to_transcript_hash_fail (CuTest *
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -19143,8 +19143,8 @@ static void spdm_test_key_exchange_insufficient_response_buffer (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -19311,8 +19311,8 @@ static void spdm_test_key_exchange_generate_random_buffer_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -19481,8 +19481,8 @@ static void spdm_test_key_exchange_generate_shared_secret_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -19529,7 +19529,7 @@ static void spdm_test_key_exchange_generate_shared_secret_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		SPDM_SECURE_SESSION_MANAGER_GENERATE_SHARED_SECRET_FAILED, MOCK_ARG (&secure_session),
+		SPDM_SECURE_SESSION_MANAGER_GENERATE_SHARED_SECRET_FAILED, MOCK_ARG_PTR (&secure_session),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
@@ -19656,8 +19656,8 @@ static void spdm_test_key_exchange_get_measurement_summary_hash_fail (CuTest *te
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -19704,13 +19704,13 @@ static void spdm_test_key_exchange_get_measurement_summary_hash_fail (CuTest *te
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, SPDM_MEASUREMENTS_GET_SUMMARY_FAILED,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -19848,8 +19848,8 @@ static void spdm_test_key_exchange_add_response_to_transcript_hash_fail (CuTest 
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -19896,13 +19896,13 @@ static void spdm_test_key_exchange_add_response_to_transcript_hash_fail (CuTest 
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -20047,8 +20047,8 @@ static void spdm_test_key_exchange_signature_generation_get_hash_fail (CuTest *t
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -20095,13 +20095,13 @@ static void spdm_test_key_exchange_signature_generation_get_hash_fail (CuTest *t
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -20252,8 +20252,8 @@ static void spdm_test_key_exchange_signature_generation_init_key_pair_fail (CuTe
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -20300,13 +20300,13 @@ static void spdm_test_key_exchange_signature_generation_init_key_pair_fail (CuTe
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -20462,8 +20462,8 @@ static void spdm_test_key_exchange_signature_generation_get_signature_max_length
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -20510,13 +20510,13 @@ static void spdm_test_key_exchange_signature_generation_get_signature_max_length
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -20679,8 +20679,8 @@ static void spdm_test_key_exchange_signature_generation_hmac_calculation_fail (C
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -20727,13 +20727,13 @@ static void spdm_test_key_exchange_signature_generation_hmac_calculation_fail (C
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -20903,8 +20903,8 @@ static void spdm_test_key_exchange_signature_generation_v_1_2_sig_req_sign_fail 
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -20951,13 +20951,13 @@ static void spdm_test_key_exchange_signature_generation_v_1_2_sig_req_sign_fail 
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -21134,8 +21134,8 @@ static void spdm_test_key_exchange_signature_generation_ecc_der_decode_ecdsa_sig
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -21182,13 +21182,13 @@ static void spdm_test_key_exchange_signature_generation_ecc_der_decode_ecdsa_sig
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -21366,8 +21366,8 @@ static void spdm_test_key_exchange_add_signature_to_th_session_hash_context_fail
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -21414,13 +21414,13 @@ static void spdm_test_key_exchange_add_signature_to_th_session_hash_context_fail
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -21604,8 +21604,8 @@ static void spdm_test_key_exchange_generate_session_handshake_keys_fail (CuTest 
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -21652,13 +21652,13 @@ static void spdm_test_key_exchange_generate_session_handshake_keys_fail (CuTest 
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -21712,7 +21712,7 @@ static void spdm_test_key_exchange_generate_session_handshake_keys_fail (CuTest 
 		testing.session_manager_mock.base.generate_session_handshake_keys,
 		&testing.session_manager_mock.base,
 		SPDM_SECURE_SESSION_MANAGER_GENERATE_HANDSHAKE_KEYS_FAILED,
-		MOCK_ARG (&secure_session));
+		MOCK_ARG_PTR (&secure_session));
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.release_session, &testing.session_manager_mock.base,
@@ -21848,8 +21848,8 @@ static void spdm_test_key_exchange_hmac_generation_get_hash_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -21896,13 +21896,13 @@ static void spdm_test_key_exchange_hmac_generation_get_hash_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -21954,7 +21954,7 @@ static void spdm_test_key_exchange_hmac_generation_get_hash_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_session_handshake_keys,
-		&testing.session_manager_mock.base, 0, MOCK_ARG (&secure_session));
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
@@ -22097,8 +22097,8 @@ static void spdm_test_key_exchange_add_hmac_to_th_session_transcript_fail (CuTes
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.create_session, &testing.session_manager_mock.base,
-		(int64_t) &secure_session, MOCK_ARG_NOT_NULL, MOCK_ARG (false),
-		MOCK_ARG (&spdm_state->connection_info));
+		MOCK_RETURN_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG (false),
+		MOCK_ARG_PTR (&spdm_state->connection_info));
 
 	status |= mock_expect (&testing.hash_engine_mock[0].mock,
 		testing.hash_engine_mock[0].base.calculate_sha384,
@@ -22145,13 +22145,13 @@ static void spdm_test_key_exchange_add_hmac_to_th_session_transcript_fail (CuTes
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_shared_secret, &testing.session_manager_mock.base,
-		0, MOCK_ARG (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+		0, MOCK_ARG_PTR (&secure_session), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.measurements_mock.mock,
 		testing.measurements_mock.base.get_measurement_summary_hash,
 		&testing.measurements_mock.base, 0,
-		MOCK_ARG (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
-		MOCK_ARG (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
+		MOCK_ARG_PTR (testing.hash_engine[0]), MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_PTR (testing.hash_engine[1]), MOCK_ARG (HASH_TYPE_SHA384), 
 		MOCK_ARG (rq->measurement_summary_hash_type == SPDM_MEASUREMENT_SUMMARY_HASH_TCB),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (SHA384_HASH_LENGTH));
 
@@ -22203,7 +22203,7 @@ static void spdm_test_key_exchange_add_hmac_to_th_session_transcript_fail (CuTes
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_session_handshake_keys,
-		&testing.session_manager_mock.base, 0, MOCK_ARG (&secure_session));
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&secure_session));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.get_hash, &testing.transcript_manager_mock,
@@ -22306,7 +22306,7 @@ static void spdm_test_finish (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
@@ -22370,7 +22370,7 @@ static void spdm_test_finish (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_session_data_keys,
-		&testing.session_manager_mock.base, 0, MOCK_ARG (&session));
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&session));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -22788,7 +22788,7 @@ static void spdm_test_finish_last_request_session_state_invalid (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -22849,7 +22849,7 @@ static void spdm_test_finish_signature_included (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -22911,7 +22911,7 @@ static void spdm_test_finish_request_size_invalid_2 (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -22975,7 +22975,7 @@ static void spdm_test_finish_add_request_to_transcript_hash_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
@@ -23057,7 +23057,7 @@ static void spdm_test_finish_verify_finish_req_hmac_get_hash_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
@@ -23148,7 +23148,7 @@ static void spdm_test_finish_verify_finish_req_hmac_hash_generate_hmac_fail (CuT
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
@@ -23240,7 +23240,7 @@ static void spdm_test_finish_verify_finish_req_hmac_match_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
@@ -23359,7 +23359,7 @@ static void spdm_test_finish_add_hmac_to_transcript_hash_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
@@ -23482,7 +23482,7 @@ static void spdm_test_finish_add_response_to_transcript_hash_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
@@ -23612,7 +23612,7 @@ static void spdm_test_finish_generate_session_data_keys_fail (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
@@ -23678,7 +23678,7 @@ static void spdm_test_finish_generate_session_data_keys_fail (CuTest *test)
 		testing.session_manager_mock.base.generate_session_data_keys,
 		&testing.session_manager_mock.base,
 		SPDM_SECURE_SESSION_MANAGER_GENERATE_DATA_KEYS_FAILED,
-		MOCK_ARG (&session));
+		MOCK_ARG_PTR (&session));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -23741,7 +23741,7 @@ static void spdm_test_end_session (CuTest *test)
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
@@ -24166,7 +24166,7 @@ static void spdm_test_end_session_last_request_session_state_invalid (CuTest *te
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	CuAssertIntEquals (test, 0, status);
 

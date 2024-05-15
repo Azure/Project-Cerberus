@@ -2526,7 +2526,7 @@ static void cmd_interface_spdm_responder_test_process_request_finish (CuTest *te
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,
@@ -2590,7 +2590,7 @@ static void cmd_interface_spdm_responder_test_process_request_finish (CuTest *te
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.generate_session_data_keys,
-		&testing.session_manager_mock.base, 0, MOCK_ARG (&session));
+		&testing.session_manager_mock.base, 0, MOCK_ARG_PTR (&session));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2711,7 +2711,7 @@ static void cmd_interface_spdm_responder_test_process_request_end_session (CuTes
 
 	status |= mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.get_session,
-		&testing.session_manager_mock.base, (int64_t) &session, MOCK_ARG (0xDEADBEEF));
+		&testing.session_manager_mock.base, MOCK_RETURN_PTR (&session), MOCK_ARG (0xDEADBEEF));
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript, &testing.transcript_manager_mock.base,

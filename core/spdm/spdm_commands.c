@@ -1473,7 +1473,7 @@ static int spdm_verify_finish_req_hmac (const struct spdm_transcript_manager *tr
 	/* Generate the HMAC with the Requester Finished key. */
 	status = hash_generate_hmac (hash_engine,
 		session->handshake_secret.request_finished_key, session->hash_size, th_hash,
-		session->hash_size,  spdm_get_hash_type (session->base_hash_algo), hmac_computed,
+		session->hash_size, (enum hmac_hash) spdm_get_hash_type (session->base_hash_algo), hmac_computed,
 		hmac_size);
 	if (status != 0) {
 		goto exit;
@@ -3788,7 +3788,7 @@ exit:
 int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request)
 {
-	int status;
+	int status = 0;
 	int spdm_error;
 	uint8_t spdm_version;
 	struct spdm_finish_request *spdm_request;

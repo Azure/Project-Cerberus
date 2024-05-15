@@ -123,7 +123,7 @@ static int spdm_secure_session_manager_mock_generate_session_data_keys (
 	}
 
 	MOCK_RETURN (&mock->mock, spdm_secure_session_manager_mock_generate_session_data_keys,
-		session_manager, MOCK_ARG_CALL (session));
+		session_manager, MOCK_ARG_PTR_CALL (session));
 }
 
 static bool spdm_secure_session_manager_is_last_session_id_valid (
